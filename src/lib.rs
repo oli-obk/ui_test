@@ -25,6 +25,7 @@ use crate::dependencies::build_dependencies;
 use crate::parser::{Comments, Condition};
 
 mod dependencies;
+mod diff;
 mod parser;
 mod rustc_stderr;
 #[cfg(test)]
@@ -322,11 +323,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
                         expected,
                     } => {
                         eprintln!("actual output differed from expected {}", path.display());
-                        eprintln!(
-                            "{}",
-                            pretty_assertions::StrComparison::new(expected, actual)
-                        );
-                        eprintln!()
+                        diff::print_diff(expected, actual);
                     }
                     Error::ErrorsWithoutPattern { path: None, msgs } => {
                         eprintln!(
