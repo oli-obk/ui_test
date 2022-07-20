@@ -47,7 +47,7 @@ actual output differed from expected tests/actual_tests/foomp.stderr
 ~ --> $DIR/$DIR/src/lib.rs:1:8
 ... 2 lines skipped
 ~  |        ^^^ some expected text that isn't in the actual message
-... 1 lines skipped
+ 
 -error: aborting doo to previous error
 +error: aborting due to previous error
 ... 3 lines skipped ...
