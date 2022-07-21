@@ -40,12 +40,12 @@ tests/actual_tests/foomp.rs FAILED:
 command: "rustc" "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs"
 
 actual output differed from expected tests/actual_tests/foomp.stderr
-... 5 lines skipped
+... 5 lines skipped ...
 +  |     |
 +  |     arguments to this function are incorrect
-... 2 lines skipped
+... 2 lines skipped ...
 ~ --> $DIR/$DIR/src/lib.rs:1:8
-... 2 lines skipped
+... 2 lines skipped ...
 ~  |        ^^^ some expected text that isn't in the actual message
  
 -error: aborting doo to previous error
