@@ -2,6 +2,8 @@
 name = "ui_test"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A test framework for testing rustc diagnostics output"
 
 [lib]
 test = true # we have unit tests
