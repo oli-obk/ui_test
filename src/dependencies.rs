@@ -40,7 +40,10 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
     let setup_command = |cmd: &mut Command| {
         cmd.envs(envs.iter().map(|(k, v)| (k, v)));
         cmd.arg("--manifest-path").arg(manifest_path);
-        if matches!(config.output_conflict_handling, OutputConflictHandling::Error) {
+        if matches!(
+            config.output_conflict_handling,
+            OutputConflictHandling::Error
+        ) {
             cmd.arg("--locked");
         }
     };
@@ -124,13 +127,19 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
                     .id;
                 // Return the name chosen in `Cargo.toml` and the path to the corresponding artifact
                 (
-                    package.rename.clone().unwrap_or_else(|| package.name.clone()),
+                    package
+                        .rename
+                        .clone()
+                        .unwrap_or_else(|| package.name.clone()),
                     artifacts.remove(id).expect("package without artifact"),
                 )
             })
             .collect();
         let import_paths = import_paths.into_iter().collect();
-        return Ok(Dependencies { dependencies, import_paths });
+        return Ok(Dependencies {
+            dependencies,
+            import_paths,
+        });
     }
 
     bail!("no json found in cargo-metadata output")
