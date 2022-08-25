@@ -18,8 +18,12 @@ fn main() {
     assert_eq!(comments.error_matches[0].definition_line, 5);
     assert_eq!(comments.error_matches[0].revision, None);
     match &comments.error_matches[0].pattern {
-        Pattern::SubString(s) =>
-            assert_eq!(s, "encountered a dangling reference (address $HEX is unallocated)"),
+        Pattern::SubString(s) => {
+            assert_eq!(
+                s,
+                "encountered a dangling reference (address $HEX is unallocated)"
+            )
+        }
         other => panic!("expected substring, got {other:?}"),
     }
 }
@@ -33,7 +37,10 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ encountered a dangling reference (address $HEX is unallocated)
 }
     ";
-    assert!(Comments::parse(Path::new("<dummy>"), s).is_err(), "expected parsing to fail");
+    assert!(
+        Comments::parse(Path::new("<dummy>"), s).is_err(),
+        "expected parsing to fail"
+    );
 }
 
 #[test]
@@ -71,7 +78,10 @@ fn parse_slash_slash_at_fail() {
 use std::mem;
 
     ";
-    assert!(Comments::parse(Path::new("<dummy>"), s).is_err(), "expected parsing to fail");
+    assert!(
+        Comments::parse(Path::new("<dummy>"), s).is_err(),
+        "expected parsing to fail"
+    );
 }
 
 #[test]
@@ -81,5 +91,8 @@ fn missing_colon_fail() {
 use std::mem;
 
     ";
-    assert!(Comments::parse(Path::new("<dummy>"), s).is_err(), "expected parsing to fail");
+    assert!(
+        Comments::parse(Path::new("<dummy>"), s).is_err(),
+        "expected parsing to fail"
+    );
 }

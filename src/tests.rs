@@ -44,12 +44,21 @@ fn main() {
             }
         ]
     ];
-    check_annotations(messages, vec![], Path::new("moobar"), &mut errors, &config, "", &comments);
+    check_annotations(
+        messages,
+        vec![],
+        Path::new("moobar"),
+        &mut errors,
+        &config,
+        "",
+        &comments,
+    );
     match &errors[..] {
-        [
-            Error::PatternNotFound { definition_line: 5, .. },
-            Error::ErrorsWithoutPattern { path: Some((_, 5)), .. },
-        ] => {}
+        [Error::PatternNotFound {
+            definition_line: 5, ..
+        }, Error::ErrorsWithoutPattern {
+            path: Some((_, 5)), ..
+        }] => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -109,10 +118,11 @@ fn main() {
             &comments,
         );
         match &errors[..] {
-            [
-                Error::PatternNotFound { definition_line: 5, .. },
-                Error::ErrorsWithoutPattern { path: Some((_, 4)), .. },
-            ] => {}
+            [Error::PatternNotFound {
+                definition_line: 5, ..
+            }, Error::ErrorsWithoutPattern {
+                path: Some((_, 4)), ..
+            }] => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -140,7 +150,9 @@ fn main() {
         );
         match &errors[..] {
             // Note no `ErrorsWithoutPattern`, because there are no `//~NOTE` in the test file, so we ignore them
-            [Error::PatternNotFound { definition_line: 5, .. }] => {}
+            [Error::PatternNotFound {
+                definition_line: 5, ..
+            }] => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -168,9 +180,19 @@ fn main() {
         ]
     ];
     let mut errors = vec![];
-    check_annotations(messages, vec![], Path::new("moobar"), &mut errors, &config, "", &comments);
+    check_annotations(
+        messages,
+        vec![],
+        Path::new("moobar"),
+        &mut errors,
+        &config,
+        "",
+        &comments,
+    );
     match &errors[..] {
-        [Error::PatternNotFound { definition_line: 6, .. }] => {}
+        [Error::PatternNotFound {
+            definition_line: 6, ..
+        }] => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -200,9 +222,19 @@ fn main() {
         ]
     ];
     let mut errors = vec![];
-    check_annotations(messages, vec![], Path::new("moobar"), &mut errors, &config, "", &comments);
+    check_annotations(
+        messages,
+        vec![],
+        Path::new("moobar"),
+        &mut errors,
+        &config,
+        "",
+        &comments,
+    );
     match &errors[..] {
-        [Error::ErrorsWithoutPattern { path: Some((_, 5)), .. }] => {}
+        [Error::ErrorsWithoutPattern {
+            path: Some((_, 5)), ..
+        }] => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -241,13 +273,27 @@ fn main() {
         ],
     ];
     let mut errors = vec![];
-    check_annotations(messages, vec![], Path::new("moobar"), &mut errors, &config, "", &comments);
+    check_annotations(
+        messages,
+        vec![],
+        Path::new("moobar"),
+        &mut errors,
+        &config,
+        "",
+        &comments,
+    );
     match &errors[..] {
-        [Error::ErrorsWithoutPattern { path: Some((_, 5)), msgs, .. }] =>
-            match &msgs[..] {
-                [Message { message, level: Level::Warn }] if message == "kaboom" => {}
-                _ => panic!("{:#?}", msgs),
-            },
+        [Error::ErrorsWithoutPattern {
+            path: Some((_, 5)),
+            msgs,
+            ..
+        }] => match &msgs[..] {
+            [Message {
+                message,
+                level: Level::Warn,
+            }] if message == "kaboom" => {}
+            _ => panic!("{:#?}", msgs),
+        },
         _ => panic!("{:#?}", errors),
     }
 }
@@ -286,7 +332,15 @@ fn main() {
         ],
     ];
     let mut errors = vec![];
-    check_annotations(messages, vec![], Path::new("moobar"), &mut errors, &config, "", &comments);
+    check_annotations(
+        messages,
+        vec![],
+        Path::new("moobar"),
+        &mut errors,
+        &config,
+        "",
+        &comments,
+    );
     match &errors[..] {
         [] => {}
         _ => panic!("{:#?}", errors),
