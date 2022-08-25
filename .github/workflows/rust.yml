@@ -10,15 +10,19 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  style:
+    name: style checks
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
     - name: Format
       run: cargo fmt --check
-  build:
+    - name: Clippy
+      run: cargo clippy -- -D warnings
 
+  build:
+  
     runs-on: ubuntu-latest
 
     steps:
