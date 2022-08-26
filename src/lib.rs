@@ -74,6 +74,13 @@ impl Default for Config {
     }
 }
 
+impl Config {
+    pub fn stderr_filter(&mut self, pattern: &str, replacement: &'static str) {
+        self.stderr_filters
+            .push((Regex::new(pattern).unwrap(), replacement));
+    }
+}
+
 #[derive(Debug)]
 pub struct DependencyBuilder {
     pub program: PathBuf,
