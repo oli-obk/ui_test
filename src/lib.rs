@@ -55,6 +55,25 @@ pub struct Config {
     pub quiet: bool,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            args: vec![],
+            target: None,
+            stderr_filters: vec![],
+            stdout_filters: vec![],
+            root_dir: PathBuf::new(),
+            mode: Mode::Fail,
+            program: PathBuf::from("rustc"),
+            output_conflict_handling: OutputConflictHandling::Error,
+            path_filter: vec![],
+            dependencies_crate_manifest_path: None,
+            dependency_builder: None,
+            quiet: true,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct DependencyBuilder {
     pub program: PathBuf,
