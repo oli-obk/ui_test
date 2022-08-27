@@ -22,6 +22,7 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
         Some(path) => path,
         None => return Ok(Default::default()),
     };
+    eprintln!("   Building test dependencies...");
     let (program, args, envs): (&Path, &[_], &[_]) = match &config.dependency_builder {
         Some(db) => (&db.program, &db.args, &db.envs),
         None => (Path::new("cargo"), &[], &[]),
