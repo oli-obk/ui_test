@@ -55,6 +55,32 @@ pub struct Config {
     pub quiet: bool,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            args: vec![],
+            target: None,
+            stderr_filters: vec![],
+            stdout_filters: vec![],
+            root_dir: PathBuf::new(),
+            mode: Mode::Fail,
+            program: PathBuf::from("rustc"),
+            output_conflict_handling: OutputConflictHandling::Error,
+            path_filter: vec![],
+            dependencies_crate_manifest_path: None,
+            dependency_builder: None,
+            quiet: true,
+        }
+    }
+}
+
+impl Config {
+    pub fn stderr_filter(&mut self, pattern: &str, replacement: &'static str) {
+        self.stderr_filters
+            .push((Regex::new(pattern).unwrap(), replacement));
+    }
+}
+
 #[derive(Debug)]
 pub struct DependencyBuilder {
     pub program: PathBuf,
