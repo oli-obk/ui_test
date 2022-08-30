@@ -37,13 +37,33 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("in [0-9\\.]+s", "");
     config.stderr_filter("(     Running [^(]+).*", "$1");
     config.stderr_filter("   Compiling .*\n", "");
+    config.stderr_filter(
+        &std::path::Path::new(path)
+            .canonicalize()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .display()
+            .to_string(),
+        "$$DIR",
+    );
+    config.stderr_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
 
     run_tests_generic(config, |path| {
-        let fail = path.parent().unwrap().file_name().unwrap().to_str().unwrap().ends_with("-fail");
-        path.ends_with("Cargo.toml") && path.parent().unwrap().parent().unwrap() == root_dir && match mode {
-            Mode::Pass => !fail,
-            Mode::Panic => unreachable!(),
-            Mode::Fail { .. } => fail,
-        }
+        let fail = path
+            .parent()
+            .unwrap()
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .ends_with("-fail");
+        path.ends_with("Cargo.toml")
+            && path.parent().unwrap().parent().unwrap() == root_dir
+            && match mode {
+                Mode::Pass => !fail,
+                Mode::Panic => unreachable!(),
+                Mode::Fail { .. } => fail,
+            }
     })
 }

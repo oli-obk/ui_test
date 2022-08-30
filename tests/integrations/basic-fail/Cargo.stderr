@@ -7,7 +7,7 @@ tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
-command: "rustc" "--error-format=json" "--edition=2021" "--extern" "basic_fail=/home/ubuntu/crates/ui_test/$DIR/../../../target/debug/deps/libbasic_fail-8603f4ccb2fe730c.rmeta" "-L" "/home/ubuntu/crates/ui_test/$DIR/../../../target/debug" "-L" "/home/ubuntu/crates/ui_test/$DIR/../../../target/debug/deps" "tests/actual_tests/bad_pattern.rs"
+command: "rustc" "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/deps/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug/deps" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/bad_pattern.rs"
 
 substring `miesmätsched types` not found in stderr output
 expected because of pattern here: tests/actual_tests/bad_pattern.rs:5
@@ -25,7 +25,7 @@ error[E0308]: mismatched types
   |     arguments to this function are incorrect
   |
 note: function defined here
- --> /home/ubuntu/crates/ui_test/$DIR/src/lib.rs:1:8
+ --> $DIR/$DIR/src/lib.rs:1:8
   |
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
@@ -37,7 +37,7 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 tests/actual_tests/foomp.rs FAILED:
-command: "rustc" "--error-format=json" "--edition=2021" "--extern" "basic_fail=/home/ubuntu/crates/ui_test/$DIR/../../../target/debug/deps/libbasic_fail-8603f4ccb2fe730c.rmeta" "-L" "/home/ubuntu/crates/ui_test/$DIR/../../../target/debug" "-L" "/home/ubuntu/crates/ui_test/$DIR/../../../target/debug/deps" "tests/actual_tests/foomp.rs"
+command: "rustc" "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/deps/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug/deps" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs"
 
 actual output differed from expected tests/actual_tests/foomp.stderr
 [1mDiff[0m [31m< left[0m / [32mright >[0m :
@@ -75,7 +75,7 @@ error[E0308]: mismatched types
   |     arguments to this function are incorrect
   |
 note: function defined here
- --> /home/ubuntu/crates/ui_test/$DIR/src/lib.rs:1:8
+ --> $DIR/$DIR/src/lib.rs:1:8
   |
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
