@@ -10,7 +10,7 @@ fn config() -> Config {
         root_dir: PathBuf::from("$RUSTROOT"),
         program: PathBuf::from("cake"),
         quiet: false,
-        .. Config::default()
+        ..Config::default()
     }
 }
 
