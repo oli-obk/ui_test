@@ -39,7 +39,9 @@ For more information about this error, try `rustc --explain E0308`.
 tests/actual_tests/foomp.rs FAILED:
 command: "rustc" "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs"
 
-actual output differed from expected tests/actual_tests/foomp.stderr
+actual output differed from expected
+--- tests/actual_tests/foomp.stderr
++++ <stderr output>
 ... 3 lines skipped ...
  4 |     add("42", 3);
    |     --- ^^^^ expected `usize`, found `&str`

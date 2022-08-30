@@ -322,7 +322,9 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
                         actual,
                         expected,
                     } => {
-                        eprintln!("actual output differed from expected {}", path.display());
+                        eprintln!("{}", "actual output differed from expected".underline());
+                        eprintln!("{}", format!("--- {}", path.display()).red());
+                        eprintln!("{}", "+++ <stderr output>".green());
                         diff::print_diff(expected, actual);
                     }
                     Error::ErrorsWithoutPattern { path: None, msgs } => {
