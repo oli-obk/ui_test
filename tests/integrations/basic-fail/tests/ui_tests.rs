@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use ui_test::*;
 
 fn main() -> ui_test::color_eyre::Result<()> {
@@ -11,11 +12,10 @@ fn main() -> ui_test::color_eyre::Result<()> {
             args: vec![],
             envs: vec![("CARGO_TARGET_DIR".into(), path.into())],
         }),
-        output_conflict_handling: if std::env::var_os("BLESS").is_some() {
-            OutputConflictHandling::Bless
-        } else {
-            OutputConflictHandling::Error
-        },
+        // Never bless integrations-fail tests, we want to see stderr mismatches
+        output_conflict_handling: OutputConflictHandling::Error,
+        // Make sure our tests are ordered for reliable output.
+        num_test_threads: NonZeroUsize::new(1).unwrap(),
         ..Config::default()
     };
     config.args.push("--edition=2021".into());

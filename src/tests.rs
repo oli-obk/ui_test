@@ -7,18 +7,10 @@ use super::*;
 
 fn config() -> Config {
     Config {
-        args: vec![],
-        target: None,
-        stderr_filters: vec![],
-        stdout_filters: vec![],
         root_dir: PathBuf::from("$RUSTROOT"),
-        mode: Mode::Fail,
-        path_filter: vec![],
         program: PathBuf::from("cake"),
-        output_conflict_handling: OutputConflictHandling::Error,
-        dependencies_crate_manifest_path: None,
-        dependency_builder: None,
         quiet: false,
+        ..Config::default()
     }
 }
 

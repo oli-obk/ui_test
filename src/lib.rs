@@ -8,6 +8,7 @@
 use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fmt::Write;
+use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -32,6 +33,8 @@ mod tests;
 #[derive(Debug)]
 pub struct Config {
     /// Arguments passed to the binary that is executed.
+    /// Take care to only append unless you actually meant to overwrite the defaults.
+    /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
     pub args: Vec<OsString>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
@@ -53,23 +56,28 @@ pub struct Config {
     pub dependency_builder: Option<DependencyBuilder>,
     /// Print one character per test instead of one line
     pub quiet: bool,
+    /// How many threads to use for running tests. Defaults to number of cores
+    pub num_test_threads: NonZeroUsize,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            args: vec![],
+            args: vec!["--error-format=json".into()],
             target: None,
             stderr_filters: vec![],
             stdout_filters: vec![],
             root_dir: PathBuf::new(),
-            mode: Mode::Fail,
+            mode: Mode::Fail {
+                require_patterns: true,
+            },
             program: PathBuf::from("rustc"),
             output_conflict_handling: OutputConflictHandling::Error,
             path_filter: vec![],
             dependencies_crate_manifest_path: None,
             dependency_builder: None,
             quiet: true,
+            num_test_threads: std::thread::available_parallelism().unwrap(),
         }
     }
 }
@@ -104,9 +112,6 @@ pub type Filter = Vec<(Regex, &'static str)>;
 pub fn run_tests(mut config: Config) -> Result<()> {
     eprintln!("   Compiler flags: {:?}", config.args);
 
-    // Get the triple with which to run the tests
-    let target = config.target.clone().unwrap_or_else(|| config.get_host());
-
     let dependencies = build_dependencies(&config)?;
     for (name, dependency) in dependencies.dependencies {
         config.args.push("--extern".into());
@@ -119,7 +124,14 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         config.args.push("-L".into());
         config.args.push(import_path.into());
     }
-    let config = config;
+    run_tests_generic(config, |path| {
+        path.extension().map(|ext| ext == "rs").unwrap_or(false)
+    })
+}
+
+pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + Sync) -> Result<()> {
+    // Get the triple with which to run the tests
+    let target = config.target.clone().unwrap_or_else(|| config.get_host());
 
     // A channel for files to process
     let (submit, receive) = crossbeam::channel::unbounded();
@@ -148,7 +160,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
                     for entry in entries {
                         todo.push_back(entry.path());
                     }
-                } else if path.extension().map(|ext| ext == "rs").unwrap_or(false) {
+                } else if file_filter(&path) {
                     // Forward .rs files to the test workers.
                     submit.send(path).unwrap();
                 }
@@ -198,7 +210,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         let mut threads = vec![];
 
         // Create N worker threads that receive files to test.
-        for _ in 0..std::thread::available_parallelism().unwrap().get() {
+        for _ in 0..config.num_test_threads.get() {
             let finished_files_sender = finished_files_sender.clone();
             threads.push(s.spawn(|_| -> Result<()> {
                 let finished_files_sender = finished_files_sender;
@@ -412,7 +424,6 @@ fn run_test(
     if !revision.is_empty() {
         miri.arg(format!("--cfg={revision}"));
     }
-    miri.arg("--error-format=json");
     for arg in &comments.compile_flags {
         miri.arg(arg);
     }
@@ -586,7 +597,12 @@ fn check_annotations(
         comments.error_pattern.is_some() || !comments.error_matches.is_empty(),
     ) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
-        (Mode::Fail, false) => errors.push(Error::NoPatternsFound),
+        (
+            Mode::Fail {
+                require_patterns: true,
+            },
+            false,
+        ) => errors.push(Error::NoPatternsFound),
         _ => {}
     }
 }
@@ -695,18 +711,23 @@ impl Config {
 
 #[derive(Copy, Clone, Debug)]
 pub enum Mode {
-    // The test passes a full execution of the rustc driver
+    /// The test passes a full execution of the rustc driver
     Pass,
-    // The rustc driver panicked
+    /// The rustc driver panicked
     Panic,
-    // The rustc driver emitted an error
-    Fail,
+    /// The rustc driver emitted an error
+    Fail {
+        /// Whether failing tests must have error patterns. Set to false if you just care about .stderr output.
+        require_patterns: bool,
+    },
 }
 
 impl Mode {
     fn ok(self, status: ExitStatus) -> Errors {
         match (status.code(), self) {
-            (Some(1), Mode::Fail) | (Some(101), Mode::Panic) | (Some(0), Mode::Pass) => vec![],
+            (Some(1), Mode::Fail { .. }) | (Some(101), Mode::Panic) | (Some(0), Mode::Pass) => {
+                vec![]
+            }
             _ => vec![Error::ExitStatus(self, status)],
         }
     }

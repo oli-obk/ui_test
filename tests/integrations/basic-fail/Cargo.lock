@@ -68,7 +68,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "basic"
+name = "basic_fail"
 version = "0.1.0"
 dependencies = [
  "ui_test",
