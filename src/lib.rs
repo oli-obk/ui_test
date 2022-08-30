@@ -8,6 +8,7 @@
 use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fmt::Write;
+use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -55,6 +56,8 @@ pub struct Config {
     pub dependency_builder: Option<DependencyBuilder>,
     /// Print one character per test instead of one line
     pub quiet: bool,
+    /// How many threads to use for running tests. Defaults to number of cores
+    pub num_test_threads: NonZeroUsize,
 }
 
 impl Default for Config {
@@ -74,6 +77,7 @@ impl Default for Config {
             dependencies_crate_manifest_path: None,
             dependency_builder: None,
             quiet: true,
+            num_test_threads: std::thread::available_parallelism().unwrap(),
         }
     }
 }
@@ -206,7 +210,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
         let mut threads = vec![];
 
         // Create N worker threads that receive files to test.
-        for _ in 0..std::thread::available_parallelism().unwrap().get() {
+        for _ in 0..config.num_test_threads.get() {
             let finished_files_sender = finished_files_sender.clone();
             threads.push(s.spawn(|_| -> Result<()> {
                 let finished_files_sender = finished_files_sender;
