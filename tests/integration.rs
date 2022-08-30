@@ -35,8 +35,10 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     };
 
     config.stderr_filter("in [0-9\\.]+s", "");
-    config.stderr_filter("(     Running [^(]+).*", "$1");
-    config.stderr_filter("   Compiling .*\n", "");
+    config.stderr_filter("( +Running [^(]+).*", "$1");
+    config.stderr_filter(" *(Compiling|Downloaded|Downloading) .*\n", "");
+    // The order of the `/deps` directory flag is flaky
+    config.stderr_filter("/deps", "");
     config.stderr_filter(
         &std::path::Path::new(path)
             .canonicalize()
