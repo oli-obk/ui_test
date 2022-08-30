@@ -4,10 +4,16 @@ use ui_test::color_eyre::Result;
 use ui_test::*;
 
 fn main() -> Result<()> {
-    run("integrations")
+    run("integrations", Mode::Pass)?;
+    run(
+        "integrations",
+        Mode::Fail {
+            require_patterns: false,
+        },
+    )
 }
 
-fn run(name: &str) -> Result<()> {
+fn run(name: &str, mode: Mode) -> Result<()> {
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join(name);
     let mut config = Config {
@@ -24,7 +30,7 @@ fn run(name: &str) -> Result<()> {
         } else {
             OutputConflictHandling::Error
         },
-        mode: Mode::Pass,
+        mode,
         ..Config::default()
     };
 
@@ -33,6 +39,11 @@ fn run(name: &str) -> Result<()> {
     config.stderr_filter("   Compiling .*\n", "");
 
     run_tests_generic(config, |path| {
-        path.ends_with("Cargo.toml") && path.parent().unwrap().parent().unwrap() == root_dir
+        let fail = path.parent().unwrap().file_name().unwrap().to_str().unwrap().ends_with("-fail");
+        path.ends_with("Cargo.toml") && path.parent().unwrap().parent().unwrap() == root_dir && match mode {
+            Mode::Pass => !fail,
+            Mode::Panic => unreachable!(),
+            Mode::Fail { .. } => fail,
+        }
     })
 }

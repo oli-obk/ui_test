@@ -1,0 +1,61 @@
+    Finished test [unoptimized + debuginfo] target(s) 
+     Running unittests src/lib.rs 
+     Running tests/ui_tests.rs 
+   Compiler flags: ["--error-format=json", "--edition=2021"]
+   Building test dependencies...
+tests/actual_tests/foomp.rs ... FAILED
+
+tests/actual_tests/foomp.rs FAILED:
+command: "rustc" "--error-format=json" "--edition=2021" "--extern" "basic_fail=/home/ubuntu/crates/ui_test/$DIR/../../../target/debug/deps/libbasic_fail-8603f4ccb2fe730c.rmeta" "-L" "/home/ubuntu/crates/ui_test/$DIR/../../../target/debug/deps" "-L" "/home/ubuntu/crates/ui_test/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs"
+
+actual output differed from expected tests/actual_tests/foomp.stderr
+[1mDiff[0m [31m< left[0m / [32mright >[0m :
+ error[E0308]: mismatched types
+  --> $DIR/foomp.rs:4:9
+   |
+ 4 |     add("42", 3);
+   |     --- ^^^^ expected `usize`, found `&str`
+[32m>  |     |[0m
+[32m>  |     arguments to this function are incorrect[0m
+   |
+ note: function defined here
+[31m< --> $DIR/tests/integrations/basic/src/lib.rs:1:8[0m
+[32m> --> $DIR/tests/integrations/basic[0m[1;48;5;22;32m-fail[0m[32m/src/lib.rs:1:8[0m
+   |
+ 1 | pub fn add(left: usize, right: usize) -> usize {
+[31m<  |        ^^^[0m[1;48;5;52;31m some expected text that isn't in the actual message[0m
+[32m>  |        ^^^[0m
+ 
+[31m<error: aborting d[0m[1;48;5;52;31moo[0m[31m to previous error[0m
+[32m>error: aborting d[0m[1;48;5;22;32mue[0m[32m to previous error[0m
+ 
+ For more information about this error, try `rustc --explain E0308`.
+ 
+
+
+
+full stderr:
+error[E0308]: mismatched types
+ --> tests/actual_tests/foomp.rs:4:9
+  |
+4 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> /home/ubuntu/crates/ui_test/$DIR/src/lib.rs:1:8
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0308`.
+
+
+FAILURES:
+    tests/actual_tests/foomp.rs
+
+test result: FAIL. 1 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+error: test failed, to rerun pass '--test ui_tests'

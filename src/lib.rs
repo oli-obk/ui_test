@@ -65,7 +65,9 @@ impl Default for Config {
             stderr_filters: vec![],
             stdout_filters: vec![],
             root_dir: PathBuf::new(),
-            mode: Mode::Fail,
+            mode: Mode::Fail {
+                require_patterns: true,
+            },
             program: PathBuf::from("rustc"),
             output_conflict_handling: OutputConflictHandling::Error,
             path_filter: vec![],
@@ -591,7 +593,12 @@ fn check_annotations(
         comments.error_pattern.is_some() || !comments.error_matches.is_empty(),
     ) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
-        (Mode::Fail, false) => errors.push(Error::NoPatternsFound),
+        (
+            Mode::Fail {
+                require_patterns: true,
+            },
+            false,
+        ) => errors.push(Error::NoPatternsFound),
         _ => {}
     }
 }
@@ -705,7 +712,10 @@ pub enum Mode {
     /// The rustc driver panicked
     Panic,
     /// The rustc driver emitted an error
-    Fail,
+    Fail {
+        /// Whether failing tests must have error patterns. Set to false if you just care about .stderr output.
+        require_patterns: bool,
+    },
 }
 
 impl Mode {
