@@ -20,6 +20,8 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         root_dir: root_dir.clone(),
         args: vec![
             "test".into(),
+            "--color".into(),
+            "never".into(),
             "--target-dir".into(),
             path.parent().unwrap().join("target").into(),
             "--manifest-path".into(),
