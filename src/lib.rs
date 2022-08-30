@@ -32,6 +32,8 @@ mod tests;
 #[derive(Debug)]
 pub struct Config {
     /// Arguments passed to the binary that is executed.
+    /// Take care to only append unless you actually meant to overwrite the defaults.
+    /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
     pub args: Vec<OsString>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
@@ -58,7 +60,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            args: vec![],
+            args: vec!["--error-format=json".into()],
             target: None,
             stderr_filters: vec![],
             stdout_filters: vec![],
@@ -104,9 +106,6 @@ pub type Filter = Vec<(Regex, &'static str)>;
 pub fn run_tests(mut config: Config) -> Result<()> {
     eprintln!("   Compiler flags: {:?}", config.args);
 
-    // Get the triple with which to run the tests
-    let target = config.target.clone().unwrap_or_else(|| config.get_host());
-
     let dependencies = build_dependencies(&config)?;
     for (name, dependency) in dependencies.dependencies {
         config.args.push("--extern".into());
@@ -119,7 +118,14 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         config.args.push("-L".into());
         config.args.push(import_path.into());
     }
-    let config = config;
+    run_tests_generic(config, |path| {
+        path.extension().map(|ext| ext == "rs").unwrap_or(false)
+    })
+}
+
+pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + Sync) -> Result<()> {
+    // Get the triple with which to run the tests
+    let target = config.target.clone().unwrap_or_else(|| config.get_host());
 
     // A channel for files to process
     let (submit, receive) = crossbeam::channel::unbounded();
@@ -148,7 +154,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
                     for entry in entries {
                         todo.push_back(entry.path());
                     }
-                } else if path.extension().map(|ext| ext == "rs").unwrap_or(false) {
+                } else if file_filter(&path) {
                     // Forward .rs files to the test workers.
                     submit.send(path).unwrap();
                 }
@@ -412,7 +418,6 @@ fn run_test(
     if !revision.is_empty() {
         miri.arg(format!("--cfg={revision}"));
     }
-    miri.arg("--error-format=json");
     for arg in &comments.compile_flags {
         miri.arg(arg);
     }
@@ -695,18 +700,20 @@ impl Config {
 
 #[derive(Copy, Clone, Debug)]
 pub enum Mode {
-    // The test passes a full execution of the rustc driver
+    /// The test passes a full execution of the rustc driver
     Pass,
-    // The rustc driver panicked
+    /// The rustc driver panicked
     Panic,
-    // The rustc driver emitted an error
+    /// The rustc driver emitted an error
     Fail,
 }
 
 impl Mode {
     fn ok(self, status: ExitStatus) -> Errors {
         match (status.code(), self) {
-            (Some(1), Mode::Fail) | (Some(101), Mode::Panic) | (Some(0), Mode::Pass) => vec![],
+            (Some(1), Mode::Fail { .. }) | (Some(101), Mode::Panic) | (Some(0), Mode::Pass) => {
+                vec![]
+            }
             _ => vec![Error::ExitStatus(self, status)],
         }
     }

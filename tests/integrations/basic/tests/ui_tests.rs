@@ -11,7 +11,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
             args: vec![],
             envs: vec![("CARGO_TARGET_DIR".into(), path.into())],
         }),
-        args: vec!["--edition=2021".into()],
         output_conflict_handling: if std::env::var_os("BLESS").is_some() {
             OutputConflictHandling::Bless
         } else {
@@ -19,6 +18,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         },
         ..Config::default()
     };
+    config.args.push("--edition=2021".into());
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
     config.stderr_filter(
         &std::path::Path::new(path)
