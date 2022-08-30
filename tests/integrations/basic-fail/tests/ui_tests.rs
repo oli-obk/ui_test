@@ -6,7 +6,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     let mut config = Config {
         quiet: false,
         root_dir: "tests/actual_tests".into(),
-        dependencies_crate_manifest_path: Some("tests/dummy_crate/Cargo.toml".into()),
+        dependencies_crate_manifest_path: Some("Cargo.toml".into()),
         dependency_builder: Some(DependencyBuilder {
             program: std::path::PathBuf::from("cargo"),
             args: vec![],

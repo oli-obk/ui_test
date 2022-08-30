@@ -1,3 +1,4 @@
+use cargo_metadata::DependencyKind;
 use color_eyre::eyre::{bail, Result};
 use std::{
     collections::{HashMap, HashSet},
@@ -29,9 +30,7 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
     };
     let mut build = Command::new(program);
     build.args(args);
-    // HACK: we're using `cargo run` (or `cargo miri run`), because the latter does not
-    // support `cargo miri build` yet.
-    build.arg("run");
+    build.arg("build");
 
     if let Some(target) = &config.target {
         build.arg(format!("--target={target}"));
@@ -118,21 +117,29 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
         let dependencies = root
             .dependencies
             .iter()
-            .map(|package| {
-                // Get the id for the package matching the version requirement of the dep
-                let id = &metadata
+            .filter(|dep| matches!(dep.kind, DependencyKind::Normal))
+            .map(|dep| {
+                let package = metadata
                     .packages
                     .iter()
-                    .find(|&dep| dep.name == package.name && package.req.matches(&dep.version))
-                    .expect("dependency does not exist")
-                    .id;
+                    .find(|&p| p.name == dep.name && dep.req.matches(&p.version))
+                    .expect("dependency does not exist");
+                (
+                    package,
+                    dep.rename.clone().unwrap_or_else(|| package.name.clone()),
+                )
+            })
+            // Also expose the root crate
+            .chain(std::iter::once((root, root.name.clone())))
+            .map(|(package, name)| {
+                // Get the id for the package matching the version requirement of the dep
+                let id = &package.id;
                 // Return the name chosen in `Cargo.toml` and the path to the corresponding artifact
                 (
-                    package
-                        .rename
-                        .clone()
-                        .unwrap_or_else(|| package.name.clone()),
-                    artifacts.remove(id).expect("package without artifact"),
+                    name,
+                    artifacts
+                        .remove(id)
+                        .unwrap_or_else(|| panic!("package `{id}` without artifact")),
                 )
             })
             .collect();
