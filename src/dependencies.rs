@@ -30,7 +30,6 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
     };
     let mut build = Command::new(program);
     build.args(args);
-    build.arg("build");
 
     if let Some(target) = &config.target {
         build.arg(format!("--target={target}"));

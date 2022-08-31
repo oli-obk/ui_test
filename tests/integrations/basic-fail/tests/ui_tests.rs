@@ -9,7 +9,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
         dependency_builder: Some(DependencyBuilder {
             program: std::path::PathBuf::from("cargo"),
-            args: vec![],
+            args: vec!["build".into()],
             envs: vec![("CARGO_TARGET_DIR".into(), path.into())],
         }),
         // Never bless integrations-fail tests, we want to see stderr mismatches
