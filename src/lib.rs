@@ -52,9 +52,9 @@ pub struct Config {
     pub path_filter: Vec<String>,
     /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
     pub dependencies_crate_manifest_path: Option<PathBuf>,
-    /// Can be used to override what command to run instead of `cargo` to build the
-    /// dependencies in `manifest_path`
-    pub dependency_builder: Option<DependencyBuilder>,
+    /// The command to run can be changed from `cargo` to any custom command to build the
+    /// dependencies in `dependencies_crate_manifest_path`
+    pub dependency_builder: DependencyBuilder,
     /// Print one character per test instead of one line
     pub quiet: bool,
     /// How many threads to use for running tests. Defaults to number of cores
@@ -76,7 +76,7 @@ impl Default for Config {
             output_conflict_handling: OutputConflictHandling::Error,
             path_filter: vec![],
             dependencies_crate_manifest_path: None,
-            dependency_builder: None,
+            dependency_builder: DependencyBuilder::default(),
             quiet: true,
             num_test_threads: std::thread::available_parallelism().unwrap(),
         }
@@ -95,6 +95,16 @@ pub struct DependencyBuilder {
     pub program: PathBuf,
     pub args: Vec<String>,
     pub envs: Vec<(String, OsString)>,
+}
+
+impl Default for DependencyBuilder {
+    fn default() -> Self {
+        Self {
+            program: PathBuf::from(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())),
+            args: vec!["build".into()],
+            envs: vec![],
+        }
+    }
 }
 
 #[derive(Debug)]
