@@ -131,16 +131,14 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
             })
             // Also expose the root crate
             .chain(std::iter::once((root, root.name.clone())))
-            .map(|(package, name)| {
+            .filter_map(|(package, name)| {
                 // Get the id for the package matching the version requirement of the dep
                 let id = &package.id;
                 // Return the name chosen in `Cargo.toml` and the path to the corresponding artifact
-                (
-                    name,
-                    artifacts
-                        .remove(id)
-                        .unwrap_or_else(|| panic!("package `{id}` without artifact")),
-                )
+                // If there are no artifacts, this is the root crate and it is being built as a binary/test
+                // instead of a library. We simply add no artifacts, meaning you can't depend on functions
+                // and types declared in the root crate.
+                Some((name, artifacts.remove(id)?))
             })
             .collect();
         let import_paths = import_paths.into_iter().collect();
