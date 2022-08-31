@@ -6,11 +6,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
         quiet: false,
         root_dir: "tests/actual_tests".into(),
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
-        dependency_builder: Some(DependencyBuilder {
-            program: std::path::PathBuf::from("cargo"),
-            args: vec!["build".into()],
-            envs: vec![("CARGO_TARGET_DIR".into(), path.into())],
-        }),
         output_conflict_handling: if std::env::var_os("BLESS").is_some() {
             OutputConflictHandling::Bless
         } else {
@@ -18,6 +13,10 @@ fn main() -> ui_test::color_eyre::Result<()> {
         },
         ..Config::default()
     };
+    config
+        .dependency_builder
+        .envs
+        .push(("CARGO_TARGET_DIR".into(), path.into()));
     config.args.push("--edition=2021".into());
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
     config.stderr_filter(

@@ -7,17 +7,16 @@ fn main() -> ui_test::color_eyre::Result<()> {
         quiet: false,
         root_dir: "tests/actual_tests".into(),
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
-        dependency_builder: Some(DependencyBuilder {
-            program: std::path::PathBuf::from("cargo"),
-            args: vec!["build".into()],
-            envs: vec![("CARGO_TARGET_DIR".into(), path.into())],
-        }),
         // Never bless integrations-fail tests, we want to see stderr mismatches
         output_conflict_handling: OutputConflictHandling::Error,
         // Make sure our tests are ordered for reliable output.
         num_test_threads: NonZeroUsize::new(1).unwrap(),
         ..Config::default()
     };
+    config
+        .dependency_builder
+        .envs
+        .push(("CARGO_TARGET_DIR".into(), path.into()));
     config.args.push("--edition=2021".into());
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
     config.stderr_filter(

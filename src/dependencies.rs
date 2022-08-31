@@ -2,11 +2,11 @@ use cargo_metadata::DependencyKind;
 use color_eyre::eyre::{bail, Result};
 use std::{
     collections::{HashMap, HashSet},
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::Command,
 };
 
-use crate::{Config, OutputConflictHandling};
+use crate::{Config, DependencyBuilder, OutputConflictHandling};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -24,10 +24,11 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
         None => return Ok(Default::default()),
     };
     eprintln!("   Building test dependencies...");
-    let (program, args, envs): (&Path, &[_], &[_]) = match &config.dependency_builder {
-        Some(db) => (&db.program, &db.args, &db.envs),
-        None => (Path::new("cargo"), &[], &[]),
-    };
+    let DependencyBuilder {
+        program,
+        args,
+        envs,
+    } = &config.dependency_builder;
     let mut build = Command::new(program);
     build.args(args);
 
