@@ -43,8 +43,8 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         ..Config::default()
     };
 
-    config.stderr_filter("in [0-9\\.]+s", "");
-    config.stdout_filter("in [0-9\\.]+s", "");
+    config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
+    config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter("( +Running [^(]+).*", "$1");
     config.stderr_filter(" *Blocking waiting for.*\n", "");
     config.stderr_filter(" *(Compiling|Downloaded|Downloading) .*\n", "");
