@@ -37,6 +37,9 @@ pub struct Config {
     /// Take care to only append unless you actually meant to overwrite the defaults.
     /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
     pub args: Vec<OsString>,
+    /// Arguments passed to the binary that is executed.
+    /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
+    pub trailing_args: Vec<OsString>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
     /// Filters applied to stderr output before processing it
@@ -65,6 +68,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             args: vec!["--error-format=json".into()],
+            trailing_args: vec![],
             target: None,
             stderr_filters: vec![],
             stdout_filters: vec![],
@@ -452,6 +456,7 @@ fn build_command(path: &Path, config: &Config, revision: &str, comments: &Commen
     for arg in &comments.compile_flags {
         miri.arg(arg);
     }
+    miri.args(config.trailing_args.iter());
     miri.envs(comments.env_vars.iter().map(|(k, v)| (k, v)));
 
     miri
