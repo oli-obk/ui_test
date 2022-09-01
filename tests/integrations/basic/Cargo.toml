@@ -11,3 +11,7 @@ ui_test = { path = "../../.."}
 [[test]]
 name = "ui_tests"
 harness = false
+
+[[test]]
+name = "run_file"
+harness = true

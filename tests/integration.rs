@@ -11,7 +11,9 @@ fn main() -> Result<()> {
         Mode::Fail {
             require_patterns: false,
         },
-    )
+    )?;
+
+    Ok(())
 }
 
 fn run(name: &str, mode: Mode) -> Result<()> {
