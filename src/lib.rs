@@ -89,6 +89,11 @@ impl Config {
             .push((Regex::new(pattern).unwrap(), replacement));
     }
 
+    pub fn stdout_filter(&mut self, pattern: &str, replacement: &'static str) {
+        self.stdout_filters
+            .push((Regex::new(pattern).unwrap(), replacement));
+    }
+
     fn build_dependencies_and_link_them(&mut self) -> Result<()> {
         let dependencies = build_dependencies(self)?;
         for (name, dependency) in dependencies.dependencies {

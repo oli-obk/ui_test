@@ -26,6 +26,8 @@ fn run(name: &str, mode: Mode) -> Result<()> {
             "test".into(),
             "--color".into(),
             "never".into(),
+            "--jobs".into(),
+            "1".into(),
             "--target-dir".into(),
             path.parent().unwrap().join("target").into(),
             "--manifest-path".into(),
@@ -41,6 +43,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     };
 
     config.stderr_filter("in [0-9\\.]+s", "");
+    config.stdout_filter("in [0-9\\.]+s", "");
     config.stderr_filter("( +Running [^(]+).*", "$1");
     config.stderr_filter(" *Blocking waiting for.*\n", "");
     config.stderr_filter(" *(Compiling|Downloaded|Downloading) .*\n", "");
