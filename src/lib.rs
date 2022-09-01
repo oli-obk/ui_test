@@ -37,6 +37,9 @@ pub struct Config {
     /// Take care to only append unless you actually meant to overwrite the defaults.
     /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
     pub args: Vec<OsString>,
+    /// Arguments passed to the binary that is executed.
+    /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
+    pub trailing_args: Vec<OsString>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
     /// Filters applied to stderr output before processing it
@@ -65,6 +68,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             args: vec!["--error-format=json".into()],
+            trailing_args: vec![],
             target: None,
             stderr_filters: vec![],
             stdout_filters: vec![],
@@ -87,6 +91,32 @@ impl Config {
     pub fn stderr_filter(&mut self, pattern: &str, replacement: &'static str) {
         self.stderr_filters
             .push((Regex::new(pattern).unwrap(), replacement));
+    }
+
+    pub fn stdout_filter(&mut self, pattern: &str, replacement: &'static str) {
+        self.stdout_filters
+            .push((Regex::new(pattern).unwrap(), replacement));
+    }
+
+    fn build_dependencies_and_link_them(&mut self) -> Result<()> {
+        let dependencies = build_dependencies(self)?;
+        for (name, dependency) in dependencies.dependencies {
+            self.args.push("--extern".into());
+            let mut dep = OsString::from(name);
+            dep.push("=");
+            dep.push(dependency);
+            self.args.push(dep);
+        }
+        for import_path in dependencies.import_paths {
+            self.args.push("-L".into());
+            self.args.push(import_path.into());
+        }
+        Ok(())
+    }
+
+    /// Returns the actual target (if no target specified, returns the host)
+    fn target(&self) -> String {
+        self.target.clone().unwrap_or_else(|| self.get_host())
     }
 }
 
@@ -123,26 +153,23 @@ pub type Filter = Vec<(Regex, &'static str)>;
 pub fn run_tests(mut config: Config) -> Result<()> {
     eprintln!("   Compiler flags: {:?}", config.args);
 
-    let dependencies = build_dependencies(&config)?;
-    for (name, dependency) in dependencies.dependencies {
-        config.args.push("--extern".into());
-        let mut dep = OsString::from(name);
-        dep.push("=");
-        dep.push(dependency);
-        config.args.push(dep);
-    }
-    for import_path in dependencies.import_paths {
-        config.args.push("-L".into());
-        config.args.push(import_path.into());
-    }
+    config.build_dependencies_and_link_them()?;
+
     run_tests_generic(config, |path| {
         path.extension().map(|ext| ext == "rs").unwrap_or(false)
     })
 }
 
+pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitStatus> {
+    config.build_dependencies_and_link_them()?;
+
+    let comments = Comments::default();
+    Ok(build_command(path, &config, "", &comments).status()?)
+}
+
 pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + Sync) -> Result<()> {
     // Get the triple with which to run the tests
-    let target = config.target.clone().unwrap_or_else(|| config.get_host());
+    let target = config.target();
 
     // A channel for files to process
     let (submit, receive) = crossbeam::channel::unbounded();
@@ -419,14 +446,7 @@ enum Error {
 
 type Errors = Vec<Error>;
 
-fn run_test(
-    path: &Path,
-    config: &Config,
-    target: &str,
-    revision: &str,
-    comments: &Comments,
-) -> (Command, Errors, String) {
-    // Run miri
+fn build_command(path: &Path, config: &Config, revision: &str, comments: &Comments) -> Command {
     let mut miri = Command::new(&config.program);
     miri.args(config.args.iter());
     miri.arg(path);
@@ -436,8 +456,21 @@ fn run_test(
     for arg in &comments.compile_flags {
         miri.arg(arg);
     }
+    miri.args(config.trailing_args.iter());
     miri.envs(comments.env_vars.iter().map(|(k, v)| (k, v)));
-    let output = miri.output().expect("could not execute miri");
+
+    miri
+}
+
+fn run_test(
+    path: &Path,
+    config: &Config,
+    target: &str,
+    revision: &str,
+    comments: &Comments,
+) -> (Command, Errors, String) {
+    let mut cmd = build_command(path, config, revision, comments);
+    let output = cmd.output().expect("could not execute miri");
     let mut errors = config.mode.ok(output.status);
     let stderr = check_test_result(
         path,
@@ -449,7 +482,7 @@ fn run_test(
         &output.stdout,
         &output.stderr,
     );
-    (miri, errors, stderr)
+    (cmd, errors, stderr)
 }
 
 fn check_test_result(

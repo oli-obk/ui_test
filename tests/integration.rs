@@ -11,7 +11,9 @@ fn main() -> Result<()> {
         Mode::Fail {
             require_patterns: false,
         },
-    )
+    )?;
+
+    Ok(())
 }
 
 fn run(name: &str, mode: Mode) -> Result<()> {
@@ -24,10 +26,13 @@ fn run(name: &str, mode: Mode) -> Result<()> {
             "test".into(),
             "--color".into(),
             "never".into(),
+            "--jobs".into(),
+            "1".into(),
             "--target-dir".into(),
             path.parent().unwrap().join("target").into(),
             "--manifest-path".into(),
         ],
+        trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
         program: "cargo".into(),
         output_conflict_handling: if std::env::var_os("BLESS").is_some() {
             OutputConflictHandling::Bless
@@ -38,7 +43,8 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         ..Config::default()
     };
 
-    config.stderr_filter("in [0-9\\.]+s", "");
+    config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
+    config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter("( +Running [^(]+).*", "$1");
     config.stderr_filter(" *Blocking waiting for.*\n", "");
     config.stderr_filter(" *(Compiling|Downloaded|Downloading) .*\n", "");

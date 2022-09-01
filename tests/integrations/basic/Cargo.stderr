@@ -1,5 +1,6 @@
     Finished test [unoptimized + debuginfo] target(s) 
      Running unittests src/lib.rs 
+     Running tests/run_file.rs 
      Running tests/ui_tests.rs 
    Compiler flags: ["--error-format=json", "--edition=2021"]
    Building test dependencies...
