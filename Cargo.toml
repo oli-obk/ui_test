@@ -4,6 +4,7 @@ version = "0.3.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A test framework for testing rustc diagnostics output"
+repository = "https://github.com/oli-obk/ui_test"
 rust-version = "1.63"
 
 [lib]
