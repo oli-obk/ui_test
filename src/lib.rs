@@ -14,7 +14,6 @@ use std::process::{Command, ExitStatus};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use crossbeam_channel::unbounded;
 use std::sync::Mutex;
-use std::thread;
 
 pub use color_eyre;
 use color_eyre::eyre::Result;
