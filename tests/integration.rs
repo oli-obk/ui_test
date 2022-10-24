@@ -17,7 +17,7 @@ fn main() -> Result<()> {
 }
 
 fn run(name: &str, mode: Mode) -> Result<()> {
-    eprintln!("\n{} `{name}` tests in mode {mode:?}", "Running".green());
+    eprintln!("\n{} `{name}` tests in mode {mode}", "Running".green());
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join(name);
     let mut config = Config {

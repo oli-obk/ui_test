@@ -7,7 +7,7 @@
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
-use std::fmt::Write;
+use std::fmt::{Write, Display};
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
@@ -330,7 +330,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
             eprintln!();
             for error in errors {
                 match error {
-                    Error::ExitStatus(mode, exit_status) => eprintln!("{mode:?} got {exit_status}"),
+                    Error::ExitStatus(mode, exit_status) => eprintln!("{mode} got {exit_status}"),
                     Error::PatternNotFound {
                         pattern,
                         definition_line,
@@ -771,6 +771,16 @@ impl Mode {
                 vec![]
             }
             _ => vec![Error::ExitStatus(self, status)],
+        }
+    }
+}
+
+impl Display for Mode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Mode::Pass => write!(f, "pass"),
+            Mode::Panic => write!(f, "panic"),
+            Mode::Fail{ require_patterns: _ }  => write!(f, "fail ")
         }
     }
 }
