@@ -782,7 +782,7 @@ impl Display for Mode {
             Mode::Panic => write!(f, "panic"),
             Mode::Fail {
                 require_patterns: _,
-            } => write!(f, "fail "),
+            } => write!(f, "fail"),
         }
     }
 }
