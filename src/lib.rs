@@ -7,7 +7,7 @@
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
-use std::fmt::{Write, Display};
+use std::fmt::{Display, Write};
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
@@ -780,7 +780,9 @@ impl Display for Mode {
         match self {
             Mode::Pass => write!(f, "pass"),
             Mode::Panic => write!(f, "panic"),
-            Mode::Fail{ require_patterns: _ }  => write!(f, "fail ")
+            Mode::Fail {
+                require_patterns: _,
+            } => write!(f, "fail "),
         }
     }
 }
