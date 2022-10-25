@@ -5,6 +5,13 @@
     rustc::internal
 )]
 
+pub use color_eyre;
+use color_eyre::eyre::Result;
+use colored::*;
+use crossbeam_channel::unbounded;
+use parser::{ErrorMatch, Pattern};
+use regex::Regex;
+use rustc_stderr::{Level, Message};
 use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fmt::{Display, Write};
@@ -13,13 +20,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
-
-pub use color_eyre;
-use color_eyre::eyre::Result;
-use colored::*;
-use parser::{ErrorMatch, Pattern};
-use regex::Regex;
-use rustc_stderr::{Level, Message};
+use std::thread;
 
 use crate::dependencies::build_dependencies;
 use crate::parser::{Comments, Condition};
@@ -172,18 +173,17 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
     let target = config.target();
 
     // A channel for files to process
-    let (submit, receive) = crossbeam::channel::unbounded();
-
+    let (submit, receive) = unbounded();
     // Some statistics and failure reports.
     let failures = Mutex::new(vec![]);
     let succeeded = AtomicUsize::default();
     let ignored = AtomicUsize::default();
     let filtered = AtomicUsize::default();
 
-    crossbeam::scope(|s| -> Result<()> {
+    thread::scope(|s| -> Result<()> {
         // Create a thread that is in charge of walking the directory and submitting jobs.
         // It closes the channel when it is done.
-        s.spawn(|_| {
+        s.spawn(|| {
             let mut todo = VecDeque::new();
             todo.push_back(config.root_dir.clone());
             while let Some(path) = todo.pop_front() {
@@ -209,14 +209,14 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
         });
 
         // A channel for the messages emitted by the individual test threads.
-        let (finished_files_sender, finished_files_recv) = crossbeam::channel::unbounded();
+        let (finished_files_sender, finished_files_recv) = unbounded();
         enum TestResult {
             Ok,
             Failed,
             Ignored,
         }
 
-        s.spawn(|_| {
+        s.spawn(|| {
             if config.quiet {
                 for (i, (_, result)) in finished_files_recv.into_iter().enumerate() {
                     // Humans start counting at 1
@@ -250,7 +250,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
         // Create N worker threads that receive files to test.
         for _ in 0..config.num_test_threads.get() {
             let finished_files_sender = finished_files_sender.clone();
-            threads.push(s.spawn(|_| -> Result<()> {
+            threads.push(s.spawn(|| -> Result<()> {
                 let finished_files_sender = finished_files_sender;
                 for path in &receive {
                     if !config.path_filter.is_empty() {
@@ -310,7 +310,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
         }
         Ok(())
     })
-    .unwrap()?;
+    .unwrap();
 
     // Print all errors in a single thread to show reliable output
     let failures = failures.into_inner().unwrap();
