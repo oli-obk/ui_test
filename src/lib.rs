@@ -5,6 +5,13 @@
     rustc::internal
 )]
 
+pub use color_eyre;
+use color_eyre::eyre::Result;
+use colored::*;
+use crossbeam_channel::unbounded;
+use parser::{ErrorMatch, Pattern};
+use regex::Regex;
+use rustc_stderr::{Level, Message};
 use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fmt::Write;
@@ -12,15 +19,8 @@ use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use crossbeam_channel::unbounded;
 use std::sync::Mutex;
-
-pub use color_eyre;
-use color_eyre::eyre::Result;
-use colored::*;
-use parser::{ErrorMatch, Pattern};
-use regex::Regex;
-use rustc_stderr::{Level, Message};
+use std::thread;
 
 use crate::dependencies::build_dependencies;
 use crate::parser::{Comments, Condition};
@@ -362,7 +362,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
                         eprintln!("{}", "actual output differed from expected".underline());
                         eprintln!("{}", format!("--- {}", path.display()).red());
                         eprintln!("{}", "+++ <stderr output>".green());
-                        diff::print_diff(&expected, &actual);
+                        diff::print_diff(expected, actual);
                     }
                     Error::ErrorsWithoutPattern { path: None, msgs } => {
                         eprintln!(
