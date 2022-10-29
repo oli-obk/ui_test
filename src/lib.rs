@@ -318,7 +318,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
     let ignored = ignored.load(Ordering::Relaxed);
     let filtered = filtered.load(Ordering::Relaxed);
     if !failures.is_empty() {
-        for (path, miri, revision, errors, stderr) in &failures {
+        for (path, cmd, revision, errors, stderr) in &failures {
             eprintln!();
             eprint!("{}", path.display().to_string().underline().bold());
             if !revision.is_empty() {
@@ -326,7 +326,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
             }
             eprint!(" {}", "FAILED:".red().bold());
             eprintln!();
-            eprintln!("command: {:?}", miri);
+            eprintln!("command: {:?}", cmd);
             eprintln!();
             for error in errors {
                 match error {
@@ -394,7 +394,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
             eprintln!();
         }
         eprintln!("{}", "FAILURES:".red().underline().bold());
-        for (path, _miri, _revision, _errors, _stderr) in &failures {
+        for (path, _cmd, _revision, _errors, _stderr) in &failures {
             eprintln!("    {}", path.display());
         }
         eprintln!();
@@ -447,19 +447,19 @@ enum Error {
 type Errors = Vec<Error>;
 
 fn build_command(path: &Path, config: &Config, revision: &str, comments: &Comments) -> Command {
-    let mut miri = Command::new(&config.program);
-    miri.args(config.args.iter());
-    miri.arg(path);
+    let mut cmd = Command::new(&config.program);
+    cmd.args(config.args.iter());
+    cmd.arg(path);
     if !revision.is_empty() {
-        miri.arg(format!("--cfg={revision}"));
+        cmd.arg(format!("--cfg={revision}"));
     }
     for arg in &comments.compile_flags {
-        miri.arg(arg);
+        cmd.arg(arg);
     }
-    miri.args(config.trailing_args.iter());
-    miri.envs(comments.env_vars.iter().map(|(k, v)| (k, v)));
+    cmd.args(config.trailing_args.iter());
+    cmd.envs(comments.env_vars.iter().map(|(k, v)| (k, v)));
 
-    miri
+    cmd
 }
 
 fn run_test(
@@ -470,7 +470,7 @@ fn run_test(
     comments: &Comments,
 ) -> (Command, Errors, String) {
     let mut cmd = build_command(path, config, revision, comments);
-    let output = cmd.output().expect("could not execute miri");
+    let output = cmd.output().expect("could not execute {cmd:?}");
     let mut errors = config.mode.ok(output.status);
     let stderr = check_test_result(
         path,
