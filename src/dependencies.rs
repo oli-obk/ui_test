@@ -54,8 +54,8 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
     let output = build.output()?;
 
     if !output.status.success() {
-        let stdout = String::from_utf8(output.stdout)?;
-        let stderr = String::from_utf8(output.stderr)?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
         bail!("failed to compile dependencies:\nstderr:\n{stderr}\n\nstdout:{stdout}");
     }
 
@@ -88,8 +88,8 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
     let output = metadata.output()?;
 
     if !output.status.success() {
-        let stdout = String::from_utf8(output.stdout)?;
-        let stderr = String::from_utf8(output.stderr)?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
         bail!("failed to run cargo-metadata:\nstderr:\n{stderr}\n\nstdout:{stdout}");
     }
 

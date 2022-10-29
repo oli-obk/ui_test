@@ -125,7 +125,7 @@ pub(crate) fn filter_annotations_from_rendered(rendered: &str) -> std::borrow::C
 }
 
 pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
-    let stderr = std::str::from_utf8(stderr).unwrap();
+    let stderr = String::from_utf8_lossy(stderr);
     let mut rendered = String::new();
     let mut messages = vec![];
     let mut messages_from_unknown_file_or_line = vec![];

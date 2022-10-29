@@ -497,7 +497,7 @@ fn check_test_result(
 ) -> String {
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, stderr);
-    let stdout = std::str::from_utf8(stdout).unwrap();
+    let stdout = String::from_utf8_lossy(stdout);
     // Check output files (if any)
     let revised = |extension: &str| {
         if revision.is_empty() {
@@ -518,7 +518,7 @@ fn check_test_result(
         comments,
     );
     check_output(
-        stdout,
+        &stdout,
         path,
         errors,
         revised("stdout"),
