@@ -400,7 +400,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
                 eprintln!();
             }
             eprintln!("full stderr:");
-            std::io::stderr().write(stderr).unwrap();
+            std::io::stderr().write_all(stderr).unwrap();
             eprintln!();
             eprintln!();
         }
