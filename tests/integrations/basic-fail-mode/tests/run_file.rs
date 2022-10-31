@@ -7,9 +7,11 @@ fn run_file() -> Result<()> {
     let mut config = Config::default();
     // Don't require `extern crate` for imports.
     config.args.push("--edition=2021".into());
-    config
-        .args
-        .push("--out-dir=../../../target/run_file".into());
+
+    let tmp_dir = tempfile::tempdir()?;
+    config.args.push("--out-dir".into());
+    config.args.push(tmp_dir.path().as_os_str().to_owned());
+
     let result = ui_test::run_file(
         config,
         &Path::new(file!())
@@ -22,15 +24,17 @@ fn run_file() -> Result<()> {
 }
 
 #[test]
-fn run_file_no_tests() -> Result<()> {
+fn run_file_no_deps() -> Result<()> {
     let path = "../../../target";
 
     let mut config = Config::default();
     // Don't require `extern crate` for imports.
     config.args.push("--edition=2021".into());
-    config
-        .args
-        .push("--out-dir=../../../target/run_file".into());
+
+    let tmp_dir = tempfile::tempdir()?;
+    config.args.push("--out-dir".into());
+    config.args.push(tmp_dir.path().as_os_str().to_owned());
+
     // Don't build a binary, we only provide .rmeta dependencies for now
     config.args.push("--emit=metadata".into());
     config.dependencies_crate_manifest_path = Some("Cargo.toml".into());
