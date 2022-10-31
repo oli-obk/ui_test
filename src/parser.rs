@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use regex::Regex;
+use regex::bytes::Regex;
 
 use crate::rustc_stderr::Level;
 
@@ -27,7 +27,7 @@ pub(crate) struct Comments {
     /// Additional env vars to set for the executable
     pub env_vars: Vec<(String, String)>,
     /// Normalizations to apply to the stderr output before emitting it to disk
-    pub normalize_stderr: Vec<(Regex, String)>,
+    pub normalize_stderr: Vec<(Regex, Vec<u8>)>,
     /// An arbitrary pattern to look for in the stderr.
     pub error_pattern: Option<(Pattern, usize)>,
     pub error_matches: Vec<ErrorMatch>,
@@ -202,7 +202,7 @@ impl Comments {
                 );
 
                 let from = Regex::new(from)?;
-                self.normalize_stderr.push((from, to.to_string()));
+                self.normalize_stderr.push((from, to.as_bytes().to_owned()));
             }
             "error-pattern" => {
                 ensure!(
@@ -333,7 +333,7 @@ impl Pattern {
     pub(crate) fn matches(&self, message: &str) -> bool {
         match self {
             Pattern::SubString(s) => message.contains(s),
-            Pattern::Regex(r) => r.is_match(message),
+            Pattern::Regex(r) => r.is_match(message.as_bytes()),
         }
     }
 

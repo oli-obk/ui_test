@@ -53,3 +53,20 @@ fn run_file_with_deps() -> Result<()> {
     ensure!(result.success(), "");
     Ok(())
 }
+
+#[test]
+fn non_utf8() -> Result<()> {
+    let mut config = Config::default();
+    config.args.clear();
+    config.program = "cat".into();
+
+    let result = ui_test::run_file(
+        config,
+        &Path::new(file!())
+            .parent()
+            .unwrap()
+            .join("run_file/non_utf8"),
+    )?;
+    ensure!(result.success(), "");
+    Ok(())
+}
