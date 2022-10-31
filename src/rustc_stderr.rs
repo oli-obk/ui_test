@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use bstr::ByteSlice;
 use color_eyre::eyre::{eyre, Error};
 use regex::Regex;
 
@@ -125,8 +126,8 @@ pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
     let mut rendered = Vec::new();
     let mut messages = vec![];
     let mut messages_from_unknown_file_or_line = vec![];
-    for (line_number, line) in stderr.split_inclusive(|&c| c == b'\n').enumerate() {
-        if line.get(0) == Some(&b'{') {
+    for (line_number, line) in stderr.lines_with_terminator().enumerate() {
+        if line.starts_with_str(b"{") {
             match serde_json::from_slice::<RustcMessage>(line) {
                 Ok(msg) => {
                     rendered.extend(

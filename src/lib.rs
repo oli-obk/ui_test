@@ -173,10 +173,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
 pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitStatus> {
     config.build_dependencies_and_link_them()?;
 
-    let comments = match std::fs::read_to_string(path) {
-        Ok(content) => Comments::parse(path, &content)?,
-        Err(_) => Comments::default(),
-    };
+    let comments = Comments::parse_file(path)?;
     Ok(build_command(path, &config, "", &comments).status()?)
 }
 

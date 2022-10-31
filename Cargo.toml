@@ -21,6 +21,7 @@ serde_json = "1.0"
 cargo_metadata = "0.15"
 crossbeam-channel = "0.5.6"
 tempfile = "3.3.0"
+bstr = "1.0.1"
 
 [dependencies.regex]
 version = "1.5.5"

@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use bstr::ByteSlice;
 use regex::bytes::Regex;
 
 use crate::rustc_stderr::Level;
@@ -83,17 +84,17 @@ impl Condition {
 
 impl Comments {
     pub(crate) fn parse_file(path: &Path) -> Result<Self> {
-        let content = std::fs::read_to_string(path)?;
+        let content = std::fs::read(path)?;
         Self::parse(path, &content)
     }
 
     /// Parse comments in `content`.
     /// `path` is only used to emit diagnostics if parsing fails.
-    pub(crate) fn parse(path: &Path, content: &str) -> Result<Self> {
+    pub(crate) fn parse(path: &Path, content: &(impl AsRef<[u8]> + ?Sized)) -> Result<Self> {
         let mut this = Self::default();
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
-        for (l, line) in content.lines().enumerate() {
+        for (l, line) in content.as_ref().lines().enumerate() {
             let l = l + 1; // enumerate starts at 0, but line numbers start at 1
             this.parse_checked_line(l, &mut fallthrough_to, line)
                 .map_err(|err| {
@@ -110,14 +111,14 @@ impl Comments {
         &mut self,
         l: usize,
         fallthrough_to: &mut Option<usize>,
-        line: &str,
+        line: &[u8],
     ) -> Result<()> {
-        if let Some((_, command)) = line.split_once("//@") {
-            self.parse_command(command.trim(), l)
-        } else if let Some((_, pattern)) = line.split_once("//~") {
-            self.parse_pattern(pattern, fallthrough_to, l)
-        } else if let Some((_, pattern)) = line.split_once("//[") {
-            self.parse_revisioned_pattern(pattern, fallthrough_to, l)
+        if let Some((_, command)) = line.split_once_str("//@") {
+            self.parse_command(command.trim().to_str()?, l)
+        } else if let Some((_, pattern)) = line.split_once_str("//~") {
+            self.parse_pattern(pattern.to_str()?, fallthrough_to, l)
+        } else if let Some((_, pattern)) = line.split_once_str("//[") {
+            self.parse_revisioned_pattern(pattern.to_str()?, fallthrough_to, l)
         } else {
             *fallthrough_to = None;
             Ok(())
