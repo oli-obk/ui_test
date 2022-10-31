@@ -41,6 +41,8 @@ pub struct Config {
     /// Arguments passed to the binary that is executed.
     /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
     pub trailing_args: Vec<OsString>,
+    /// Host triple; usually will be auto-detected.
+    pub host: Option<String>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
     /// Filters applied to stderr output before processing it
@@ -70,6 +72,7 @@ impl Default for Config {
         Self {
             args: vec!["--error-format=json".into()],
             trailing_args: vec![],
+            host: None,
             target: None,
             stderr_filters: vec![],
             stdout_filters: vec![],
@@ -115,9 +118,18 @@ impl Config {
         Ok(())
     }
 
-    /// Returns the actual target (if no target specified, returns the host)
-    fn target(&self) -> String {
-        self.target.clone().unwrap_or_else(|| self.get_host())
+    /// Make sure we have the host and target triples.
+    pub fn fill_host_and_target(&mut self) {
+        if self.host.is_none() {
+            self.host = Some(
+                rustc_version::VersionMeta::for_command(std::process::Command::new(&self.program))
+                    .expect("failed to parse rustc version info")
+                    .host,
+            );
+        }
+        if self.target.is_none() {
+            self.target = Some(self.host.clone().unwrap());
+        }
     }
 }
 
@@ -168,9 +180,11 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitSta
     Ok(build_command(path, &config, "", &comments).status()?)
 }
 
-pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + Sync) -> Result<()> {
-    // Get the triple with which to run the tests
-    let target = config.target();
+pub fn run_tests_generic(
+    mut config: Config,
+    file_filter: impl Fn(&Path) -> bool + Sync,
+) -> Result<()> {
+    config.fill_host_and_target();
 
     // A channel for files to process
     let (submit, receive) = unbounded();
@@ -266,7 +280,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
                     }
                     let comments = Comments::parse_file(&path)?;
                     // Ignore file if only/ignore rules do (not) apply
-                    if !test_file_conditions(&comments, &target, &config) {
+                    if !test_file_conditions(&comments, &config) {
                         ignored.fetch_add(1, Ordering::Relaxed);
                         finished_files_sender
                             .send((path.display().to_string(), TestResult::Ignored))?;
@@ -278,8 +292,7 @@ pub fn run_tests_generic(config: Config, file_filter: impl Fn(&Path) -> bool + S
                         .clone()
                         .unwrap_or_else(|| vec![String::new()])
                     {
-                        let (m, errors, stderr) =
-                            run_test(&path, &config, &target, &revision, &comments);
+                        let (m, errors, stderr) = run_test(&path, &config, &revision, &comments);
 
                         // Using a single `eprintln!` to prevent messages from threads from getting intermingled.
                         let mut msg = format!("{}", path.display());
@@ -465,7 +478,6 @@ fn build_command(path: &Path, config: &Config, revision: &str, comments: &Commen
 fn run_test(
     path: &Path,
     config: &Config,
-    target: &str,
     revision: &str,
     comments: &Comments,
 ) -> (Command, Errors, String) {
@@ -475,7 +487,6 @@ fn run_test(
     let stderr = check_test_result(
         path,
         config,
-        target,
         revision,
         comments,
         &mut errors,
@@ -488,7 +499,6 @@ fn run_test(
 fn check_test_result(
     path: &Path,
     config: &Config,
-    target: &str,
     revision: &str,
     comments: &Comments,
     errors: &mut Errors,
@@ -512,7 +522,6 @@ fn check_test_result(
         path,
         errors,
         revised("stderr"),
-        target,
         &config.stderr_filters,
         config,
         comments,
@@ -522,7 +531,6 @@ fn check_test_result(
         path,
         errors,
         revised("stdout"),
-        target,
         &config.stdout_filters,
         config,
         comments,
@@ -654,11 +662,11 @@ fn check_output(
     path: &Path,
     errors: &mut Errors,
     kind: String,
-    target: &str,
     filters: &Filter,
     config: &Config,
     comments: &Comments,
 ) {
+    let target = config.target.as_ref().unwrap();
     let output = normalize(path, output, filters, comments);
     let path = output_path(path, comments, kind, target);
     match config.output_conflict_handling {
@@ -690,27 +698,21 @@ fn output_path(path: &Path, comments: &Comments, kind: String, target: &str) -> 
     path.with_extension(kind)
 }
 
-fn test_condition(condition: &Condition, target: &str, config: &Config) -> bool {
+fn test_condition(condition: &Condition, config: &Config) -> bool {
+    let target = config.target.as_ref().unwrap();
     match condition {
         Condition::Bitwidth(bits) => get_pointer_width(target) == *bits,
         Condition::Target(t) => target.contains(t),
-        Condition::OnHost => config.target.is_none(),
+        Condition::OnHost => target == config.host.as_ref().unwrap(),
     }
 }
 
 /// Returns whether according to the in-file conditions, this file should be run.
-fn test_file_conditions(comments: &Comments, target: &str, config: &Config) -> bool {
-    if comments
-        .ignore
-        .iter()
-        .any(|c| test_condition(c, target, config))
-    {
+fn test_file_conditions(comments: &Comments, config: &Config) -> bool {
+    if comments.ignore.iter().any(|c| test_condition(c, config)) {
         return false;
     }
-    comments
-        .only
-        .iter()
-        .all(|c| test_condition(c, target, config))
+    comments.only.iter().all(|c| test_condition(c, config))
 }
 
 // Taken 1:1 from compiletest-rs
@@ -741,14 +743,6 @@ fn normalize(path: &Path, text: &str, filters: &Filter, comments: &Comments) -> 
         text = from.replace_all(&text, to).to_string();
     }
     text
-}
-
-impl Config {
-    fn get_host(&self) -> String {
-        rustc_version::VersionMeta::for_command(std::process::Command::new(&self.program))
-            .expect("failed to parse rustc version info")
-            .host
-    }
 }
 
 #[derive(Copy, Clone, Debug)]
