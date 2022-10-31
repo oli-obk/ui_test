@@ -4,11 +4,12 @@ running 0 tests
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
 
 
-running 2 tests
+running 3 tests
+test non_utf8 ... ÿÿBok
 test run_file ... ok
-test run_file_no_tests ... ok
+test run_file_with_deps ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
 
 
 running 0 tests

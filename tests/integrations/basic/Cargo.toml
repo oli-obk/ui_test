@@ -7,6 +7,7 @@ edition = "2021"
 
 [dev-dependencies]
 ui_test = { path = "../../.."}
+tempfile = "3.3.0"
 
 [[test]]
 name = "ui_tests"

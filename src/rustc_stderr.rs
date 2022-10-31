@@ -1,8 +1,6 @@
-use std::{
-    fmt::Write,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
+use bstr::ByteSlice;
 use color_eyre::eyre::{eyre, Error};
 use regex::Regex;
 
@@ -64,7 +62,7 @@ impl std::str::FromStr for Level {
 pub(crate) struct Diagnostics {
     /// Rendered and concatenated version of all diagnostics.
     /// This is equivalent to non-json diagnostics.
-    pub rendered: String,
+    pub rendered: Vec<u8>,
     /// Per line, a list of messages for that line.
     pub messages: Vec<Vec<Message>>,
     /// Messages not on any line (usually because they are from libstd)
@@ -125,20 +123,16 @@ pub(crate) fn filter_annotations_from_rendered(rendered: &str) -> std::borrow::C
 }
 
 pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
-    let stderr = std::str::from_utf8(stderr).unwrap();
-    let mut rendered = String::new();
+    let mut rendered = Vec::new();
     let mut messages = vec![];
     let mut messages_from_unknown_file_or_line = vec![];
-    for line in stderr.lines() {
-        if line.starts_with('{') {
-            match serde_json::from_str::<RustcMessage>(line) {
+    for (line_number, line) in stderr.lines_with_terminator().enumerate() {
+        if line.starts_with_str(b"{") {
+            match serde_json::from_slice::<RustcMessage>(line) {
                 Ok(msg) => {
-                    write!(
-                        rendered,
-                        "{}",
-                        filter_annotations_from_rendered(msg.rendered.as_ref().unwrap())
-                    )
-                    .unwrap();
+                    rendered.extend(
+                        filter_annotations_from_rendered(msg.rendered.as_ref().unwrap()).as_bytes(),
+                    );
                     msg.insert_recursive(
                         file,
                         &mut messages,
@@ -147,15 +141,12 @@ pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
                     );
                 }
                 Err(err) => {
-                    panic!(
-                        "failed to parse rustc JSON output at line: {}\nerr:{}",
-                        line, err
-                    )
+                    panic!("failed to parse rustc JSON output at line {line_number}: {err}")
                 }
             }
         } else {
             // FIXME: do we want to throw interpreter stderr into a separate file?
-            writeln!(rendered, "{}", line).unwrap();
+            rendered.extend(line);
         }
     }
     Diagnostics {

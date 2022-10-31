@@ -152,9 +152,19 @@ impl<'a> DiffState<'a> {
     }
 }
 
-pub fn print_diff(expected: &str, actual: &str) {
+pub fn print_diff(expected: &[u8], actual: &[u8]) {
+    let expected_str = String::from_utf8_lossy(expected);
+    let actual_str = String::from_utf8_lossy(actual);
+
+    if expected_str.as_bytes() != expected || actual_str.as_bytes() != actual {
+        eprintln!(
+            "{}",
+            "Non-UTF8 characters in output, diff may be imprecise.".red()
+        );
+    }
+
     let mut state = DiffState::default();
-    for row in lines(expected, actual) {
+    for row in lines(&expected_str, &actual_str) {
         state.row(row);
     }
     state.finish();

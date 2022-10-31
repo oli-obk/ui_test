@@ -5,16 +5,18 @@
     rustc::internal
 )]
 
+use bstr::ByteSlice;
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use colored::*;
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern};
-use regex::Regex;
+use regex::bytes::Regex;
 use rustc_stderr::{Level, Message};
 use std::collections::VecDeque;
 use std::ffi::OsString;
-use std::fmt::{Display, Write};
+use std::fmt::{Display, Write as _};
+use std::io::Write as _;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
@@ -92,14 +94,22 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn stderr_filter(&mut self, pattern: &str, replacement: &'static str) {
+    pub fn stderr_filter(
+        &mut self,
+        pattern: &str,
+        replacement: &'static (impl AsRef<[u8]> + ?Sized),
+    ) {
         self.stderr_filters
-            .push((Regex::new(pattern).unwrap(), replacement));
+            .push((Regex::new(pattern).unwrap(), replacement.as_ref()));
     }
 
-    pub fn stdout_filter(&mut self, pattern: &str, replacement: &'static str) {
+    pub fn stdout_filter(
+        &mut self,
+        pattern: &str,
+        replacement: &'static (impl AsRef<[u8]> + ?Sized),
+    ) {
         self.stdout_filters
-            .push((Regex::new(pattern).unwrap(), replacement));
+            .push((Regex::new(pattern).unwrap(), replacement.as_ref()));
     }
 
     fn build_dependencies_and_link_them(&mut self) -> Result<()> {
@@ -161,7 +171,7 @@ pub enum OutputConflictHandling {
     Bless,
 }
 
-pub type Filter = Vec<(Regex, &'static str)>;
+pub type Filter = Vec<(Regex, &'static [u8])>;
 
 pub fn run_tests(mut config: Config) -> Result<()> {
     eprintln!("   Compiler flags: {:?}", config.args);
@@ -176,7 +186,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
 pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitStatus> {
     config.build_dependencies_and_link_them()?;
 
-    let comments = Comments::default();
+    let comments = Comments::parse_file(path)?;
     Ok(build_command(path, &config, "", &comments).status()?)
 }
 
@@ -403,7 +413,8 @@ pub fn run_tests_generic(
                 eprintln!();
             }
             eprintln!("full stderr:");
-            eprintln!("{}", stderr);
+            std::io::stderr().write_all(stderr).unwrap();
+            eprintln!();
             eprintln!();
         }
         eprintln!("{}", "FAILURES:".red().underline().bold());
@@ -448,8 +459,8 @@ enum Error {
     /// Stderr/Stdout differed from the `.stderr`/`.stdout` file present.
     OutputDiffers {
         path: PathBuf,
-        actual: String,
-        expected: String,
+        actual: Vec<u8>,
+        expected: Vec<u8>,
     },
     ErrorsWithoutPattern {
         msgs: Vec<Message>,
@@ -480,7 +491,7 @@ fn run_test(
     config: &Config,
     revision: &str,
     comments: &Comments,
-) -> (Command, Errors, String) {
+) -> (Command, Errors, Vec<u8>) {
     let mut cmd = build_command(path, config, revision, comments);
     let output = cmd.output().expect("could not execute {cmd:?}");
     let mut errors = config.mode.ok(output.status);
@@ -504,10 +515,9 @@ fn check_test_result(
     errors: &mut Errors,
     stdout: &[u8],
     stderr: &[u8],
-) -> String {
+) -> Vec<u8> {
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, stderr);
-    let stdout = std::str::from_utf8(stdout).unwrap();
     // Check output files (if any)
     let revised = |extension: &str| {
         if revision.is_empty() {
@@ -658,7 +668,7 @@ fn check_annotations(
 }
 
 fn check_output(
-    output: &str,
+    output: &[u8],
     path: &Path,
     errors: &mut Errors,
     kind: String,
@@ -678,7 +688,7 @@ fn check_output(
             }
         }
         OutputConflictHandling::Error => {
-            let expected_output = std::fs::read_to_string(&path).unwrap_or_default();
+            let expected_output = std::fs::read(&path).unwrap_or_default();
             if output != expected_output {
                 errors.push(Error::OutputDiffers {
                     path,
@@ -728,7 +738,7 @@ fn get_pointer_width(triple: &str) -> u8 {
     }
 }
 
-fn normalize(path: &Path, text: &str, filters: &Filter, comments: &Comments) -> String {
+fn normalize(path: &Path, text: &[u8], filters: &Filter, comments: &Comments) -> Vec<u8> {
     // Useless paths
     let mut text = text.replace(&path.parent().unwrap().display().to_string(), "$DIR");
     if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
@@ -736,11 +746,11 @@ fn normalize(path: &Path, text: &str, filters: &Filter, comments: &Comments) -> 
     }
 
     for (regex, replacement) in filters.iter() {
-        text = regex.replace_all(&text, *replacement).to_string();
+        text = regex.replace_all(&text, *replacement).into_owned();
     }
 
     for (from, to) in &comments.normalize_stderr {
-        text = from.replace_all(&text, to).to_string();
+        text = from.replace_all(&text, to).into_owned();
     }
     text
 }

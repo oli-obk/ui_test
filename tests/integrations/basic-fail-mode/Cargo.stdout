@@ -6,7 +6,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 running 2 tests
 test run_file ... ok
-test run_file_no_tests ... ok
+test run_file_no_deps ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
 
