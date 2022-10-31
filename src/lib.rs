@@ -117,6 +117,20 @@ impl Config {
         }
         Ok(())
     }
+
+    /// Make sure we have the host and target triples.
+    pub fn fill_host_and_target(&mut self) {
+        if self.host.is_none() {
+            self.host = Some(
+                rustc_version::VersionMeta::for_command(std::process::Command::new(&self.program))
+                    .expect("failed to parse rustc version info")
+                    .host,
+            );
+        }
+        if self.target.is_none() {
+            self.target = Some(self.host.clone().unwrap());
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -170,17 +184,7 @@ pub fn run_tests_generic(
     mut config: Config,
     file_filter: impl Fn(&Path) -> bool + Sync,
 ) -> Result<()> {
-    // Make sure we have the host and target triples.
-    if config.host.is_none() {
-        config.host = Some(
-            rustc_version::VersionMeta::for_command(std::process::Command::new(&config.program))
-                .expect("failed to parse rustc version info")
-                .host,
-        );
-    }
-    if config.target.is_none() {
-        config.target = Some(config.host.clone().unwrap());
-    }
+    config.fill_host_and_target();
 
     // A channel for files to process
     let (submit, receive) = unbounded();
