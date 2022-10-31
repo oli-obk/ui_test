@@ -5,6 +5,7 @@
     rustc::internal
 )]
 
+use bstr::ByteSlice;
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use colored::*;
@@ -737,15 +738,10 @@ fn get_pointer_width(triple: &str) -> u8 {
 
 fn normalize(path: &Path, text: &[u8], filters: &Filter, comments: &Comments) -> Vec<u8> {
     // Useless paths
-    let mut text = if let Ok(text) = std::str::from_utf8(text) {
-        let mut text = text.replace(&path.parent().unwrap().display().to_string(), "$DIR");
-        if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
-            text = text.replace(lib_path, "RUSTLIB");
-        }
-        text.into_bytes()
-    } else {
-        text.to_owned()
-    };
+    let mut text = text.replace(&path.parent().unwrap().display().to_string(), "$DIR");
+    if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
+        text = text.replace(lib_path, "RUSTLIB");
+    }
 
     for (regex, replacement) in filters.iter() {
         text = regex.replace_all(&text, *replacement).into_owned();
