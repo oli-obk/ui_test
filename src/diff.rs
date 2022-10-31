@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use colored::*;
 use diff::{chars, lines, Result, Result::*};
 
@@ -155,18 +153,19 @@ impl<'a> DiffState<'a> {
 }
 
 pub fn print_diff(expected: &[u8], actual: &[u8]) {
-    if let (Ok(expected), Ok(actual)) = (std::str::from_utf8(expected), std::str::from_utf8(actual))
-    {
-        let mut state = DiffState::default();
-        for row in lines(expected, actual) {
-            state.row(row);
-        }
-        state.finish();
-    } else {
-        eprint!("{}", "-".red());
-        std::io::stderr().write(expected).unwrap();
-        eprint!("\n{}", "+".green());
-        std::io::stderr().write(actual).unwrap();
-        eprintln!();
+    let expected_str = String::from_utf8_lossy(expected);
+    let actual_str = String::from_utf8_lossy(actual);
+
+    if expected_str.as_bytes() != expected || actual_str.as_bytes() != actual {
+        eprintln!(
+            "{}",
+            "Non-UTF8 characters in output, diff may be imprecise around the Non-UTF8 chars".red()
+        );
     }
+
+    let mut state = DiffState::default();
+    for row in lines(&expected_str, &actual_str) {
+        state.row(row);
+    }
+    state.finish();
 }
