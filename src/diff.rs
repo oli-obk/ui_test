@@ -159,7 +159,7 @@ pub fn print_diff(expected: &[u8], actual: &[u8]) {
     if expected_str.as_bytes() != expected || actual_str.as_bytes() != actual {
         eprintln!(
             "{}",
-            "Non-UTF8 characters in output, diff may be imprecise around the Non-UTF8 chars".red()
+            "Non-UTF8 characters in output, diff may be imprecise.".red()
         );
     }
 
