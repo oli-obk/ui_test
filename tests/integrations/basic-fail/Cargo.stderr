@@ -4,6 +4,7 @@
    Compiler flags: ["--error-format=json", "--edition=2021"]
    Building test dependencies...
 tests/actual_tests/bad_pattern.rs ... FAILED
+tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
@@ -34,6 +35,19 @@ error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0308`.
 
+
+
+tests/actual_tests/filters.rs FAILED:
+command: "parse comments"
+
+full stderr:
+tests/actual_tests/filters.rs:1: failed to parse annotation
+
+Caused by:
+    test command must be followed by : (or end the line)
+
+Location:
+    $DIR/src/parser.rs:142:17
 
 
 tests/actual_tests/foomp.rs FAILED:
@@ -83,7 +97,8 @@ For more information about this error, try `rustc --explain E0308`.
 
 FAILURES:
     tests/actual_tests/bad_pattern.rs
+    tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
 
-test result: FAIL. 2 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 3 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 error: test failed, to rerun pass '--test ui_tests'
