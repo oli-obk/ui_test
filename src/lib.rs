@@ -20,8 +20,6 @@ use std::io::Write as _;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
 use std::thread;
 
 use crate::dependencies::build_dependencies;
@@ -186,8 +184,27 @@ pub fn run_tests(mut config: Config) -> Result<()> {
 pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitStatus> {
     config.build_dependencies_and_link_them()?;
 
-    let comments = Comments::parse_file(path)?;
+    let comments =
+        Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     Ok(build_command(path, &config, "", &comments).status()?)
+}
+
+#[allow(clippy::large_enum_variant)]
+enum TestResult {
+    Ok,
+    Ignored,
+    Filtered,
+    Errored {
+        command: Command,
+        errors: Vec<Error>,
+        stderr: Vec<u8>,
+    },
+}
+
+struct TestRun {
+    result: TestResult,
+    path: PathBuf,
+    revision: String,
 }
 
 pub fn run_tests_generic(
@@ -198,11 +215,8 @@ pub fn run_tests_generic(
 
     // A channel for files to process
     let (submit, receive) = unbounded();
-    // Some statistics and failure reports.
-    let failures = Mutex::new(vec![]);
-    let succeeded = AtomicUsize::default();
-    let ignored = AtomicUsize::default();
-    let filtered = AtomicUsize::default();
+
+    let mut results = vec![];
 
     thread::scope(|s| -> Result<()> {
         // Create a thread that is in charge of walking the directory and submitting jobs.
@@ -233,38 +247,46 @@ pub fn run_tests_generic(
         });
 
         // A channel for the messages emitted by the individual test threads.
-        let (finished_files_sender, finished_files_recv) = unbounded();
-        enum TestResult {
-            Ok,
-            Failed,
-            Ignored,
-        }
+        // Used to produce live updates while running the tests.
+        let (finished_files_sender, finished_files_recv) = unbounded::<TestRun>();
 
         s.spawn(|| {
             if config.quiet {
-                for (i, (_, result)) in finished_files_recv.into_iter().enumerate() {
+                for (i, run) in finished_files_recv.into_iter().enumerate() {
                     // Humans start counting at 1
                     let i = i + 1;
-                    match result {
+                    match run.result {
                         TestResult::Ok => eprint!("{}", ".".green()),
-                        TestResult::Failed => eprint!("{}", "F".red().bold()),
+                        TestResult::Errored { .. } => eprint!("{}", "F".red().bold()),
                         TestResult::Ignored => eprint!("{}", "i".yellow()),
+                        TestResult::Filtered => {}
                     }
                     if i % 100 == 0 {
                         eprintln!(" {i}");
                     }
+                    results.push(run);
                 }
             } else {
-                for (msg, result) in finished_files_recv {
-                    eprint!("{msg} ... ");
-                    eprintln!(
-                        "{}",
-                        match result {
-                            TestResult::Ok => "ok".green(),
-                            TestResult::Failed => "FAILED".red().bold(),
-                            TestResult::Ignored => "ignored (in-test comment)".yellow(),
-                        }
-                    );
+                for run in finished_files_recv {
+                    let result = match run.result {
+                        TestResult::Ok => Some("ok".green()),
+                        TestResult::Errored { .. } => Some("FAILED".red().bold()),
+                        TestResult::Ignored => Some("ignored (in-test comment)".yellow()),
+                        TestResult::Filtered => None,
+                    };
+                    if let Some(result) = result {
+                        eprint!(
+                            "{}{} ... ",
+                            run.path.display(),
+                            if run.revision.is_empty() {
+                                "".into()
+                            } else {
+                                format!(" ({})", run.revision)
+                            }
+                        );
+                        eprintln!("{}", result);
+                    }
+                    results.push(run);
                 }
             }
         });
@@ -277,51 +299,8 @@ pub fn run_tests_generic(
             threads.push(s.spawn(|| -> Result<()> {
                 let finished_files_sender = finished_files_sender;
                 for path in &receive {
-                    if !config.path_filter.is_empty() {
-                        let path_display = path.display().to_string();
-                        if !config
-                            .path_filter
-                            .iter()
-                            .any(|filter| path_display.contains(filter))
-                        {
-                            filtered.fetch_add(1, Ordering::Relaxed);
-                            continue;
-                        }
-                    }
-                    let comments = Comments::parse_file(&path)?;
-                    // Ignore file if only/ignore rules do (not) apply
-                    if !test_file_conditions(&comments, &config) {
-                        ignored.fetch_add(1, Ordering::Relaxed);
-                        finished_files_sender
-                            .send((path.display().to_string(), TestResult::Ignored))?;
-                        continue;
-                    }
-                    // Run the test for all revisions
-                    for revision in comments
-                        .revisions
-                        .clone()
-                        .unwrap_or_else(|| vec![String::new()])
-                    {
-                        let (m, errors, stderr) = run_test(&path, &config, &revision, &comments);
-
-                        // Using a single `eprintln!` to prevent messages from threads from getting intermingled.
-                        let mut msg = format!("{}", path.display());
-                        if !revision.is_empty() {
-                            write!(msg, " (revision `{revision}`) ").unwrap();
-                        }
-                        if errors.is_empty() {
-                            finished_files_sender.send((msg, TestResult::Ok))?;
-                            succeeded.fetch_add(1, Ordering::Relaxed);
-                        } else {
-                            finished_files_sender.send((msg, TestResult::Failed))?;
-                            failures.lock().unwrap().push((
-                                path.clone(),
-                                m,
-                                revision,
-                                errors,
-                                stderr,
-                            ));
-                        }
+                    for result in parse_and_test_file(path, &config) {
+                        finished_files_sender.send(result)?;
                     }
                 }
                 Ok(())
@@ -332,14 +311,27 @@ pub fn run_tests_generic(
             thread.join().unwrap()?;
         }
         Ok(())
-    })
-    .unwrap();
+    })?;
+
+    let mut failures = vec![];
+    let mut succeeded = 0;
+    let mut ignored = 0;
+    let mut filtered = 0;
+
+    for run in results {
+        match run.result {
+            TestResult::Ok => succeeded += 1,
+            TestResult::Ignored => ignored += 1,
+            TestResult::Filtered => filtered += 1,
+            TestResult::Errored {
+                command,
+                errors,
+                stderr,
+            } => failures.push((run.path, command, run.revision, errors, stderr)),
+        }
+    }
 
     // Print all errors in a single thread to show reliable output
-    let failures = failures.into_inner().unwrap();
-    let succeeded = succeeded.load(Ordering::Relaxed);
-    let ignored = ignored.load(Ordering::Relaxed);
-    let filtered = filtered.load(Ordering::Relaxed);
     if !failures.is_empty() {
         for (path, cmd, revision, errors, stderr) in &failures {
             eprintln!();
@@ -409,6 +401,12 @@ pub fn run_tests_generic(
                             eprintln!("    {level:?}: {message}")
                         }
                     }
+                    Error::InvalidComment { msg, line } => {
+                        eprintln!(
+                            "Could not parse comment in {}:{line} because {msg}",
+                            path.display()
+                        )
+                    }
                 }
                 eprintln!();
             }
@@ -444,6 +442,86 @@ pub fn run_tests_generic(
     Ok(())
 }
 
+fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
+    if !config.path_filter.is_empty() {
+        let path_display = path.display().to_string();
+        if !config
+            .path_filter
+            .iter()
+            .any(|filter| path_display.contains(filter))
+        {
+            return vec![TestRun {
+                result: TestResult::Filtered,
+                path,
+                revision: "".into(),
+            }];
+        }
+    }
+    let comments = match Comments::parse_file(&path) {
+        Ok(Ok(comments)) => comments,
+        Ok(Err(errors)) => {
+            return vec![TestRun {
+                result: TestResult::Errored {
+                    command: Command::new("parse comments"),
+                    errors,
+                    stderr: vec![],
+                },
+                path: path.clone(),
+                revision: "".into(),
+            }];
+        }
+        Err(err) => {
+            return vec![TestRun {
+                result: TestResult::Errored {
+                    command: Command::new("parse comments"),
+                    errors: vec![],
+                    stderr: format!("{err:?}").into(),
+                },
+                path,
+                revision: "".into(),
+            }]
+        }
+    };
+    // Ignore file if only/ignore rules do (not) apply
+    if !test_file_conditions(&comments, config) {
+        return vec![TestRun {
+            result: TestResult::Ignored,
+            path,
+            revision: "".into(),
+        }];
+    }
+    // Run the test for all revisions
+    comments
+        .revisions
+        .clone()
+        .unwrap_or_else(|| vec![String::new()])
+        .into_iter()
+        .map(|revision| {
+            let (command, errors, stderr) = run_test(&path, config, &revision, &comments);
+
+            // Using a single `eprintln!` to prevent messages from threads from getting intermingled.
+            let mut msg = format!("{}", path.display());
+            if !revision.is_empty() {
+                write!(msg, " (revision `{revision}`) ").unwrap();
+            }
+            let result = if errors.is_empty() {
+                TestResult::Ok
+            } else {
+                TestResult::Errored {
+                    command,
+                    errors,
+                    stderr,
+                }
+            };
+            TestRun {
+                result,
+                revision,
+                path: path.clone(),
+            }
+        })
+        .collect()
+}
+
 #[derive(Debug)]
 enum Error {
     /// Got an invalid exit status for the given mode.
@@ -465,6 +543,10 @@ enum Error {
     ErrorsWithoutPattern {
         msgs: Vec<Message>,
         path: Option<(PathBuf, usize)>,
+    },
+    InvalidComment {
+        msg: String,
+        line: usize,
     },
 }
 
