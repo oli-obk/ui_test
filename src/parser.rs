@@ -35,8 +35,28 @@ pub(crate) struct Comments {
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
+}
+
+#[derive(Default, Debug)]
+struct CommentParser {
+    /// The comments being built.
+    comments: Comments,
     /// Any errors that ocurred during comment parsing.
     pub errors: Vec<Error>,
+}
+
+impl std::ops::Deref for CommentParser {
+    type Target = Comments;
+
+    fn deref(&self) -> &Self::Target {
+        &self.comments
+    }
+}
+
+impl std::ops::DerefMut for CommentParser {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.comments
+    }
 }
 
 /// The conditions used for "ignore" and "only" filters.
@@ -87,30 +107,38 @@ impl Condition {
 }
 
 impl Comments {
-    pub(crate) fn parse_file(path: &Path) -> Result<Self> {
+    pub(crate) fn parse_file(path: &Path) -> Result<std::result::Result<Self, Vec<Error>>> {
         let content = std::fs::read(path)?;
         Ok(Self::parse(&content))
     }
 
     /// Parse comments in `content`.
     /// `path` is only used to emit diagnostics if parsing fails.
-    pub(crate) fn parse(content: &(impl AsRef<[u8]> + ?Sized)) -> Self {
-        let mut this = Self::default();
+    pub(crate) fn parse(
+        content: &(impl AsRef<[u8]> + ?Sized),
+    ) -> std::result::Result<Self, Vec<Error>> {
+        let mut parser = CommentParser::default();
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
         for (l, line) in content.as_ref().lines().enumerate() {
             let l = l + 1; // enumerate starts at 0, but line numbers start at 1
-            match this.parse_checked_line(l, &mut fallthrough_to, line) {
+            match parser.parse_checked_line(l, &mut fallthrough_to, line) {
                 Ok(()) => {}
-                Err(e) => this.errors.push(Error::InvalidComment {
+                Err(e) => parser.errors.push(Error::InvalidComment {
                     msg: format!("Comment is not utf8: {e:?}"),
                     line: l,
                 }),
             }
         }
-        this
+        if parser.errors.is_empty() {
+            Ok(parser.comments)
+        } else {
+            Err(parser.errors)
+        }
     }
+}
 
+impl CommentParser {
     fn parse_checked_line(
         &mut self,
         l: usize,
@@ -127,7 +155,6 @@ impl Comments {
             *fallthrough_to = None;
         })
     }
-
     fn parse_command(&mut self, command: &str, l: usize) {
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
         let (command, args) = match command
@@ -452,7 +479,7 @@ impl Pattern {
     }
 }
 
-impl Comments {
+impl CommentParser {
     fn parse_error_pattern(&mut self, pattern: &str, l: usize) -> Pattern {
         if let Some(regex) = pattern.strip_prefix('/') {
             match regex.strip_suffix('/') {

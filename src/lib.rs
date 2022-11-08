@@ -7,7 +7,7 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::{ensure, Result};
+use color_eyre::eyre::Result;
 use colored::*;
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern};
@@ -184,12 +184,8 @@ pub fn run_tests(mut config: Config) -> Result<()> {
 pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitStatus> {
     config.build_dependencies_and_link_them()?;
 
-    let comments = Comments::parse_file(path)?;
-    ensure!(
-        comments.errors.is_empty(),
-        "Could not parse comments: {:#?}",
-        comments.errors
-    );
+    let comments =
+        Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     Ok(build_command(path, &config, "", &comments).status()?)
 }
 
@@ -461,7 +457,18 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
         }
     }
     let comments = match Comments::parse_file(&path) {
-        Ok(comments) => comments,
+        Ok(Ok(comments)) => comments,
+        Ok(Err(errors)) => {
+            return vec![TestRun {
+                result: TestResult::Errored {
+                    command: Command::new("parse comments"),
+                    errors,
+                    stderr: vec![],
+                },
+                path: path.clone(),
+                revision: "".into(),
+            }];
+        }
         Err(err) => {
             return vec![TestRun {
                 result: TestResult::Errored {
@@ -474,17 +481,6 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
             }]
         }
     };
-    if !comments.errors.is_empty() {
-        return vec![TestRun {
-            result: TestResult::Errored {
-                command: Command::new("parse comments"),
-                errors: comments.errors,
-                stderr: vec![],
-            },
-            path: path.clone(),
-            revision: "".into(),
-        }];
-    }
     // Ignore file if only/ignore rules do (not) apply
     if !test_file_conditions(&comments, &config) {
         return vec![TestRun {
