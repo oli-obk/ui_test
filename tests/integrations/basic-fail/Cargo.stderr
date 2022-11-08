@@ -44,7 +44,7 @@ full stderr:
 tests/actual_tests/filters.rs:1: failed to parse annotation
 
 Caused by:
-    test command must be followed by : (or end the line)
+    test command must be followed by `:` (or end the line)
 
 Location:
     $DIR/src/parser.rs:142:17

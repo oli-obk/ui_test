@@ -141,7 +141,7 @@ impl Comments {
                     .expect("the `position` above guarantees that there is at least one char");
                 ensure!(
                     next == ':',
-                    "test command must be followed by : (or end the line)"
+                    "test command must be followed by `:` (or end the line)"
                 );
                 (command, args.as_str().trim())
             }
@@ -186,7 +186,7 @@ impl Comments {
                             }
                             bail!("no closing quotes found for {s}")
                         }
-                        c => bail!("expected '\"', got {c}"),
+                        c => bail!("expected `\"`, got `{c}`"),
                     }
                 }
 
