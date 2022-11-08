@@ -147,7 +147,7 @@ impl CommentParser {
         fallthrough_to: &mut Option<usize>,
         line: &[u8],
     ) -> std::result::Result<(), Utf8Error> {
-        Ok(if let Some((_, command)) = line.split_once_str("//@") {
+        if let Some((_, command)) = line.split_once_str("//@") {
             self.parse_command(command.trim().to_str()?)
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
             self.parse_pattern(pattern.to_str()?, fallthrough_to)
@@ -155,7 +155,8 @@ impl CommentParser {
             self.parse_revisioned_pattern(pattern.to_str()?, fallthrough_to)
         } else {
             *fallthrough_to = None;
-        })
+        }
+        Ok(())
     }
 
     fn error(&mut self, s: impl Into<String>) {

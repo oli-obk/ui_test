@@ -189,6 +189,7 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitSta
     Ok(build_command(path, &config, "", &comments).status()?)
 }
 
+#[allow(clippy::large_enum_variant)]
 enum TestResult {
     Ok,
     Ignored,
@@ -482,7 +483,7 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
         }
     };
     // Ignore file if only/ignore rules do (not) apply
-    if !test_file_conditions(&comments, &config) {
+    if !test_file_conditions(&comments, config) {
         return vec![TestRun {
             result: TestResult::Ignored,
             path,
@@ -496,7 +497,7 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
         .unwrap_or_else(|| vec![String::new()])
         .into_iter()
         .map(|revision| {
-            let (command, errors, stderr) = run_test(&path, &config, &revision, &comments);
+            let (command, errors, stderr) = run_test(&path, config, &revision, &comments);
 
             // Using a single `eprintln!` to prevent messages from threads from getting intermingled.
             let mut msg = format!("{}", path.display());
