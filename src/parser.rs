@@ -1,11 +1,11 @@
 use std::path::Path;
 
-use bstr::ByteSlice;
+use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
 use crate::{rustc_stderr::Level, Error};
 
-use color_eyre::eyre::{bail, ensure, eyre, Result};
+use color_eyre::eyre::Result;
 
 #[cfg(test)]
 mod tests;
@@ -89,26 +89,26 @@ impl Condition {
 impl Comments {
     pub(crate) fn parse_file(path: &Path) -> Result<Self> {
         let content = std::fs::read(path)?;
-        Self::parse(path, &content)
+        Ok(Self::parse(&content))
     }
 
     /// Parse comments in `content`.
     /// `path` is only used to emit diagnostics if parsing fails.
-    pub(crate) fn parse(path: &Path, content: &(impl AsRef<[u8]> + ?Sized)) -> Result<Self> {
+    pub(crate) fn parse(content: &(impl AsRef<[u8]> + ?Sized)) -> Self {
         let mut this = Self::default();
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
         for (l, line) in content.as_ref().lines().enumerate() {
             let l = l + 1; // enumerate starts at 0, but line numbers start at 1
-            this.parse_checked_line(l, &mut fallthrough_to, line)
-                .map_err(|err| {
-                    err.wrap_err(format!(
-                        "{}:{l}: failed to parse annotation",
-                        path.display()
-                    ))
-                })?;
+            match this.parse_checked_line(l, &mut fallthrough_to, line) {
+                Ok(()) => {}
+                Err(e) => this.errors.push(Error::InvalidComment {
+                    msg: format!("Comment is not utf8: {e:?}"),
+                    line: l,
+                }),
+            }
         }
-        Ok(this)
+        this
     }
 
     fn parse_checked_line(
@@ -116,8 +116,8 @@ impl Comments {
         l: usize,
         fallthrough_to: &mut Option<usize>,
         line: &[u8],
-    ) -> Result<()> {
-        if let Some((_, command)) = line.split_once_str("//@") {
+    ) -> std::result::Result<(), Utf8Error> {
+        Ok(if let Some((_, command)) = line.split_once_str("//@") {
             self.parse_command(command.trim().to_str()?, l)
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
             self.parse_pattern(pattern.to_str()?, fallthrough_to, l)
@@ -125,11 +125,10 @@ impl Comments {
             self.parse_revisioned_pattern(pattern.to_str()?, fallthrough_to, l)
         } else {
             *fallthrough_to = None;
-            Ok(())
-        }
+        })
     }
 
-    fn parse_command(&mut self, command: &str, l: usize) -> Result<()> {
+    fn parse_command(&mut self, command: &str, l: usize) {
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
         let (command, args) = match command
             .chars()
@@ -155,8 +154,14 @@ impl Comments {
 
         match command {
             "revisions" => {
-                ensure!(self.revisions.is_none(), "cannot specifiy revisions twice");
-                self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
+                if self.revisions.is_some() {
+                    self.errors.push(Error::InvalidComment {
+                        msg: "cannot specify `revisions` twice".into(),
+                        line: l,
+                    })
+                } else {
+                    self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
+                }
             }
             "compile-flags" => {
                 self.compile_flags
@@ -164,75 +169,75 @@ impl Comments {
             }
             "rustc-env" => {
                 for env in args.split_whitespace() {
-                    let (k, v) = env.split_once('=').ok_or_else(|| {
-                        eyre!("environment variables must be key/value pairs separated by a `=`")
-                    })?;
-                    self.env_vars.push((k.to_string(), v.to_string()));
+                    match env.split_once('=') {
+                        Some((k, v)) => self.env_vars.push((k.to_string(), v.to_string())),
+                        None => self.errors.push(Error::InvalidComment {
+                            msg: "environment variables must be key/value pairs separated by a `=`"
+                                .into(),
+                            line: l,
+                        }),
+                    }
                 }
             }
             "normalize-stderr-test" => {
-                /// Parses a string literal. `s` has to start with `"`; everything until the next `"` is
-                /// returned in the first component. `\` can be used to escape arbitrary character.
-                /// Second return component is the rest of the string with leading whitespace removed.
-                fn parse_str(s: &str) -> Result<(&str, &str)> {
-                    let mut chars = s.char_indices();
-                    match chars.next().ok_or_else(|| eyre!("missing arguments"))?.1 {
-                        '"' => {
-                            let s = chars.as_str();
-                            let mut escaped = false;
-                            for (i, c) in chars {
-                                if escaped {
-                                    // Accept any character as literal after a `\`.
-                                    escaped = false;
-                                } else if c == '"' {
-                                    return Ok((&s[..(i - 1)], s[i..].trim_start()));
-                                } else {
-                                    escaped = c == '\\';
-                                }
-                            }
-                            bail!("no closing quotes found for {s}")
-                        }
-                        c => bail!("expected `\"`, got `{c}`"),
-                    }
+                let (from, rest) = self.parse_str(args, l);
+
+                let to = match rest.strip_prefix("->") {
+                    Some(v) => v,
+                    None => {
+                        self.errors.push(Error::InvalidComment {
+                            msg: "normalize-stderr-test needs a pattern and replacement separated by `->`"
+                                .into(),
+                            line: l,
+                        });
+                        return;
+                    },
+                }.trim_start();
+                let (to, rest) = self.parse_str(to, l);
+
+                if !rest.is_empty() {
+                    self.errors.push(Error::InvalidComment {
+                        msg: format!("trailing text after pattern replacement: {rest}"),
+                        line: l,
+                    });
                 }
 
-                let (from, rest) = parse_str(args)?;
-
-                let to = rest.strip_prefix("->").ok_or_else(|| {
-                    eyre!("normalize-stderr-test needs a pattern and replacement separated by `->`")
-                })?.trim_start();
-                let (to, rest) = parse_str(to)?;
-
-                ensure!(
-                    rest.is_empty(),
-                    "trailing text after pattern replacement: {rest}"
-                );
-
-                let from = Regex::new(from)?;
-                self.normalize_stderr.push((from, to.as_bytes().to_owned()));
+                if let Some(regex) = self.parse_regex(from, l) {
+                    self.normalize_stderr
+                        .push((regex, to.as_bytes().to_owned()))
+                }
             }
             "error-pattern" => {
-                ensure!(
-                    self.error_pattern.is_none(),
-                    "cannot specifiy error_pattern twice, previous: {:?}",
-                    self.error_pattern
-                );
-                self.error_pattern = Some((Pattern::parse(args.trim())?, l));
+                if let Some(pat) = &self.error_pattern {
+                    self.errors.push(Error::InvalidComment {
+                        msg: format!("cannot specify `error_pattern` twice, previous: {pat:?}"),
+                        line: l,
+                    })
+                } else {
+                    self.error_pattern = Some((self.parse_error_pattern(args.trim(), l), l))
+                }
             }
             "stderr-per-bitwidth" => {
                 // args are ignored (can be used as comment)
-                ensure!(
-                    !self.stderr_per_bitwidth,
-                    "cannot specifiy stderr-per-bitwidth twice"
-                );
+                if self.stderr_per_bitwidth {
+                    self.errors.push(Error::InvalidComment {
+                        msg: format!("cannot specify `stderr-per-bitwidth` twice"),
+                        line: l,
+                    })
+                }
                 self.stderr_per_bitwidth = true;
             }
             "require-annotations-for-level" => {
-                ensure!(
-                    self.require_annotations_for_level.is_none(),
-                    "cannot specify `require-annotations-for-level` twice"
-                );
-                self.require_annotations_for_level = Some(args.trim().parse()?);
+                if let Some(annot) = self.require_annotations_for_level {
+                    self.errors.push(Error::InvalidComment {
+                        msg: format!("cannot specify `require-annotations-for-level` twice, previous: {annot:?}"),
+                        line: l,
+                    })
+                }
+                match args.trim().parse() {
+                    Ok(it) => self.require_annotations_for_level = Some(it),
+                    Err(msg) => self.errors.push(Error::InvalidComment { msg, line: l }),
+                }
             }
             command => {
                 if let Some(s) = command.strip_prefix("ignore-") {
@@ -241,7 +246,7 @@ impl Comments {
                         Ok(cond) => self.ignore.push(cond),
                         Err(msg) => self.errors.push(Error::InvalidComment { msg, line: l }),
                     }
-                    return Ok(());
+                    return;
                 }
 
                 if let Some(s) = command.strip_prefix("only-") {
@@ -250,7 +255,7 @@ impl Comments {
                         Ok(cond) => self.only.push(cond),
                         Err(msg) => self.errors.push(Error::InvalidComment { msg, line: l }),
                     }
-                    return Ok(());
+                    return;
                 }
                 self.errors.push(Error::InvalidComment {
                     msg: format!("unknown command `{command}`"),
@@ -258,16 +263,64 @@ impl Comments {
                 });
             }
         }
-
-        Ok(())
     }
 
-    fn parse_pattern(
-        &mut self,
-        pattern: &str,
-        fallthrough_to: &mut Option<usize>,
-        l: usize,
-    ) -> Result<()> {
+    fn parse_regex(&mut self, regex: &str, l: usize) -> Option<Regex> {
+        match Regex::new(regex) {
+            Ok(regex) => Some(regex),
+            Err(err) => {
+                self.errors.push(Error::InvalidComment {
+                    msg: format!("invalid regex: {err:?}"),
+                    line: l,
+                });
+                None
+            }
+        }
+    }
+
+    /// Parses a string literal. `s` has to start with `"`; everything until the next `"` is
+    /// returned in the first component. `\` can be used to escape arbitrary character.
+    /// Second return component is the rest of the string with leading whitespace removed.
+    fn parse_str<'a>(&mut self, s: &'a str, l: usize) -> (&'a str, &'a str) {
+        let mut chars = s.char_indices();
+        match chars.next() {
+            Some((_, '"')) => {
+                let s = chars.as_str();
+                let mut escaped = false;
+                for (i, c) in chars {
+                    if escaped {
+                        // Accept any character as literal after a `\`.
+                        escaped = false;
+                    } else if c == '"' {
+                        return (&s[..(i - 1)], s[i..].trim_start());
+                    } else {
+                        escaped = c == '\\';
+                    }
+                }
+                self.errors.push(Error::InvalidComment {
+                    msg: format!("no closing quotes found for {s}"),
+                    line: l,
+                });
+                (s, "")
+            }
+            Some((_, c)) => {
+                self.errors.push(Error::InvalidComment {
+                    msg: format!("expected `\"`, got `{c}`"),
+                    line: l,
+                });
+                (s, "")
+            }
+            None => {
+                self.errors.push(Error::InvalidComment {
+                    msg: "expected quoted string, but found end of line".into(),
+                    line: l,
+                });
+                (s, "")
+            }
+        }
+    }
+
+    fn parse_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<usize>, l: usize) {
         self.parse_pattern_inner(pattern, fallthrough_to, None, l)
     }
 
@@ -276,14 +329,24 @@ impl Comments {
         pattern: &str,
         fallthrough_to: &mut Option<usize>,
         l: usize,
-    ) -> Result<()> {
-        let (revision, pattern) = pattern
-            .split_once(']')
-            .ok_or_else(|| eyre!("`//[` without corresponding `]`"))?;
+    ) {
+        let (revision, pattern) = match pattern.split_once(']') {
+            Some(it) => it,
+            None => {
+                self.errors.push(Error::InvalidComment {
+                    msg: "`//[` without corresponding `]`".into(),
+                    line: l,
+                });
+                return;
+            }
+        };
         if let Some(pattern) = pattern.strip_prefix('~') {
             self.parse_pattern_inner(pattern, fallthrough_to, Some(revision.to_owned()), l)
         } else {
-            bail!("revisioned pattern must have `~` following the `]`");
+            self.errors.push(Error::InvalidComment {
+                msg: "revisioned pattern must have `~` following the `]`".into(),
+                line: l,
+            });
         }
     }
 
@@ -294,42 +357,79 @@ impl Comments {
         fallthrough_to: &mut Option<usize>,
         revision: Option<String>,
         l: usize,
-    ) -> Result<()> {
-        let (match_line, pattern) = match pattern
-            .chars()
-            .next()
-            .ok_or_else(|| eyre!("no pattern specified"))?
-        {
-            '|' => (
-                *fallthrough_to
-                    .as_mut()
-                    .ok_or_else(|| eyre!("`//~|` pattern without preceding line"))?,
+    ) {
+        let (match_line, pattern) = match pattern.chars().next() {
+            Some('|') => (
+                match fallthrough_to {
+                    Some(fallthrough) => *fallthrough,
+                    None => {
+                        self.errors.push(Error::InvalidComment {
+                            msg: "`//~|` pattern without preceding line".into(),
+                            line: l,
+                        });
+                        return;
+                    }
+                },
                 &pattern[1..],
             ),
-            '^' => {
+            Some('^') => {
                 let offset = pattern.chars().take_while(|&c| c == '^').count();
                 (l - offset, &pattern[offset..])
             }
-            _ => (l, pattern),
+            Some(_) => (l, pattern),
+            None => {
+                self.errors.push(Error::InvalidComment {
+                    msg: "no pattern specified".into(),
+                    line: l,
+                });
+                return;
+            }
         };
 
         let pattern = pattern.trim_start();
-        let offset = pattern
+        let offset = match pattern
             .chars()
             .position(|c| !matches!(c, 'A'..='Z' | 'a'..='z'))
-            .ok_or_else(|| eyre!("pattern without level"))?;
+        {
+            Some(offset) => offset,
+            None => {
+                self.errors.push(Error::InvalidComment {
+                    msg: "pattern without level".into(),
+                    line: l,
+                });
+                return;
+            }
+        };
 
-        let level = pattern[..offset].parse()?;
+        let level = match pattern[..offset].parse() {
+            Ok(level) => level,
+            Err(msg) => {
+                self.errors.push(Error::InvalidComment { msg, line: l });
+                return;
+            }
+        };
         let pattern = &pattern[offset..];
-        let pattern = pattern
-            .strip_prefix(':')
-            .ok_or_else(|| eyre!("no `:` after level found"))?;
+        let pattern = match pattern.strip_prefix(':') {
+            Some(offset) => offset,
+            None => {
+                self.errors.push(Error::InvalidComment {
+                    msg: "no `:` after level found".into(),
+                    line: l,
+                });
+                return;
+            }
+        };
 
         let pattern = pattern.trim();
 
-        ensure!(!pattern.is_empty(), "no pattern specified");
+        if pattern.is_empty() {
+            self.errors.push(Error::InvalidComment {
+                msg: "no pattern specified".into(),
+                line: l,
+            });
+        }
 
-        let pattern = Pattern::parse(pattern)?;
+        let pattern = self.parse_error_pattern(pattern, l);
 
         *fallthrough_to = Some(match_line);
 
@@ -340,8 +440,6 @@ impl Comments {
             definition_line: l,
             line: match_line,
         });
-
-        Ok(())
     }
 }
 
@@ -352,15 +450,27 @@ impl Pattern {
             Pattern::Regex(r) => r.is_match(message.as_bytes()),
         }
     }
+}
 
-    pub(crate) fn parse(pattern: &str) -> Result<Self> {
-        if let Some(pattern) = pattern.strip_prefix('/') {
-            let regex = pattern
-                .strip_suffix('/')
-                .ok_or_else(|| eyre!("regex must end with `/`"))?;
-            Ok(Pattern::Regex(Regex::new(regex)?))
+impl Comments {
+    fn parse_error_pattern(&mut self, pattern: &str, l: usize) -> Pattern {
+        if let Some(regex) = pattern.strip_prefix('/') {
+            match regex.strip_suffix('/') {
+                Some(regex) => match self.parse_regex(regex, l) {
+                    Some(regex) => Pattern::Regex(regex),
+                    None => Pattern::SubString(pattern.to_string()),
+                },
+                None => {
+                    self.errors.push(Error::InvalidComment {
+                        msg: "expected regex pattern due to leading `/`, but found no closing `/`"
+                            .into(),
+                        line: l,
+                    });
+                    Pattern::SubString(pattern.to_string())
+                }
+            }
         } else {
-            Ok(Pattern::SubString(pattern.to_string()))
+            Pattern::SubString(pattern.to_string())
         }
     }
 }

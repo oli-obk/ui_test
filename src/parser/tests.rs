@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use crate::{
     parser::{Condition, Pattern},
     Error,
@@ -16,7 +14,7 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ ERROR: encountered a dangling reference (address $HEX is unallocated)
 }
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.error_matches[0].definition_line, 5);
     assert_eq!(comments.error_matches[0].revision, None);
@@ -40,10 +38,13 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ encountered a dangling reference (address $HEX is unallocated)
 }
     ";
-    assert!(
-        Comments::parse(Path::new("<dummy>"), s).is_err(),
-        "expected parsing to fail"
-    );
+    let comments = Comments::parse(s);
+    println!("parsed comments: {:#?}", comments);
+    assert_eq!(comments.errors.len(), 1);
+    match &comments.errors[0] {
+        Error::InvalidComment { msg, line: 5 } => assert_eq!(msg, "unknown level `encountered`"),
+        _ => unreachable!(),
+    }
 }
 
 #[test]
@@ -53,7 +54,7 @@ fn parse_slash_slash_at() {
 use std::mem;
 
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     println!("parsed comments: {:#?}", comments);
     let pat = comments.error_pattern.unwrap();
     assert_eq!(format!("{:?}", pat.0), r#"SubString("foomp")"#);
@@ -67,7 +68,7 @@ fn parse_regex_error_pattern() {
 use std::mem;
 
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     println!("parsed comments: {:#?}", comments);
     let pat = comments.error_pattern.unwrap();
     assert_eq!(format!("{:?}", pat.0), r#"Regex(foomp)"#);
@@ -81,7 +82,7 @@ fn parse_slash_slash_at_fail() {
 use std::mem;
 
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.errors.len(), 2);
     match &comments.errors[0] {
@@ -105,7 +106,7 @@ fn missing_colon_fail() {
 use std::mem;
 
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.errors.len(), 1);
     match &comments.errors[0] {
@@ -119,7 +120,7 @@ use std::mem;
 #[test]
 fn parse_x86_64() {
     let s = r"//@ only-target-x86_64-unknown-linux";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     println!("parsed comments: {:#?}", comments);
     assert!(comments.errors.is_empty());
     assert_eq!(comments.only.len(), 1);

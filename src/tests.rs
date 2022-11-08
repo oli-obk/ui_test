@@ -23,8 +23,7 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ ERROR: encountered a dangling reference (address $HEX is unallocated)
 }
     ";
-    let path = Path::new("$DIR/<dummy>");
-    let comments = Comments::parse(path, s).unwrap();
+    let comments = Comments::parse(s);
     let mut errors = vec![];
     let config = config();
     let messages = vec![
@@ -64,7 +63,7 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ ERROR: encountered a dangling reference (address 0x10 is unallocated)
 }
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     let config = config();
     {
         let messages = vec![vec![], vec![], vec![], vec![], vec![], vec![
@@ -160,7 +159,7 @@ fn main() {
     //~^ ERROR: encountered a dangling reference (address 0x10 is unallocated)
 }
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     let config = config();
     let messages = vec![
         vec![], vec![], vec![], vec![], vec![],
@@ -198,7 +197,7 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ ERROR: encountered a dangling reference (address 0x10 is unallocated)
 }
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     let config = config();
     let messages = vec![
         vec![], vec![], vec![], vec![], vec![],
@@ -241,7 +240,7 @@ fn main() {
     //~^ WARN: cake
 }
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     let config = config();
     let messages= vec![
         vec![],
@@ -300,7 +299,7 @@ fn main() {
     //~^ WARN: cake
 }
     ";
-    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    let comments = Comments::parse(s);
     let config = config();
     let messages = vec![
         vec![],
