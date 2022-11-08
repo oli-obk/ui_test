@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use crate::{parser::Pattern, Error};
+use crate::{
+    parser::{Condition, Pattern},
+    Error,
+};
 
 use super::Comments;
 
@@ -109,6 +112,19 @@ use std::mem;
         Error::InvalidComment { msg, line: 2 } => {
             assert!(msg.contains("must be followed by `:`"))
         }
+        _ => unreachable!(),
+    }
+}
+
+#[test]
+fn parse_x86_64() {
+    let s = r"//@ only-target-x86_64-unknown-linux";
+    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    println!("parsed comments: {:#?}", comments);
+    assert!(comments.errors.is_empty());
+    assert_eq!(comments.only.len(), 1);
+    match &comments.only[0] {
+        Condition::Target(t) => assert_eq!(t, "x86_64-unknown-linux"),
         _ => unreachable!(),
     }
 }

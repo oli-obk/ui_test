@@ -133,7 +133,7 @@ impl Comments {
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
         let (command, args) = match command
             .chars()
-            .position(|c: char| !c.is_alphanumeric() && c != '-')
+            .position(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
         {
             None => (command, ""),
             Some(i) => {

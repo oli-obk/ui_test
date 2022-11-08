@@ -40,9 +40,7 @@ For more information about this error, try `rustc --explain E0308`.
 tests/actual_tests/filters.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests/filters.rs:1 because test command must be followed by `:` (or end the line)
-
-Could not parse comment in tests/actual_tests/filters.rs:1 because invalid condition `"x86"`, expected `on-host`, /[0-9]+bit/ or /target-.*/
+Could not parse comment in tests/actual_tests/filters.rs:1 because invalid condition `"x86_64"`, expected `on-host`, /[0-9]+bit/ or /target-.*/
 
 full stderr:
 
