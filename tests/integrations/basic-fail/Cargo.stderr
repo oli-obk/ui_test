@@ -40,14 +40,10 @@ For more information about this error, try `rustc --explain E0308`.
 tests/actual_tests/filters.rs FAILED:
 command: "parse comments"
 
+Could not parse comment in tests/actual_tests/filters.rs:1 because test command must be followed by `:` (or end the line)
+
 full stderr:
-tests/actual_tests/filters.rs:1: failed to parse annotation
 
-Caused by:
-    test command must be followed by `:` (or end the line)
-
-Location:
-    $DIR/src/parser.rs:142:17
 
 
 tests/actual_tests/foomp.rs FAILED:

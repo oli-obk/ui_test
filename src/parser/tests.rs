@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::parser::Pattern;
+use crate::{parser::Pattern, Error};
 
 use super::Comments;
 
@@ -78,10 +78,15 @@ fn parse_slash_slash_at_fail() {
 use std::mem;
 
     ";
-    assert!(
-        Comments::parse(Path::new("<dummy>"), s).is_err(),
-        "expected parsing to fail"
-    );
+    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    println!("parsed comments: {:#?}", comments);
+    assert_eq!(comments.errors.len(), 1);
+    match &comments.errors[0] {
+        Error::InvalidComment { msg, line: 2 } => {
+            assert!(msg.contains("must be followed by `:`"))
+        }
+        _ => unreachable!(),
+    }
 }
 
 #[test]
@@ -91,8 +96,13 @@ fn missing_colon_fail() {
 use std::mem;
 
     ";
-    assert!(
-        Comments::parse(Path::new("<dummy>"), s).is_err(),
-        "expected parsing to fail"
-    );
+    let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
+    println!("parsed comments: {:#?}", comments);
+    assert_eq!(comments.errors.len(), 1);
+    match &comments.errors[0] {
+        Error::InvalidComment { msg, line: 2 } => {
+            assert!(msg.contains("must be followed by `:`"))
+        }
+        _ => unreachable!(),
+    }
 }

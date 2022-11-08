@@ -7,7 +7,7 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{ensure, Result};
 use colored::*;
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern};
@@ -185,6 +185,11 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitSta
     config.build_dependencies_and_link_them()?;
 
     let comments = Comments::parse_file(path)?;
+    ensure!(
+        comments.errors.is_empty(),
+        "Could not parse comments: {:#?}",
+        comments.errors
+    );
     Ok(build_command(path, &config, "", &comments).status()?)
 }
 
@@ -399,6 +404,12 @@ pub fn run_tests_generic(
                             eprintln!("    {level:?}: {message}")
                         }
                     }
+                    Error::InvalidComment { msg, line } => {
+                        eprintln!(
+                            "Could not parse comment in {}:{line} because {msg}",
+                            path.display()
+                        )
+                    }
                 }
                 eprintln!();
             }
@@ -463,6 +474,17 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
             }]
         }
     };
+    if !comments.errors.is_empty() {
+        return vec![TestRun {
+            result: TestResult::Errored {
+                command: Command::new("parse comments"),
+                errors: comments.errors,
+                stderr: vec![],
+            },
+            path: path.clone(),
+            revision: "".into(),
+        }];
+    }
     // Ignore file if only/ignore rules do (not) apply
     if !test_file_conditions(&comments, &config) {
         return vec![TestRun {
@@ -524,6 +546,10 @@ enum Error {
     ErrorsWithoutPattern {
         msgs: Vec<Message>,
         path: Option<(PathBuf, usize)>,
+    },
+    InvalidComment {
+        msg: String,
+        line: usize,
     },
 }
 

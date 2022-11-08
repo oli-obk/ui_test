@@ -3,7 +3,7 @@ use std::path::Path;
 use bstr::ByteSlice;
 use regex::bytes::Regex;
 
-use crate::rustc_stderr::Level;
+use crate::{rustc_stderr::Level, Error};
 
 use color_eyre::eyre::{bail, ensure, eyre, Result};
 
@@ -35,6 +35,8 @@ pub(crate) struct Comments {
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
+    /// Any errors that ocurred during comment parsing.
+    pub errors: Vec<Error>,
 }
 
 /// The conditions used for "ignore" and "only" filters.
@@ -139,10 +141,13 @@ impl Comments {
                 let next = args
                     .next()
                     .expect("the `position` above guarantees that there is at least one char");
-                ensure!(
-                    next == ':',
-                    "test command must be followed by `:` (or end the line)"
-                );
+                if next != ':' {
+                    self.errors.push(Error::InvalidComment {
+                        msg: "test command must be followed by `:` (or end the line)".into(),
+                        line: l,
+                    });
+                    return Ok(());
+                }
                 (command, args.as_str().trim())
             }
         };
