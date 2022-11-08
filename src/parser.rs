@@ -68,18 +68,20 @@ pub(crate) struct ErrorMatch {
 }
 
 impl Condition {
-    fn parse(c: &str) -> Result<Self> {
+    fn parse(c: &str) -> std::result::Result<Self, String> {
         if c == "on-host" {
             Ok(Condition::OnHost)
         } else if let Some(bits) = c.strip_suffix("bit") {
             let bits: u8 = bits.parse().map_err(|_err| {
-                eyre!("invalid ignore/only filter ending in 'bit': {c:?} is not a valid bitwdith")
+                format!("invalid ignore/only filter ending in 'bit': {c:?} is not a valid bitwdith")
             })?;
             Ok(Condition::Bitwidth(bits))
         } else if let Some(target) = c.strip_prefix("target-") {
             Ok(Condition::Target(target.to_owned()))
         } else {
-            Err(eyre!("invalid ignore/only condition {c:?}"))
+            Err(format!(
+                "invalid condition `{c:?}`, expected `on-host`, /[0-9]+bit/ or /target-.*/"
+            ))
         }
     }
 }
@@ -146,7 +148,6 @@ impl Comments {
                         msg: "test command must be followed by `:` (or end the line)".into(),
                         line: l,
                     });
-                    return Ok(());
                 }
                 (command, args.as_str().trim())
             }
@@ -235,17 +236,26 @@ impl Comments {
             }
             command => {
                 if let Some(s) = command.strip_prefix("ignore-") {
-                    // args are ignored (can be sue as comment)
-                    self.ignore.push(Condition::parse(s)?);
+                    // args are ignored (can be used as comment)
+                    match Condition::parse(s) {
+                        Ok(cond) => self.ignore.push(cond),
+                        Err(msg) => self.errors.push(Error::InvalidComment { msg, line: l }),
+                    }
                     return Ok(());
                 }
 
                 if let Some(s) = command.strip_prefix("only-") {
-                    // args are ignored (can be sue as comment)
-                    self.only.push(Condition::parse(s)?);
+                    // args are ignored (can be used as comment)
+                    match Condition::parse(s) {
+                        Ok(cond) => self.only.push(cond),
+                        Err(msg) => self.errors.push(Error::InvalidComment { msg, line: l }),
+                    }
                     return Ok(());
                 }
-                bail!("unknown command {command}");
+                self.errors.push(Error::InvalidComment {
+                    msg: format!("unknown command `{command}`"),
+                    line: l,
+                });
             }
         }
 

@@ -80,10 +80,16 @@ use std::mem;
     ";
     let comments = Comments::parse(Path::new("<dummy>"), s).unwrap();
     println!("parsed comments: {:#?}", comments);
-    assert_eq!(comments.errors.len(), 1);
+    assert_eq!(comments.errors.len(), 2);
     match &comments.errors[0] {
         Error::InvalidComment { msg, line: 2 } => {
             assert!(msg.contains("must be followed by `:`"))
+        }
+        _ => unreachable!(),
+    }
+    match &comments.errors[1] {
+        Error::InvalidComment { msg, line: 2 } => {
+            assert_eq!(msg, "unknown command `error-patttern`");
         }
         _ => unreachable!(),
     }
