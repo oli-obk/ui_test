@@ -345,7 +345,13 @@ pub fn run_tests_generic(
             eprintln!();
             for error in errors {
                 match error {
-                    Error::ExitStatus(mode, exit_status) => eprintln!("{mode} got {exit_status}"),
+                    Error::ExitStatus {
+                        mode,
+                        status,
+                        expected,
+                    } => {
+                        eprintln!("{mode} test got {status}, but expected {expected}")
+                    }
                     Error::PatternNotFound {
                         pattern,
                         definition_line,
@@ -525,7 +531,11 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
 #[derive(Debug)]
 enum Error {
     /// Got an invalid exit status for the given mode.
-    ExitStatus(Mode, ExitStatus),
+    ExitStatus {
+        mode: Mode,
+        status: ExitStatus,
+        expected: i32,
+    },
     PatternNotFound {
         pattern: Pattern,
         definition_line: usize,
@@ -852,11 +862,19 @@ pub enum Mode {
 
 impl Mode {
     fn ok(self, status: ExitStatus) -> Errors {
-        match (status.code(), self) {
-            (Some(1), Mode::Fail { .. }) | (Some(101), Mode::Panic) | (Some(0), Mode::Pass) => {
-                vec![]
-            }
-            _ => vec![Error::ExitStatus(self, status)],
+        let expected = match self {
+            Mode::Pass => 0,
+            Mode::Panic => 101,
+            Mode::Fail { .. } => 1,
+        };
+        if status.code() == Some(expected) {
+            vec![]
+        } else {
+            vec![Error::ExitStatus {
+                mode: self,
+                status,
+                expected,
+            }]
         }
     }
 }
