@@ -97,4 +97,7 @@ FAILURES:
     tests/actual_tests/foomp.rs
 
 test result: FAIL. 3 tests failed, 0 tests passed, 0 ignored, 0 filtered out
-error: test failed, to rerun pass '--test ui_tests'
+error: test failed, to rerun pass `--test ui_tests`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/debug/ui_tests-9c541b861fc6e519 --test-threads 1` (exit status: 1)
