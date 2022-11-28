@@ -43,7 +43,7 @@ command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--ext
 
 fail test got exit status: 0, but expected 1
 
-no error patterns found in failure test
+no error patterns found in fail test
 
 full stderr:
 

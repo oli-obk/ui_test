@@ -370,10 +370,10 @@ pub fn run_tests_generic(
                         );
                     }
                     Error::NoPatternsFound => {
-                        eprintln!("{}", "no error patterns found in failure test".red());
+                        eprintln!("{}", "no error patterns found in fail test".red());
                     }
                     Error::PatternFoundInPassTest => {
-                        eprintln!("{}", "error pattern found in success test".red())
+                        eprintln!("{}", "error pattern found in pass test".red())
                     }
                     Error::OutputDiffers {
                         path,
