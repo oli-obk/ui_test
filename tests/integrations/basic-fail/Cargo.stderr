@@ -1,14 +1,15 @@
     Finished test [unoptimized + debuginfo] target(s) 
      Running unittests src/lib.rs 
      Running tests/ui_tests.rs 
-   Compiler flags: ["--error-format=json", "--edition=2021"]
+   Compiler flags: ["--error-format=json", "--out-dir", "$TMP, "--edition=2021"]
    Building test dependencies...
 tests/actual_tests/bad_pattern.rs ... FAILED
+tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
-command: "rustc" "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/bad_pattern.rs"
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/bad_pattern.rs"
 
 substring `miesmätsched types` not found in stderr output
 expected because of pattern here: tests/actual_tests/bad_pattern.rs:5
@@ -37,6 +38,17 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 
+tests/actual_tests/exit_code_fail.rs FAILED:
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/exit_code_fail.rs"
+
+fail test got exit status: 0, but expected 1
+
+no error patterns found in failure test
+
+full stderr:
+
+
+
 tests/actual_tests/filters.rs FAILED:
 command: "parse comments"
 
@@ -47,7 +59,7 @@ full stderr:
 
 
 tests/actual_tests/foomp.rs FAILED:
-command: "rustc" "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs"
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs"
 
 actual output differed from expected
 --- tests/actual_tests/foomp.stderr
@@ -93,10 +105,11 @@ For more information about this error, try `rustc --explain E0308`.
 
 FAILURES:
     tests/actual_tests/bad_pattern.rs
+    tests/actual_tests/exit_code_fail.rs
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
 
-test result: FAIL. 3 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 4 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
