@@ -48,6 +48,10 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("( +Running [^(]+).*", "$1");
     config.stderr_filter(" *Blocking waiting for.*\n", "");
     config.stderr_filter(" *(Compiling|Downloaded|Downloading) .*\n", "");
+    config.stderr_filter(
+        "( *process didn't exit successfully: `[^-]+)-[0-9a-f]+",
+        "$1-HASH",
+    );
     // The order of the `/deps` directory flag is flaky
     config.stderr_filter("/deps", "");
     config.stderr_filter(
