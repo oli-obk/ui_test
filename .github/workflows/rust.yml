@@ -15,12 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
+    - uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: 1.63.0
-        profile: minimal
         components: rustfmt
-        override: true
     - name: Format
       run: cargo fmt --check
 
@@ -29,12 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
+    - uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: 1.63.0
-        profile: minimal
         components: clippy
-        override: true
     - name: Clippy
       run: cargo clippy -- -D warnings
   
@@ -43,11 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          profile: minimal
-          override: true
+      - uses: dtolnay/rust-toolchain@nightly
       - name: Check semver
         uses: obi1kenobi/cargo-semver-checks-action@v1
 
@@ -55,11 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: 1.63.0
-        profile: minimal
-        override: true
+    - uses: dtolnay/rust-toolchain@stable
     - name: Build
       run: cargo build --verbose
     - name: Run tests
