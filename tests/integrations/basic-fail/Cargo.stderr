@@ -114,3 +114,32 @@ error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/debug/ui_tests-HASH --test-threads 1` (exit status: 1)
+     Running tests/ui_tests_bless.rs 
+   Compiler flags: ["--error-format=json", "--out-dir", "$TMP, "--edition=2021"]
+   Building test dependencies...
+tests/actual_tests_bless/revisions.rs (foo) ... ok
+tests/actual_tests_bless/revisions.rs (bar) ... ok
+tests/actual_tests_bless/revisions_bad.rs ... FAILED
+
+tests/actual_tests_bless/revisions_bad.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/revisions_bad.rs:4 because test command must be followed by `:` (or end the line)
+
+Could not parse comment in tests/actual_tests_bless/revisions_bad.rs:4 because unknown command ``
+
+full stderr:
+
+
+FAILURES:
+    tests/actual_tests_bless/revisions_bad.rs
+
+test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
+error: test failed, to rerun pass `--test ui_tests_bless`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/debug/ui_tests_bless-HASH --test-threads 1` (exit status: 1)
+   Doc-tests basic_fail
+error: 2 targets failed:
+    `--test ui_tests`
+    `--test ui_tests_bless`
