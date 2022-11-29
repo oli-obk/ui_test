@@ -27,6 +27,9 @@ pub(crate) struct Comments {
 }
 
 impl Comments {
+    /// Check that a comment isn't specified twice across multiple differently revisioned statements.
+    /// e.g. `//@[foo, bar] error-pattern: bop` and `//@[foo, baz] error-pattern boop` would end up
+    /// specifying two error patterns that are available in revision `foo`.
     pub fn find_one_for_revision<'a, T: 'a>(
         &'a self,
         revision: &'a str,
@@ -41,6 +44,7 @@ impl Comments {
         result
     }
 
+    /// Returns an iterator over all revisioned comments that match the revision.
     pub fn for_revision<'a>(&'a self, revision: &'a str) -> impl Iterator<Item = &'a Revisioned> {
         self.revisioned.iter().filter_map(move |(k, v)| {
             if k.is_empty() || k.iter().any(|rev| rev == revision) {
