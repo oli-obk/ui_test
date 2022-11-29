@@ -151,8 +151,6 @@ impl CommentParser {
             self.parse_command(command.trim().to_str()?)
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
             self.parse_pattern(pattern.to_str()?, fallthrough_to)
-        } else if let Some((_, pattern)) = line.split_once_str("//[") {
-            self.parse_revisioned_pattern(pattern.to_str()?, fallthrough_to)
         } else {
             *fallthrough_to = None;
         }
@@ -331,32 +329,30 @@ impl CommentParser {
         }
     }
 
-    fn parse_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<usize>) {
-        self.parse_pattern_inner(pattern, fallthrough_to, None)
-    }
-
-    fn parse_revisioned_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<usize>) {
-        let (revision, pattern) = match pattern.split_once(']') {
-            Some(it) => it,
-            None => {
-                self.error("`//[` without corresponding `]`");
-                return;
+    fn parse_revision<'a>(&mut self, pattern: &'a str) -> (Option<String>, &'a str) {
+        match pattern.chars().next() {
+            Some('[') => {
+                // revisions
+                let s = &pattern[1..];
+                let end = s.char_indices().find_map(|(i, c)| match c {
+                    ']' => Some(i),
+                    _ => None,
+                });
+                let Some(end) = end else {
+                    self.error("`[` without corresponding `]`");
+                    return (None, pattern);
+                };
+                let (revision, pattern) = s.split_at(end);
+                // 1.. because `split_at` includes the separator
+                (Some(revision.to_owned()), &pattern[1..])
             }
-        };
-        if let Some(pattern) = pattern.strip_prefix('~') {
-            self.parse_pattern_inner(pattern, fallthrough_to, Some(revision.to_owned()))
-        } else {
-            self.error("revisioned pattern must have `~` following the `]`");
+            _ => (None, pattern),
         }
     }
 
-    // parse something like (?P<offset>\||[\^]+)? *(?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*)
-    fn parse_pattern_inner(
-        &mut self,
-        pattern: &str,
-        fallthrough_to: &mut Option<usize>,
-        revision: Option<String>,
-    ) {
+    // parse something like (\[[a-z]+\])?(?P<offset>\||[\^]+)? *(?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*)
+    fn parse_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<usize>) {
+        let (revision, pattern) = self.parse_revision(pattern);
         let (match_line, pattern) = match pattern.chars().next() {
             Some('|') => (
                 match fallthrough_to {

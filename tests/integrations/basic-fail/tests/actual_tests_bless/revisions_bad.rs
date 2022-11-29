@@ -6,5 +6,5 @@ use basic_fail::add;
 #[cfg(foo)]
 fn main() {
     add("42", 3);
-    //[foo]~^ ERROR: mismatched types
+    //~[foo]^ ERROR: mismatched types
 }

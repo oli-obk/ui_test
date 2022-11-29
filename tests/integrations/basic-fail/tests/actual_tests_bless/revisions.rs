@@ -3,11 +3,11 @@ use basic_fail::add;
 
 #[cfg(foo)]
 fn main() {
-    add("42", 3); //[foo]~ ERROR: mismatched types
+    add("42", 3); //~[foo] ERROR: mismatched types
 }
 
 #[cfg(bar)]
 fn main() {
     add("42", 3);
-    //[bar]~^ ERROR: mismatched types
+    //~[bar]^ ERROR: mismatched types
 }
