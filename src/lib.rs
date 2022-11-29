@@ -15,7 +15,7 @@ use regex::bytes::Regex;
 use rustc_stderr::{Level, Message};
 use std::collections::VecDeque;
 use std::ffi::OsString;
-use std::fmt::{Display, Write as _};
+use std::fmt::Display;
 use std::io::Write as _;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
@@ -504,12 +504,6 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
         .into_iter()
         .map(|revision| {
             let (command, errors, stderr) = run_test(&path, config, &revision, &comments);
-
-            // Using a single `eprintln!` to prevent messages from threads from getting intermingled.
-            let mut msg = format!("{}", path.display());
-            if !revision.is_empty() {
-                write!(msg, " (revision `{revision}`) ").unwrap();
-            }
             let result = if errors.is_empty() {
                 TestResult::Ok
             } else {
