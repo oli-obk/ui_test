@@ -117,6 +117,7 @@ Caused by:
      Running tests/ui_tests_bless.rs 
    Compiler flags: ["--error-format=json", "--out-dir", "$TMP, "--edition=2021"]
    Building test dependencies...
+tests/actual_tests_bless/revised_revision.rs ... FAILED
 tests/actual_tests_bless/revisions.rs (foo) ... ok
 tests/actual_tests_bless/revisions.rs (bar) ... ok
 tests/actual_tests_bless/revisions_bad.rs (foo) ... ok
@@ -129,6 +130,15 @@ tests/actual_tests_bless/revisions_multiple_per_annotation.rs (foo) ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
+
+tests/actual_tests_bless/revised_revision.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/revised_revision.rs:2 because unknown command `revisions`
+
+full stderr:
+
+
 
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar"
@@ -152,9 +162,10 @@ For more information about this error, try `rustc --explain E0601`.
 
 
 FAILURES:
+    tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 1 tests failed, 8 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 2 tests failed, 8 tests passed, 3 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
