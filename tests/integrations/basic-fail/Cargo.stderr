@@ -121,6 +121,7 @@ tests/actual_tests_bless/revisions.rs (foo) ... ok
 tests/actual_tests_bless/revisions.rs (bar) ... ok
 tests/actual_tests_bless/revisions_bad.rs (foo) ... ok
 tests/actual_tests_bless/revisions_bad.rs (bar) ... FAILED
+tests/actual_tests_bless/revisions_filter.rs ... ignored (in-test comment)
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (foo) ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
@@ -150,7 +151,7 @@ For more information about this error, try `rustc --explain E0601`.
 FAILURES:
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 1 tests failed, 7 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 1 tests failed, 7 tests passed, 1 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
