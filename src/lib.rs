@@ -488,14 +488,6 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
             }]
         }
     };
-    // Ignore file if only/ignore rules do (not) apply
-    if !test_file_conditions(&comments, config) {
-        return vec![TestRun {
-            result: TestResult::Ignored,
-            path,
-            revision: "".into(),
-        }];
-    }
     // Run the test for all revisions
     comments
         .revisions
@@ -503,6 +495,14 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
         .unwrap_or_else(|| vec![String::new()])
         .into_iter()
         .map(|revision| {
+            // Ignore file if only/ignore rules do (not) apply
+            if !test_file_conditions(&comments, config, &revision) {
+                return TestRun {
+                    result: TestResult::Ignored,
+                    path: path.clone(),
+                    revision,
+                };
+            }
             let (command, errors, stderr) = run_test(&path, config, &revision, &comments);
             let result = if errors.is_empty() {
                 TestResult::Ok
@@ -828,11 +828,18 @@ fn test_condition(condition: &Condition, config: &Config) -> bool {
 }
 
 /// Returns whether according to the in-file conditions, this file should be run.
-fn test_file_conditions(comments: &Comments, config: &Config) -> bool {
-    if comments.ignore.iter().any(|c| test_condition(c, config)) {
+fn test_file_conditions(comments: &Comments, config: &Config, revision: &str) -> bool {
+    if comments
+        .for_revision(revision)
+        .flat_map(|r| r.ignore.iter())
+        .any(|c| test_condition(c, config))
+    {
         return false;
     }
-    comments.only.iter().all(|c| test_condition(c, config))
+    comments
+        .for_revision(revision)
+        .flat_map(|r| r.only.iter())
+        .all(|c| test_condition(c, config))
 }
 
 // Taken 1:1 from compiletest-rs

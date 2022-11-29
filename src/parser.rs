@@ -17,10 +17,6 @@ mod tests;
 pub(crate) struct Comments {
     /// List of revision names to execute. Can only be speicified once
     pub revisions: Option<Vec<String>>,
-    /// Don't run this test if any of these filters apply
-    pub ignore: Vec<Condition>,
-    /// Only run this test if all of these filters apply
-    pub only: Vec<Condition>,
     /// Comments that are only available under specific revisions.
     /// The defaults are in key `vec![]`
     pub revisioned: HashMap<Vec<String>, Revisioned>,
@@ -59,6 +55,10 @@ impl Comments {
 #[derive(Default, Debug)]
 /// Comments that can be filtered for specific revisions.
 pub(crate) struct Revisioned {
+    /// Don't run this test if any of these filters apply
+    pub ignore: Vec<Condition>,
+    /// Only run this test if all of these filters apply
+    pub only: Vec<Condition>,
     /// Generate one .stderr file per bit width, by prepending with `.64bit` and similar
     pub stderr_per_bitwidth: bool,
     /// Additional flags to pass to the executable
@@ -254,25 +254,7 @@ impl CommentParser<Comments> {
                     self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
                     return;
                 }
-                _ => {
-                    if let Some(s) = command.strip_prefix("ignore-") {
-                        // args are ignored (can be used as comment)
-                        match Condition::parse(s) {
-                            Ok(cond) => self.ignore.push(cond),
-                            Err(msg) => self.error(msg),
-                        }
-                        return;
-                    }
-
-                    if let Some(s) = command.strip_prefix("only-") {
-                        // args are ignored (can be used as comment)
-                        match Condition::parse(s) {
-                            Ok(cond) => self.only.push(cond),
-                            Err(msg) => self.error(msg),
-                        }
-                        return;
-                    }
-                }
+                _ => {}
             }
         }
         self.revisioned(revisions, |this| this.parse_command(command, args));
@@ -358,6 +340,23 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             command => {
+                if let Some(s) = command.strip_prefix("ignore-") {
+                    // args are ignored (can be used as comment)
+                    match Condition::parse(s) {
+                        Ok(cond) => self.ignore.push(cond),
+                        Err(msg) => self.error(msg),
+                    }
+                    return;
+                }
+
+                if let Some(s) = command.strip_prefix("only-") {
+                    // args are ignored (can be used as comment)
+                    match Condition::parse(s) {
+                        Ok(cond) => self.only.push(cond),
+                        Err(msg) => self.error(msg),
+                    }
+                    return;
+                }
                 self.error(format!("unknown command `{command}`"));
             }
         }

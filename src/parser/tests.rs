@@ -127,8 +127,10 @@ fn parse_x86_64() {
     let s = r"//@ only-target-x86_64-unknown-linux";
     let comments = Comments::parse(s).unwrap();
     println!("parsed comments: {:#?}", comments);
-    assert_eq!(comments.only.len(), 1);
-    match &comments.only[0] {
+    assert_eq!(comments.revisioned.len(), 1);
+    let revisioned = &comments.revisioned[&vec![]];
+    assert_eq!(revisioned.only.len(), 1);
+    match &revisioned.only[0] {
         Condition::Target(t) => assert_eq!(t, "x86_64-unknown-linux"),
         _ => unreachable!(),
     }
