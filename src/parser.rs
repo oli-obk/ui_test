@@ -247,15 +247,17 @@ impl CommentParser<Comments> {
             }
         };
 
-        if revisions.is_empty() {
-            match command {
-                "revisions" => {
-                    self.check(self.revisions.is_none(), "cannot specify `revisions` twice");
-                    self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
-                    return;
-                }
-                _ => {}
+        match command {
+            "revisions" => {
+                self.check(
+                    revisions.is_empty(),
+                    "cannot declare revisions under a revision",
+                );
+                self.check(self.revisions.is_none(), "cannot specify `revisions` twice");
+                self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
+                return;
             }
+            _ => {}
         }
         self.revisioned(revisions, |this| this.parse_command(command, args));
     }

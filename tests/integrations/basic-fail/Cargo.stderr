@@ -134,7 +134,7 @@ tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
 tests/actual_tests_bless/revised_revision.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests_bless/revised_revision.rs:2 because unknown command `revisions`
+Could not parse comment in tests/actual_tests_bless/revised_revision.rs:2 because cannot declare revisions under a revision
 
 full stderr:
 
