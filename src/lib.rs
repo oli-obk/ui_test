@@ -682,14 +682,14 @@ fn check_annotations(
     let mut lowest_annotation_level = Level::Error;
     for &ErrorMatch {
         ref pattern,
-        revision: ref rev,
+        ref revisions,
         definition_line,
         line,
         level,
     } in &comments.error_matches
     {
-        if let Some(rev) = rev {
-            if rev != revision {
+        if !revisions.is_empty() {
+            if revisions.iter().all(|rev| rev != revision) {
                 continue;
             }
         }

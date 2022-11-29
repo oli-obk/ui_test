@@ -120,6 +120,10 @@ Caused by:
 tests/actual_tests_bless/revisions.rs (foo) ... ok
 tests/actual_tests_bless/revisions.rs (bar) ... ok
 tests/actual_tests_bless/revisions_bad.rs ... FAILED
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (foo) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
 
 tests/actual_tests_bless/revisions_bad.rs FAILED:
 command: "parse comments"
@@ -134,7 +138,7 @@ full stderr:
 FAILURES:
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 1 tests failed, 6 tests passed, 0 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:

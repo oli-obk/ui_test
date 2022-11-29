@@ -17,7 +17,7 @@ fn main() {
     let comments = Comments::parse(s).unwrap();
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.error_matches[0].definition_line, 5);
-    assert_eq!(comments.error_matches[0].revision, None);
+    assert!(comments.error_matches[0].revisions.is_empty());
     match &comments.error_matches[0].pattern {
         Pattern::SubString(s) => {
             assert_eq!(

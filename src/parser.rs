@@ -81,7 +81,7 @@ pub(crate) enum Pattern {
 #[derive(Debug)]
 pub(crate) struct ErrorMatch {
     pub pattern: Pattern,
-    pub revision: Option<String>,
+    pub revisions: Vec<String>,
     pub level: Level,
     /// The line where the message was defined, for reporting issues with it (e.g. in case it wasn't found).
     pub definition_line: usize,
@@ -329,7 +329,8 @@ impl CommentParser {
         }
     }
 
-    fn parse_revision<'a>(&mut self, pattern: &'a str) -> (Option<String>, &'a str) {
+    // parse something like \[[a-z]+(,[a-z]+)*\]
+    fn parse_revisions<'a>(&mut self, pattern: &'a str) -> (Vec<String>, &'a str) {
         match pattern.chars().next() {
             Some('[') => {
                 // revisions
@@ -340,19 +341,22 @@ impl CommentParser {
                 });
                 let Some(end) = end else {
                     self.error("`[` without corresponding `]`");
-                    return (None, pattern);
+                    return (vec![], pattern);
                 };
                 let (revision, pattern) = s.split_at(end);
-                // 1.. because `split_at` includes the separator
-                (Some(revision.to_owned()), &pattern[1..])
+                (
+                    revision.split(',').map(|s| s.trim().to_string()).collect(),
+                    // 1.. because `split_at` includes the separator
+                    &pattern[1..],
+                )
             }
-            _ => (None, pattern),
+            _ => (vec![], pattern),
         }
     }
 
-    // parse something like (\[[a-z]+\])?(?P<offset>\||[\^]+)? *(?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*)
+    // parse something like (\[[a-z]+(,[a-z]+)*\])?(?P<offset>\||[\^]+)? *(?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*)
     fn parse_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<usize>) {
-        let (revision, pattern) = self.parse_revision(pattern);
+        let (revisions, pattern) = self.parse_revisions(pattern);
         let (match_line, pattern) = match pattern.chars().next() {
             Some('|') => (
                 match fallthrough_to {
@@ -414,7 +418,7 @@ impl CommentParser {
         let definition_line = self.line;
         self.error_matches.push(ErrorMatch {
             pattern,
-            revision,
+            revisions,
             level,
             definition_line,
             line: match_line,
