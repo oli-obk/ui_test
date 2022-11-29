@@ -569,11 +569,19 @@ fn build_command(path: &Path, config: &Config, revision: &str, comments: &Commen
     if !revision.is_empty() {
         cmd.arg(format!("--cfg={revision}"));
     }
-    for arg in &comments.compile_flags {
+    for arg in comments
+        .for_revision(revision)
+        .flat_map(|r| r.compile_flags.iter())
+    {
         cmd.arg(arg);
     }
     cmd.args(config.trailing_args.iter());
-    cmd.envs(comments.env_vars.iter().map(|(k, v)| (k, v)));
+    cmd.envs(
+        comments
+            .for_revision(revision)
+            .flat_map(|r| r.env_vars.iter())
+            .map(|(k, v)| (k, v)),
+    );
 
     cmd
 }
@@ -627,6 +635,7 @@ fn check_test_result(
         &config.stderr_filters,
         config,
         comments,
+        revision,
     );
     check_output(
         stdout,
@@ -636,6 +645,7 @@ fn check_test_result(
         &config.stdout_filters,
         config,
         comments,
+        revision,
     );
     // Check error annotations in the source against output
     check_annotations(
@@ -659,7 +669,17 @@ fn check_annotations(
     revision: &str,
     comments: &Comments,
 ) {
-    if let Some((ref error_pattern, definition_line)) = comments.error_pattern {
+    let error_pattern = comments.find_one_for_revision(
+        revision,
+        |r| r.error_pattern.as_ref(),
+        |(_, line)| {
+            errors.push(Error::InvalidComment {
+                msg: "same revision defines pattern twice".into(),
+                line: *line,
+            })
+        },
+    );
+    if let Some((error_pattern, definition_line)) = error_pattern {
         // first check the diagnostics messages outside of our file. We check this first, so that
         // you can mix in-file annotations with //@error-pattern annotations, even if there is overlap
         // in the messages.
@@ -671,7 +691,7 @@ fn check_annotations(
         } else {
             errors.push(Error::PatternNotFound {
                 pattern: error_pattern.clone(),
-                definition_line,
+                definition_line: *definition_line,
             });
         }
     }
@@ -680,20 +700,17 @@ fn check_annotations(
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
     let mut lowest_annotation_level = Level::Error;
+    let mut seen_error_match = false;
     for &ErrorMatch {
         ref pattern,
-        ref revisions,
         definition_line,
         line,
         level,
-    } in &comments.error_matches
+    } in comments
+        .for_revision(revision)
+        .flat_map(|r| r.error_matches.iter())
     {
-        if !revisions.is_empty() {
-            if revisions.iter().all(|rev| rev != revision) {
-                continue;
-            }
-        }
-
+        seen_error_match = true;
         // If we found a diagnostic with a level annotation, make sure that all
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
@@ -715,18 +732,18 @@ fn check_annotations(
         });
     }
 
-    let filter = |msgs: Vec<Message>| -> Vec<_> {
+    let filter = |msgs: Vec<Message>, errors: &mut Vec<_>| -> Vec<_> {
         msgs.into_iter()
             .filter(|msg| {
                 msg.level
                     >= comments
-                        .require_annotations_for_level
+                        .find_one_for_revision(revision, |r| r.require_annotations_for_level, |_| errors.push(Error::InvalidComment { msg: "`require_annotations_for_level` specified twice for same revision".into(), line: 0 }))
                         .unwrap_or(lowest_annotation_level)
             })
             .collect()
     };
 
-    let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
+    let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line, errors);
     if !messages_from_unknown_file_or_line.is_empty() {
         errors.push(Error::ErrorsWithoutPattern {
             path: None,
@@ -735,7 +752,7 @@ fn check_annotations(
     }
 
     for (line, msgs) in messages.into_iter().enumerate() {
-        let msgs = filter(msgs);
+        let msgs = filter(msgs, errors);
         if !msgs.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
                 path: Some((path.to_path_buf(), line)),
@@ -744,10 +761,7 @@ fn check_annotations(
         }
     }
 
-    match (
-        config.mode,
-        comments.error_pattern.is_some() || !comments.error_matches.is_empty(),
-    ) {
+    match (config.mode, error_pattern.is_some() || seen_error_match) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
         (
             Mode::Fail {
@@ -767,10 +781,11 @@ fn check_output(
     filters: &Filter,
     config: &Config,
     comments: &Comments,
+    revision: &str,
 ) {
     let target = config.target.as_ref().unwrap();
-    let output = normalize(path, output, filters, comments);
-    let path = output_path(path, comments, kind, target);
+    let output = normalize(path, output, filters, comments, revision);
+    let path = output_path(path, comments, kind, target, revision);
     match config.output_conflict_handling {
         OutputConflictHandling::Bless => {
             if output.is_empty() {
@@ -793,8 +808,17 @@ fn check_output(
     }
 }
 
-fn output_path(path: &Path, comments: &Comments, kind: String, target: &str) -> PathBuf {
-    if comments.stderr_per_bitwidth {
+fn output_path(
+    path: &Path,
+    comments: &Comments,
+    kind: String,
+    target: &str,
+    revision: &str,
+) -> PathBuf {
+    if comments
+        .for_revision(revision)
+        .any(|r| r.stderr_per_bitwidth)
+    {
         return path.with_extension(format!("{}bit.{kind}", get_pointer_width(target)));
     }
     path.with_extension(kind)
@@ -830,7 +854,13 @@ fn get_pointer_width(triple: &str) -> u8 {
     }
 }
 
-fn normalize(path: &Path, text: &[u8], filters: &Filter, comments: &Comments) -> Vec<u8> {
+fn normalize(
+    path: &Path,
+    text: &[u8],
+    filters: &Filter,
+    comments: &Comments,
+    revision: &str,
+) -> Vec<u8> {
     // Useless paths
     let mut text = text.replace(&path.parent().unwrap().display().to_string(), "$DIR");
     if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
@@ -841,7 +871,10 @@ fn normalize(path: &Path, text: &[u8], filters: &Filter, comments: &Comments) ->
         text = regex.replace_all(&text, *replacement).into_owned();
     }
 
-    for (from, to) in &comments.normalize_stderr {
+    for (from, to) in comments
+        .for_revision(revision)
+        .flat_map(|r| r.normalize_stderr.iter())
+    {
         text = from.replace_all(&text, to).into_owned();
     }
     text

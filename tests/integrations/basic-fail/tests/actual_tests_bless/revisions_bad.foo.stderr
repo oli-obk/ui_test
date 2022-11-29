@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
- --> $DIR/revisions_bad.rs:7:9
+ --> $DIR/revisions_bad.rs:8:9
   |
-7 |     add("42", 3);
+8 |     add("42", 3);
   |     --- ^^^^ expected `usize`, found `&str`
   |     |
   |     arguments to this function are incorrect

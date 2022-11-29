@@ -1,8 +1,8 @@
 error[E0601]: `main` function not found in crate `revisions_bad`
- --> $DIR/revisions_bad.rs:9:2
-  |
-9 | }
-  |  ^ consider adding a `main` function to `$DIR/revisions_bad.rs`
+  --> $DIR/revisions_bad.rs:10:2
+   |
+10 | }
+   |  ^ consider adding a `main` function to `$DIR/revisions_bad.rs`
 
 error: aborting due to previous error
 

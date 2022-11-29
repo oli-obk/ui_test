@@ -119,26 +119,38 @@ Caused by:
    Building test dependencies...
 tests/actual_tests_bless/revisions.rs (foo) ... ok
 tests/actual_tests_bless/revisions.rs (bar) ... ok
-tests/actual_tests_bless/revisions_bad.rs ... FAILED
+tests/actual_tests_bless/revisions_bad.rs (foo) ... ok
+tests/actual_tests_bless/revisions_bad.rs (bar) ... FAILED
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (foo) ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
 
-tests/actual_tests_bless/revisions_bad.rs FAILED:
-command: "parse comments"
+tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar"
 
-Could not parse comment in tests/actual_tests_bless/revisions_bad.rs:4 because test command must be followed by `:` (or end the line)
+substring ``main` function not found in crate `revisions_bad`` not found in stderr output
+expected because of pattern here: tests/actual_tests_bless/revisions_bad.rs:4
 
-Could not parse comment in tests/actual_tests_bless/revisions_bad.rs:4 because unknown command ``
+There were 1 unmatched diagnostics at tests/actual_tests_bless/revisions_bad.rs:10
+    Error: `main` function not found in crate `revisions_bad`
 
 full stderr:
+error[E0601]: `main` function not found in crate `revisions_bad`
+  --> tests/actual_tests_bless/revisions_bad.rs:10:2
+   |
+10 | }
+   |  ^ consider adding a `main` function to `tests/actual_tests_bless/revisions_bad.rs`
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0601`.
 
 
 FAILURES:
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 1 tests failed, 6 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 1 tests failed, 7 tests passed, 0 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
