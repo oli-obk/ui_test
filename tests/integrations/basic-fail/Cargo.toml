@@ -12,3 +12,7 @@ tempfile = "3.3.0"
 [[test]]
 name = "ui_tests"
 harness = false
+
+[[test]]
+name = "ui_tests_bless"
+harness = false

@@ -16,9 +16,10 @@ fn main() {
     ";
     let comments = Comments::parse(s).unwrap();
     println!("parsed comments: {:#?}", comments);
-    assert_eq!(comments.error_matches[0].definition_line, 5);
-    assert_eq!(comments.error_matches[0].revision, None);
-    match &comments.error_matches[0].pattern {
+    assert_eq!(comments.revisioned.len(), 1);
+    let revisioned = &comments.revisioned[&vec![]];
+    assert_eq!(revisioned.error_matches[0].definition_line, 5);
+    match &revisioned.error_matches[0].pattern {
         Pattern::SubString(s) => {
             assert_eq!(
                 s,
@@ -56,7 +57,9 @@ use std::mem;
     ";
     let comments = Comments::parse(s).unwrap();
     println!("parsed comments: {:#?}", comments);
-    let pat = comments.error_pattern.unwrap();
+    assert_eq!(comments.revisioned.len(), 1);
+    let revisioned = &comments.revisioned[&vec![]];
+    let pat = revisioned.error_pattern.as_ref().unwrap();
     assert_eq!(format!("{:?}", pat.0), r#"SubString("foomp")"#);
     assert_eq!(pat.1, 2);
 }
@@ -70,7 +73,9 @@ use std::mem;
     ";
     let comments = Comments::parse(s).unwrap();
     println!("parsed comments: {:#?}", comments);
-    let pat = comments.error_pattern.unwrap();
+    assert_eq!(comments.revisioned.len(), 1);
+    let revisioned = &comments.revisioned[&vec![]];
+    let pat = revisioned.error_pattern.as_ref().unwrap();
     assert_eq!(format!("{:?}", pat.0), r#"Regex(foomp)"#);
     assert_eq!(pat.1, 2);
 }
@@ -122,8 +127,10 @@ fn parse_x86_64() {
     let s = r"//@ only-target-x86_64-unknown-linux";
     let comments = Comments::parse(s).unwrap();
     println!("parsed comments: {:#?}", comments);
-    assert_eq!(comments.only.len(), 1);
-    match &comments.only[0] {
+    assert_eq!(comments.revisioned.len(), 1);
+    let revisioned = &comments.revisioned[&vec![]];
+    assert_eq!(revisioned.only.len(), 1);
+    match &revisioned.only[0] {
         Condition::Target(t) => assert_eq!(t, "x86_64-unknown-linux"),
         _ => unreachable!(),
     }

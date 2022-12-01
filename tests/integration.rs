@@ -6,12 +6,7 @@ use ui_test::*;
 
 fn main() -> Result<()> {
     run("integrations", Mode::Pass)?;
-    run(
-        "integrations",
-        Mode::Fail {
-            require_patterns: false,
-        },
-    )?;
+    run("integrations", Mode::Panic)?;
 
     Ok(())
 }
@@ -28,6 +23,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
             "never".into(),
             "--jobs".into(),
             "1".into(),
+            "--no-fail-fast".into(),
             "--target-dir".into(),
             path.parent().unwrap().join("target").into(),
             "--manifest-path".into(),
@@ -80,8 +76,11 @@ fn run(name: &str, mode: Mode) -> Result<()> {
             && path.parent().unwrap().parent().unwrap() == root_dir
             && match mode {
                 Mode::Pass => !fail,
-                Mode::Panic => unreachable!(),
-                Mode::Fail { .. } => fail,
+                // This is weird, but `cargo test` returns 101 instead of 1 when
+                // multiple [[test]]s exist. If there's only one test, it returns
+                // 1 on failure.
+                Mode::Panic => fail,
+                Mode::Fail { .. } => unreachable!(),
             }
     })
 }

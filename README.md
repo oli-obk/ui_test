@@ -32,7 +32,9 @@ their command specifies, or the test will fail without even being run.
 * `//@error-pattern: XXX` make sure the stderr output contains `XXX`
 * `//@revisions: XXX YYY` runs the test once for each space separated name in the list
     * emits one stderr file per revision
-    * `//~` comments can be restricted to specific revisions by adding the revision name before the `~` in square brackets: `//[XXX]~`
+    * `//~` comments can be restricted to specific revisions by adding the revision name after the `~` in square brackets: `//~[XXX]`
+    * `//@` comments can be restricted to specific revisions by adding the revision name after the `@` in square brackets: `//@[XXX]`
+        * Note that you cannot add revisions to the `revisions` command.
 * `//@compile-flags: XXX` appends `XXX` to the command line arguments passed to the rustc driver
     * you can specify this multiple times, and all the flags will accumulate
 * `//@rustc-env: XXX=YYY` sets the env var `XXX` to `YYY` for the rustc driver execution.

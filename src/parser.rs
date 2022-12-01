@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
@@ -17,6 +17,44 @@ mod tests;
 pub(crate) struct Comments {
     /// List of revision names to execute. Can only be speicified once
     pub revisions: Option<Vec<String>>,
+    /// Comments that are only available under specific revisions.
+    /// The defaults are in key `vec![]`
+    pub revisioned: HashMap<Vec<String>, Revisioned>,
+}
+
+impl Comments {
+    /// Check that a comment isn't specified twice across multiple differently revisioned statements.
+    /// e.g. `//@[foo, bar] error-pattern: bop` and `//@[foo, baz] error-pattern boop` would end up
+    /// specifying two error patterns that are available in revision `foo`.
+    pub fn find_one_for_revision<'a, T: 'a>(
+        &'a self,
+        revision: &'a str,
+        f: impl Fn(&'a Revisioned) -> Option<T>,
+        error: impl FnOnce(T),
+    ) -> Option<T> {
+        let mut rev = self.for_revision(revision).filter_map(f);
+        let result = rev.next();
+        if let Some(next) = rev.next() {
+            error(next);
+        }
+        result
+    }
+
+    /// Returns an iterator over all revisioned comments that match the revision.
+    pub fn for_revision<'a>(&'a self, revision: &'a str) -> impl Iterator<Item = &'a Revisioned> {
+        self.revisioned.iter().filter_map(move |(k, v)| {
+            if k.is_empty() || k.iter().any(|rev| rev == revision) {
+                Some(v)
+            } else {
+                None
+            }
+        })
+    }
+}
+
+#[derive(Default, Debug)]
+/// Comments that can be filtered for specific revisions.
+pub(crate) struct Revisioned {
     /// Don't run this test if any of these filters apply
     pub ignore: Vec<Condition>,
     /// Only run this test if all of these filters apply
@@ -37,25 +75,25 @@ pub(crate) struct Comments {
     pub require_annotations_for_level: Option<Level>,
 }
 
-#[derive(Default, Debug)]
-struct CommentParser {
+#[derive(Debug)]
+struct CommentParser<T> {
     /// The comments being built.
-    comments: Comments,
+    comments: T,
     /// Any errors that ocurred during comment parsing.
     errors: Vec<Error>,
     /// The line currently being parsed.
     line: usize,
 }
 
-impl std::ops::Deref for CommentParser {
-    type Target = Comments;
+impl<T> std::ops::Deref for CommentParser<T> {
+    type Target = T;
 
     fn deref(&self) -> &Self::Target {
         &self.comments
     }
 }
 
-impl std::ops::DerefMut for CommentParser {
+impl<T> std::ops::DerefMut for CommentParser<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.comments
     }
@@ -81,7 +119,6 @@ pub(crate) enum Pattern {
 #[derive(Debug)]
 pub(crate) struct ErrorMatch {
     pub pattern: Pattern,
-    pub revision: Option<String>,
     pub level: Level,
     /// The line where the message was defined, for reporting issues with it (e.g. in case it wasn't found).
     pub definition_line: usize,
@@ -119,7 +156,11 @@ impl Comments {
     pub(crate) fn parse(
         content: &(impl AsRef<[u8]> + ?Sized),
     ) -> std::result::Result<Self, Vec<Error>> {
-        let mut parser = CommentParser::default();
+        let mut parser = CommentParser {
+            comments: Comments::default(),
+            errors: vec![],
+            line: 0,
+        };
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
         for (l, line) in content.as_ref().lines().enumerate() {
@@ -141,7 +182,7 @@ impl Comments {
     }
 }
 
-impl CommentParser {
+impl CommentParser<Comments> {
     fn parse_checked_line(
         &mut self,
         fallthrough_to: &mut Option<usize>,
@@ -150,15 +191,18 @@ impl CommentParser {
         if let Some((_, command)) = line.split_once_str("//@") {
             self.parse_command(command.trim().to_str()?)
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
-            self.parse_pattern(pattern.to_str()?, fallthrough_to)
-        } else if let Some((_, pattern)) = line.split_once_str("//[") {
-            self.parse_revisioned_pattern(pattern.to_str()?, fallthrough_to)
+            let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
+            self.revisioned(revisions, |this| {
+                this.parse_pattern(pattern, fallthrough_to)
+            })
         } else {
             *fallthrough_to = None;
         }
         Ok(())
     }
+}
 
+impl<CommentsType> CommentParser<CommentsType> {
     fn error(&mut self, s: impl Into<String>) {
         self.errors.push(Error::InvalidComment {
             msg: s.into(),
@@ -176,8 +220,12 @@ impl CommentParser {
         self.check(opt.is_some(), s);
         opt
     }
+}
 
+impl CommentParser<Comments> {
     fn parse_command(&mut self, command: &str) {
+        let (revisions, command) = self.parse_revisions(command);
+
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
         let (command, args) = match command
             .chars()
@@ -199,11 +247,36 @@ impl CommentParser {
             }
         };
 
+        if command == "revisions" {
+            self.check(
+                revisions.is_empty(),
+                "cannot declare revisions under a revision",
+            );
+            self.check(self.revisions.is_none(), "cannot specify `revisions` twice");
+            self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
+            return;
+        }
+        self.revisioned(revisions, |this| this.parse_command(command, args));
+    }
+
+    fn revisioned(
+        &mut self,
+        revisions: Vec<String>,
+        f: impl FnOnce(&mut CommentParser<&mut Revisioned>),
+    ) {
+        let mut this = CommentParser {
+            errors: std::mem::take(&mut self.errors),
+            line: self.line,
+            comments: self.revisioned.entry(revisions).or_default(),
+        };
+        f(&mut this);
+        self.errors = this.errors;
+    }
+}
+
+impl CommentParser<&mut Revisioned> {
+    fn parse_command(&mut self, command: &str, args: &str) {
         match command {
-            "revisions" => {
-                self.check(self.revisions.is_none(), "cannot specify `revisions` twice");
-                self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
-            }
             "compile-flags" => {
                 self.compile_flags
                     .extend(args.split_whitespace().map(|s| s.to_string()));
@@ -287,7 +360,9 @@ impl CommentParser {
             }
         }
     }
+}
 
+impl<CommentsType> CommentParser<CommentsType> {
     fn parse_regex(&mut self, regex: &str) -> Option<Regex> {
         match Regex::new(regex) {
             Ok(regex) => Some(regex),
@@ -331,32 +406,35 @@ impl CommentParser {
         }
     }
 
-    fn parse_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<usize>) {
-        self.parse_pattern_inner(pattern, fallthrough_to, None)
-    }
-
-    fn parse_revisioned_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<usize>) {
-        let (revision, pattern) = match pattern.split_once(']') {
-            Some(it) => it,
-            None => {
-                self.error("`//[` without corresponding `]`");
-                return;
+    // parse something like \[[a-z]+(,[a-z]+)*\]
+    fn parse_revisions<'a>(&mut self, pattern: &'a str) -> (Vec<String>, &'a str) {
+        match pattern.chars().next() {
+            Some('[') => {
+                // revisions
+                let s = &pattern[1..];
+                let end = s.char_indices().find_map(|(i, c)| match c {
+                    ']' => Some(i),
+                    _ => None,
+                });
+                let Some(end) = end else {
+                    self.error("`[` without corresponding `]`");
+                    return (vec![], pattern);
+                };
+                let (revision, pattern) = s.split_at(end);
+                (
+                    revision.split(',').map(|s| s.trim().to_string()).collect(),
+                    // 1.. because `split_at` includes the separator
+                    pattern[1..].trim_start(),
+                )
             }
-        };
-        if let Some(pattern) = pattern.strip_prefix('~') {
-            self.parse_pattern_inner(pattern, fallthrough_to, Some(revision.to_owned()))
-        } else {
-            self.error("revisioned pattern must have `~` following the `]`");
+            _ => (vec![], pattern),
         }
     }
+}
 
-    // parse something like (?P<offset>\||[\^]+)? *(?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*)
-    fn parse_pattern_inner(
-        &mut self,
-        pattern: &str,
-        fallthrough_to: &mut Option<usize>,
-        revision: Option<String>,
-    ) {
+impl CommentParser<&mut Revisioned> {
+    // parse something like (\[[a-z]+(,[a-z]+)*\])?(?P<offset>\||[\^]+)? *(?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*)
+    fn parse_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<usize>) {
         let (match_line, pattern) = match pattern.chars().next() {
             Some('|') => (
                 match fallthrough_to {
@@ -418,7 +496,6 @@ impl CommentParser {
         let definition_line = self.line;
         self.error_matches.push(ErrorMatch {
             pattern,
-            revision,
             level,
             definition_line,
             line: match_line,
@@ -435,7 +512,7 @@ impl Pattern {
     }
 }
 
-impl CommentParser {
+impl<CommentsType> CommentParser<CommentsType> {
     fn parse_error_pattern(&mut self, pattern: &str) -> Pattern {
         if let Some(regex) = pattern.strip_prefix('/') {
             match regex.strip_suffix('/') {
