@@ -726,21 +726,24 @@ fn check_annotations(
         });
     }
 
-    let filter = |mut msgs: Vec<Message>, errors: &mut Vec<_>| -> Vec<_> {
-        let error = |_| {
-            errors.push(Error::InvalidComment {
-                msg: "`require_annotations_for_level` specified twice for same revision".into(),
-                line: 0,
-            })
-        };
-        let required_annotation_level = comments
-            .find_one_for_revision(revision, |r| r.require_annotations_for_level, error)
-            .unwrap_or(lowest_annotation_level);
+    let required_annotation_level = comments
+        .find_one_for_revision(
+            revision,
+            |r| r.require_annotations_for_level,
+            |_| {
+                errors.push(Error::InvalidComment {
+                    msg: "`require_annotations_for_level` specified twice for same revision".into(),
+                    line: 0,
+                })
+            },
+        )
+        .unwrap_or(lowest_annotation_level);
+    let filter = |mut msgs: Vec<Message>| -> Vec<_> {
         msgs.retain(|msg| msg.level >= required_annotation_level);
         msgs
     };
 
-    let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line, errors);
+    let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
     if !messages_from_unknown_file_or_line.is_empty() {
         errors.push(Error::ErrorsWithoutPattern {
             path: None,
@@ -749,7 +752,7 @@ fn check_annotations(
     }
 
     for (line, msgs) in messages.into_iter().enumerate() {
-        let msgs = filter(msgs, errors);
+        let msgs = filter(msgs);
         if !msgs.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
                 path: Some((path.to_path_buf(), line)),
