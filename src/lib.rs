@@ -727,11 +727,21 @@ fn check_annotations(
     }
 
     let filter = |msgs: Vec<Message>, errors: &mut Vec<_>| -> Vec<_> {
+        let mut error = |_| {
+            errors.push(Error::InvalidComment {
+                msg: "`require_annotations_for_level` specified twice for same revision".into(),
+                line: 0,
+            })
+        };
         msgs.into_iter()
             .filter(|msg| {
                 msg.level
                     >= comments
-                        .find_one_for_revision(revision, |r| r.require_annotations_for_level, |_| errors.push(Error::InvalidComment { msg: "`require_annotations_for_level` specified twice for same revision".into(), line: 0 }))
+                        .find_one_for_revision(
+                            revision,
+                            |r| r.require_annotations_for_level,
+                            &mut error,
+                        )
                         .unwrap_or(lowest_annotation_level)
             })
             .collect()
