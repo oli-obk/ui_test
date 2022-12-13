@@ -51,16 +51,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     );
     // The order of the `/deps` directory flag is flaky
     config.stderr_filter("/deps", "");
-    config.stderr_filter(
-        &std::path::Path::new(path)
-            .canonicalize()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .display()
-            .to_string(),
-        "$$DIR",
-    );
+    config.path_stderr_filter(&std::path::Path::new(path), "$$DIR");
     config.stderr_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
 
     run_tests_generic(config, |path| {
