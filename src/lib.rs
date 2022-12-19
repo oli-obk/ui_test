@@ -869,7 +869,7 @@ fn normalize(
     revision: &str,
 ) -> Vec<u8> {
     // Useless paths
-    let mut text = text.replace(&path.parent().unwrap().display().to_string(), "$DIR");
+    let mut text = text.replace(path.parent().unwrap().display().to_string(), "$DIR");
     if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
         text = text.replace(lib_path, "RUSTLIB");
     }
