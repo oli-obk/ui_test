@@ -85,7 +85,7 @@ impl Default for Config {
             path_filter: vec![],
             dependencies_crate_manifest_path: None,
             dependency_builder: DependencyBuilder::default(),
-            quiet: true,
+            quiet: false,
             num_test_threads: std::thread::available_parallelism().unwrap(),
         }
     }
