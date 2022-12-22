@@ -92,6 +92,25 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Replace a path with a pattern if it appears in stderr.
+    pub fn path_stderr_filter(
+        &mut self,
+        path: &Path,
+        replacement: &'static (impl AsRef<[u8]> + ?Sized),
+    ) {
+        let pattern = &std::path::Path::new(path)
+            .canonicalize()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .display()
+            .to_string()
+            // Escape windows path backslashes so that regexes see the plain backslashes instead
+            // of escaping the follow-up symbol.
+            .replace('\\', r#"\\"#);
+        self.stderr_filter(pattern, replacement);
+    }
+
     pub fn stderr_filter(
         &mut self,
         pattern: &str,
