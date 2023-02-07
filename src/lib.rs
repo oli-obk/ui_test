@@ -7,7 +7,7 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, Result};
 use colored::*;
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern};
@@ -288,7 +288,7 @@ pub fn run_tests_generic(
                                 format!(" ({})", run.revision)
                             }
                         );
-                        eprintln!("{}", result);
+                        eprintln!("{result}");
                     }
                     results.push(run);
                 }
@@ -341,11 +341,11 @@ pub fn run_tests_generic(
             eprintln!();
             eprint!("{}", path.display().to_string().underline().bold());
             if !revision.is_empty() {
-                eprint!(" (revision `{}`)", revision);
+                eprint!(" (revision `{revision}`)");
             }
             eprint!(" {}", "FAILED:".red().bold());
             eprintln!();
-            eprintln!("command: {:?}", cmd);
+            eprintln!("command: {cmd:?}");
             eprintln!();
             for error in errors {
                 match error {
@@ -621,7 +621,7 @@ fn check_test_result(
         if revision.is_empty() {
             extension.to_string()
         } else {
-            format!("{}.{}", revision, extension)
+            format!("{revision}.{extension}")
         }
     };
     // Check output files against actual output
