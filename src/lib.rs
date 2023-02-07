@@ -186,7 +186,9 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitSta
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
-    Ok(build_command(path, &config, "", &comments).status()?)
+    build_command(path, &config, "", &comments)
+        .status()
+        .wrap_err_with(|| format!("path `{}` is not an executable", config.program.display()))
 }
 
 #[allow(clippy::large_enum_variant)]
