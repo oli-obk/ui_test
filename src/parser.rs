@@ -102,7 +102,9 @@ impl<T> std::ops::DerefMut for CommentParser<T> {
 /// The conditions used for "ignore" and "only" filters.
 #[derive(Debug)]
 pub(crate) enum Condition {
-    /// The given string must appear in the target.
+    /// The given string must appear in the host triple.
+    Host(String),
+    /// The given string must appear in the target triple.
     Target(String),
     /// Tests that the bitwidth is the given one.
     Bitwidth(u8),
@@ -135,11 +137,13 @@ impl Condition {
                 format!("invalid ignore/only filter ending in 'bit': {c:?} is not a valid bitwdith")
             })?;
             Ok(Condition::Bitwidth(bits))
-        } else if let Some(target) = c.strip_prefix("target-") {
-            Ok(Condition::Target(target.to_owned()))
+        } else if let Some(triple_substr) = c.strip_prefix("target-") {
+            Ok(Condition::Target(triple_substr.to_owned()))
+        } else if let Some(triple_substr) = c.strip_prefix("host-") {
+            Ok(Condition::Host(triple_substr.to_owned()))
         } else {
             Err(format!(
-                "invalid condition `{c:?}`, expected `on-host`, /[0-9]+bit/ or /target-.*/"
+                "invalid condition `{c:?}`, expected `on-host`, /[0-9]+bit/, /target-.*/, or /target-.*/"
             ))
         }
     }

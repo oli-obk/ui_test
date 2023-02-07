@@ -833,6 +833,7 @@ fn test_condition(condition: &Condition, config: &Config) -> bool {
     match condition {
         Condition::Bitwidth(bits) => get_pointer_width(target) == *bits,
         Condition::Target(t) => target.contains(t),
+        Condition::Host(t) => config.host.as_ref().unwrap().contains(t),
         Condition::OnHost => target == config.host.as_ref().unwrap(),
     }
 }
