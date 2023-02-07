@@ -7,7 +7,7 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, Result};
 use colored::*;
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern};
@@ -92,6 +92,7 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Replace all occurrences of a regex pattern in stderr with a byte string.
     pub fn stderr_filter(
         &mut self,
         pattern: &str,
@@ -101,6 +102,7 @@ impl Config {
             .push((Regex::new(pattern).unwrap(), replacement.as_ref()));
     }
 
+    /// Replace all occurrences of a regex pattern in stdout with a byte string.
     pub fn stdout_filter(
         &mut self,
         pattern: &str,
@@ -186,7 +188,9 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitSta
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
-    Ok(build_command(path, &config, "", &comments).status()?)
+    build_command(path, &config, "", &comments)
+        .status()
+        .wrap_err_with(|| format!("path `{}` is not an executable", config.program.display()))
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -284,7 +288,7 @@ pub fn run_tests_generic(
                                 format!(" ({})", run.revision)
                             }
                         );
-                        eprintln!("{}", result);
+                        eprintln!("{result}");
                     }
                     results.push(run);
                 }
@@ -337,11 +341,11 @@ pub fn run_tests_generic(
             eprintln!();
             eprint!("{}", path.display().to_string().underline().bold());
             if !revision.is_empty() {
-                eprint!(" (revision `{}`)", revision);
+                eprint!(" (revision `{revision}`)");
             }
             eprint!(" {}", "FAILED:".red().bold());
             eprintln!();
-            eprintln!("command: {:?}", cmd);
+            eprintln!("command: {cmd:?}");
             eprintln!();
             for error in errors {
                 match error {
@@ -617,7 +621,7 @@ fn check_test_result(
         if revision.is_empty() {
             extension.to_string()
         } else {
-            format!("{}.{}", revision, extension)
+            format!("{revision}.{extension}")
         }
     };
     // Check output files against actual output

@@ -41,8 +41,15 @@ jobs:
       - name: Check semver
         uses: obi1kenobi/cargo-semver-checks-action@v1
 
-  build:
-    runs-on: ubuntu-latest
+  tests:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            host_target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            host_target: x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
     - uses: dtolnay/rust-toolchain@stable

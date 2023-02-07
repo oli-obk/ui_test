@@ -458,10 +458,7 @@ impl CommentParser<&mut Revisioned> {
         };
 
         let pattern = pattern.trim_start();
-        let offset = match pattern
-            .chars()
-            .position(|c| !matches!(c, 'A'..='Z' | 'a'..='z'))
-        {
+        let offset = match pattern.chars().position(|c| !c.is_ascii_alphabetic()) {
             Some(offset) => offset,
             None => {
                 self.error("pattern without level");
