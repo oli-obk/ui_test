@@ -92,6 +92,7 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Replace all occurrences of a regex pattern in stderr with a byte string.
     pub fn stderr_filter(
         &mut self,
         pattern: &str,
@@ -101,6 +102,7 @@ impl Config {
             .push((Regex::new(pattern).unwrap(), replacement.as_ref()));
     }
 
+    /// Replace all occurrences of a regex pattern in stdout with a byte string.
     pub fn stdout_filter(
         &mut self,
         pattern: &str,
