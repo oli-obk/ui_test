@@ -143,7 +143,7 @@ impl Condition {
             Ok(Condition::Host(triple_substr.to_owned()))
         } else {
             Err(format!(
-                "invalid condition `{c:?}`, expected `on-host`, /[0-9]+bit/, /target-.*/, or /target-.*/"
+                "invalid condition `{c:?}`, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/"
             ))
         }
     }
