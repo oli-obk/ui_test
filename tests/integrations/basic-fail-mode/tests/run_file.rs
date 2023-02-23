@@ -24,6 +24,21 @@ fn run_file() -> Result<()> {
 }
 
 #[test]
+fn fail_run_file() {
+    let mut config = Config::default();
+    config.program = "invalid_alsdkfjalsdfjalskdfj".into();
+
+    let _ = ui_test::run_file(
+        config,
+        &Path::new(file!())
+            .parent()
+            .unwrap()
+            .join("run_file/run_file.rs"),
+    )
+    .unwrap_err();
+}
+
+#[test]
 fn run_file_no_deps() -> Result<()> {
     let path = "../../../target";
 
