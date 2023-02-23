@@ -591,7 +591,9 @@ fn run_test(
     comments: &Comments,
 ) -> (Command, Errors, Vec<u8>) {
     let mut cmd = build_command(path, config, revision, comments);
-    let output = cmd.output().expect("could not execute {cmd:?}");
+    let output = cmd
+        .output()
+        .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
     let mut errors = config.mode.ok(output.status);
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);

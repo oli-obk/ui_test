@@ -170,7 +170,20 @@ error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/debug/ui_tests_bless-HASH --test-threads 1` (exit status: 1)
+     Running tests/ui_tests_invalid_program.rs 
+   Compiler flags: []
+thread 'main' panicked at '
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: test failed, to rerun pass `--test ui_tests_invalid_program`
+     Running tests/ui_tests_invalid_program2.rs 
+   Compiler flags: []
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs"', $DIR/src/lib.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: Any { .. }', $DIR/src/lib.rs
+error: test failed, to rerun pass `--test ui_tests_invalid_program2`
    Doc-tests basic_fail
-error: 2 targets failed:
+error: 4 targets failed:
     `--test ui_tests`
     `--test ui_tests_bless`
+    `--test ui_tests_invalid_program`
+    `--test ui_tests_invalid_program2`
