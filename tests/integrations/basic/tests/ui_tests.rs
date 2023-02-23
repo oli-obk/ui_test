@@ -31,5 +31,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
             .to_string(),
         "$$DIR",
     );
+
+    // hide binaries generated for successfully passing tests
+    let tmp_dir = tempfile::tempdir()?;
+    config.args.push("--out-dir".into());
+    config.args.push(tmp_dir.path().as_os_str().to_owned());
+
     ui_test::run_tests(config)
 }
