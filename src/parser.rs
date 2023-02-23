@@ -73,6 +73,7 @@ pub(crate) struct Revisioned {
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
+    pub run_rustfix: bool,
 }
 
 #[derive(Debug)]
@@ -331,6 +332,11 @@ impl CommentParser<&mut Revisioned> {
                     "cannot specify `stderr-per-bitwidth` twice",
                 );
                 self.stderr_per_bitwidth = true;
+            }
+            "run-rustfix" => {
+                // args are ignored (can be used as comment)
+                self.check(!self.run_rustfix, "cannot specify `run-rustfix` twice");
+                self.run_rustfix = true;
             }
             "require-annotations-for-level" => {
                 self.check(

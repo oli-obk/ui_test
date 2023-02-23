@@ -12,7 +12,7 @@ use colored::*;
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern};
 use regex::bytes::Regex;
-use rustc_stderr::{Level, Message};
+use rustc_stderr::{Diagnostics, Level, Message};
 use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fmt::Display;
@@ -593,6 +593,8 @@ fn run_test(
     let mut cmd = build_command(path, config, revision, comments);
     let output = cmd.output().expect("could not execute {cmd:?}");
     let mut errors = config.mode.ok(output.status);
+    // Always remove annotation comments from stderr.
+    let diagnostics = rustc_stderr::process(path, &output.stderr);
     let stderr = check_test_result(
         path,
         config,
@@ -600,7 +602,7 @@ fn run_test(
         comments,
         &mut errors,
         &output.stdout,
-        &output.stderr,
+        diagnostics,
     );
     (cmd, errors, stderr)
 }
@@ -612,10 +614,8 @@ fn check_test_result(
     comments: &Comments,
     errors: &mut Errors,
     stdout: &[u8],
-    stderr: &[u8],
+    diagnostics: Diagnostics,
 ) -> Vec<u8> {
-    // Always remove annotation comments from stderr.
-    let diagnostics = rustc_stderr::process(path, stderr);
     // Check output files (if any)
     let revised = |extension: &str| {
         if revision.is_empty() {
