@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use ui_test::*;
 
 fn main() -> ui_test::color_eyre::Result<()> {
@@ -11,6 +12,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         } else {
             OutputConflictHandling::Error
         },
+        num_test_threads: NonZeroUsize::new(1).unwrap(),
         ..Config::default()
     };
     config
