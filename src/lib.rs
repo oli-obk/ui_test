@@ -10,16 +10,16 @@ pub use color_eyre;
 use color_eyre::eyre::{Context, Result};
 use colored::*;
 use crossbeam_channel::unbounded;
-use parser::{ErrorMatch, Pattern};
+use parser::{ErrorMatch, Pattern, Revisioned};
 use regex::bytes::Regex;
-use rustc_stderr::{Level, Message};
-use std::collections::VecDeque;
+use rustc_stderr::{Diagnostics, Level, Message};
+use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::fmt::Display;
 use std::io::Write as _;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus};
+use std::process::{Command, ExitStatus, Output};
 use std::thread;
 
 use crate::dependencies::build_dependencies;
@@ -356,6 +356,10 @@ pub fn run_tests_generic(
                     } => {
                         eprintln!("{mode} test got {status}, but expected {expected}")
                     }
+                    Error::Rustfix { status, stderr } => {
+                        eprintln!("rustfix failed with {status}:");
+                        std::io::stderr().write_all(stderr).unwrap();
+                    }
                     Error::PatternNotFound {
                         pattern,
                         definition_line,
@@ -556,6 +560,11 @@ enum Error {
         msg: String,
         line: usize,
     },
+    /// Rustfix was run, but the result didn't pass compilation.
+    Rustfix {
+        status: ExitStatus,
+        stderr: Vec<u8>,
+    },
 }
 
 type Errors = Vec<Error>;
@@ -591,8 +600,16 @@ fn run_test(
     comments: &Comments,
 ) -> (Command, Errors, Vec<u8>) {
     let mut cmd = build_command(path, config, revision, comments);
-    let output = cmd.output().expect("could not execute {cmd:?}");
+    let output = cmd
+        .output()
+        .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
     let mut errors = config.mode.ok(output.status);
+    // Always remove annotation comments from stderr.
+    let diagnostics = rustc_stderr::process(path, &output.stderr);
+    let rustfixed = comments
+        .for_revision(revision)
+        .any(|rev| rev.run_rustfix)
+        .then(|| run_rustfix(&output.stderr, path, comments, revision, config));
     let stderr = check_test_result(
         path,
         config,
@@ -600,9 +617,89 @@ fn run_test(
         comments,
         &mut errors,
         &output.stdout,
-        &output.stderr,
+        diagnostics,
     );
+    if let Some((output, path)) = rustfixed {
+        if !output.status.success() {
+            errors.push(Error::Rustfix {
+                status: output.status,
+                stderr: rustc_stderr::process(&path, &output.stderr).rendered,
+            });
+        }
+    }
     (cmd, errors, stderr)
+}
+
+fn run_rustfix(
+    stderr: &[u8],
+    path: &Path,
+    comments: &Comments,
+    revision: &str,
+    config: &Config,
+) -> (Output, PathBuf) {
+    let suggestions = rustfix::get_suggestions_from_json(
+        std::str::from_utf8(stderr).unwrap(),
+        &HashSet::new(),
+        rustfix::Filter::MachineApplicableOnly,
+    )
+    .unwrap();
+    let fixed_code =
+        rustfix::apply_suggestions(&std::fs::read_to_string(path).unwrap(), &suggestions)
+            .unwrap_or_else(|e| {
+                panic!(
+                    "failed to apply suggestions for {:?} with rustfix: {e}",
+                    path.display()
+                )
+            });
+    let rustfix_comments = Comments {
+        revisions: None,
+        revisioned: std::iter::once((
+            vec![],
+            Revisioned {
+                ignore: vec![],
+                only: vec![],
+                stderr_per_bitwidth: false,
+                compile_flags: comments
+                    .for_revision(revision)
+                    .flat_map(|r| r.compile_flags.iter().cloned())
+                    .collect(),
+                env_vars: comments
+                    .for_revision(revision)
+                    .flat_map(|r| r.env_vars.iter().cloned())
+                    .collect(),
+                normalize_stderr: vec![],
+                error_pattern: None,
+                error_matches: vec![],
+                require_annotations_for_level: None,
+                run_rustfix: false,
+            },
+        ))
+        .collect(),
+    };
+    let path = check_output(
+        fixed_code.as_bytes(),
+        path,
+        &mut vec![],
+        revised(revision, "fixed"),
+        &Filter::default(),
+        config,
+        &rustfix_comments,
+        revision,
+    );
+    (
+        build_command(&path, config, revision, &rustfix_comments)
+            .output()
+            .unwrap(),
+        path,
+    )
+}
+
+fn revised(revision: &str, extension: &str) -> String {
+    if revision.is_empty() {
+        extension.to_string()
+    } else {
+        format!("{revision}.{extension}")
+    }
 }
 
 fn check_test_result(
@@ -612,24 +709,15 @@ fn check_test_result(
     comments: &Comments,
     errors: &mut Errors,
     stdout: &[u8],
-    stderr: &[u8],
+    diagnostics: Diagnostics,
 ) -> Vec<u8> {
-    // Always remove annotation comments from stderr.
-    let diagnostics = rustc_stderr::process(path, stderr);
     // Check output files (if any)
-    let revised = |extension: &str| {
-        if revision.is_empty() {
-            extension.to_string()
-        } else {
-            format!("{revision}.{extension}")
-        }
-    };
     // Check output files against actual output
     check_output(
         &diagnostics.rendered,
         path,
         errors,
-        revised("stderr"),
+        revised(revision, "stderr"),
         &config.stderr_filters,
         config,
         comments,
@@ -639,7 +727,7 @@ fn check_test_result(
         stdout,
         path,
         errors,
-        revised("stdout"),
+        revised(revision, "stdout"),
         &config.stdout_filters,
         config,
         comments,
@@ -786,23 +874,23 @@ fn check_output(
     config: &Config,
     comments: &Comments,
     revision: &str,
-) {
+) -> PathBuf {
     let target = config.target.as_ref().unwrap();
     let output = normalize(path, output, filters, comments, revision);
     let path = output_path(path, comments, kind, target, revision);
     match config.output_conflict_handling {
         OutputConflictHandling::Bless => {
             if output.is_empty() {
-                let _ = std::fs::remove_file(path);
+                let _ = std::fs::remove_file(&path);
             } else {
-                std::fs::write(path, &output).unwrap();
+                std::fs::write(&path, &output).unwrap();
             }
         }
         OutputConflictHandling::Error => {
             let expected_output = std::fs::read(&path).unwrap_or_default();
             if output != expected_output {
                 errors.push(Error::OutputDiffers {
-                    path,
+                    path: path.clone(),
                     actual: output,
                     expected: expected_output,
                 });
@@ -810,6 +898,7 @@ fn check_output(
         }
         OutputConflictHandling::Ignore => {}
     }
+    path
 }
 
 fn output_path(

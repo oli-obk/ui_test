@@ -14,5 +14,13 @@ name = "ui_tests"
 harness = false
 
 [[test]]
+name = "ui_tests_invalid_program"
+harness = false
+
+[[test]]
+name = "ui_tests_invalid_program2"
+harness = false
+
+[[test]]
 name = "ui_tests_bless"
 harness = false

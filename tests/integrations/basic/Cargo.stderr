@@ -2,10 +2,11 @@
      Running unittests src/lib.rs 
      Running tests/run_file.rs 
      Running tests/ui_tests.rs 
-   Compiler flags: ["--error-format=json", "--edition=2021"]
+   Compiler flags: ["--error-format=json", "--edition=2021", "--out-dir", "$TMP]
    Building test dependencies...
+tests/actual_tests/foomp-rustfix.rs ... ok
 tests/actual_tests/foomp.rs ... ok
 
-test result: ok. 1 tests passed, 0 ignored, 0 filtered out
+test result: ok. 2 tests passed, 0 ignored, 0 filtered out
 
    Doc-tests basic

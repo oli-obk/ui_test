@@ -62,6 +62,8 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         "$$DIR",
     );
     config.stderr_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
+    config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
+    config.stderr_filter("failed to parse rustc version info.*", "");
 
     run_tests_generic(config, |path| {
         let fail = path
