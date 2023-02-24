@@ -10,8 +10,7 @@ fn run_file() -> Result<()> {
     config.args.push("--edition=2021".into());
 
     let tmp_dir = tempfile::tempdir()?;
-    config.args.push("--out-dir".into());
-    config.args.push(tmp_dir.path().as_os_str().to_owned());
+    config.out_dir = Some(tmp_dir.path().into());
 
     let result = ui_test::run_file(
         config,
@@ -33,8 +32,7 @@ fn run_file_with_deps() -> Result<()> {
     config.args.push("--edition=2021".into());
 
     let tmp_dir = tempfile::tempdir()?;
-    config.args.push("--out-dir".into());
-    config.args.push(tmp_dir.path().as_os_str().to_owned());
+    config.out_dir = Some(tmp_dir.path().into());
 
     // Don't build a binary, we only provide .rmeta dependencies for now
     config.args.push("--emit=metadata".into());

@@ -1,4 +1,4 @@
-   Compiler flags: ["--error-format=json", "--edition=2021", "--out-dir", "$TMP]
+   Compiler flags: ["--error-format=json", "--edition=2021"]
    Building test dependencies...
 tests/actual_tests/foomp-rustfix.rs ... ok
 tests/actual_tests/foomp.rs ... ok

@@ -69,6 +69,8 @@ pub struct Config {
     pub quiet: bool,
     /// How many threads to use for running tests. Defaults to number of cores
     pub num_test_threads: NonZeroUsize,
+    /// Where to dump files like the binaries compiled from tests.
+    pub out_dir: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -98,6 +100,7 @@ impl Default for Config {
             dependency_builder: DependencyBuilder::default(),
             quiet: false,
             num_test_threads: std::thread::available_parallelism().unwrap(),
+            out_dir: None,
         }
     }
 }
@@ -638,6 +641,10 @@ type Errors = Vec<Error>;
 
 fn build_command(path: &Path, config: &Config, revision: &str, comments: &Comments) -> Command {
     let mut cmd = Command::new(&config.program);
+    if let Some(out_dir) = &config.out_dir {
+        cmd.arg("--out-dir");
+        cmd.arg(out_dir);
+    }
     cmd.args(config.args.iter());
     cmd.arg(path);
     if !revision.is_empty() {
