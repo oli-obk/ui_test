@@ -19,7 +19,7 @@ fn run_file() -> Result<()> {
             .unwrap()
             .join("run_file/run_file.rs"),
     )?;
-    ensure!(result.success(), "");
+    ensure!(result.status.success(), "");
     Ok(())
 }
 
@@ -49,7 +49,7 @@ fn run_file_with_deps() -> Result<()> {
             .unwrap()
             .join("run_file/run_file_with_deps.rs"),
     )?;
-    ensure!(result.success(), "");
+    ensure!(result.status.success(), "");
     Ok(())
 }
 
@@ -70,6 +70,6 @@ fn non_utf8() -> Result<()> {
     config.program = "cat".into();
 
     let result = ui_test::run_file(config, &path)?;
-    ensure!(result.success(), "");
+    ensure!(result.status.success(), "");
     Ok(())
 }

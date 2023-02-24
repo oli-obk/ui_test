@@ -250,13 +250,13 @@ pub fn run_tests(mut config: Config) -> Result<()> {
     })
 }
 
-pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::ExitStatus> {
+pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output> {
     config.build_dependencies_and_link_them()?;
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     build_command(path, &config, "", &comments)
-        .status()
+        .output()
         .wrap_err_with(|| format!("path `{}` is not an executable", config.program.display()))
 }
 

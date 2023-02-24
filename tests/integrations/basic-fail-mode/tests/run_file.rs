@@ -18,7 +18,7 @@ fn run_file() -> Result<()> {
             .unwrap()
             .join("run_file/run_file.rs"),
     )?;
-    ensure!(result.success(), "");
+    ensure!(result.status.success(), "");
     Ok(())
 }
 
@@ -63,6 +63,6 @@ fn run_file_no_deps() -> Result<()> {
             .unwrap()
             .join("run_file/run_file_with_deps.rs"),
     )?;
-    ensure!(result.success(), "");
+    ensure!(result.status.success(), "");
     Ok(())
 }
