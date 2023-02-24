@@ -33,7 +33,7 @@ mod rustc_stderr;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Config {
     /// Arguments passed to the binary that is executed.
     /// Take care to only append unless you actually meant to overwrite the defaults.
@@ -168,7 +168,7 @@ impl Config {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DependencyBuilder {
     pub program: PathBuf,
     pub args: Vec<String>,
@@ -185,7 +185,7 @@ impl Default for DependencyBuilder {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum OutputConflictHandling {
     /// The default: emit a diff of the expected/actual output.
     Error,
@@ -197,7 +197,7 @@ pub enum OutputConflictHandling {
 }
 
 /// A filter's match rule.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Match {
     /// If the regex matches, the filter applies
     Regex(Regex),
