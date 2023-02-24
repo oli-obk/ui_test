@@ -426,8 +426,12 @@ pub fn run_tests_generic(
                     } => {
                         eprintln!("{mode} test got {status}, but expected {expected}")
                     }
-                    Error::Rustfix { status, stderr } => {
-                        eprintln!("rustfix failed with {status}:");
+                    Error::Command {
+                        kind,
+                        status,
+                        stderr,
+                    } => {
+                        eprintln!("{kind} failed with {status}:");
                         std::io::stderr().write_all(stderr).unwrap();
                     }
                     Error::PatternNotFound {
@@ -630,8 +634,8 @@ enum Error {
         msg: String,
         line: usize,
     },
-    /// Rustfix was run, but the result didn't pass compilation.
-    Rustfix {
+    Command {
+        kind: String,
         status: ExitStatus,
         stderr: Vec<u8>,
     },
@@ -674,10 +678,36 @@ fn run_test(
     comments: &Comments,
 ) -> (Command, Errors, Vec<u8>) {
     let mut cmd = build_command(path, config, revision, comments);
+
+    let mut errors = vec![];
+
+    let aux_dir = path.parent().unwrap().join("auxiliary");
+    for rev in comments.for_revision(revision) {
+        for aux in &rev.aux_builds {
+            let aux_file = aux_dir.join(aux);
+            let mut aux_cmd = build_command(&aux_file, config, revision, comments);
+            aux_cmd.arg("--crate-type").arg("lib");
+            let out_dir = config.out_dir.clone().unwrap_or_default();
+            let filename = aux.with_extension("").display().to_string();
+            cmd.arg("--extern").arg(format!(
+                "{filename}={}",
+                out_dir.join(format!("lib{filename}.rlib",)).display()
+            ));
+            let output = aux_cmd.output().unwrap();
+            if !output.status.success() {
+                errors.push(Error::Command {
+                    kind: format!("auxiliary build for `{}`", aux_file.display()),
+                    status: output.status,
+                    stderr: rustc_stderr::process(path, &output.stderr).rendered,
+                });
+            }
+        }
+    }
+
     let output = cmd
         .output()
         .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
-    let mut errors = config.mode.ok(output.status);
+    errors.extend(config.mode.ok(output.status));
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
     let rustfixed = comments
@@ -695,7 +725,8 @@ fn run_test(
     );
     if let Some((output, path)) = rustfixed {
         if !output.status.success() {
-            errors.push(Error::Rustfix {
+            errors.push(Error::Command {
+                kind: "rustfix".into(),
                 status: output.status,
                 stderr: rustc_stderr::process(&path, &output.stderr).rendered,
             });
@@ -746,6 +777,10 @@ fn run_rustfix(
                 error_matches: vec![],
                 require_annotations_for_level: None,
                 run_rustfix: false,
+                aux_builds: comments
+                    .for_revision(revision)
+                    .flat_map(|r| r.aux_builds.iter().cloned())
+                    .collect(),
             },
         ))
         .collect(),

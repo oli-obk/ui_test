@@ -1,4 +1,7 @@
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
@@ -74,6 +77,7 @@ pub(crate) struct Revisioned {
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
     pub run_rustfix: bool,
+    pub aux_builds: Vec<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -337,6 +341,9 @@ impl CommentParser<&mut Revisioned> {
                 // args are ignored (can be used as comment)
                 self.check(!self.run_rustfix, "cannot specify `run-rustfix` twice");
                 self.run_rustfix = true;
+            }
+            "aux-build" => {
+                self.aux_builds.push(args.into());
             }
             "require-annotations-for-level" => {
                 self.check(
