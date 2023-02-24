@@ -294,6 +294,9 @@ pub fn run_tests_generic(
             todo.push_back(config.root_dir.clone());
             while let Some(path) = todo.pop_front() {
                 if path.is_dir() {
+                    if path.file_name().unwrap() == "auxiliary" {
+                        continue;
+                    }
                     // Enqueue everything inside this directory.
                     // We want it sorted, to have some control over scheduling of slow tests.
                     let mut entries = std::fs::read_dir(path)
