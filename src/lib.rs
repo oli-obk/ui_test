@@ -1103,6 +1103,8 @@ pub enum Mode {
         /// Whether failing tests must have error patterns. Set to false if you just care about .stderr output.
         require_patterns: bool,
     },
+    /// Run the tests, but always pass them as long as all annotations are satisfied and stderr files match.
+    Yolo,
 }
 
 impl Mode {
@@ -1111,6 +1113,7 @@ impl Mode {
             Mode::Pass => 0,
             Mode::Panic => 101,
             Mode::Fail { .. } => 1,
+            Mode::Yolo => return vec![],
         };
         if status.code() == Some(expected) {
             vec![]
@@ -1132,6 +1135,7 @@ impl Display for Mode {
             Mode::Fail {
                 require_patterns: _,
             } => write!(f, "fail"),
+            Mode::Yolo => write!(f, "yolo"),
         }
     }
 }

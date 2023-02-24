@@ -79,7 +79,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                 // multiple [[test]]s exist. If there's only one test, it returns
                 // 1 on failure.
                 Mode::Panic => fail,
-                Mode::Fail { .. } => unreachable!(),
+                Mode::Yolo | Mode::Fail { .. } => unreachable!(),
             }
     })
 }
