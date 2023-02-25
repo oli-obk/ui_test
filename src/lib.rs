@@ -700,8 +700,9 @@ fn run_test(
             for ext in ["rlib", "rmeta"] {
                 let path = out_dir.join(format!("lib{filename}.{ext}"));
                 if path.exists() {
+                    let crate_name = filename.replace('-', "_");
                     cmd.arg("--extern")
-                        .arg(format!("{filename}={}", path.display()));
+                        .arg(format!("{crate_name}={}", path.display()));
                 }
             }
         }
