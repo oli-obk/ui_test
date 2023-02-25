@@ -447,8 +447,8 @@ pub fn run_tests_generic(
                             }
                         }
                         eprintln!(
-                            "expected because of pattern here: {}:{definition_line}",
-                            path.display().to_string().bold()
+                            "expected because of pattern here: {}",
+                            format!("{}:{definition_line}", path.display()).bold()
                         );
                     }
                     Error::NoPatternsFound => {
