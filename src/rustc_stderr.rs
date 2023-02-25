@@ -106,13 +106,14 @@ impl RustcMessage {
 }
 
 impl Span {
-    /// Returns a line number *in the given file*, if possible.
+    /// Returns the most expanded line number *in the given file*, if possible.
     fn line(&self, file: &Path) -> Option<usize> {
-        if self.file_name == file {
-            Some(self.line_start)
-        } else {
-            self.expansion.as_ref()?.span.line(file)
+        if let Some(exp) = &self.expansion {
+            if let Some(line) = exp.span.line(file) {
+                return Some(line);
+            }
         }
+        (self.file_name == file).then_some(self.line_start)
     }
 }
 
