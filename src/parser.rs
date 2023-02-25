@@ -77,7 +77,7 @@ pub(crate) struct Revisioned {
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
     pub run_rustfix: bool,
-    pub aux_builds: Vec<PathBuf>,
+    pub aux_builds: Vec<(PathBuf, String)>,
 }
 
 #[derive(Debug)]
@@ -343,7 +343,8 @@ impl CommentParser<&mut Revisioned> {
                 self.run_rustfix = true;
             }
             "aux-build" => {
-                self.aux_builds.push(args.into());
+                let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));
+                self.aux_builds.push((name.into(), kind.into()));
             }
             "require-annotations-for-level" => {
                 self.check(

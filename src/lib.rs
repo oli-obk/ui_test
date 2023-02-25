@@ -683,10 +683,10 @@ fn run_test(
 
     let aux_dir = path.parent().unwrap().join("auxiliary");
     for rev in comments.for_revision(revision) {
-        for aux in &rev.aux_builds {
+        for (aux, kind) in &rev.aux_builds {
             let aux_file = aux_dir.join(aux);
             let mut aux_cmd = build_command(&aux_file, config, revision, comments);
-            aux_cmd.arg("--crate-type").arg("lib");
+            aux_cmd.arg("--crate-type").arg(kind);
             let out_dir = config.out_dir.clone().unwrap_or_default();
             let filename = aux.with_extension("").display().to_string();
             let output = aux_cmd.output().unwrap();
