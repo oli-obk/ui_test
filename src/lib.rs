@@ -689,10 +689,6 @@ fn run_test(
             aux_cmd.arg("--crate-type").arg("lib");
             let out_dir = config.out_dir.clone().unwrap_or_default();
             let filename = aux.with_extension("").display().to_string();
-            cmd.arg("--extern").arg(format!(
-                "{filename}={}",
-                out_dir.join(format!("lib{filename}.rlib",)).display()
-            ));
             let output = aux_cmd.output().unwrap();
             if !output.status.success() {
                 errors.push(Error::Command {
@@ -700,6 +696,13 @@ fn run_test(
                     status: output.status,
                     stderr: rustc_stderr::process(path, &output.stderr).rendered,
                 });
+            }
+            for ext in ["rlib", "rmeta"] {
+                let path = out_dir.join(format!("lib{filename}.{ext}"));
+                if path.exists() {
+                    cmd.arg("--extern")
+                        .arg(format!("{filename}={}", path.display()));
+                }
             }
         }
     }
