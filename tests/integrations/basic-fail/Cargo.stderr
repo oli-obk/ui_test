@@ -209,8 +209,59 @@ error: test failed, to rerun pass `--test ui_tests_invalid_program`
    Compiler flags: []
 thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs"', $DIR/src/lib.rs
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: Any { .. }', $DIR/src/lib.rs
+tests/actual_tests/bad_pattern.rs ... FAILED
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs"', $DIR/src/lib.rs
+tests/actual_tests/exit_code_fail.rs ... FAILED
+tests/actual_tests/filters.rs ... FAILED
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs"', $DIR/src/lib.rs
+tests/actual_tests/foomp.rs ... FAILED
+
+tests/actual_tests/bad_pattern.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs"
+
+full stderr:
+
+
+
+tests/actual_tests/exit_code_fail.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs"
+
+full stderr:
+
+
+
+tests/actual_tests/filters.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests/filters.rs:1 because invalid condition `"x86_64"`, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
+
+full stderr:
+
+
+
+tests/actual_tests/foomp.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs"
+
+full stderr:
+
+
+FAILURES:
+    tests/actual_tests/bad_pattern.rs
+    tests/actual_tests/exit_code_fail.rs
+    tests/actual_tests/filters.rs
+    tests/actual_tests/foomp.rs
+
+test result: FAIL. 4 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/debug/ui_tests_invalid_program2-HASH --test-threads 1` (exit status: 1)
 error: 4 targets failed:
     `--test ui_tests`
     `--test ui_tests_bless`

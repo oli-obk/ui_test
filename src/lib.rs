@@ -373,7 +373,28 @@ pub fn run_tests_generic(
             threads.push(s.spawn(|| -> Result<()> {
                 let finished_files_sender = finished_files_sender;
                 for path in &receive {
-                    for result in parse_and_test_file(path, &config) {
+                    let result =
+                        match std::panic::catch_unwind(|| parse_and_test_file(&path, &config)) {
+                            Ok(res) => res,
+                            Err(err) => {
+                                finished_files_sender.send(TestRun {
+                                    result: TestResult::Errored {
+                                        command: Command::new("<unknown>"),
+                                        errors: vec![Error::Bug(
+                                            *Box::<dyn std::any::Any + Send + 'static>::downcast::<
+                                                String,
+                                            >(err)
+                                            .unwrap(),
+                                        )],
+                                        stderr: vec![],
+                                    },
+                                    path,
+                                    revision: String::new(),
+                                })?;
+                                continue;
+                            }
+                        };
+                    for result in result {
                         finished_files_sender.send(result)?;
                     }
                 }
@@ -495,6 +516,9 @@ pub fn run_tests_generic(
                             path.display()
                         )
                     }
+                    Error::Bug(msg) => {
+                        eprintln!("A bug in `ui_test` occurred: {msg}");
+                    }
                 }
                 eprintln!();
             }
@@ -530,7 +554,7 @@ pub fn run_tests_generic(
     Ok(())
 }
 
-fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
+fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
     if !config.path_filter.is_empty() {
         let path_display = path.display().to_string();
         if !config
@@ -540,12 +564,12 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
         {
             return vec![TestRun {
                 result: TestResult::Filtered,
-                path,
+                path: path.into(),
                 revision: "".into(),
             }];
         }
     }
-    let comments = match Comments::parse_file(&path) {
+    let comments = match Comments::parse_file(path) {
         Ok(Ok(comments)) => comments,
         Ok(Err(errors)) => {
             return vec![TestRun {
@@ -554,7 +578,7 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
                     errors,
                     stderr: vec![],
                 },
-                path: path.clone(),
+                path: path.into(),
                 revision: "".into(),
             }];
         }
@@ -565,7 +589,7 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
                     errors: vec![],
                     stderr: format!("{err:?}").into(),
                 },
-                path,
+                path: path.into(),
                 revision: "".into(),
             }]
         }
@@ -581,11 +605,11 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
             if !test_file_conditions(&comments, config, &revision) {
                 return TestRun {
                     result: TestResult::Ignored,
-                    path: path.clone(),
+                    path: path.into(),
                     revision,
                 };
             }
-            let (command, errors, stderr) = run_test(&path, config, &revision, &comments);
+            let (command, errors, stderr) = run_test(path, config, &revision, &comments);
             let result = if errors.is_empty() {
                 TestResult::Ok
             } else {
@@ -598,7 +622,7 @@ fn parse_and_test_file(path: PathBuf, config: &Config) -> Vec<TestRun> {
             TestRun {
                 result,
                 revision,
-                path: path.clone(),
+                path: path.into(),
             }
         })
         .collect()
@@ -639,6 +663,8 @@ enum Error {
         status: ExitStatus,
         stderr: Vec<u8>,
     },
+    /// This catches crashes of ui tests and reports them along the failed test.
+    Bug(String),
 }
 
 type Errors = Vec<Error>;
@@ -714,6 +740,14 @@ fn run_test(
         .output()
         .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
     errors.extend(config.mode.ok(output.status));
+    if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic) {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        errors.push(Error::Bug(format!(
+            "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
+        )));
+        return (cmd, errors, vec![]);
+    }
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
     let rustfixed = comments
