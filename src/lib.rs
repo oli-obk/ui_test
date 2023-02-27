@@ -697,14 +697,16 @@ fn run_test(
                     stderr: rustc_stderr::process(path, &output.stderr).rendered,
                 });
             }
-            for ext in ["rlib", "rmeta"] {
-                let path = out_dir.join(format!("lib{filename}.{ext}"));
-                if path.exists() {
-                    let crate_name = filename.replace('-', "_");
-                    cmd.arg("--extern")
-                        .arg(format!("{crate_name}={}", path.display()));
-                }
-            }
+            let path = ["rlib", "rmeta"]
+                .iter()
+                .find_map(|ext| {
+                    let path = out_dir.join(format!("lib{filename}.{ext}"));
+                    path.exists().then_some(path)
+                })
+                .unwrap_or_else(|| panic!("no file found for {}", aux.display()));
+            let crate_name = filename.replace('-', "_");
+            cmd.arg("--extern")
+                .arg(format!("{crate_name}={}", path.display()));
         }
     }
 
