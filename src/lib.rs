@@ -748,12 +748,15 @@ fn run_rustfix(
     revision: &str,
     config: &Config,
 ) -> (Output, PathBuf) {
+    let input = std::str::from_utf8(stderr).unwrap();
     let suggestions = rustfix::get_suggestions_from_json(
-        std::str::from_utf8(stderr).unwrap(),
+        input,
         &HashSet::new(),
         rustfix::Filter::MachineApplicableOnly,
     )
-    .unwrap();
+    .unwrap_or_else(|err| {
+        panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
+    });
     let fixed_code =
         rustfix::apply_suggestions(&std::fs::read_to_string(path).unwrap(), &suggestions)
             .unwrap_or_else(|e| {
