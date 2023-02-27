@@ -569,25 +569,14 @@ fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
             }];
         }
     }
-    let comments = match Comments::parse_file(path) {
-        Ok(Ok(comments)) => comments,
-        Ok(Err(errors)) => {
+    let comments = match parse_comments_in_file(path) {
+        Ok(comments) => comments,
+        Err((stderr, errors)) => {
             return vec![TestRun {
                 result: TestResult::Errored {
                     command: Command::new("parse comments"),
                     errors,
-                    stderr: vec![],
-                },
-                path: path.into(),
-                revision: "".into(),
-            }];
-        }
-        Err(err) => {
-            return vec![TestRun {
-                result: TestResult::Errored {
-                    command: Command::new("parse comments"),
-                    errors: vec![],
-                    stderr: format!("{err:?}").into(),
+                    stderr,
                 },
                 path: path.into(),
                 revision: "".into(),
@@ -626,6 +615,14 @@ fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
             }
         })
         .collect()
+}
+
+fn parse_comments_in_file(path: &Path) -> Result<Comments, (Vec<u8>, Vec<Error>)> {
+    match Comments::parse_file(path) {
+        Ok(Ok(comments)) => Ok(comments),
+        Ok(Err(errors)) => Err((vec![], errors)),
+        Err(err) => Err((format!("{err:?}").into(), vec![])),
+    }
 }
 
 #[derive(Debug)]
@@ -711,7 +708,12 @@ fn run_test(
     for rev in comments.for_revision(revision) {
         for (aux, kind) in &rev.aux_builds {
             let aux_file = aux_dir.join(aux);
-            let mut aux_cmd = build_command(&aux_file, config, revision, comments);
+            let comments = match parse_comments_in_file(&aux_file) {
+                Ok(comments) => comments,
+                Err((msg, errors)) => return (cmd, errors, msg),
+            };
+            assert_eq!(comments.revisions, None);
+            let mut aux_cmd = build_command(&aux_file, config, revision, &comments);
             aux_cmd.arg("--crate-type").arg(kind);
             let out_dir = config.out_dir.clone().unwrap_or_default();
             let filename = aux.with_extension("").display().to_string();
