@@ -255,7 +255,7 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output>
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
-    build_command(path, &config, "", &comments)
+    build_command(path, &config, "", &comments, config.out_dir.as_deref())
         .output()
         .wrap_err_with(|| format!("path `{}` is not an executable", config.program.display()))
 }
@@ -666,9 +666,15 @@ enum Error {
 
 type Errors = Vec<Error>;
 
-fn build_command(path: &Path, config: &Config, revision: &str, comments: &Comments) -> Command {
+fn build_command(
+    path: &Path,
+    config: &Config,
+    revision: &str,
+    comments: &Comments,
+    out_dir: Option<&Path>,
+) -> Command {
     let mut cmd = Command::new(&config.program);
-    if let Some(out_dir) = &config.out_dir {
+    if let Some(out_dir) = out_dir {
         cmd.arg("--out-dir");
         cmd.arg(out_dir);
     }
@@ -709,13 +715,24 @@ fn run_test(
             let comments = match parse_comments_in_file(&aux_file) {
                 Ok(comments) => comments,
                 Err((msg, errors)) => {
-                    return (build_command(path, config, revision, comments), errors, msg)
+                    return (
+                        build_command(path, config, revision, comments, None),
+                        errors,
+                        msg,
+                    )
                 }
             };
             assert_eq!(comments.revisions, None);
-            let mut aux_cmd = build_command(&aux_file, config, revision, &comments);
+            // Put aux builds into a separate directory per test so that
+            // tests running in parallel but building the same aux build don't conflict.
+            // FIXME: put aux builds into the regular build queue.
+            let out_dir = config
+                .out_dir
+                .clone()
+                .unwrap_or_default()
+                .join(path.with_extension(""));
+            let mut aux_cmd = build_command(&aux_file, config, revision, &comments, Some(&out_dir));
             aux_cmd.arg("--crate-type").arg(kind);
-            let out_dir = config.out_dir.clone().unwrap_or_default();
             let filename = aux.with_extension("").display().to_string();
             let output = aux_cmd.output().unwrap();
             if !output.status.success() {
@@ -742,7 +759,7 @@ fn run_test(
         }
     }
 
-    let mut cmd = build_command(path, config, revision, comments);
+    let mut cmd = build_command(path, config, revision, comments, config.out_dir.as_deref());
     cmd.args(&extra_args);
 
     let output = cmd
@@ -849,10 +866,16 @@ fn run_rustfix(
         revision,
     );
     (
-        build_command(&path, config, revision, &rustfix_comments)
-            .args(extra_args)
-            .output()
-            .unwrap(),
+        build_command(
+            &path,
+            config,
+            revision,
+            &rustfix_comments,
+            config.out_dir.as_deref(),
+        )
+        .args(extra_args)
+        .output()
+        .unwrap(),
         path,
     )
 }
