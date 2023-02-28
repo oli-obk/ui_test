@@ -1,12 +1,32 @@
-error[E0599]: no method named `bar` found for struct `Foo` in the current scope
-  --> $DIR/aux_derive.rs:8:7
-   |
-8  |     x.bar();
-   |       ^^^ method not found in `Foo`
-...
-13 | struct Foo;
-   | ---------- method `bar` not found for this struct
+warning: variable `x` is assigned to, but never used
+ --> $DIR/aux_derive.rs:8:9
+  |
+8 |     let x = Foo;
+  |         ^
+  |
+  = note: consider using `_x` instead
+  = note: `#[warn(unused_variables)]` on by default
 
-error: aborting due to previous error
+warning: value assigned to `x` is never read
+ --> $DIR/aux_derive.rs:9:5
+  |
+9 |     x = Foo;
+  |     ^
+  |
+  = help: maybe it is overwritten before being read?
+  = note: `#[warn(unused_assignments)]` on by default
 
-For more information about this error, try `rustc --explain E0599`.
+error[E0384]: cannot assign twice to immutable variable `x`
+ --> $DIR/aux_derive.rs:9:5
+  |
+8 |     let x = Foo;
+  |         -
+  |         |
+  |         first assignment to `x`
+  |         help: consider making this binding mutable: `mut x`
+9 |     x = Foo;
+  |     ^^^^^^^ cannot assign twice to immutable variable
+
+error: aborting due to previous error; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0384`.

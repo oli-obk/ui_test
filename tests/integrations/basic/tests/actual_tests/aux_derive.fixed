@@ -5,7 +5,7 @@
 extern crate derive_proc_macro;
 
 fn main() {
-    let x = Foo;
+    let mut x = Foo;
     x = Foo;
     //~^ ERROR: cannot assign twice
 }

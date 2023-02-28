@@ -700,7 +700,7 @@ fn run_test(
     revision: &str,
     comments: &Comments,
 ) -> (Command, Errors, Vec<u8>) {
-    let mut cmd = build_command(path, config, revision, comments);
+    let mut extra_args = vec![];
 
     let mut errors = vec![];
 
@@ -710,7 +710,9 @@ fn run_test(
             let aux_file = aux_dir.join(aux);
             let comments = match parse_comments_in_file(&aux_file) {
                 Ok(comments) => comments,
-                Err((msg, errors)) => return (cmd, errors, msg),
+                Err((msg, errors)) => {
+                    return (build_command(path, config, revision, comments), errors, msg)
+                }
             };
             assert_eq!(comments.revisions, None);
             let mut aux_cmd = build_command(&aux_file, config, revision, &comments);
@@ -736,11 +738,13 @@ fn run_test(
                 let file = std::str::from_utf8(file).unwrap();
                 let crate_name = filename.replace('-', "_");
                 let path = out_dir.join(file);
-                cmd.arg("--extern")
-                    .arg(format!("{crate_name}={}", path.display()));
+                extra_args.push("--extern".into());
+                extra_args.push(format!("{crate_name}={}", path.display()));
             }
         }
     }
+    let mut cmd = build_command(path, config, revision, comments);
+    cmd.args(&extra_args);
 
     let output = cmd
         .output()
@@ -759,7 +763,7 @@ fn run_test(
     let rustfixed = comments
         .for_revision(revision)
         .any(|rev| rev.run_rustfix)
-        .then(|| run_rustfix(&output.stderr, path, comments, revision, config));
+        .then(|| run_rustfix(&output.stderr, path, comments, revision, config, extra_args));
     let stderr = check_test_result(
         path,
         config,
@@ -787,6 +791,7 @@ fn run_rustfix(
     comments: &Comments,
     revision: &str,
     config: &Config,
+    extra_args: Vec<String>,
 ) -> (Output, PathBuf) {
     let input = std::str::from_utf8(stderr).unwrap();
     let suggestions = rustfix::get_suggestions_from_json(
@@ -846,6 +851,7 @@ fn run_rustfix(
     );
     (
         build_command(&path, config, revision, &rustfix_comments)
+            .args(extra_args)
             .output()
             .unwrap(),
         path,
