@@ -111,7 +111,7 @@ impl Span {
     /// Returns the most expanded line number *in the given file*, if possible.
     fn line(&self, file: &Path, primary: bool) -> Option<usize> {
         if let Some(exp) = &self.expansion {
-            if let Some(line) = exp.span.line(file, primary) {
+            if let Some(line) = exp.span.line(file, primary && !self.is_primary) {
                 return Some(line);
             }
         }
