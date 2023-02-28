@@ -1,8 +1,9 @@
    Compiler flags: ["--error-format=json", "--edition=2021"]
    Building test dependencies...
+tests/actual_tests/aux_derive.rs ... ok
 tests/actual_tests/aux_proc_macro.rs ... ok
 tests/actual_tests/foomp-rustfix.rs ... ok
 tests/actual_tests/foomp.rs ... ok
 
-test result: ok. 3 tests passed, 0 ignored, 0 filtered out
+test result: ok. 4 tests passed, 0 ignored, 0 filtered out
 
