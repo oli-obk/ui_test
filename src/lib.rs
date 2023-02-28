@@ -139,12 +139,14 @@ impl Config {
 
     fn build_dependencies_and_link_them(&mut self) -> Result<()> {
         let dependencies = build_dependencies(self)?;
-        for (name, dependency) in dependencies.dependencies {
-            self.args.push("--extern".into());
-            let mut dep = OsString::from(name);
-            dep.push("=");
-            dep.push(dependency);
-            self.args.push(dep);
+        for (name, artifacts) in dependencies.dependencies {
+            for dependency in artifacts {
+                self.args.push("--extern".into());
+                let mut dep = OsString::from(&name);
+                dep.push("=");
+                dep.push(dependency);
+                self.args.push(dep);
+            }
         }
         for import_path in dependencies.import_paths {
             self.args.push("-L".into());

@@ -1,4 +1,4 @@
-use cargo_metadata::DependencyKind;
+use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
 use color_eyre::eyre::{bail, Result};
 use std::{
     collections::{HashMap, HashSet},
@@ -14,7 +14,7 @@ pub struct Dependencies {
     /// finding proc macros run on the host and dependencies for the target.
     pub import_paths: Vec<PathBuf>,
     /// The name as chosen in the `Cargo.toml` and its corresponding rmeta file.
-    pub dependencies: Vec<(String, PathBuf)>,
+    pub dependencies: Vec<(String, Vec<Utf8PathBuf>)>,
 }
 
 /// Compiles dependencies and returns the crate names and corresponding rmeta files.
@@ -60,10 +60,10 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
     }
 
     // Collect all artifacts generated
-    let output = output.stdout;
-    let output = String::from_utf8(output)?;
+    let artifact_output = output.stdout;
+    let artifact_output = String::from_utf8(artifact_output)?;
     let mut import_paths: HashSet<PathBuf> = HashSet::new();
-    let mut artifacts: HashMap<_, _> = output
+    let mut artifacts: HashMap<_, _> = artifact_output
         .lines()
         .filter_map(|line| {
             let message = serde_json::from_str::<cargo_metadata::Message>(line).ok()?;
@@ -71,11 +71,7 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
                 for filename in &artifact.filenames {
                     import_paths.insert(filename.parent().unwrap().into());
                 }
-                let filename = artifact
-                    .filenames
-                    .into_iter()
-                    .find(|filename| filename.extension() == Some("rmeta"))?;
-                Some((artifact.package_id, filename.into_std_path_buf()))
+                Some((artifact.package_id, artifact.filenames))
             } else {
                 None
             }
@@ -135,10 +131,19 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
                 // Get the id for the package matching the version requirement of the dep
                 let id = &package.id;
                 // Return the name chosen in `Cargo.toml` and the path to the corresponding artifact
-                // If there are no artifacts, this is the root crate and it is being built as a binary/test
-                // instead of a library. We simply add no artifacts, meaning you can't depend on functions
-                // and types declared in the root crate.
-                Some((name, artifacts.remove(id)?))
+                match artifacts.remove(id) {
+                    Some(artifacts) => Some((name.replace('-', "_"), artifacts)),
+                    None => {
+                        if name == root.name {
+                            // If there are no artifacts, this is the root crate and it is being built as a binary/test
+                            // instead of a library. We simply add no artifacts, meaning you can't depend on functions
+                            // and types declared in the root crate.
+                            None
+                        } else {
+                            panic!("no artifact found for `{name}`(`{id}`):`\n{artifact_output}")
+                        }
+                    }
+                }
             })
             .collect();
         let import_paths = import_paths.into_iter().collect();
