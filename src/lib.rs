@@ -769,7 +769,7 @@ fn run_test(
         .output()
         .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
     let mut errors = config.mode.ok(output.status);
-    if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic) {
+    if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic | Mode::Yolo) {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
         errors.push(Error::Bug(format!(
