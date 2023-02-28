@@ -702,8 +702,6 @@ fn run_test(
 ) -> (Command, Errors, Vec<u8>) {
     let mut extra_args = vec![];
 
-    let mut errors = vec![];
-
     let aux_dir = path.parent().unwrap().join("auxiliary");
     for rev in comments.for_revision(revision) {
         for (aux, kind) in &rev.aux_builds {
@@ -721,12 +719,12 @@ fn run_test(
             let filename = aux.with_extension("").display().to_string();
             let output = aux_cmd.output().unwrap();
             if !output.status.success() {
-                errors.push(Error::Command {
+                let error = Error::Command {
                     kind: format!("auxiliary build for `{}`", aux_file.display()),
                     status: output.status,
                     stderr: rustc_stderr::process(path, &output.stderr).rendered,
-                });
-                continue;
+                };
+                return (aux_cmd, vec![error], output.stdout);
             }
 
             // Now run the command again to fetch the output filenames
@@ -743,13 +741,14 @@ fn run_test(
             }
         }
     }
+
     let mut cmd = build_command(path, config, revision, comments);
     cmd.args(&extra_args);
 
     let output = cmd
         .output()
         .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
-    errors.extend(config.mode.ok(output.status));
+    let mut errors = config.mode.ok(output.status);
     if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic) {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
