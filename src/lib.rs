@@ -740,7 +740,7 @@ fn run_test(
             let output = aux_cmd.output().unwrap();
             if !output.status.success() {
                 let error = Error::Command {
-                    kind: format!("auxiliary build for `{}`", aux_file.display()),
+                    kind: format!("auxiliary build for `{}`", path.display()),
                     status: output.status,
                     stderr: rustc_stderr::process(path, &output.stderr).rendered,
                 };

@@ -133,7 +133,7 @@ tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
 command: "rustc" "--out-dir" "$TMP "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--crate-type" "lib" "--emit=link"
 
-auxiliary build for `tests/actual_tests_bless/auxiliary/the_proc_macro.rs` failed with exit status: 1:
+auxiliary build for `tests/actual_tests_bless/aux_proc_macro_misuse.rs` failed with exit status: 1:
 error: the `#[proc_macro]` attribute is only usable with crates of the `proc-macro` crate type
  --> tests/actual_tests_bless/auxiliary/the_proc_macro.rs:7:1
   |
