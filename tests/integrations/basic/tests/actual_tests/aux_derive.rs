@@ -6,8 +6,8 @@ extern crate derive_proc_macro;
 fn main() {
     let x = Foo;
     x.bar();
+    //~^ ERROR: no method
 }
 
 #[derive(Something)]
 struct Foo;
-//~^ ERROR: no method
