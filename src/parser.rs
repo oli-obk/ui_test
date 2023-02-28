@@ -78,6 +78,7 @@ pub(crate) struct Revisioned {
     pub require_annotations_for_level: Option<Level>,
     pub run_rustfix: bool,
     pub aux_builds: Vec<(PathBuf, String)>,
+    pub edition: Option<(String, usize)>,
 }
 
 #[derive(Debug)]
@@ -345,6 +346,10 @@ impl CommentParser<&mut Revisioned> {
             "aux-build" => {
                 let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));
                 self.aux_builds.push((name.into(), kind.into()));
+            }
+            "edition" => {
+                self.check(self.edition.is_none(), "cannot specify `edition` twice");
+                self.edition = Some((args.into(), self.line))
             }
             "require-annotations-for-level" => {
                 self.check(

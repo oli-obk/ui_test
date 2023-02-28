@@ -37,6 +37,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
             OutputConflictHandling::Error
         },
         mode,
+        edition: None,
         ..Config::default()
     };
 

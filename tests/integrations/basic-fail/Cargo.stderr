@@ -1,4 +1,4 @@
-   Compiler flags: ["--error-format=json", "--edition=2021"]
+   Compiler flags: ["--error-format=json"]
    Building test dependencies...
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/exit_code_fail.rs ... FAILED
@@ -6,7 +6,7 @@ tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/bad_pattern.rs"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 substring `miesmätsched types` not found in stderr output
 expected because of pattern here: tests/actual_tests/bad_pattern.rs:5
@@ -36,7 +36,7 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 tests/actual_tests/exit_code_fail.rs FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/exit_code_fail.rs"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
 fail test got exit status: 0, but expected 1
 
@@ -56,7 +56,7 @@ full stderr:
 
 
 tests/actual_tests/foomp.rs FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 actual output differed from expected
 --- tests/actual_tests/foomp.stderr
@@ -111,7 +111,7 @@ error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/debug/ui_tests-HASH --test-threads 1` (exit status: 1)
-   Compiler flags: ["--error-format=json", "--edition=2021"]
+   Compiler flags: ["--error-format=json"]
    Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
@@ -131,7 +131,7 @@ tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
 
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--crate-type" "lib" "--emit=link"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--edition" "2021" "--crate-type" "lib" "--emit=link"
 
 auxiliary build for `tests/actual_tests_bless/aux_proc_macro_misuse.rs` failed with exit status: 1:
 error: the `#[proc_macro]` attribute is only usable with crates of the `proc-macro` crate type
@@ -148,7 +148,7 @@ full stderr:
 
 
 tests/actual_tests_bless/foomp-rustfix-fail.rs FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail.rs"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail.rs" "--edition" "2021"
 
 rustfix failed with exit status: 1:
 error[E0308]: mismatched types
@@ -190,7 +190,7 @@ full stderr:
 
 
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 substring ``main` function not found in crate `revisions_bad`` not found in stderr output
 expected because of pattern here: tests/actual_tests_bless/revisions_bad.rs:4
@@ -226,19 +226,19 @@ thread 'main' panicked at '
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_invalid_program`
    Compiler flags: []
-thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs"', $DIR/src/lib.rs
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"', $DIR/src/lib.rs
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 tests/actual_tests/bad_pattern.rs ... FAILED
-thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs"', $DIR/src/lib.rs
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"', $DIR/src/lib.rs
 tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
-thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs"', $DIR/src/lib.rs
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs" "--edition" "2021"', $DIR/src/lib.rs
 tests/actual_tests/foomp.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
 command: "<unknown>"
 
-A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs"
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 full stderr:
 
@@ -247,7 +247,7 @@ full stderr:
 tests/actual_tests/exit_code_fail.rs FAILED:
 command: "<unknown>"
 
-A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs"
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
 full stderr:
 
@@ -265,7 +265,7 @@ full stderr:
 tests/actual_tests/foomp.rs FAILED:
 command: "<unknown>"
 
-A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs"
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 full stderr:
 

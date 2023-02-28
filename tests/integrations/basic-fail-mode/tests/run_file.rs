@@ -5,8 +5,6 @@ use ui_test::*;
 #[test]
 fn run_file() -> Result<()> {
     let mut config = Config::default();
-    // Don't require `extern crate` for imports.
-    config.args.push("--edition=2021".into());
 
     let tmp_dir = tempfile::tempdir()?;
     config.out_dir = Some(tmp_dir.path().into());
@@ -42,8 +40,6 @@ fn run_file_no_deps() -> Result<()> {
     let path = "../../../target";
 
     let mut config = Config::default();
-    // Don't require `extern crate` for imports.
-    config.args.push("--edition=2021".into());
 
     let tmp_dir = tempfile::tempdir()?;
     config.out_dir = Some(tmp_dir.path().into());

@@ -17,7 +17,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
         .dependency_builder
         .envs
         .push(("CARGO_TARGET_DIR".into(), path.into()));
-    config.args.push("--edition=2021".into());
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");

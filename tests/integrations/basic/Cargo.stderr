@@ -1,4 +1,4 @@
-   Compiler flags: ["--error-format=json", "--edition=2021"]
+   Compiler flags: ["--error-format=json"]
    Building test dependencies...
 tests/actual_tests/aux_derive.rs ... ok
 tests/actual_tests/aux_proc_macro.rs ... ok

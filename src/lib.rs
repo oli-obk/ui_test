@@ -71,6 +71,8 @@ pub struct Config {
     pub num_test_threads: NonZeroUsize,
     /// Where to dump files like the binaries compiled from tests.
     pub out_dir: Option<PathBuf>,
+    /// The default edition to use on all tests
+    pub edition: Option<String>,
 }
 
 impl Default for Config {
@@ -101,6 +103,7 @@ impl Default for Config {
             quiet: false,
             num_test_threads: std::thread::available_parallelism().unwrap(),
             out_dir: None,
+            edition: Some("2021".into()),
         }
     }
 }
@@ -257,9 +260,19 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output>
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
-    build_command(path, &config, "", &comments, config.out_dir.as_deref())
-        .output()
-        .wrap_err_with(|| format!("path `{}` is not an executable", config.program.display()))
+    let mut errors = vec![];
+    let result = build_command(
+        path,
+        &config,
+        "",
+        &comments,
+        config.out_dir.as_deref(),
+        &mut errors,
+    )
+    .output()
+    .wrap_err_with(|| format!("path `{}` is not an executable", config.program.display()));
+    assert!(errors.is_empty(), "{errors:#?}");
+    result
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -674,6 +687,7 @@ fn build_command(
     revision: &str,
     comments: &Comments,
     out_dir: Option<&Path>,
+    errors: &mut Vec<Error>,
 ) -> Command {
     let mut cmd = Command::new(&config.program);
     if let Some(out_dir) = out_dir {
@@ -690,6 +704,22 @@ fn build_command(
         .flat_map(|r| r.compile_flags.iter())
     {
         cmd.arg(arg);
+    }
+    let edition = comments
+        .find_one_for_revision(
+            revision,
+            |r| r.edition.as_ref(),
+            |&(_, line)| {
+                errors.push(Error::InvalidComment {
+                    msg: "`edition` specified twice".into(),
+                    line,
+                })
+            },
+        )
+        .map(|(e, _)| e.as_str())
+        .or(config.edition.as_deref());
+    if let Some(edition) = edition {
+        cmd.arg("--edition").arg(edition);
     }
     cmd.args(config.trailing_args.iter());
     cmd.envs(
@@ -709,16 +739,15 @@ fn run_test(
     comments: &Comments,
 ) -> (Command, Errors, Vec<u8>) {
     let mut extra_args = vec![];
-
     let aux_dir = path.parent().unwrap().join("auxiliary");
     for rev in comments.for_revision(revision) {
         for (aux, kind) in &rev.aux_builds {
             let aux_file = aux_dir.join(aux);
             let comments = match parse_comments_in_file(&aux_file) {
                 Ok(comments) => comments,
-                Err((msg, errors)) => {
+                Err((msg, mut errors)) => {
                     return (
-                        build_command(path, config, revision, comments, None),
+                        build_command(path, config, revision, comments, None, &mut errors),
                         errors,
                         msg,
                     )
@@ -733,7 +762,22 @@ fn run_test(
                 .clone()
                 .unwrap_or_default()
                 .join(path.with_extension(""));
-            let mut aux_cmd = build_command(&aux_file, config, revision, &comments, Some(&out_dir));
+
+            let mut errors = vec![];
+
+            let mut aux_cmd = build_command(
+                &aux_file,
+                config,
+                revision,
+                &comments,
+                Some(&out_dir),
+                &mut errors,
+            );
+
+            if !errors.is_empty() {
+                return (aux_cmd, errors, vec![]);
+            }
+
             aux_cmd.arg("--crate-type").arg(kind);
             aux_cmd.arg("--emit=link");
             let filename = aux.file_stem().unwrap().to_str().unwrap();
@@ -762,13 +806,22 @@ fn run_test(
         }
     }
 
-    let mut cmd = build_command(path, config, revision, comments, config.out_dir.as_deref());
+    let mut errors = vec![];
+
+    let mut cmd = build_command(
+        path,
+        config,
+        revision,
+        comments,
+        config.out_dir.as_deref(),
+        &mut errors,
+    );
     cmd.args(&extra_args);
 
     let output = cmd
         .output()
         .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
-    let mut errors = config.mode.ok(output.status);
+    errors.extend(config.mode.ok(output.status));
     if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic | Mode::Yolo) {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -782,7 +835,17 @@ fn run_test(
     let rustfixed = comments
         .for_revision(revision)
         .any(|rev| rev.run_rustfix)
-        .then(|| run_rustfix(&output.stderr, path, comments, revision, config, extra_args));
+        .then(|| {
+            run_rustfix(
+                &output.stderr,
+                path,
+                comments,
+                revision,
+                config,
+                extra_args,
+                &mut errors,
+            )
+        });
     let stderr = check_test_result(
         path,
         config,
@@ -811,6 +874,7 @@ fn run_rustfix(
     revision: &str,
     config: &Config,
     extra_args: Vec<String>,
+    errors: &mut Vec<Error>,
 ) -> (Output, PathBuf) {
     let input = std::str::from_utf8(stderr).unwrap();
     let suggestions = rustfix::get_suggestions_from_json(
@@ -854,6 +918,7 @@ fn run_rustfix(
                     .for_revision(revision)
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
+                edition: None,
             },
         ))
         .collect(),
@@ -875,6 +940,7 @@ fn run_rustfix(
             revision,
             &rustfix_comments,
             config.out_dir.as_deref(),
+            errors,
         )
         .args(extra_args)
         .output()
