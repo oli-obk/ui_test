@@ -733,6 +733,7 @@ fn run_test(
                 .join(path.with_extension(""));
             let mut aux_cmd = build_command(&aux_file, config, revision, &comments, Some(&out_dir));
             aux_cmd.arg("--crate-type").arg(kind);
+            aux_cmd.arg("--emit=link");
             let filename = aux.file_stem().unwrap().to_str().unwrap();
             let output = aux_cmd.output().unwrap();
             if !output.status.success() {
