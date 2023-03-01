@@ -133,7 +133,9 @@ tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
 command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--edition" "2021" "--crate-type" "lib" "--emit=link"
 
-auxiliary build for `tests/actual_tests_bless/aux_proc_macro_misuse.rs` failed with exit status: 1:
+auxiliary build for `tests/actual_tests_bless/aux_proc_macro_misuse.rs` failed with exit status: 1
+
+full stderr:
 error: the `#[proc_macro]` attribute is only usable with crates of the `proc-macro` crate type
  --> tests/actual_tests_bless/auxiliary/the_proc_macro.rs:7:1
   |
@@ -143,30 +145,16 @@ error: the `#[proc_macro]` attribute is only usable with crates of the `proc-mac
 error: aborting due to previous error
 
 
-full stderr:
-
 
 
 tests/actual_tests_bless/foomp-rustfix-fail.rs FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail.rs" "--edition" "2021"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail.fixed" "--edition" "2021"
 
-rustfix failed with exit status: 1:
-error[E0308]: mismatched types
- --> tests/actual_tests_bless/foomp-rustfix-fail.fixed:5:21
-  |
-5 |     let x: String = 42;
-  |            ------   ^^- help: try using a conversion method: `.to_string()`
-  |            |        |
-  |            |        expected struct `String`, found integer
-  |            expected due to this
-
-error: aborting due to previous error
-
-For more information about this error, try `rustc --explain E0308`.
+rustfix failed with exit status: 1
 
 full stderr:
 error[E0308]: mismatched types
- --> tests/actual_tests_bless/foomp-rustfix-fail.rs:5:21
+ --> tests/actual_tests_bless/foomp-rustfix-fail.fixed:5:21
   |
 5 |     let x: String = 42;
   |            ------   ^^- help: try using a conversion method: `.to_string()`

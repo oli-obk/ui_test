@@ -20,7 +20,7 @@ use std::fmt::Display;
 use std::io::Write as _;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus, Output};
+use std::process::{Command, ExitStatus};
 use std::thread;
 
 use crate::dependencies::build_dependencies;
@@ -462,13 +462,8 @@ pub fn run_tests_generic(
                     } => {
                         eprintln!("{mode} test got {status}, but expected {expected}")
                     }
-                    Error::Command {
-                        kind,
-                        status,
-                        stderr,
-                    } => {
-                        eprintln!("{kind} failed with {status}:");
-                        std::io::stderr().write_all(stderr).unwrap();
+                    Error::Command { kind, status } => {
+                        eprintln!("{kind} failed with {status}");
                     }
                     Error::PatternNotFound {
                         pattern,
@@ -673,7 +668,6 @@ enum Error {
     Command {
         kind: String,
         status: ExitStatus,
-        stderr: Vec<u8>,
     },
     /// This catches crashes of ui tests and reports them along the failed test.
     Bug(String),
@@ -786,9 +780,12 @@ fn run_test(
                 let error = Error::Command {
                     kind: format!("auxiliary build for `{}`", path.display()),
                     status: output.status,
-                    stderr: rustc_stderr::process(path, &output.stderr).rendered,
                 };
-                return (aux_cmd, vec![error], output.stdout);
+                return (
+                    aux_cmd,
+                    vec![error],
+                    rustc_stderr::process(path, &output.stderr).rendered,
+                );
             }
 
             // Now run the command again to fetch the output filenames
@@ -855,13 +852,18 @@ fn run_test(
         &output.stdout,
         diagnostics,
     );
-    if let Some((output, path)) = rustfixed {
+    if let Some((mut rustfix, path)) = rustfixed {
+        let output = rustfix.output().unwrap();
         if !output.status.success() {
             errors.push(Error::Command {
                 kind: "rustfix".into(),
                 status: output.status,
-                stderr: rustc_stderr::process(&path, &output.stderr).rendered,
             });
+            return (
+                rustfix,
+                errors,
+                rustc_stderr::process(&path, &output.stderr).rendered,
+            );
         }
     }
     (cmd, errors, stderr)
@@ -875,7 +877,7 @@ fn run_rustfix(
     config: &Config,
     extra_args: Vec<String>,
     errors: &mut Vec<Error>,
-) -> (Output, PathBuf) {
+) -> (Command, PathBuf) {
     let input = std::str::from_utf8(stderr).unwrap();
     let suggestions = rustfix::get_suggestions_from_json(
         input,
@@ -933,20 +935,17 @@ fn run_rustfix(
         &rustfix_comments,
         revision,
     );
-    (
-        build_command(
-            &path,
-            config,
-            revision,
-            &rustfix_comments,
-            config.out_dir.as_deref(),
-            errors,
-        )
-        .args(extra_args)
-        .output()
-        .unwrap(),
-        path,
-    )
+
+    let mut cmd = build_command(
+        &path,
+        config,
+        revision,
+        &rustfix_comments,
+        config.out_dir.as_deref(),
+        errors,
+    );
+    cmd.args(extra_args);
+    (cmd, path)
 }
 
 fn revised(revision: &str, extension: &str) -> String {
