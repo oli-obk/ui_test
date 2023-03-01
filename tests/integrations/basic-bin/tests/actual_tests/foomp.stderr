@@ -4,7 +4,7 @@ error: extern location for basic_bin is of an unknown type: $DIR/tests/integrati
 1 | use basic_bin::add;
   |     ^^^^^^^^^
 
-error: file name should be lib*.rlib or lib*.so
+error: file name should be
  --> $DIR/foomp.rs:1:5
   |
 1 | use basic_bin::add;
