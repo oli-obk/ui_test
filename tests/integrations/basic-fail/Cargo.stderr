@@ -114,6 +114,8 @@ Caused by:
    Compiler flags: ["--error-format=json"]
    Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (b) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/foomp_aux.rs ... ok
 tests/actual_tests_bless/revised_revision.rs ... FAILED
@@ -141,6 +143,32 @@ error: the `#[proc_macro]` attribute is only usable with crates of the `proc-mac
   |
 7 | #[proc_macro]
   | ^^^^^^^^^^^^^
+
+error: aborting due to previous error
+
+
+
+
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `a`) FAILED:
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error: invalid character `'.'` in crate name: `foomp_rustfix_fail_revisions.a`
+
+error: aborting due to previous error
+
+
+
+
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `b`) FAILED:
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error: invalid character `'.'` in crate name: `foomp_rustfix_fail_revisions.b`
 
 error: aborting due to previous error
 
@@ -200,11 +228,13 @@ For more information about this error, try `rustc --explain E0601`.
 
 FAILURES:
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
+    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
+    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
     tests/actual_tests_bless/foomp-rustfix-fail.rs
     tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 4 tests failed, 9 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 6 tests failed, 9 tests passed, 3 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
