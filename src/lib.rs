@@ -852,7 +852,15 @@ fn run_test(
         &output.stdout,
         diagnostics,
     );
-    if let Some((mut rustfix, path)) = rustfixed {
+    if let Some((mut rustfix, rustfix_path)) = rustfixed {
+        // picking the crate name from the file name is problematic when `.revision_name` is inserted
+        rustfix.arg("--crate-name").arg(
+            path.file_stem()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .replace('-', "_"),
+        );
         let output = rustfix.output().unwrap();
         if !output.status.success() {
             errors.push(Error::Command {
@@ -862,7 +870,7 @@ fn run_test(
             return (
                 rustfix,
                 errors,
-                rustc_stderr::process(&path, &output.stderr).rendered,
+                rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
             );
         }
     }

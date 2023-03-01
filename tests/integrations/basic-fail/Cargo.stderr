@@ -150,33 +150,49 @@ error: aborting due to previous error
 
 
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `a`) FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
 
 rustfix failed with exit status: 1
 
 full stderr:
-error: invalid character `'.'` in crate name: `foomp_rustfix_fail_revisions.a`
+error[E0308]: mismatched types
+ --> tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed:6:21
+  |
+6 |     let x: String = 42;
+  |            ------   ^^- help: try using a conversion method: `.to_string()`
+  |            |        |
+  |            |        expected struct `String`, found integer
+  |            expected due to this
 
 error: aborting due to previous error
 
+For more information about this error, try `rustc --explain E0308`.
 
 
 
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `b`) FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
 
 rustfix failed with exit status: 1
 
 full stderr:
-error: invalid character `'.'` in crate name: `foomp_rustfix_fail_revisions.b`
+error[E0308]: mismatched types
+ --> tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed:6:21
+  |
+6 |     let x: String = 42;
+  |            ------   ^^- help: try using a conversion method: `.to_string()`
+  |            |        |
+  |            |        expected struct `String`, found integer
+  |            expected due to this
 
 error: aborting due to previous error
 
+For more information about this error, try `rustc --explain E0308`.
 
 
 
 tests/actual_tests_bless/foomp-rustfix-fail.rs FAILED:
-command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail.fixed" "--edition" "2021"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail.fixed" "--edition" "2021" "--crate-name" "foomp_rustfix_fail"
 
 rustfix failed with exit status: 1
 
