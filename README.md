@@ -46,6 +46,10 @@ their command specifies, or the test will fail without even being run.
 * `//@require-annotations-for-level: LEVEL` can be used to change the level of diagnostics that require a corresponding annotation.
     * this is only useful if there are any annotations like `HELP`, `WARN` or `NOTE`, as these would automatically require annotations for all other diagnostics of the same or higher level.
 * `//@check-pass` overrides the `Config::mode` and will make the test behave as if the test suite were in `Mode::Pass`.
+* `//@edition: EDITION` overwrites the default edition (2021) to the given edition.
+* `//@run-rustfix` runs rustfix on the output and recompiles the result. The result must suceed to compile.
+* `//@aux-build: filename` looks for a file in the `auxiliary` directory (within the directory of the test), compiles it as a library and links the current crate against it. This allows you import the crate with `extern crate` or just via `use` statements.
+    * you can optionally specify a crate type via `//@aux-build: filename.rs:proc-macro`. This is necessary for some crates (like proc macros), but can also be used to change the linkage against the aux build.
 
 ## Significant differences to compiletest-rs
 
