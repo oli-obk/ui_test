@@ -59,7 +59,7 @@ use std::mem;
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
-    let pat = revisioned.error_pattern.as_ref().unwrap();
+    let pat = &revisioned.error_patterns[0];
     assert_eq!(format!("{:?}", pat.0), r#"SubString("foomp")"#);
     assert_eq!(pat.1, 2);
 }
@@ -75,7 +75,7 @@ use std::mem;
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
-    let pat = revisioned.error_pattern.as_ref().unwrap();
+    let pat = &revisioned.error_patterns[0];
     assert_eq!(format!("{:?}", pat.0), r#"Regex(foomp)"#);
     assert_eq!(pat.1, 2);
 }

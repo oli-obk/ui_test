@@ -70,8 +70,8 @@ pub(crate) struct Revisioned {
     pub env_vars: Vec<(String, String)>,
     /// Normalizations to apply to the stderr output before emitting it to disk
     pub normalize_stderr: Vec<(Regex, Vec<u8>)>,
-    /// An arbitrary pattern to look for in the stderr.
-    pub error_pattern: Option<(Pattern, usize)>,
+    /// Arbitrary patterns to look for in the stderr.
+    pub error_patterns: Vec<(Pattern, usize)>,
     pub error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
@@ -327,11 +327,9 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "error-pattern" => {
-                self.check(
-                    self.error_pattern.is_none(),
-                    "cannot specify `error_pattern` twice",
-                );
-                self.error_pattern = Some((self.parse_error_pattern(args.trim()), self.line))
+                let pat = self.parse_error_pattern(args.trim());
+                let line = self.line;
+                self.error_patterns.push((pat, line));
             }
             "stderr-per-bitwidth" => {
                 // args are ignored (can be used as comment)

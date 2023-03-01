@@ -936,7 +936,7 @@ fn run_rustfix(
                     .flat_map(|r| r.env_vars.iter().cloned())
                     .collect(),
                 normalize_stderr: vec![],
-                error_pattern: None,
+                error_patterns: vec![],
                 error_matches: vec![],
                 require_annotations_for_level: None,
                 run_rustfix: false,
@@ -1035,17 +1035,13 @@ fn check_annotations(
     revision: &str,
     comments: &Comments,
 ) {
-    let error_pattern = comments.find_one_for_revision(
-        revision,
-        |r| r.error_pattern.as_ref(),
-        |(_, line)| {
-            errors.push(Error::InvalidComment {
-                msg: "same revision defines pattern twice".into(),
-                line: *line,
-            })
-        },
-    );
-    if let Some((error_pattern, definition_line)) = error_pattern {
+    let error_patterns = comments
+        .for_revision(revision)
+        .flat_map(|r| r.error_patterns.iter());
+
+    let mut seen_error_match = false;
+    for (error_pattern, definition_line) in error_patterns {
+        seen_error_match = true;
         // first check the diagnostics messages outside of our file. We check this first, so that
         // you can mix in-file annotations with //@error-pattern annotations, even if there is overlap
         // in the messages.
@@ -1066,7 +1062,6 @@ fn check_annotations(
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
     let mut lowest_annotation_level = Level::Error;
-    let mut seen_error_match = false;
     for &ErrorMatch {
         ref pattern,
         definition_line,
@@ -1135,7 +1130,7 @@ fn check_annotations(
 
     let mode = config.mode.maybe_override(comments, revision, errors);
 
-    match (mode, error_pattern.is_some() || seen_error_match) {
+    match (mode, seen_error_match) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
         (
             Mode::Fail {
