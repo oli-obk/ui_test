@@ -171,6 +171,18 @@ impl Config {
             self.target = Some(self.host.clone().unwrap());
         }
     }
+
+    fn has_asm_support(&self) -> bool {
+        static ASM_SUPPORTED_ARCHS: &[&str] = &[
+            "x86", "x86_64", "arm", "aarch64", "riscv32",
+            "riscv64",
+            // These targets require an additional asm_experimental_arch feature.
+            // "nvptx64", "hexagon", "mips", "mips64", "spirv", "wasm32",
+        ];
+        ASM_SUPPORTED_ARCHS
+            .iter()
+            .any(|arch| self.target.as_ref().unwrap().contains(arch))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -934,6 +946,7 @@ fn run_rustfix(
                     .collect(),
                 edition: None,
                 mode: Some((Mode::Pass, 0)),
+                needs_asm_support: false,
             },
         ))
         .collect(),
@@ -1202,6 +1215,12 @@ fn test_file_conditions(comments: &Comments, config: &Config, revision: &str) ->
         .for_revision(revision)
         .flat_map(|r| r.ignore.iter())
         .any(|c| test_condition(c, config))
+    {
+        return false;
+    }
+    if comments
+        .for_revision(revision)
+        .any(|r| r.needs_asm_support && !config.has_asm_support())
     {
         return false;
     }

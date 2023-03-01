@@ -81,6 +81,7 @@ pub(crate) struct Revisioned {
     pub edition: Option<(String, usize)>,
     /// Overwrites the mode from `Config`.
     pub mode: Option<(Mode, usize)>,
+    pub needs_asm_support: bool,
 }
 
 #[derive(Debug)]
@@ -344,6 +345,14 @@ impl CommentParser<&mut Revisioned> {
                 // args are ignored (can be used as comment)
                 self.check(!self.run_rustfix, "cannot specify `run-rustfix` twice");
                 self.run_rustfix = true;
+            }
+            "needs-asm-support" => {
+                // args are ignored (can be used as comment)
+                self.check(
+                    !self.needs_asm_support,
+                    "cannot specify `needs-asm-support` twice",
+                );
+                self.needs_asm_support = true;
             }
             "aux-build" => {
                 let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));

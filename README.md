@@ -28,6 +28,7 @@ their command specifies, or the test will fail without even being run.
     * `C` can also be one of `64bit`, `32bit` or `16bit`.
     * `C` can also be `on-host`, which will only run the test during cross compilation testing.
 * `//@only-C` **only** runs the test when condition `C` is met. The conditions are the same as with `ignore`.
+* `//@needs-asm-support` **only** runs the test when the target supports `asm!`.
 * `//@stderr-per-bitwidth` produces one stderr file per bitwidth, as they may differ significantly sometimes
 * `//@error-pattern: XXX` makes sure the stderr output contains `XXX`
 * `//@revisions: XXX YYY` runs the test once for each space separated name in the list
