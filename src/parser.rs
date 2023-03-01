@@ -6,7 +6,7 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error};
+use crate::{rustc_stderr::Level, Error, Mode};
 
 use color_eyre::eyre::Result;
 
@@ -79,6 +79,8 @@ pub(crate) struct Revisioned {
     pub run_rustfix: bool,
     pub aux_builds: Vec<(PathBuf, String)>,
     pub edition: Option<(String, usize)>,
+    /// Overwrites the mode from `Config`.
+    pub mode: Option<(Mode, usize)>,
 }
 
 #[derive(Debug)]
@@ -350,6 +352,14 @@ impl CommentParser<&mut Revisioned> {
             "edition" => {
                 self.check(self.edition.is_none(), "cannot specify `edition` twice");
                 self.edition = Some((args.into(), self.line))
+            }
+            "check-pass" => {
+                // args are ignored (can be used as comment)
+                self.check(
+                    self.mode.is_none(),
+                    "cannot specify test mode changes twice",
+                );
+                self.mode = Some((Mode::Pass, self.line))
             }
             "require-annotations-for-level" => {
                 self.check(

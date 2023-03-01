@@ -29,7 +29,7 @@ their command specifies, or the test will fail without even being run.
     * `C` can also be `on-host`, which will only run the test during cross compilation testing.
 * `//@only-C` **only** runs the test when condition `C` is met. The conditions are the same as with `ignore`.
 * `//@stderr-per-bitwidth` produces one stderr file per bitwidth, as they may differ significantly sometimes
-* `//@error-pattern: XXX` make sure the stderr output contains `XXX`
+* `//@error-pattern: XXX` makes sure the stderr output contains `XXX`
 * `//@revisions: XXX YYY` runs the test once for each space separated name in the list
     * emits one stderr file per revision
     * `//~` comments can be restricted to specific revisions by adding the revision name after the `~` in square brackets: `//~[XXX]`
@@ -44,6 +44,7 @@ their command specifies, or the test will fail without even being run.
     * you can specify multiple such commands, there is no need to create a single regex that handles multiple replacements that you want to perform.
 * `//@require-annotations-for-level: LEVEL` can be used to change the level of diagnostics that require a corresponding annotation.
     * this is only useful if there are any annotations like `HELP`, `WARN` or `NOTE`, as these would automatically require annotations for all other diagnostics of the same or higher level.
+* `//@check-pass` overrides the `Config::mode` and will make the test behave as if the test suite were in `Mode::Pass`.
 
 ## Significant differences to compiletest-rs
 

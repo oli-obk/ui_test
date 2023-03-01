@@ -818,7 +818,11 @@ fn run_test(
     let output = cmd
         .output()
         .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
-    errors.extend(config.mode.ok(output.status));
+    let status_check = config
+        .mode
+        .maybe_override(comments, revision, &mut errors)
+        .ok(output.status);
+    errors.extend(status_check);
     if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic | Mode::Yolo) {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -929,6 +933,7 @@ fn run_rustfix(
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
                 edition: None,
+                mode: Some((Mode::Pass, 0)),
             },
         ))
         .collect(),
@@ -1115,7 +1120,9 @@ fn check_annotations(
         }
     }
 
-    match (config.mode, error_pattern.is_some() || seen_error_match) {
+    let mode = config.mode.maybe_override(comments, revision, errors);
+
+    match (mode, error_pattern.is_some() || seen_error_match) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
         (
             Mode::Fail {
@@ -1277,6 +1284,21 @@ impl Mode {
                 expected,
             }]
         }
+    }
+    fn maybe_override(self, comments: &Comments, revision: &str, errors: &mut Vec<Error>) -> Self {
+        comments
+            .find_one_for_revision(
+                revision,
+                |r| r.mode.as_ref(),
+                |&(_, line)| {
+                    errors.push(Error::InvalidComment {
+                        msg: "multiple mode changes found".into(),
+                        line,
+                    })
+                },
+            )
+            .map(|&(mode, _)| mode)
+            .unwrap_or(self)
     }
 }
 
