@@ -63,24 +63,28 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.stderr_filter("failed to parse rustc version info.*", "");
 
-    run_tests_generic(config, |path| {
-        let fail = path
-            .parent()
-            .unwrap()
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .ends_with("-fail");
-        path.ends_with("Cargo.toml")
-            && path.parent().unwrap().parent().unwrap() == root_dir
-            && match mode {
-                Mode::Pass => !fail,
-                // This is weird, but `cargo test` returns 101 instead of 1 when
-                // multiple [[test]]s exist. If there's only one test, it returns
-                // 1 on failure.
-                Mode::Panic => fail,
-                Mode::Yolo | Mode::Fail { .. } => unreachable!(),
-            }
-    })
+    run_tests_generic(
+        config,
+        |path| {
+            let fail = path
+                .parent()
+                .unwrap()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .ends_with("-fail");
+            path.ends_with("Cargo.toml")
+                && path.parent().unwrap().parent().unwrap() == root_dir
+                && match mode {
+                    Mode::Pass => !fail,
+                    // This is weird, but `cargo test` returns 101 instead of 1 when
+                    // multiple [[test]]s exist. If there's only one test, it returns
+                    // 1 on failure.
+                    Mode::Panic => fail,
+                    Mode::Yolo | Mode::Fail { .. } => unreachable!(),
+                }
+        },
+        |_, _| None,
+    )
 }

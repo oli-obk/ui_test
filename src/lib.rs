@@ -265,9 +265,11 @@ pub fn run_tests(mut config: Config) -> Result<()> {
 
     config.build_dependencies_and_link_them()?;
 
-    run_tests_generic(config, |path| {
-        path.extension().map(|ext| ext == "rs").unwrap_or(false)
-    })
+    run_tests_generic(
+        config,
+        |path| path.extension().map(|ext| ext == "rs").unwrap_or(false),
+        |_, _| None,
+    )
 }
 
 pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output> {
@@ -311,6 +313,7 @@ struct TestRun {
 pub fn run_tests_generic(
     mut config: Config,
     file_filter: impl Fn(&Path) -> bool + Sync,
+    per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
 ) -> Result<()> {
     config.fill_host_and_target();
 
@@ -403,8 +406,16 @@ pub fn run_tests_generic(
             threads.push(s.spawn(|| -> Result<()> {
                 let finished_files_sender = finished_files_sender;
                 for path in &receive {
+                    let maybe_config;
+                    let config = match per_file_config(&config, &path) {
+                        None => &config,
+                        Some(config) => {
+                            maybe_config = config;
+                            &maybe_config
+                        }
+                    };
                     let result =
-                        match std::panic::catch_unwind(|| parse_and_test_file(&path, &config)) {
+                        match std::panic::catch_unwind(|| parse_and_test_file(&path, config)) {
                             Ok(res) => res,
                             Err(err) => {
                                 finished_files_sender.send(TestRun {
