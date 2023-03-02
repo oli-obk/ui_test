@@ -39,6 +39,8 @@ pub struct Config {
     /// Take care to only append unless you actually meant to overwrite the defaults.
     /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
     pub args: Vec<OsString>,
+    /// Environemtn args passed to the binary that is executed.
+    pub envs: Vec<(OsString, OsString)>,
     /// Arguments passed to the binary that is executed.
     /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
     pub trailing_args: Vec<OsString>,
@@ -79,6 +81,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             args: vec!["--error-format=json".into()],
+            envs: vec![],
             trailing_args: vec![],
             host: None,
             target: None,
@@ -701,6 +704,7 @@ fn build_command(
         cmd.arg(out_dir);
     }
     cmd.args(config.args.iter());
+    cmd.envs(config.envs.iter().map(|(a, b)| (a, b)));
     cmd.arg(path);
     if !revision.is_empty() {
         cmd.arg(format!("--cfg={revision}"));
