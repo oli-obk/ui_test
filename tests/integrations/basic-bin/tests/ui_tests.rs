@@ -21,15 +21,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
-    config.stderr_filter(
-        &std::path::Path::new(path)
-            .canonicalize()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .display()
-            .to_string(),
-        "$$DIR",
-    );
+    config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
     ui_test::run_tests(config)
 }

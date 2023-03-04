@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::Path;
 use ui_test::color_eyre::{eyre::ensure, Result};
 use ui_test::*;
@@ -56,17 +57,21 @@ fn run_file_with_deps() -> Result<()> {
 
 #[test]
 fn non_utf8() -> Result<()> {
+    let path = Path::new(file!())
+        .parent()
+        .unwrap()
+        .join("run_file/non_utf8");
+    if cfg!(windows) {
+        std::io::stdout()
+            .write_all(&std::fs::read(path).unwrap())
+            .unwrap();
+        return Ok(());
+    }
     let mut config = Config::default();
     config.args.clear();
     config.program = "cat".into();
 
-    let result = ui_test::run_file(
-        config,
-        &Path::new(file!())
-            .parent()
-            .unwrap()
-            .join("run_file/non_utf8"),
-    )?;
+    let result = ui_test::run_file(config, &path)?;
     ensure!(result.success(), "");
     Ok(())
 }

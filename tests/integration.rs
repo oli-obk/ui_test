@@ -49,19 +49,19 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         "( *process didn't exit successfully: `[^-]+)-[0-9a-f]+",
         "$1-HASH",
     );
+    // Windows io::Error uses "exit code".
+    config.stderr_filter("exit code", "exit status");
     // The order of the `/deps` directory flag is flaky
     config.stderr_filter("/deps", "");
-    config.stderr_filter(
-        &std::path::Path::new(path)
-            .canonicalize()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .display()
-            .to_string(),
-        "$$DIR",
-    );
+    config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
     config.stderr_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
+    // Windows backslashes are sometimes escaped.
+    // Insert the replacement filter at the start to make sure the filter for single backslashes
+    // runs afterwards.
+    config
+        .stderr_filters
+        .insert(0, (Match::Exact(b"\\\\".iter().copied().collect()), b"\\"));
+    config.stderr_filter("\\.exe", b"");
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.stderr_filter("failed to parse rustc version info.*", "");
 

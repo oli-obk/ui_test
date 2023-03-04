@@ -13,6 +13,7 @@ use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern, Revisioned};
 use regex::bytes::Regex;
 use rustc_stderr::{Diagnostics, Level, Message};
+use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::fmt::Display;
@@ -45,7 +46,8 @@ pub struct Config {
     pub host: Option<String>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
-    /// Filters applied to stderr output before processing it
+    /// Filters applied to stderr output before processing it.
+    /// By default contains a filter for replacing backslashes with regular slashes.
     pub stderr_filters: Filter,
     /// Filters applied to stdout output before processing it
     pub stdout_filters: Filter,
@@ -74,7 +76,7 @@ impl Default for Config {
             trailing_args: vec![],
             host: None,
             target: None,
-            stderr_filters: vec![],
+            stderr_filters: vec![(Match::Exact(vec![b'\\']), b"/")],
             stdout_filters: vec![],
             root_dir: PathBuf::new(),
             mode: Mode::Fail {
@@ -92,6 +94,17 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Replace all occurrences of a path in stderr with a byte string.
+    pub fn path_stderr_filter(
+        &mut self,
+        path: &Path,
+        replacement: &'static (impl AsRef<[u8]> + ?Sized),
+    ) {
+        let pattern = path.canonicalize().unwrap();
+        self.stderr_filters
+            .push((pattern.parent().unwrap().into(), replacement.as_ref()));
+    }
+
     /// Replace all occurrences of a regex pattern in stderr with a byte string.
     pub fn stderr_filter(
         &mut self,
@@ -99,7 +112,7 @@ impl Config {
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
         self.stderr_filters
-            .push((Regex::new(pattern).unwrap(), replacement.as_ref()));
+            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
     }
 
     /// Replace all occurrences of a regex pattern in stdout with a byte string.
@@ -109,7 +122,7 @@ impl Config {
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
         self.stdout_filters
-            .push((Regex::new(pattern).unwrap(), replacement.as_ref()));
+            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
     }
 
     fn build_dependencies_and_link_them(&mut self) -> Result<()> {
@@ -171,7 +184,49 @@ pub enum OutputConflictHandling {
     Bless,
 }
 
-pub type Filter = Vec<(Regex, &'static [u8])>;
+/// A filter's match rule.
+#[derive(Debug)]
+pub enum Match {
+    /// If the regex matches, the filter applies
+    Regex(Regex),
+    /// If the exact byte sequence is found, the filter applies
+    Exact(Vec<u8>),
+}
+impl Match {
+    fn replace_all<'a>(&self, text: &'a [u8], replacement: &[u8]) -> Cow<'a, [u8]> {
+        match self {
+            Match::Regex(regex) => regex.replace_all(text, replacement),
+            Match::Exact(needle) => text.replace(needle, replacement).into(),
+        }
+    }
+}
+
+impl From<&'_ Path> for Match {
+    fn from(v: &Path) -> Self {
+        let mut v = v.display().to_string();
+        // Normalize away windows canonicalized paths.
+        if v.starts_with(r#"\\?\"#) {
+            v.drain(0..4);
+        }
+        let mut v = v.into_bytes();
+        // Normalize paths on windows to use slashes instead of backslashes,
+        // So that paths are rendered the same on all systems.
+        for c in &mut v {
+            if *c == b'\\' {
+                *c = b'/';
+            }
+        }
+        Self::Exact(v)
+    }
+}
+
+impl From<Regex> for Match {
+    fn from(v: Regex) -> Self {
+        Self::Regex(v)
+    }
+}
+
+pub type Filter = Vec<(Match, &'static [u8])>;
 
 pub fn run_tests(mut config: Config) -> Result<()> {
     eprintln!("   Compiler flags: {:?}", config.args);
@@ -963,13 +1018,15 @@ fn normalize(
     revision: &str,
 ) -> Vec<u8> {
     // Useless paths
-    let mut text = text.replace(path.parent().unwrap().display().to_string(), "$DIR");
+    let path_filter = (Match::from(path.parent().unwrap()), b"$DIR" as &[u8]);
+    let filters = filters.iter().chain(std::iter::once(&path_filter));
+    let mut text = text.to_owned();
     if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
         text = text.replace(lib_path, "RUSTLIB");
     }
 
-    for (regex, replacement) in filters.iter() {
-        text = regex.replace_all(&text, *replacement).into_owned();
+    for (regex, replacement) in filters {
+        text = regex.replace_all(&text, replacement).into_owned();
     }
 
     for (from, to) in comments
