@@ -48,8 +48,10 @@ pub struct Config {
     pub target: Option<String>,
     /// Filters applied to stderr output before processing it.
     /// By default contains a filter for replacing backslashes with regular slashes.
+    /// On windows, contains a filter to replace `\n` with `\r\n`.
     pub stderr_filters: Filter,
-    /// Filters applied to stdout output before processing it
+    /// Filters applied to stdout output before processing it.
+    /// On windows, contains a filter to replace `\n` with `\r\n`.
     pub stdout_filters: Filter,
     /// The folder in which to start searching for .rs files
     pub root_dir: PathBuf,
@@ -76,8 +78,15 @@ impl Default for Config {
             trailing_args: vec![],
             host: None,
             target: None,
-            stderr_filters: vec![(Match::Exact(vec![b'\\']), b"/")],
-            stdout_filters: vec![],
+            stderr_filters: vec![
+                (Match::Exact(vec![b'\\']), b"/"),
+                #[cfg(windows)]
+                (Match::Exact(vec![b'\n']), b"\r\n"),
+            ],
+            stdout_filters: vec![
+                #[cfg(windows)]
+                (Match::Exact(vec![b'\n']), b"\r\n"),
+            ],
             root_dir: PathBuf::new(),
             mode: Mode::Fail {
                 require_patterns: true,
@@ -1020,10 +1029,6 @@ fn normalize(
     // Useless paths
     let path_filter = (Match::from(path.parent().unwrap()), b"$DIR" as &[u8]);
     let filters = filters.iter().chain(std::iter::once(&path_filter));
-    #[cfg(windows)]
-    let windows_line_endings = (Match::Exact(vec![b'\n']), b"\r\n" as _);
-    #[cfg(windows)]
-    let filters = filters.chain(std::iter::once(&windows_line_endings));
     let mut text = text.to_owned();
     if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
         text = text.replace(lib_path, "RUSTLIB");
