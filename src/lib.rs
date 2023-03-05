@@ -1020,6 +1020,10 @@ fn normalize(
     // Useless paths
     let path_filter = (Match::from(path.parent().unwrap()), b"$DIR" as &[u8]);
     let filters = filters.iter().chain(std::iter::once(&path_filter));
+    #[cfg(windows)]
+    let windows_line_endings = (Match::Exact(vec![b'\n']), b"\r\n" as _);
+    #[cfg(windows)]
+    let filters = filters.chain(std::iter::once(&windows_line_endings));
     let mut text = text.to_owned();
     if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
         text = text.replace(lib_path, "RUSTLIB");
