@@ -31,7 +31,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         ],
         trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
         program: "cargo".into(),
-        output_conflict_handling: if std::env::var_os("BLESS").is_some() {
+        output_conflict_handling: if std::env::args().any(|arg| arg == "--bless") {
             OutputConflictHandling::Bless
         } else {
             OutputConflictHandling::Error
