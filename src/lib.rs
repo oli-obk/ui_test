@@ -81,11 +81,11 @@ impl Default for Config {
             stderr_filters: vec![
                 (Match::Exact(vec![b'\\']), b"/"),
                 #[cfg(windows)]
-                (Match::Exact(vec![b'\n']), b"\r\n"),
+                (Match::Exact(vec![b'\r']), b""),
             ],
             stdout_filters: vec![
                 #[cfg(windows)]
-                (Match::Exact(vec![b'\n']), b"\r\n"),
+                (Match::Exact(vec![b'\r']), b""),
             ],
             root_dir: PathBuf::new(),
             mode: Mode::Fail {
