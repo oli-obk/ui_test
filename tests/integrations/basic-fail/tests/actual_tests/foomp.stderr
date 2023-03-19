@@ -8,7 +8,7 @@ note: function defined here
  --> $DIR/tests/integrations/basic/src/lib.rs:1:8
   |
 1 | pub fn add(left: usize, right: usize) -> usize {
-  |        ^^^ some expected text that isn't in the actual message
+  |        ^^^ some expected text that isn't in the actual message	
 
 error: aborting doo to previous error
 

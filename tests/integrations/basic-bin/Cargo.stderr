@@ -1,6 +1,3 @@
-    Finished test [unoptimized + debuginfo] target(s) 
-     Running unittests src/main.rs 
-     Running tests/ui_tests.rs 
    Compiler flags: ["--error-format=json", "--edition=2021"]
    Building test dependencies...
 tests/actual_tests/foomp.rs ... ok
