@@ -4,6 +4,9 @@
     clippy::too_many_arguments,
     rustc::internal
 )]
+#![deny(missing_docs)]
+
+//! A crate to run the Rust compiler (or other binaries) and test their command line output.
 
 use bstr::ByteSlice;
 pub use color_eyre;
@@ -34,6 +37,7 @@ mod rustc_stderr;
 mod tests;
 
 #[derive(Debug, Clone)]
+/// Central datastructure containing all information to run the tests.
 pub struct Config {
     /// Arguments passed to the binary that is executed.
     /// Take care to only append unless you actually meant to overwrite the defaults.
@@ -57,8 +61,11 @@ pub struct Config {
     pub stdout_filters: Filter,
     /// The folder in which to start searching for .rs files
     pub root_dir: PathBuf,
+    /// The mode in which to run the tests.
     pub mode: Mode,
+    /// The binary to actually execute.
     pub program: PathBuf,
+    /// What to do in case the stdout/stderr output differs from the expected one.
     pub output_conflict_handling: OutputConflictHandling,
     /// Only run tests with one of these strings in their path/name
     pub path_filter: Vec<String>,
@@ -189,9 +196,14 @@ impl Config {
 }
 
 #[derive(Debug, Clone)]
+/// The command line program that builds dependencies. Currently really only supports
+/// `cargo`-like things.
 pub struct DependencyBuilder {
+    /// Path to the binary. Defaults to the `CARGO` env var or just a program named `cargo`
     pub program: PathBuf,
+    /// Arguments to the binary. Defaults to `build`.
     pub args: Vec<String>,
+    /// Environment variables to set before running the binary.
     pub envs: Vec<(String, OsString)>,
 }
 
@@ -206,6 +218,7 @@ impl Default for DependencyBuilder {
 }
 
 #[derive(Debug, Copy, Clone)]
+/// The different options for what to do when stdout/stderr files differ from the actual output.
 pub enum OutputConflictHandling {
     /// The default: emit a diff of the expected/actual output.
     Error,
@@ -258,8 +271,10 @@ impl From<Regex> for Match {
     }
 }
 
+/// Replacements to apply to output files.
 pub type Filter = Vec<(Match, &'static [u8])>;
 
+/// Run all tests as described in the config argument.
 pub fn run_tests(mut config: Config) -> Result<()> {
     eprintln!("   Compiler flags: {:?}", config.args);
 
@@ -272,6 +287,8 @@ pub fn run_tests(mut config: Config) -> Result<()> {
     )
 }
 
+/// Run a single file, with the settings from the `config` argument. Ignores various
+/// settings from `Config` that relate to finding test files.
 pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output> {
     config.build_dependencies_and_link_them()?;
 
@@ -310,6 +327,7 @@ struct TestRun {
     revision: String,
 }
 
+/// A version of `run_tests` that allows more fine-grained control over running tests.
 pub fn run_tests_generic(
     mut config: Config,
     file_filter: impl Fn(&Path) -> bool + Sync,
@@ -1282,6 +1300,7 @@ fn normalize(
 }
 
 #[derive(Copy, Clone, Debug)]
+/// Decides what is expected of each test's exit status.
 pub enum Mode {
     /// The test passes a full execution of the rustc driver
     Pass,
