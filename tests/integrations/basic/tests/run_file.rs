@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::path::Path;
 use ui_test::color_eyre::{eyre::ensure, Result};
 use ui_test::*;
@@ -56,9 +55,6 @@ fn non_utf8() -> Result<()> {
         .unwrap()
         .join("run_file/non_utf8");
     if cfg!(windows) {
-        std::io::stdout()
-            .write_all(&std::fs::read(path).unwrap())
-            .unwrap();
         return Ok(());
     }
     let mut config = Config::default();
