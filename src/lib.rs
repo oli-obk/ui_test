@@ -39,7 +39,7 @@ pub struct Config {
     /// Take care to only append unless you actually meant to overwrite the defaults.
     /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
     pub args: Vec<OsString>,
-    /// Environemtn args passed to the binary that is executed.
+    /// Environment variables passed to the binary that is executed.
     pub envs: Vec<(OsString, OsString)>,
     /// Arguments passed to the binary that is executed.
     /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
