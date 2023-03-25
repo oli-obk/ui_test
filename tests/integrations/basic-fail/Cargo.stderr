@@ -118,6 +118,7 @@ tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (b) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/foomp_aux.rs ... ok
+tests/actual_tests_bless/non_top_level_configs.rs ... ok
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/revised_revision.rs ... FAILED
 tests/actual_tests_bless/revisions.rs (foo) ... ok
@@ -251,7 +252,7 @@ FAILURES:
     tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 6 tests failed, 10 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 6 tests failed, 11 tests passed, 3 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
