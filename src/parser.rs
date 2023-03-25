@@ -215,7 +215,9 @@ impl CommentParser<Comments> {
                 if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
                     self.errors.push(Error::InvalidComment {
                         msg: format!(
-                            "comment looks suspiciously like a test suite command: `{}`",
+                            "comment looks suspiciously like a test suite command: `{}`\n\
+                             All `//@` test suite commands must be at the start of the line.\n\
+                             The `//` must be directly followed by `@` or `~`.",
                             rest.to_str()?,
                         ),
                         line: self.line,

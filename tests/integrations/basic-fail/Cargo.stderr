@@ -220,9 +220,13 @@ command: "parse comments"
 
 Could not parse comment in tests/actual_tests_bless/non_top_level_configs.rs:1 because
 comment looks suspiciously like a test suite command: `@check-pass`
+All `//@` test suite commands must be at the start of the line.
+The `//` must be directly followed by `@` or `~`.
 
 Could not parse comment in tests/actual_tests_bless/non_top_level_configs.rs:4 because
 comment looks suspiciously like a test suite command: `@ignore-target-cheesecake`
+All `//@` test suite commands must be at the start of the line.
+The `//` must be directly followed by `@` or `~`.
 
 full stderr:
 
