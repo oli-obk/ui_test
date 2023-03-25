@@ -44,7 +44,8 @@ pub struct Config {
     /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
     pub args: Vec<OsString>,
     /// Environment variables passed to the binary that is executed.
-    pub envs: Vec<(OsString, OsString)>,
+    /// The environment variable is removed if the second tuple field is `None`
+    pub envs: Vec<(OsString, Option<OsString>)>,
     /// Arguments passed to the binary that is executed.
     /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
     pub trailing_args: Vec<OsString>,
@@ -733,7 +734,13 @@ fn build_command(
         cmd.arg(out_dir);
     }
     cmd.args(config.args.iter());
-    cmd.envs(config.envs.iter().map(|(a, b)| (a, b)));
+    for (var, val) in config.envs.iter() {
+        if let Some(val) = val {
+            cmd.env(var, val);
+        } else {
+            cmd.env_remove(var);
+        }
+    }
     cmd.arg(path);
     if !revision.is_empty() {
         cmd.arg(format!("--cfg={revision}"));
