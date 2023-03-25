@@ -641,7 +641,7 @@ pub fn run_tests_generic(
                             github_actions::error(&path, format!("Could not parse comment"))
                                 .line(*line);
                         writeln!(err, "{msg}").unwrap();
-                        eprintln!("Could not parse comment in {path}:{line} because {msg}",)
+                        eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
                     }
                     Error::Bug(msg) => {
                         eprintln!("A bug in `ui_test` occurred: {msg}");

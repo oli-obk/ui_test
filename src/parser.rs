@@ -152,7 +152,7 @@ impl Condition {
             Ok(Condition::Host(triple_substr.to_owned()))
         } else {
             Err(format!(
-                "invalid condition `{c:?}`, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/"
+                "`{c}` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/"
             ))
         }
     }
@@ -210,6 +210,18 @@ impl CommentParser<Comments> {
             })
         } else {
             *fallthrough_to = None;
+            for pos in line.find_iter("//") {
+                let rest = line[pos + 2..].trim_start();
+                if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
+                    self.errors.push(Error::InvalidComment {
+                        msg: format!(
+                            "comment looks suspiciously like a test suite command: `{}`",
+                            rest.to_str()?,
+                        ),
+                        line: self.line,
+                    })
+                }
+            }
         }
         Ok(())
     }
@@ -263,7 +275,7 @@ impl CommentParser<Comments> {
         if command == "revisions" {
             self.check(
                 revisions.is_empty(),
-                "cannot declare revisions under a revision",
+                "revisions cannot be declared under a revision",
             );
             self.check(self.revisions.is_none(), "cannot specify `revisions` twice");
             self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
