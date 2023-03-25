@@ -1,4 +1,4 @@
-   Compiler flags: ["--error-format=json", "--out-dir", "$TMP, "--edition=2021"]
+   Compiler flags: ["--error-format=json"]
    Building test dependencies...
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/exit_code_fail.rs ... FAILED
@@ -6,7 +6,7 @@ tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/bad_pattern.rs"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 substring `miesmätsched types` not found in stderr output
 expected because of pattern here: tests/actual_tests/bad_pattern.rs:5
@@ -36,7 +36,7 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 tests/actual_tests/exit_code_fail.rs FAILED:
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/exit_code_fail.rs"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
 fail test got exit status: 0, but expected 1
 
@@ -56,7 +56,7 @@ full stderr:
 
 
 tests/actual_tests/foomp.rs FAILED:
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 actual output differed from expected
 --- tests/actual_tests/foomp.stderr
@@ -111,9 +111,14 @@ error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/debug/ui_tests-HASH --test-threads 1` (exit status: 1)
-   Compiler flags: ["--error-format=json", "--out-dir", "$TMP, "--edition=2021"]
+   Compiler flags: ["--error-format=json"]
    Building test dependencies...
+tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (b) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
+tests/actual_tests_bless/foomp_aux.rs ... ok
+tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/revised_revision.rs ... FAILED
 tests/actual_tests_bless/revisions.rs (foo) ... ok
 tests/actual_tests_bless/revisions.rs (bar) ... ok
@@ -128,14 +133,33 @@ tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
 
-tests/actual_tests_bless/foomp-rustfix-fail.rs FAILED:
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail.rs"
+tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--edition" "2021" "--crate-type" "lib" "--emit=link"
 
-rustfix failed with exit status: 1:
-error[E0308]: mismatched types
- --> tests/actual_tests_bless/foomp-rustfix-fail.fixed:5:21
+auxiliary build for `tests/actual_tests_bless/aux_proc_macro_misuse.rs` failed with exit status: 1
+
+full stderr:
+error: the `#[proc_macro]` attribute is only usable with crates of the `proc-macro` crate type
+ --> tests/actual_tests_bless/auxiliary/the_proc_macro.rs:7:1
   |
-5 |     let x: String = 42;
+7 | #[proc_macro]
+  | ^^^^^^^^^^^^^
+
+error: aborting due to previous error
+
+
+
+
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `a`) FAILED:
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error[E0308]: mismatched types
+ --> tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed:6:21
+  |
+6 |     let x: String = 42;
   |            ------   ^^- help: try using a conversion method: `.to_string()`
   |            |        |
   |            |        expected struct `String`, found integer
@@ -145,9 +169,37 @@ error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0308`.
 
+
+
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `b`) FAILED:
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
+
+rustfix failed with exit status: 1
+
 full stderr:
 error[E0308]: mismatched types
- --> tests/actual_tests_bless/foomp-rustfix-fail.rs:5:21
+ --> tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed:6:21
+  |
+6 |     let x: String = 42;
+  |            ------   ^^- help: try using a conversion method: `.to_string()`
+  |            |        |
+  |            |        expected struct `String`, found integer
+  |            expected due to this
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0308`.
+
+
+
+tests/actual_tests_bless/foomp-rustfix-fail.rs FAILED:
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/foomp-rustfix-fail.fixed" "--edition" "2021" "--crate-name" "foomp_rustfix_fail"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error[E0308]: mismatched types
+ --> tests/actual_tests_bless/foomp-rustfix-fail.fixed:5:21
   |
 5 |     let x: String = 42;
   |            ------   ^^- help: try using a conversion method: `.to_string()`
@@ -171,7 +223,7 @@ full stderr:
 
 
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "--edition=2021" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar"
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/debug" "-L" "$DIR/$DIR/../../../target/debug" "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 substring ``main` function not found in crate `revisions_bad`` not found in stderr output
 expected because of pattern here: tests/actual_tests_bless/revisions_bad.rs:4
@@ -192,11 +244,14 @@ For more information about this error, try `rustc --explain E0601`.
 
 
 FAILURES:
+    tests/actual_tests_bless/aux_proc_macro_misuse.rs
+    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
+    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
     tests/actual_tests_bless/foomp-rustfix-fail.rs
     tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 3 tests failed, 8 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 6 tests failed, 10 tests passed, 3 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
@@ -206,10 +261,61 @@ thread 'main' panicked at '
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_invalid_program`
    Compiler flags: []
-thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs"', $DIR/src/lib.rs
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"', $DIR/src/lib.rs
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: Any { .. }', $DIR/src/lib.rs
+tests/actual_tests/bad_pattern.rs ... FAILED
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"', $DIR/src/lib.rs
+tests/actual_tests/exit_code_fail.rs ... FAILED
+tests/actual_tests/filters.rs ... FAILED
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs" "--edition" "2021"', $DIR/src/lib.rs
+tests/actual_tests/foomp.rs ... FAILED
+
+tests/actual_tests/bad_pattern.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
+
+full stderr:
+
+
+
+tests/actual_tests/exit_code_fail.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
+
+full stderr:
+
+
+
+tests/actual_tests/filters.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests/filters.rs:1 because invalid condition `"x86_64"`, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
+
+full stderr:
+
+
+
+tests/actual_tests/foomp.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs" "--edition" "2021"
+
+full stderr:
+
+
+FAILURES:
+    tests/actual_tests/bad_pattern.rs
+    tests/actual_tests/exit_code_fail.rs
+    tests/actual_tests/filters.rs
+    tests/actual_tests/foomp.rs
+
+test result: FAIL. 4 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/debug/ui_tests_invalid_program2-HASH --test-threads 1` (exit status: 1)
 error: 4 targets failed:
     `--test ui_tests`
     `--test ui_tests_bless`

@@ -5,12 +5,9 @@ use ui_test::*;
 #[test]
 fn run_file() -> Result<()> {
     let mut config = Config::default();
-    // Don't require `extern crate` for imports.
-    config.args.push("--edition=2021".into());
 
     let tmp_dir = tempfile::tempdir()?;
-    config.args.push("--out-dir".into());
-    config.args.push(tmp_dir.path().as_os_str().to_owned());
+    config.out_dir = Some(tmp_dir.path().into());
 
     let result = ui_test::run_file(
         config,
@@ -19,7 +16,7 @@ fn run_file() -> Result<()> {
             .unwrap()
             .join("run_file/run_file.rs"),
     )?;
-    ensure!(result.success(), "");
+    ensure!(result.status.success(), "");
     Ok(())
 }
 
@@ -43,12 +40,9 @@ fn run_file_no_deps() -> Result<()> {
     let path = "../../../target";
 
     let mut config = Config::default();
-    // Don't require `extern crate` for imports.
-    config.args.push("--edition=2021".into());
 
     let tmp_dir = tempfile::tempdir()?;
-    config.args.push("--out-dir".into());
-    config.args.push(tmp_dir.path().as_os_str().to_owned());
+    config.out_dir = Some(tmp_dir.path().into());
 
     // Don't build a binary, we only provide .rmeta dependencies for now
     config.args.push("--emit=metadata".into());
@@ -65,6 +59,6 @@ fn run_file_no_deps() -> Result<()> {
             .unwrap()
             .join("run_file/run_file_with_deps.rs"),
     )?;
-    ensure!(result.success(), "");
+    ensure!(result.status.success(), "");
     Ok(())
 }

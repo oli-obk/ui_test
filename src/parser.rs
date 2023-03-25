@@ -1,9 +1,12 @@
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error};
+use crate::{rustc_stderr::Level, Error, Mode};
 
 use color_eyre::eyre::Result;
 
@@ -67,13 +70,18 @@ pub(crate) struct Revisioned {
     pub env_vars: Vec<(String, String)>,
     /// Normalizations to apply to the stderr output before emitting it to disk
     pub normalize_stderr: Vec<(Regex, Vec<u8>)>,
-    /// An arbitrary pattern to look for in the stderr.
-    pub error_pattern: Option<(Pattern, usize)>,
+    /// Arbitrary patterns to look for in the stderr.
+    pub error_patterns: Vec<(Pattern, usize)>,
     pub error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
     pub run_rustfix: bool,
+    pub aux_builds: Vec<(PathBuf, String)>,
+    pub edition: Option<(String, usize)>,
+    /// Overwrites the mode from `Config`.
+    pub mode: Option<(Mode, usize)>,
+    pub needs_asm_support: bool,
 }
 
 #[derive(Debug)]
@@ -319,11 +327,9 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "error-pattern" => {
-                self.check(
-                    self.error_pattern.is_none(),
-                    "cannot specify `error_pattern` twice",
-                );
-                self.error_pattern = Some((self.parse_error_pattern(args.trim()), self.line))
+                let pat = self.parse_error_pattern(args.trim());
+                let line = self.line;
+                self.error_patterns.push((pat, line));
             }
             "stderr-per-bitwidth" => {
                 // args are ignored (can be used as comment)
@@ -337,6 +343,30 @@ impl CommentParser<&mut Revisioned> {
                 // args are ignored (can be used as comment)
                 self.check(!self.run_rustfix, "cannot specify `run-rustfix` twice");
                 self.run_rustfix = true;
+            }
+            "needs-asm-support" => {
+                // args are ignored (can be used as comment)
+                self.check(
+                    !self.needs_asm_support,
+                    "cannot specify `needs-asm-support` twice",
+                );
+                self.needs_asm_support = true;
+            }
+            "aux-build" => {
+                let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));
+                self.aux_builds.push((name.into(), kind.into()));
+            }
+            "edition" => {
+                self.check(self.edition.is_none(), "cannot specify `edition` twice");
+                self.edition = Some((args.into(), self.line))
+            }
+            "check-pass" => {
+                // args are ignored (can be used as comment)
+                self.check(
+                    self.mode.is_none(),
+                    "cannot specify test mode changes twice",
+                );
+                self.mode = Some((Mode::Pass, self.line))
             }
             "require-annotations-for-level" => {
                 self.check(

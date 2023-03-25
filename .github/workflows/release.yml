@@ -38,7 +38,7 @@ jobs:
           # Fail on first error, on undefined variables, and on errors in pipes.
           set -euo pipefail
           export VERSION="$(cargo metadata --format-version 1 | \
-            jq --arg crate_name cargo_metadata --exit-status -r \
+            jq --arg crate_name ui_test --exit-status -r \
                 '.packages[] | select(.name == $crate_name) | .version')"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           if [[ "$(git tag -l "$VERSION")" != '' ]]; then

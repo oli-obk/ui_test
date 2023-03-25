@@ -39,6 +39,7 @@ struct Expansion {
 struct Span {
     line_start: usize,
     file_name: PathBuf,
+    is_primary: bool,
     expansion: Option<Box<Expansion>>,
 }
 
@@ -70,7 +71,8 @@ pub(crate) struct Diagnostics {
 
 impl RustcMessage {
     fn line(&self, file: &Path) -> Option<usize> {
-        self.spans.iter().find_map(|span| span.line(file))
+        let span = |primary| self.spans.iter().find_map(|span| span.line(file, primary));
+        span(true).or_else(|| span(false))
     }
 
     /// Put the message and its children into the line-indexed list.
@@ -106,13 +108,14 @@ impl RustcMessage {
 }
 
 impl Span {
-    /// Returns a line number *in the given file*, if possible.
-    fn line(&self, file: &Path) -> Option<usize> {
-        if self.file_name == file {
-            Some(self.line_start)
-        } else {
-            self.expansion.as_ref()?.span.line(file)
+    /// Returns the most expanded line number *in the given file*, if possible.
+    fn line(&self, file: &Path, primary: bool) -> Option<usize> {
+        if let Some(exp) = &self.expansion {
+            if let Some(line) = exp.span.line(file, primary && !self.is_primary) {
+                return Some(line);
+            }
         }
+        ((!primary || self.is_primary) && self.file_name == file).then_some(self.line_start)
     }
 }
 

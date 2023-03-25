@@ -1,4 +1,4 @@
-   Compiler flags: ["--error-format=json", "--edition=2021"]
+   Compiler flags: ["--error-format=json"]
    Building test dependencies...
 tests/actual_tests/foomp.rs ... ok
 
