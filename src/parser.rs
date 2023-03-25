@@ -201,7 +201,7 @@ impl CommentParser<Comments> {
         fallthrough_to: &mut Option<usize>,
         line: &[u8],
     ) -> std::result::Result<(), Utf8Error> {
-        if let Some((_, command)) = line.split_once_str("//@") {
+        if let Some(command) = line.strip_prefix(b"//@") {
             self.parse_command(command.trim().to_str()?)
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
             let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
