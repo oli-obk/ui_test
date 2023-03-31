@@ -41,6 +41,10 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         ..Config::default()
     };
 
+    // avoid rendering github actions messages in the dogfood tests as they'd
+    // show up in the diff and thus fail CI.
+    config.envs.push(("GITHUB_ACTION".into(), None));
+
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
     config.stderr_filter(
