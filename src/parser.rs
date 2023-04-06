@@ -152,7 +152,7 @@ impl Condition {
             Ok(Condition::Host(triple_substr.to_owned()))
         } else {
             Err(format!(
-                "invalid condition `{c:?}`, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/"
+                "`{c}` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/"
             ))
         }
     }
@@ -201,7 +201,7 @@ impl CommentParser<Comments> {
         fallthrough_to: &mut Option<usize>,
         line: &[u8],
     ) -> std::result::Result<(), Utf8Error> {
-        if let Some((_, command)) = line.split_once_str("//@") {
+        if let Some(command) = line.strip_prefix(b"//@") {
             self.parse_command(command.trim().to_str()?)
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
             let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
@@ -210,6 +210,20 @@ impl CommentParser<Comments> {
             })
         } else {
             *fallthrough_to = None;
+            for pos in line.find_iter("//") {
+                let rest = line[pos + 2..].trim_start();
+                if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
+                    self.errors.push(Error::InvalidComment {
+                        msg: format!(
+                            "comment looks suspiciously like a test suite command: `{}`\n\
+                             All `//@` test suite commands must be at the start of the line.\n\
+                             The `//` must be directly followed by `@` or `~`.",
+                            rest.to_str()?,
+                        ),
+                        line: self.line,
+                    })
+                }
+            }
         }
         Ok(())
     }
@@ -263,7 +277,7 @@ impl CommentParser<Comments> {
         if command == "revisions" {
             self.check(
                 revisions.is_empty(),
-                "cannot declare revisions under a revision",
+                "revisions cannot be declared under a revision",
             );
             self.check(self.revisions.is_none(), "cannot specify `revisions` twice");
             self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());

@@ -49,7 +49,8 @@ full stderr:
 tests/actual_tests/filters.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests/filters.rs:1 because invalid condition `"x86_64"`, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
+Could not parse comment in tests/actual_tests/filters.rs:1 because
+`x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
 
 full stderr:
 
@@ -118,6 +119,7 @@ tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (b) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/foomp_aux.rs ... ok
+tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/revised_revision.rs ... FAILED
 tests/actual_tests_bless/revisions.rs (foo) ... ok
@@ -213,10 +215,28 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 
+tests/actual_tests_bless/non_top_level_configs.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/non_top_level_configs.rs:1 because
+comment looks suspiciously like a test suite command: `@check-pass`
+All `//@` test suite commands must be at the start of the line.
+The `//` must be directly followed by `@` or `~`.
+
+Could not parse comment in tests/actual_tests_bless/non_top_level_configs.rs:4 because
+comment looks suspiciously like a test suite command: `@ignore-target-cheesecake`
+All `//@` test suite commands must be at the start of the line.
+The `//` must be directly followed by `@` or `~`.
+
+full stderr:
+
+
+
 tests/actual_tests_bless/revised_revision.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests_bless/revised_revision.rs:2 because cannot declare revisions under a revision
+Could not parse comment in tests/actual_tests_bless/revised_revision.rs:2 because
+revisions cannot be declared under a revision
 
 full stderr:
 
@@ -248,10 +268,11 @@ FAILURES:
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
     tests/actual_tests_bless/foomp-rustfix-fail.rs
+    tests/actual_tests_bless/non_top_level_configs.rs
     tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 6 tests failed, 10 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 7 tests failed, 10 tests passed, 3 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
@@ -291,7 +312,8 @@ full stderr:
 tests/actual_tests/filters.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests/filters.rs:1 because invalid condition `"x86_64"`, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
+Could not parse comment in tests/actual_tests/filters.rs:1 because
+`x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
 
 full stderr:
 
