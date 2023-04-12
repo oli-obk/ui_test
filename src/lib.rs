@@ -172,17 +172,23 @@ impl Config {
     }
 
     /// Make sure we have the host and target triples.
-    pub fn fill_host_and_target(&mut self) {
+    pub fn fill_host_and_target(&mut self) -> Result<()> {
         if self.host.is_none() {
             self.host = Some(
                 rustc_version::VersionMeta::for_command(std::process::Command::new(&self.program))
-                    .expect("failed to parse rustc version info")
+                    .map_err(|err| {
+                        color_eyre::eyre::Report::new(err).wrap_err(format!(
+                            "failed to parse rustc version info: {}",
+                            self.program.display()
+                        ))
+                    })?
                     .host,
             );
         }
         if self.target.is_none() {
             self.target = Some(self.host.clone().unwrap());
         }
+        Ok(())
     }
 
     fn has_asm_support(&self) -> bool {
@@ -336,7 +342,7 @@ pub fn run_tests_generic(
     file_filter: impl Fn(&Path) -> bool + Sync,
     per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
 ) -> Result<()> {
-    config.fill_host_and_target();
+    config.fill_host_and_target()?;
 
     // A channel for files to process
     let (submit, receive) = unbounded();

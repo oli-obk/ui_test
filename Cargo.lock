@@ -540,9 +540,10 @@ dependencies = [
 
 [[package]]
 name = "ui_test"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "bstr",
+ "cargo-platform",
  "cargo_metadata",
  "color-eyre",
  "colored",
