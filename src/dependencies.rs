@@ -1,9 +1,11 @@
 use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
+use cargo_platform::Cfg;
 use color_eyre::eyre::{bail, Result};
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
     process::Command,
+    str::FromStr,
 };
 
 use crate::{Config, DependencyBuilder, OutputConflictHandling};
@@ -17,12 +19,39 @@ pub struct Dependencies {
     pub dependencies: Vec<(String, Vec<Utf8PathBuf>)>,
 }
 
+fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
+    let mut cmd = Command::new(&config.program);
+    cmd.arg("--print")
+        .arg("cfg")
+        .arg("--target")
+        .arg(config.target.as_ref().unwrap());
+    let output = cmd.output()?;
+    let stdout = String::from_utf8(output.stdout)?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8(output.stderr)?;
+        bail!(
+            "failed to obtain `cfg` information from {}:\nstderr:\n{stderr}\n\nstdout:{stdout}",
+            config.program.display()
+        );
+    }
+    let mut cfgs = vec![];
+
+    for line in stdout.lines() {
+        cfgs.push(Cfg::from_str(line)?);
+    }
+
+    Ok(cfgs)
+}
+
 /// Compiles dependencies and returns the crate names and corresponding rmeta files.
-pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
+pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
     let manifest_path = match &config.dependencies_crate_manifest_path {
-        Some(path) => path,
+        Some(path) => path.to_owned(),
         None => return Ok(Default::default()),
     };
+    let manifest_path = &manifest_path;
+    config.fill_host_and_target()?;
     eprintln!("   Building test dependencies...");
     let DependencyBuilder {
         program,
@@ -92,6 +121,8 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
     let output = output.stdout;
     let output = String::from_utf8(output)?;
 
+    let cfg = cfgs(config)?;
+
     for line in output.lines() {
         if !line.starts_with('{') {
             continue;
@@ -114,6 +145,11 @@ pub fn build_dependencies(config: &Config) -> Result<Dependencies> {
             .dependencies
             .iter()
             .filter(|dep| matches!(dep.kind, DependencyKind::Normal))
+            // Only consider dependencies that are enabled on the current target
+            .filter(|dep| match &dep.target {
+                Some(platform) => platform.matches(config.target.as_ref().unwrap(), &cfg),
+                None => true,
+            })
             .map(|dep| {
                 let package = metadata
                     .packages

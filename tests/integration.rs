@@ -65,7 +65,8 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         .insert(0, (Match::Exact(b"\\\\".iter().copied().collect()), b"\\"));
     config.stderr_filter("\\.exe", b"");
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
-    config.stderr_filter("failed to parse rustc version info.*", "");
+    config.stderr_filter("   [0-9]: .*", "");
+    config.stderr_filter("/target/[^/]+/debug", "/target/$$TRIPLE/debug");
 
     run_tests_generic(
         config,
