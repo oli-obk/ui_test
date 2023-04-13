@@ -537,7 +537,7 @@ pub fn run_tests_generic(
                         pattern,
                         definition_line,
                     } => {
-                        github_actions::error(&path, format!("title=Pattern not found{revision}"))
+                        github_actions::error(&path, format!("Pattern not found{revision}"))
                             .line(*definition_line);
                         match pattern {
                             Pattern::SubString(s) => {
