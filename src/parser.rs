@@ -211,17 +211,35 @@ impl CommentParser<Comments> {
         } else {
             *fallthrough_to = None;
             for pos in line.find_iter("//") {
-                let rest = line[pos + 2..].trim_start();
-                if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
-                    self.errors.push(Error::InvalidComment {
-                        msg: format!(
-                            "comment looks suspiciously like a test suite command: `{}`\n\
+                let rest = &line[pos + 2..];
+                for rest in std::iter::once(rest).chain(rest.strip_prefix(b" ")) {
+                    if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
+                        self.errors.push(Error::InvalidComment {
+                            msg: format!(
+                                "comment looks suspiciously like a test suite command: `{}`\n\
                              All `//@` test suite commands must be at the start of the line.\n\
                              The `//` must be directly followed by `@` or `~`.",
-                            rest.to_str()?,
-                        ),
-                        line: self.line,
-                    })
+                                rest.to_str()?,
+                            ),
+                            line: self.line,
+                        })
+                    } else {
+                        let mut parser = Self {
+                            line: 0,
+                            errors: vec![],
+                            comments: Comments::default(),
+                        };
+                        parser.parse_command(rest.to_str()?);
+                        if parser.errors.is_empty() {
+                            self.errors.push(Error::InvalidComment {
+                                msg: "a compiletest-rs style comment was detected.\n\
+                                Please use text that could not also be interpreted as a command,\n\
+                                and prefix all actual commands with `//@`"
+                                    .into(),
+                                line: self.line,
+                            });
+                        }
+                    }
                 }
             }
         }
