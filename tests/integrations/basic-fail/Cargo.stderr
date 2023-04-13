@@ -115,6 +115,7 @@ Caused by:
    Compiler flags: ["--error-format=json"]
    Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
+tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (b) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
@@ -149,6 +150,18 @@ error: the `#[proc_macro]` attribute is only usable with crates of the `proc-mac
 
 error: aborting due to previous error
 
+
+
+
+tests/actual_tests_bless/compiletest-rs-command.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:1 because
+a compiletest-rs style comment was detected.
+Please use text that could not also be interpreted as a command,
+and prefix all actual commands with `//@`
+
+full stderr:
 
 
 
@@ -265,6 +278,7 @@ For more information about this error, try `rustc --explain E0601`.
 
 FAILURES:
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
+    tests/actual_tests_bless/compiletest-rs-command.rs
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
     tests/actual_tests_bless/foomp-rustfix-fail.rs
@@ -272,7 +286,7 @@ FAILURES:
     tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 7 tests failed, 10 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 8 tests failed, 10 tests passed, 3 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:

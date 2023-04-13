@@ -222,6 +222,22 @@ impl CommentParser<Comments> {
                         ),
                         line: self.line,
                     })
+                } else {
+                    let mut parser = Self {
+                        line: 0,
+                        errors: vec![],
+                        comments: Comments::default(),
+                    };
+                    parser.parse_command(rest.to_str()?);
+                    if parser.errors.is_empty() {
+                        self.errors.push(Error::InvalidComment {
+                            msg: "a compiletest-rs style comment was detected.\n\
+                                Please use text that could not also be interpreted as a command,\n\
+                                and prefix all actual commands with `//@`"
+                                .into(),
+                            line: self.line,
+                        });
+                    }
                 }
             }
         }
