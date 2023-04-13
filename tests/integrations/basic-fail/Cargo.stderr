@@ -161,6 +161,16 @@ a compiletest-rs style comment was detected.
 Please use text that could not also be interpreted as a command,
 and prefix all actual commands with `//@`
 
+Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:2 because
+a compiletest-rs style comment was detected.
+Please use text that could not also be interpreted as a command,
+and prefix all actual commands with `//@`
+
+Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:4 because
+comment looks suspiciously like a test suite command: `@aux-build:asldkfjasldfj.rs`
+All `//@` test suite commands must be at the start of the line.
+The `//` must be directly followed by `@` or `~`.
+
 full stderr:
 
 
