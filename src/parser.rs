@@ -76,7 +76,6 @@ pub(crate) struct Revisioned {
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
-    pub run_rustfix: bool,
     pub aux_builds: Vec<(PathBuf, String)>,
     pub edition: Option<(String, usize)>,
     /// Overwrites the mode from `Config`.
@@ -373,8 +372,11 @@ impl CommentParser<&mut Revisioned> {
             }
             "run-rustfix" => {
                 // args are ignored (can be used as comment)
-                self.check(!self.run_rustfix, "cannot specify `run-rustfix` twice");
-                self.run_rustfix = true;
+                self.check(
+                    self.mode.is_none(),
+                    "cannot specify test mode changes twice",
+                );
+                self.mode = Some((Mode::Fix, self.line))
             }
             "needs-asm-support" => {
                 // args are ignored (can be used as comment)

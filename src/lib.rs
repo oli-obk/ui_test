@@ -965,20 +965,17 @@ fn run_test(
     }
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
-    let rustfixed = comments
-        .for_revision(revision)
-        .any(|rev| rev.run_rustfix)
-        .then(|| {
-            run_rustfix(
-                &output.stderr,
-                path,
-                comments,
-                revision,
-                config,
-                extra_args,
-                &mut errors,
-            )
-        });
+    let rustfixed = matches!(mode, Mode::Fix).then(|| {
+        run_rustfix(
+            &output.stderr,
+            path,
+            comments,
+            revision,
+            config,
+            extra_args,
+            &mut errors,
+        )
+    });
     let stderr = check_test_result(
         path,
         config,
@@ -1099,7 +1096,6 @@ fn run_rustfix(
                 error_patterns: vec![],
                 error_matches: vec![],
                 require_annotations_for_level: None,
-                run_rustfix: false,
                 aux_builds: comments
                     .for_revision(revision)
                     .flat_map(|r| r.aux_builds.iter().cloned())
@@ -1449,6 +1445,8 @@ fn normalize(
 #[derive(Copy, Clone, Debug)]
 /// Decides what is expected of each test's exit status.
 pub enum Mode {
+    /// The test fails with an error, but passes after running rustfix
+    Fix,
     /// The test passes a full execution of the rustc driver
     Pass,
     /// The test produces an executable binary that can get executed on the host
@@ -1473,7 +1471,7 @@ impl Mode {
             Mode::Run { exit_code } => exit_code,
             Mode::Pass => 0,
             Mode::Panic => 101,
-            Mode::Fail { .. } => 1,
+            Mode::Fix | Mode::Fail { .. } => 1,
             Mode::Yolo => return vec![],
         };
         if status.code() == Some(expected) {
@@ -1513,6 +1511,7 @@ impl Display for Mode {
                 require_patterns: _,
             } => write!(f, "fail"),
             Mode::Yolo => write!(f, "yolo"),
+            Mode::Fix => write!(f, "fix"),
         }
     }
 }
