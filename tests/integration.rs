@@ -72,6 +72,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.stderr_filter("   [0-9]: .*", "");
     config.stderr_filter("/target/[^/]+/debug", "/target/$$TRIPLE/debug");
+    config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
 
     run_tests_generic(
         config,
@@ -92,7 +93,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                     // multiple [[test]]s exist. If there's only one test, it returns
                     // 1 on failure.
                     Mode::Panic => fail,
-                    Mode::Yolo | Mode::Fail { .. } => unreachable!(),
+                    Mode::Run { .. } | Mode::Yolo | Mode::Fail { .. } => unreachable!(),
                 }
         },
         |_, _| None,

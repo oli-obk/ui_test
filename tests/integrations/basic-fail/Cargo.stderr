@@ -1,6 +1,8 @@
    Compiler flags: ["--error-format=json"]
    Building test dependencies...
 tests/actual_tests/bad_pattern.rs ... FAILED
+tests/actual_tests/executable.rs ... FAILED
+tests/actual_tests/executable_compile_err.rs ... FAILED
 tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
@@ -32,6 +34,59 @@ note: function defined here
 error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0308`.
+
+
+
+tests/actual_tests/executable.rs FAILED:
+command: "$CMD"
+
+actual output differed from expected
+--- tests/actual_tests/executable.stdout
++++ <stderr output>
+-69
++42
+ 
+
+
+full stderr:
+
+
+
+tests/actual_tests/executable_compile_err.rs FAILED:
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
+
+run(0) test got exit status: 1, but expected 0
+
+actual output differed from expected
+--- tests/actual_tests/executable_compile_err.stderr
++++ <stderr output>
++error: this file contains an unclosed delimiter
++ --> $DIR/executable_compile_err.rs:4:2
++  |
++3 | fn main() {
++  |           - unclosed delimiter
++4 |
++  |  ^
++
++error: aborting due to previous error
++
++
+
+
+There were 1 unmatched diagnostics at tests/actual_tests/executable_compile_err.rs:4
+    Error: this file contains an unclosed delimiter
+
+full stderr:
+error: this file contains an unclosed delimiter
+ --> tests/actual_tests/executable_compile_err.rs:4:2
+  |
+3 | fn main() {
+  |           - unclosed delimiter
+4 |
+  |  ^
+
+error: aborting due to previous error
+
 
 
 
@@ -103,11 +158,13 @@ For more information about this error, try `rustc --explain E0308`.
 
 FAILURES:
     tests/actual_tests/bad_pattern.rs
+    tests/actual_tests/executable.rs
+    tests/actual_tests/executable_compile_err.rs
     tests/actual_tests/exit_code_fail.rs
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
 
-test result: FAIL. 4 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -116,6 +173,7 @@ Caused by:
    Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
+tests/actual_tests_bless/failing_executable.rs ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (b) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
@@ -123,6 +181,10 @@ tests/actual_tests_bless/foomp_aux.rs ... ok
 tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/revised_revision.rs ... FAILED
+tests/actual_tests_bless/revisioned_executable.rs (run) ... ok
+tests/actual_tests_bless/revisioned_executable.rs (panic) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (run) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (panic) ... FAILED
 tests/actual_tests_bless/revisions.rs (foo) ... ok
 tests/actual_tests_bless/revisions.rs (bar) ... ok
 tests/actual_tests_bless/revisions_bad.rs (foo) ... ok
@@ -170,6 +232,15 @@ Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:4 
 comment looks suspiciously like a test suite command: `@aux-build:asldkfjasldfj.rs`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
+
+full stderr:
+
+
+
+tests/actual_tests_bless/failing_executable.rs FAILED:
+command: "$CMD"
+
+run(0) test got exit status: 101, but expected 0
 
 full stderr:
 
@@ -265,6 +336,33 @@ full stderr:
 
 
 
+tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) FAILED:
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "tests/actual_tests_bless/revisioned_executable.rs" "--cfg=panic" "--edition" "2021"
+
+run(101) test got exit status: 0, but expected 101
+
+full stderr:
+
+
+
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) FAILED:
+command: "$CMD"
+
+run(0) test got exit status: 101, but expected 0
+
+full stderr:
+
+
+
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) FAILED:
+command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "tests/actual_tests_bless/revisioned_executable_panic.rs" "--cfg=panic" "--edition" "2021"
+
+run(101) test got exit status: 0, but expected 101
+
+full stderr:
+
+
+
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
 command: "rustc" "--out-dir" "$TMP "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
@@ -289,14 +387,18 @@ For more information about this error, try `rustc --explain E0601`.
 FAILURES:
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
     tests/actual_tests_bless/compiletest-rs-command.rs
+    tests/actual_tests_bless/failing_executable.rs
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
     tests/actual_tests_bless/foomp-rustfix-fail.rs
     tests/actual_tests_bless/non_top_level_configs.rs
     tests/actual_tests_bless/revised_revision.rs
+    tests/actual_tests_bless/revisioned_executable.rs
+    tests/actual_tests_bless/revisioned_executable_panic.rs
+    tests/actual_tests_bless/revisioned_executable_panic.rs
     tests/actual_tests_bless/revisions_bad.rs
 
-test result: FAIL. 8 tests failed, 10 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 12 tests failed, 11 tests passed, 3 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
@@ -318,6 +420,10 @@ Caused by:
 thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"', $DIR/src/lib.rs
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 tests/actual_tests/bad_pattern.rs ... FAILED
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable.rs" "--edition" "2021"', $DIR/src/lib.rs
+tests/actual_tests/executable.rs ... FAILED
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"', $DIR/src/lib.rs
+tests/actual_tests/executable_compile_err.rs ... FAILED
 thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"', $DIR/src/lib.rs
 tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
@@ -328,6 +434,24 @@ tests/actual_tests/bad_pattern.rs FAILED:
 command: "<unknown>"
 
 A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
+
+full stderr:
+
+
+
+tests/actual_tests/executable.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable.rs" "--edition" "2021"
+
+full stderr:
+
+
+
+tests/actual_tests/executable_compile_err.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
 
 full stderr:
 
@@ -362,11 +486,13 @@ full stderr:
 
 FAILURES:
     tests/actual_tests/bad_pattern.rs
+    tests/actual_tests/executable.rs
+    tests/actual_tests/executable_compile_err.rs
     tests/actual_tests/exit_code_fail.rs
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
 
-test result: FAIL. 4 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
