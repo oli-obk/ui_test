@@ -400,6 +400,21 @@ impl CommentParser<&mut Revisioned> {
                 );
                 self.mode = Some((Mode::Pass, self.line))
             }
+            "run" => {
+                self.check(
+                    self.mode.is_none(),
+                    "cannot specify test mode changes twice",
+                );
+                let mut set = |exit_code| self.mode = Some((Mode::Run { exit_code }, self.line));
+                if args.is_empty() {
+                    set(0);
+                } else {
+                    match args.parse() {
+                        Ok(exit_code) => set(exit_code),
+                        Err(err) => self.error(err.to_string()),
+                    }
+                }
+            }
             "require-annotations-for-level" => {
                 self.check(
                     self.require_annotations_for_level.is_none(),

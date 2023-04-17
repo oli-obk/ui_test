@@ -15,6 +15,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     eprintln!("\n{} `{name}` tests in mode {mode}", "Running".green());
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join(name);
+    let bless = std::env::args().any(|arg| arg == "--bless");
     let mut config = Config {
         root_dir: root_dir.clone(),
         args: vec![
@@ -31,7 +32,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         ],
         trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
         program: "cargo".into(),
-        output_conflict_handling: if std::env::args().any(|arg| arg == "--bless") {
+        output_conflict_handling: if bless {
             OutputConflictHandling::Bless
         } else {
             OutputConflictHandling::Error
@@ -44,6 +45,10 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     // avoid rendering github actions messages in the dogfood tests as they'd
     // show up in the diff and thus fail CI.
     config.envs.push(("GITHUB_ACTION".into(), None));
+
+    config
+        .envs
+        .push(("BLESS".into(), Some(bless.to_string().into())));
 
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
@@ -67,6 +72,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.stderr_filter("   [0-9]: .*", "");
     config.stderr_filter("/target/[^/]+/debug", "/target/$$TRIPLE/debug");
+    config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
 
     run_tests_generic(
         config,
@@ -87,7 +93,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                     // multiple [[test]]s exist. If there's only one test, it returns
                     // 1 on failure.
                     Mode::Panic => fail,
-                    Mode::Yolo | Mode::Fail { .. } => unreachable!(),
+                    Mode::Run { .. } | Mode::Yolo | Mode::Fail { .. } => unreachable!(),
                 }
         },
         |_, _| None,

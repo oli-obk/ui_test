@@ -948,10 +948,12 @@ fn run_test(
     let output = cmd
         .output()
         .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
-    let status_check = config
-        .mode
-        .maybe_override(comments, revision, &mut errors)
-        .ok(output.status);
+    let mode = config.mode.maybe_override(comments, revision, &mut errors);
+    let status_check = mode.ok(output.status);
+    if status_check.is_empty() && matches!(mode, Mode::Run { .. }) {
+        let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
+        return (cmd, errors, vec![]);
+    }
     errors.extend(status_check);
     if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic | Mode::Yolo) {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -1009,6 +1011,46 @@ fn run_test(
         }
     }
     (cmd, errors, stderr)
+}
+
+fn run_test_binary(
+    mode: Mode,
+    path: &Path,
+    revision: &str,
+    comments: &Comments,
+    mut cmd: Command,
+    config: &Config,
+    errors: &mut Vec<Error>,
+) -> Command {
+    let out_dir = config.out_dir.as_deref();
+    cmd.arg("--print").arg("file-names");
+    let output = cmd.output().unwrap();
+    assert!(output.status.success());
+
+    let mut files = output.stdout.lines();
+    let file = files.next().unwrap();
+    assert_eq!(files.next(), None);
+    let file = std::str::from_utf8(file).unwrap();
+    let exe = match out_dir {
+        None => PathBuf::from(file),
+        Some(path) => path.join(file),
+    };
+    let mut exe = Command::new(exe);
+    let output = exe.output().unwrap();
+
+    check_test_output(
+        path,
+        errors,
+        revision,
+        config,
+        comments,
+        &output.stdout,
+        &output.stderr,
+    );
+
+    errors.extend(mode.ok(output.status));
+
+    exe
 }
 
 fn run_rustfix(
@@ -1109,10 +1151,41 @@ fn check_test_result(
     stdout: &[u8],
     diagnostics: Diagnostics,
 ) -> Vec<u8> {
+    check_test_output(
+        path,
+        errors,
+        revision,
+        config,
+        comments,
+        stdout,
+        &diagnostics.rendered,
+    );
+    // Check error annotations in the source against output
+    check_annotations(
+        diagnostics.messages,
+        diagnostics.messages_from_unknown_file_or_line,
+        path,
+        errors,
+        config,
+        revision,
+        comments,
+    );
+    diagnostics.rendered
+}
+
+fn check_test_output(
+    path: &Path,
+    errors: &mut Vec<Error>,
+    revision: &str,
+    config: &Config,
+    comments: &Comments,
+    stdout: &[u8],
+    stderr: &[u8],
+) {
     // Check output files (if any)
     // Check output files against actual output
     check_output(
-        &diagnostics.rendered,
+        stderr,
         path,
         errors,
         revised(revision, "stderr"),
@@ -1131,17 +1204,6 @@ fn check_test_result(
         comments,
         revision,
     );
-    // Check error annotations in the source against output
-    check_annotations(
-        diagnostics.messages,
-        diagnostics.messages_from_unknown_file_or_line,
-        path,
-        errors,
-        config,
-        revision,
-        comments,
-    );
-    diagnostics.rendered
 }
 
 fn check_annotations(
@@ -1389,6 +1451,11 @@ fn normalize(
 pub enum Mode {
     /// The test passes a full execution of the rustc driver
     Pass,
+    /// The test produces an executable binary that can get executed on the host
+    Run {
+        /// The expected exit code
+        exit_code: i32,
+    },
     /// The rustc driver panicked
     Panic,
     /// The rustc driver emitted an error
@@ -1403,6 +1470,7 @@ pub enum Mode {
 impl Mode {
     fn ok(self, status: ExitStatus) -> Errors {
         let expected = match self {
+            Mode::Run { exit_code } => exit_code,
             Mode::Pass => 0,
             Mode::Panic => 101,
             Mode::Fail { .. } => 1,
@@ -1438,6 +1506,7 @@ impl Mode {
 impl Display for Mode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Mode::Run { exit_code } => write!(f, "run({exit_code})"),
             Mode::Pass => write!(f, "pass"),
             Mode::Panic => write!(f, "panic"),
             Mode::Fail {

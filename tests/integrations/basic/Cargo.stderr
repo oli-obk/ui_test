@@ -2,9 +2,10 @@
    Building test dependencies...
 tests/actual_tests/aux_derive.rs ... ok
 tests/actual_tests/aux_proc_macro.rs ... ok
+tests/actual_tests/executable.rs ... ok
 tests/actual_tests/foomp-rustfix.rs ... ok
 tests/actual_tests/foomp.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 5 tests passed, 0 ignored, 0 filtered out
+test result: ok. 6 tests passed, 0 ignored, 0 filtered out
 
