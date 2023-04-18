@@ -42,13 +42,6 @@ mod tests;
 /// Central datastructure containing all information to run the tests.
 pub struct Config {
     /// Arguments passed to the binary that is executed.
-    /// Take care to only append unless you actually meant to overwrite the defaults.
-    /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
-    pub args: Vec<OsString>,
-    /// Environment variables passed to the binary that is executed.
-    /// The environment variable is removed if the second tuple field is `None`
-    pub envs: Vec<(OsString, Option<OsString>)>,
-    /// Arguments passed to the binary that is executed.
     /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
     pub trailing_args: Vec<OsString>,
     /// Host triple; usually will be auto-detected.
@@ -67,7 +60,7 @@ pub struct Config {
     /// The mode in which to run the tests.
     pub mode: Mode,
     /// The binary to actually execute.
-    pub program: PathBuf,
+    pub program: CommandBuilder,
     /// What to do in case the stdout/stderr output differs from the expected one.
     pub output_conflict_handling: OutputConflictHandling,
     /// Only run tests with one of these strings in their path/name
@@ -76,7 +69,7 @@ pub struct Config {
     pub dependencies_crate_manifest_path: Option<PathBuf>,
     /// The command to run can be changed from `cargo` to any custom command to build the
     /// dependencies in `dependencies_crate_manifest_path`
-    pub dependency_builder: DependencyBuilder,
+    pub dependency_builder: CommandBuilder,
     /// Print one character per test instead of one line
     pub quiet: bool,
     /// How many threads to use for running tests. Defaults to number of cores
@@ -90,8 +83,6 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            args: vec!["--error-format=json".into()],
-            envs: vec![],
             trailing_args: vec![],
             host: None,
             target: None,
@@ -108,11 +99,11 @@ impl Default for Config {
             mode: Mode::Fail {
                 require_patterns: true,
             },
-            program: PathBuf::from("rustc"),
+            program: CommandBuilder::rustc(),
             output_conflict_handling: OutputConflictHandling::Error,
             path_filter: vec![],
             dependencies_crate_manifest_path: None,
-            dependency_builder: DependencyBuilder::default(),
+            dependency_builder: CommandBuilder::cargo(),
             quiet: false,
             num_test_threads: std::thread::available_parallelism().unwrap(),
             out_dir: None,
@@ -157,16 +148,16 @@ impl Config {
         let dependencies = build_dependencies(self)?;
         for (name, artifacts) in dependencies.dependencies {
             for dependency in artifacts {
-                self.args.push("--extern".into());
+                self.program.args.push("--extern".into());
                 let mut dep = OsString::from(&name);
                 dep.push("=");
                 dep.push(dependency);
-                self.args.push(dep);
+                self.program.args.push(dep);
             }
         }
         for import_path in dependencies.import_paths {
-            self.args.push("-L".into());
-            self.args.push(import_path.into());
+            self.program.args.push("-L".into());
+            self.program.args.push(import_path.into());
         }
         Ok(())
     }
@@ -175,14 +166,16 @@ impl Config {
     pub fn fill_host_and_target(&mut self) -> Result<()> {
         if self.host.is_none() {
             self.host = Some(
-                rustc_version::VersionMeta::for_command(std::process::Command::new(&self.program))
-                    .map_err(|err| {
-                        color_eyre::eyre::Report::new(err).wrap_err(format!(
-                            "failed to parse rustc version info: {}",
-                            self.program.display()
-                        ))
-                    })?
-                    .host,
+                rustc_version::VersionMeta::for_command(std::process::Command::new(
+                    &self.program.program,
+                ))
+                .map_err(|err| {
+                    color_eyre::eyre::Report::new(err).wrap_err(format!(
+                        "failed to parse rustc version info: {}",
+                        self.program.display()
+                    ))
+                })?
+                .host,
             );
         }
         if self.target.is_none() {
@@ -205,24 +198,63 @@ impl Config {
 }
 
 #[derive(Debug, Clone)]
-/// The command line program that builds dependencies. Currently really only supports
-/// `cargo`-like things.
-pub struct DependencyBuilder {
-    /// Path to the binary. Defaults to the `CARGO` env var or just a program named `cargo`
+/// A command, its args and its environment. Used for
+/// the main command, the dependency builder and the cfg-reader.
+pub struct CommandBuilder {
+    /// Path to the binary.
     pub program: PathBuf,
-    /// Arguments to the binary. Defaults to `build`.
-    pub args: Vec<String>,
-    /// Environment variables to set before running the binary.
-    pub envs: Vec<(String, OsString)>,
+    /// Arguments to the binary.
+    pub args: Vec<OsString>,
+    /// Environment variables passed to the binary that is executed.
+    /// The environment variable is removed if the second tuple field is `None`
+    pub envs: Vec<(OsString, Option<OsString>)>,
 }
 
-impl Default for DependencyBuilder {
-    fn default() -> Self {
+impl CommandBuilder {
+    /// Uses the `CARGO` env var or just a program named `cargo` and the argument `build`.
+    pub fn cargo() -> Self {
         Self {
             program: PathBuf::from(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())),
             args: vec!["build".into()],
             envs: vec![],
         }
+    }
+
+    /// Uses the `RUSTC` env var or just a program named `rustc` and the argument `--error-format=json`.
+    ///
+    /// Take care to only append unless you actually meant to overwrite the defaults.
+    /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
+    pub fn rustc() -> Self {
+        Self {
+            program: PathBuf::from(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into())),
+            args: vec!["--error-format=json".into()],
+            envs: vec![],
+        }
+    }
+
+    /// Build a `CommandBuilder` for a command without any argumemnts.
+    /// You can still add arguments later.
+    pub fn cmd(cmd: impl Into<PathBuf>) -> Self {
+        Self {
+            program: cmd.into(),
+            args: vec![],
+            envs: vec![],
+        }
+    }
+
+    /// Render the command like you'd use it on a command line.
+    pub fn display(&self) -> impl std::fmt::Display + '_ {
+        struct Display<'a>(&'a CommandBuilder);
+        impl std::fmt::Display for Display<'_> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.0.program.display().fmt(f)?;
+                for arg in &self.0.args {
+                    write!(f, " {arg:?}")?;
+                }
+                Ok(())
+            }
+        }
+        Display(self)
     }
 }
 
@@ -285,7 +317,7 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 
 /// Run all tests as described in the config argument.
 pub fn run_tests(config: Config) -> Result<()> {
-    eprintln!("   Compiler flags: {:?}", config.args);
+    eprintln!("   Compiler flags: {:?}", config.program.args);
 
     run_tests_generic(
         config,
@@ -311,7 +343,12 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output>
         &mut errors,
     )
     .output()
-    .wrap_err_with(|| format!("path `{}` is not an executable", config.program.display()));
+    .wrap_err_with(|| {
+        format!(
+            "path `{}` is not an executable",
+            config.program.program.display()
+        )
+    });
     assert!(errors.is_empty(), "{errors:#?}");
     result
 }
@@ -816,13 +853,13 @@ fn build_command(
     out_dir: Option<&Path>,
     errors: &mut Vec<Error>,
 ) -> Command {
-    let mut cmd = Command::new(&config.program);
+    let mut cmd = Command::new(&config.program.program);
     if let Some(out_dir) = out_dir {
         cmd.arg("--out-dir");
         cmd.arg(out_dir);
     }
-    cmd.args(config.args.iter());
-    for (var, val) in config.envs.iter() {
+    cmd.args(config.program.args.iter());
+    for (var, val) in config.program.envs.iter() {
         if let Some(val) = val {
             cmd.env(var, val);
         } else {

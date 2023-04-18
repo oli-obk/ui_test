@@ -8,7 +8,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::{Config, DependencyBuilder, OutputConflictHandling};
+use crate::{CommandBuilder, Config, OutputConflictHandling};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -20,7 +20,7 @@ pub struct Dependencies {
 }
 
 fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
-    let mut cmd = Command::new(&config.program);
+    let mut cmd = Command::new(&config.program.program);
     cmd.arg("--print")
         .arg("cfg")
         .arg("--target")
@@ -52,7 +52,7 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
     let manifest_path = &manifest_path;
     config.fill_host_and_target()?;
     eprintln!("   Building test dependencies...");
-    let DependencyBuilder {
+    let CommandBuilder {
         program,
         args,
         envs,
@@ -66,7 +66,13 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
     let setup_command = |cmd: &mut Command| {
-        cmd.envs(envs.iter().map(|(k, v)| (k, v)));
+        for (k, v) in envs {
+            if let Some(v) = v {
+                cmd.env(k, v);
+            } else {
+                cmd.env_remove(k);
+            }
+        }
         cmd.arg("--manifest-path").arg(manifest_path);
         if matches!(
             config.output_conflict_handling,
