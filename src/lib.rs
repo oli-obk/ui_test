@@ -284,10 +284,8 @@ impl From<Regex> for Match {
 pub type Filter = Vec<(Match, &'static [u8])>;
 
 /// Run all tests as described in the config argument.
-pub fn run_tests(mut config: Config) -> Result<()> {
+pub fn run_tests(config: Config) -> Result<()> {
     eprintln!("   Compiler flags: {:?}", config.args);
-
-    config.build_dependencies_and_link_them()?;
 
     run_tests_generic(
         config,
@@ -343,6 +341,8 @@ pub fn run_tests_generic(
     per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
 ) -> Result<()> {
     config.fill_host_and_target()?;
+
+    config.build_dependencies_and_link_them()?;
 
     // A channel for files to process
     let (submit, receive) = unbounded();
