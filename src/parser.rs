@@ -8,7 +8,7 @@ use regex::bytes::Regex;
 
 use crate::{rustc_stderr::Level, Error, Mode};
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, Result};
 
 #[cfg(test)]
 mod tests;
@@ -159,7 +159,8 @@ impl Condition {
 
 impl Comments {
     pub(crate) fn parse_file(path: &Path) -> Result<std::result::Result<Self, Vec<Error>>> {
-        let content = std::fs::read(path)?;
+        let content =
+            std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
         Ok(Self::parse(&content))
     }
 
