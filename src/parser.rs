@@ -273,8 +273,8 @@ impl CommentParser<Comments> {
 
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
         let (command, args) = match command
-            .chars()
-            .position(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
+            .char_indices()
+            .find_map(|(i, c)| (!c.is_alphanumeric() && c != '-' && c != '_').then_some(i))
         {
             None => (command, ""),
             Some(i) => {
