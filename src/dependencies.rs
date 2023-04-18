@@ -31,8 +31,7 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
     if !output.status.success() {
         let stderr = String::from_utf8(output.stderr)?;
         bail!(
-            "failed to obtain `cfg` information from {}:\nstderr:\n{stderr}\n\nstdout:{stdout}",
-            config.program.display()
+            "failed to obtain `cfg` information from {cmd:?}:\nstderr:\n{stderr}\n\nstdout:{stdout}"
         );
     }
     let mut cfgs = vec![];
