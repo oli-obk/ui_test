@@ -856,6 +856,82 @@ fn build_command(
     cmd
 }
 
+fn build_aux(
+    aux_file: &Path,
+    path: &Path,
+    config: &Config,
+    revision: &str,
+    comments: &Comments,
+    kind: &str,
+    aux: &Path,
+    extra_args: &mut Vec<String>,
+) -> Option<(Command, Vec<Error>, Vec<u8>)> {
+    let comments = match parse_comments_in_file(aux_file) {
+        Ok(comments) => comments,
+        Err((msg, mut errors)) => {
+            return Some((
+                build_command(path, config, revision, comments, None, &mut errors),
+                errors,
+                msg,
+            ))
+        }
+    };
+    assert_eq!(comments.revisions, None);
+    // Put aux builds into a separate directory per test so that
+    // tests running in parallel but building the same aux build don't conflict.
+    // FIXME: put aux builds into the regular build queue.
+    let out_dir = config
+        .out_dir
+        .clone()
+        .unwrap_or_default()
+        .join(path.with_extension(""));
+
+    let mut errors = vec![];
+
+    let mut aux_cmd = build_command(
+        aux_file,
+        config,
+        revision,
+        &comments,
+        Some(&out_dir),
+        &mut errors,
+    );
+
+    if !errors.is_empty() {
+        return Some((aux_cmd, errors, vec![]));
+    }
+
+    aux_cmd.arg("--crate-type").arg(kind);
+    aux_cmd.arg("--emit=link");
+    let filename = aux.file_stem().unwrap().to_str().unwrap();
+    let output = aux_cmd.output().unwrap();
+    if !output.status.success() {
+        let error = Error::Command {
+            kind: format!("auxiliary build for `{}`", path.display()),
+            status: output.status,
+        };
+        return Some((
+            aux_cmd,
+            vec![error],
+            rustc_stderr::process(path, &output.stderr).rendered,
+        ));
+    }
+
+    // Now run the command again to fetch the output filenames
+    aux_cmd.arg("--print").arg("file-names");
+    let output = aux_cmd.output().unwrap();
+    assert!(output.status.success());
+
+    for file in output.stdout.lines() {
+        let file = std::str::from_utf8(file).unwrap();
+        let crate_name = filename.replace('-', "_");
+        let path = out_dir.join(file);
+        extra_args.push("--extern".into());
+        extra_args.push(format!("{crate_name}={}", path.display()));
+    }
+    None
+}
+
 fn run_test(
     path: &Path,
     config: &Config,
@@ -867,68 +943,17 @@ fn run_test(
     for rev in comments.for_revision(revision) {
         for (aux, kind) in &rev.aux_builds {
             let aux_file = aux_dir.join(aux);
-            let comments = match parse_comments_in_file(&aux_file) {
-                Ok(comments) => comments,
-                Err((msg, mut errors)) => {
-                    return (
-                        build_command(path, config, revision, comments, None, &mut errors),
-                        errors,
-                        msg,
-                    )
-                }
-            };
-            assert_eq!(comments.revisions, None);
-            // Put aux builds into a separate directory per test so that
-            // tests running in parallel but building the same aux build don't conflict.
-            // FIXME: put aux builds into the regular build queue.
-            let out_dir = config
-                .out_dir
-                .clone()
-                .unwrap_or_default()
-                .join(path.with_extension(""));
-
-            let mut errors = vec![];
-
-            let mut aux_cmd = build_command(
+            if let Some((command, errors, msg)) = build_aux(
                 &aux_file,
+                path,
                 config,
                 revision,
-                &comments,
-                Some(&out_dir),
-                &mut errors,
-            );
-
-            if !errors.is_empty() {
-                return (aux_cmd, errors, vec![]);
-            }
-
-            aux_cmd.arg("--crate-type").arg(kind);
-            aux_cmd.arg("--emit=link");
-            let filename = aux.file_stem().unwrap().to_str().unwrap();
-            let output = aux_cmd.output().unwrap();
-            if !output.status.success() {
-                let error = Error::Command {
-                    kind: format!("auxiliary build for `{}`", path.display()),
-                    status: output.status,
-                };
-                return (
-                    aux_cmd,
-                    vec![error],
-                    rustc_stderr::process(path, &output.stderr).rendered,
-                );
-            }
-
-            // Now run the command again to fetch the output filenames
-            aux_cmd.arg("--print").arg("file-names");
-            let output = aux_cmd.output().unwrap();
-            assert!(output.status.success());
-
-            for file in output.stdout.lines() {
-                let file = std::str::from_utf8(file).unwrap();
-                let crate_name = filename.replace('-', "_");
-                let path = out_dir.join(file);
-                extra_args.push("--extern".into());
-                extra_args.push(format!("{crate_name}={}", path.display()));
+                comments,
+                kind,
+                aux,
+                &mut extra_args,
+            ) {
+                return (command, errors, msg);
             }
         }
     }
