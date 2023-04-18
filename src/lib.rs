@@ -267,6 +267,24 @@ impl CommandBuilder {
         }
         Display(self)
     }
+
+    /// Create a command with the given settings.
+    pub fn build(&self) -> Command {
+        let mut cmd = Command::new(&self.program);
+        cmd.args(self.args.iter());
+        self.apply_env(&mut cmd);
+        cmd
+    }
+
+    fn apply_env(&self, cmd: &mut Command) {
+        for (var, val) in self.envs.iter() {
+            if let Some(val) = val {
+                cmd.env(var, val);
+            } else {
+                cmd.env_remove(var);
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -328,7 +346,7 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 
 /// Run all tests as described in the config argument.
 pub fn run_tests(config: Config) -> Result<()> {
-    eprintln!("   Compiler flags: {:?}", config.program.args);
+    eprintln!("   Compiler: {}", config.program.display());
 
     run_tests_generic(
         config,
@@ -864,18 +882,10 @@ fn build_command(
     out_dir: Option<&Path>,
     errors: &mut Vec<Error>,
 ) -> Command {
-    let mut cmd = Command::new(&config.program.program);
+    let mut cmd = config.program.build();
     if let Some(out_dir) = out_dir {
         cmd.arg("--out-dir");
         cmd.arg(out_dir);
-    }
-    cmd.args(config.program.args.iter());
-    for (var, val) in config.program.envs.iter() {
-        if let Some(val) = val {
-            cmd.env(var, val);
-        } else {
-            cmd.env_remove(var);
-        }
     }
     cmd.arg(path);
     if !revision.is_empty() {

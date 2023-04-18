@@ -8,7 +8,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::{CommandBuilder, Config, OutputConflictHandling};
+use crate::{Config, OutputConflictHandling};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -20,17 +20,8 @@ pub struct Dependencies {
 }
 
 fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
-    let mut cmd = Command::new(&config.cfgs.program);
-    cmd.args(&config.cfgs.args)
-        .arg("--target")
-        .arg(config.target.as_ref().unwrap());
-    for (k, v) in &config.cfgs.envs {
-        if let Some(v) = v {
-            cmd.env(k, v);
-        } else {
-            cmd.env_remove(k);
-        }
-    }
+    let mut cmd = config.cfgs.build();
+    cmd.arg("--target").arg(config.target.as_ref().unwrap());
     let output = cmd.output()?;
     let stdout = String::from_utf8(output.stdout)?;
 
@@ -58,13 +49,7 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
     let manifest_path = &manifest_path;
     config.fill_host_and_target()?;
     eprintln!("   Building test dependencies...");
-    let CommandBuilder {
-        program,
-        args,
-        envs,
-    } = &config.dependency_builder;
-    let mut build = Command::new(program);
-    build.args(args);
+    let mut build = config.dependency_builder.build();
 
     if let Some(target) = &config.target {
         build.arg(format!("--target={target}"));
@@ -72,13 +57,6 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
     let setup_command = |cmd: &mut Command| {
-        for (k, v) in envs {
-            if let Some(v) = v {
-                cmd.env(k, v);
-            } else {
-                cmd.env_remove(k);
-            }
-        }
         cmd.arg("--manifest-path").arg(manifest_path);
         if matches!(
             config.output_conflict_handling,
@@ -120,6 +98,7 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
 
     // Check which crates are mentioned in the crate itself
     let mut metadata = cargo_metadata::MetadataCommand::new().cargo_command();
+    config.dependency_builder.apply_env(&mut metadata);
     setup_command(&mut metadata);
     let output = metadata.output()?;
 
