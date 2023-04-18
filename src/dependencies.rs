@@ -20,11 +20,17 @@ pub struct Dependencies {
 }
 
 fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
-    let mut cmd = Command::new(&config.program.program);
-    cmd.arg("--print")
-        .arg("cfg")
+    let mut cmd = Command::new(&config.cfgs.program);
+    cmd.args(&config.cfgs.args)
         .arg("--target")
         .arg(config.target.as_ref().unwrap());
+    for (k, v) in &config.cfgs.envs {
+        if let Some(v) = v {
+            cmd.env(k, v);
+        } else {
+            cmd.env_remove(k);
+        }
+    }
     let output = cmd.output()?;
     let stdout = String::from_utf8(output.stdout)?;
 

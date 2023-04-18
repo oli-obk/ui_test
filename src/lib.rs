@@ -61,6 +61,8 @@ pub struct Config {
     pub mode: Mode,
     /// The binary to actually execute.
     pub program: CommandBuilder,
+    /// The command to run to obtain the cfgs that the output is supposed to
+    pub cfgs: CommandBuilder,
     /// What to do in case the stdout/stderr output differs from the expected one.
     pub output_conflict_handling: OutputConflictHandling,
     /// Only run tests with one of these strings in their path/name
@@ -100,6 +102,7 @@ impl Default for Config {
                 require_patterns: true,
             },
             program: CommandBuilder::rustc(),
+            cfgs: CommandBuilder::cfgs(),
             output_conflict_handling: OutputConflictHandling::Error,
             path_filter: vec![],
             dependencies_crate_manifest_path: None,
@@ -229,6 +232,14 @@ impl CommandBuilder {
             program: PathBuf::from(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into())),
             args: vec!["--error-format=json".into()],
             envs: vec![],
+        }
+    }
+
+    /// Same as [`rustc`], but with arguments for obtaining the cfgs.
+    pub fn cfgs() -> Self {
+        Self {
+            args: vec!["--print".into(), "cfg".into()],
+            ..Self::rustc()
         }
     }
 

@@ -413,7 +413,7 @@ Caused by:
 
 
 Location:
-    $DIR/src/lib.rs:173:21
+    $DIR/src/lib.rs:176:21
 error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
