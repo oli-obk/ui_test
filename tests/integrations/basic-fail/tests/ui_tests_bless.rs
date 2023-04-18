@@ -19,7 +19,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config
         .dependency_builder
         .envs
-        .push(("CARGO_TARGET_DIR".into(), path.into()));
+        .push(("CARGO_TARGET_DIR".into(), Some(path.into())));
 
     // hide binaries generated for successfully passing tests
     let tmp_dir = tempfile::tempdir()?;

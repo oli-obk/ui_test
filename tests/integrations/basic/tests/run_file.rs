@@ -30,12 +30,12 @@ fn run_file_with_deps() -> Result<()> {
     config.out_dir = Some(tmp_dir.path().into());
 
     // Don't build a binary, we only provide .rmeta dependencies for now
-    config.args.push("--emit=metadata".into());
+    config.program.args.push("--emit=metadata".into());
     config.dependencies_crate_manifest_path = Some("Cargo.toml".into());
     config
         .dependency_builder
         .envs
-        .push(("CARGO_TARGET_DIR".into(), path.into()));
+        .push(("CARGO_TARGET_DIR".into(), Some(path.into())));
 
     let result = ui_test::run_file(
         config,
@@ -58,8 +58,7 @@ fn non_utf8() -> Result<()> {
         return Ok(());
     }
     let mut config = Config::default();
-    config.args.clear();
-    config.program = "cat".into();
+    config.program = CommandBuilder::cmd("cat");
     config.edition = None;
 
     let result = ui_test::run_file(config, &path)?;

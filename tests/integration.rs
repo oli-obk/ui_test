@@ -18,20 +18,8 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     let bless = std::env::args().any(|arg| arg == "--bless");
     let mut config = Config {
         root_dir: root_dir.clone(),
-        args: vec![
-            "test".into(),
-            "--color".into(),
-            "never".into(),
-            "--quiet".into(),
-            "--jobs".into(),
-            "1".into(),
-            "--no-fail-fast".into(),
-            "--target-dir".into(),
-            path.parent().unwrap().join("target").into(),
-            "--manifest-path".into(),
-        ],
         trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
-        program: "cargo".into(),
+        program: CommandBuilder::cmd("cargo"),
         output_conflict_handling: if bless {
             OutputConflictHandling::Bless
         } else {
@@ -42,11 +30,25 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         ..Config::default()
     };
 
+    config.program.args = vec![
+        "test".into(),
+        "--color".into(),
+        "never".into(),
+        "--quiet".into(),
+        "--jobs".into(),
+        "1".into(),
+        "--no-fail-fast".into(),
+        "--target-dir".into(),
+        path.parent().unwrap().join("target").into(),
+        "--manifest-path".into(),
+    ];
+
     // avoid rendering github actions messages in the dogfood tests as they'd
     // show up in the diff and thus fail CI.
-    config.envs.push(("GITHUB_ACTION".into(), None));
+    config.program.envs.push(("GITHUB_ACTION".into(), None));
 
     config
+        .program
         .envs
         .push(("BLESS".into(), Some(bless.to_string().into())));
 

@@ -42,13 +42,6 @@ mod tests;
 /// Central datastructure containing all information to run the tests.
 pub struct Config {
     /// Arguments passed to the binary that is executed.
-    /// Take care to only append unless you actually meant to overwrite the defaults.
-    /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
-    pub args: Vec<OsString>,
-    /// Environment variables passed to the binary that is executed.
-    /// The environment variable is removed if the second tuple field is `None`
-    pub envs: Vec<(OsString, Option<OsString>)>,
-    /// Arguments passed to the binary that is executed.
     /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
     pub trailing_args: Vec<OsString>,
     /// Host triple; usually will be auto-detected.
@@ -67,7 +60,9 @@ pub struct Config {
     /// The mode in which to run the tests.
     pub mode: Mode,
     /// The binary to actually execute.
-    pub program: PathBuf,
+    pub program: CommandBuilder,
+    /// The command to run to obtain the cfgs that the output is supposed to
+    pub cfgs: CommandBuilder,
     /// What to do in case the stdout/stderr output differs from the expected one.
     pub output_conflict_handling: OutputConflictHandling,
     /// Only run tests with one of these strings in their path/name
@@ -76,7 +71,7 @@ pub struct Config {
     pub dependencies_crate_manifest_path: Option<PathBuf>,
     /// The command to run can be changed from `cargo` to any custom command to build the
     /// dependencies in `dependencies_crate_manifest_path`
-    pub dependency_builder: DependencyBuilder,
+    pub dependency_builder: CommandBuilder,
     /// Print one character per test instead of one line
     pub quiet: bool,
     /// How many threads to use for running tests. Defaults to number of cores
@@ -90,8 +85,6 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            args: vec!["--error-format=json".into()],
-            envs: vec![],
             trailing_args: vec![],
             host: None,
             target: None,
@@ -108,11 +101,12 @@ impl Default for Config {
             mode: Mode::Fail {
                 require_patterns: true,
             },
-            program: PathBuf::from("rustc"),
+            program: CommandBuilder::rustc(),
+            cfgs: CommandBuilder::cfgs(),
             output_conflict_handling: OutputConflictHandling::Error,
             path_filter: vec![],
             dependencies_crate_manifest_path: None,
-            dependency_builder: DependencyBuilder::default(),
+            dependency_builder: CommandBuilder::cargo(),
             quiet: false,
             num_test_threads: std::thread::available_parallelism().unwrap(),
             out_dir: None,
@@ -157,16 +151,16 @@ impl Config {
         let dependencies = build_dependencies(self)?;
         for (name, artifacts) in dependencies.dependencies {
             for dependency in artifacts {
-                self.args.push("--extern".into());
+                self.program.args.push("--extern".into());
                 let mut dep = OsString::from(&name);
                 dep.push("=");
                 dep.push(dependency);
-                self.args.push(dep);
+                self.program.args.push(dep);
             }
         }
         for import_path in dependencies.import_paths {
-            self.args.push("-L".into());
-            self.args.push(import_path.into());
+            self.program.args.push("-L".into());
+            self.program.args.push(import_path.into());
         }
         Ok(())
     }
@@ -175,14 +169,16 @@ impl Config {
     pub fn fill_host_and_target(&mut self) -> Result<()> {
         if self.host.is_none() {
             self.host = Some(
-                rustc_version::VersionMeta::for_command(std::process::Command::new(&self.program))
-                    .map_err(|err| {
-                        color_eyre::eyre::Report::new(err).wrap_err(format!(
-                            "failed to parse rustc version info: {}",
-                            self.program.display()
-                        ))
-                    })?
-                    .host,
+                rustc_version::VersionMeta::for_command(std::process::Command::new(
+                    &self.program.program,
+                ))
+                .map_err(|err| {
+                    color_eyre::eyre::Report::new(err).wrap_err(format!(
+                        "failed to parse rustc version info: {}",
+                        self.program.display()
+                    ))
+                })?
+                .host,
             );
         }
         if self.target.is_none() {
@@ -205,23 +201,88 @@ impl Config {
 }
 
 #[derive(Debug, Clone)]
-/// The command line program that builds dependencies. Currently really only supports
-/// `cargo`-like things.
-pub struct DependencyBuilder {
-    /// Path to the binary. Defaults to the `CARGO` env var or just a program named `cargo`
+/// A command, its args and its environment. Used for
+/// the main command, the dependency builder and the cfg-reader.
+pub struct CommandBuilder {
+    /// Path to the binary.
     pub program: PathBuf,
-    /// Arguments to the binary. Defaults to `build`.
-    pub args: Vec<String>,
-    /// Environment variables to set before running the binary.
-    pub envs: Vec<(String, OsString)>,
+    /// Arguments to the binary.
+    pub args: Vec<OsString>,
+    /// Environment variables passed to the binary that is executed.
+    /// The environment variable is removed if the second tuple field is `None`
+    pub envs: Vec<(OsString, Option<OsString>)>,
 }
 
-impl Default for DependencyBuilder {
-    fn default() -> Self {
+impl CommandBuilder {
+    /// Uses the `CARGO` env var or just a program named `cargo` and the argument `build`.
+    pub fn cargo() -> Self {
         Self {
             program: PathBuf::from(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())),
             args: vec!["build".into()],
             envs: vec![],
+        }
+    }
+
+    /// Uses the `RUSTC` env var or just a program named `rustc` and the argument `--error-format=json`.
+    ///
+    /// Take care to only append unless you actually meant to overwrite the defaults.
+    /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
+    pub fn rustc() -> Self {
+        Self {
+            program: PathBuf::from(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into())),
+            args: vec!["--error-format=json".into()],
+            envs: vec![],
+        }
+    }
+
+    /// Same as [`rustc`], but with arguments for obtaining the cfgs.
+    pub fn cfgs() -> Self {
+        Self {
+            args: vec!["--print".into(), "cfg".into()],
+            ..Self::rustc()
+        }
+    }
+
+    /// Build a `CommandBuilder` for a command without any argumemnts.
+    /// You can still add arguments later.
+    pub fn cmd(cmd: impl Into<PathBuf>) -> Self {
+        Self {
+            program: cmd.into(),
+            args: vec![],
+            envs: vec![],
+        }
+    }
+
+    /// Render the command like you'd use it on a command line.
+    pub fn display(&self) -> impl std::fmt::Display + '_ {
+        struct Display<'a>(&'a CommandBuilder);
+        impl std::fmt::Display for Display<'_> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.0.program.display().fmt(f)?;
+                for arg in &self.0.args {
+                    write!(f, " {arg:?}")?;
+                }
+                Ok(())
+            }
+        }
+        Display(self)
+    }
+
+    /// Create a command with the given settings.
+    pub fn build(&self) -> Command {
+        let mut cmd = Command::new(&self.program);
+        cmd.args(self.args.iter());
+        self.apply_env(&mut cmd);
+        cmd
+    }
+
+    fn apply_env(&self, cmd: &mut Command) {
+        for (var, val) in self.envs.iter() {
+            if let Some(val) = val {
+                cmd.env(var, val);
+            } else {
+                cmd.env_remove(var);
+            }
         }
     }
 }
@@ -284,10 +345,8 @@ impl From<Regex> for Match {
 pub type Filter = Vec<(Match, &'static [u8])>;
 
 /// Run all tests as described in the config argument.
-pub fn run_tests(mut config: Config) -> Result<()> {
-    eprintln!("   Compiler flags: {:?}", config.args);
-
-    config.build_dependencies_and_link_them()?;
+pub fn run_tests(config: Config) -> Result<()> {
+    eprintln!("   Compiler: {}", config.program.display());
 
     run_tests_generic(
         config,
@@ -313,7 +372,12 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output>
         &mut errors,
     )
     .output()
-    .wrap_err_with(|| format!("path `{}` is not an executable", config.program.display()));
+    .wrap_err_with(|| {
+        format!(
+            "path `{}` is not an executable",
+            config.program.program.display()
+        )
+    });
     assert!(errors.is_empty(), "{errors:#?}");
     result
 }
@@ -343,6 +407,8 @@ pub fn run_tests_generic(
     per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
 ) -> Result<()> {
     config.fill_host_and_target()?;
+
+    config.build_dependencies_and_link_them()?;
 
     // A channel for files to process
     let (submit, receive) = unbounded();
@@ -514,146 +580,7 @@ pub fn run_tests_generic(
             eprintln!("command: {cmd:?}");
             eprintln!();
             for error in errors {
-                match error {
-                    Error::ExitStatus {
-                        mode,
-                        status,
-                        expected,
-                    } => {
-                        github_actions::error(
-                            &path,
-                            format!("{mode} test{revision} got {status}, but expected {expected}"),
-                        );
-                        eprintln!("{mode} test got {status}, but expected {expected}")
-                    }
-                    Error::Command { kind, status } => {
-                        github_actions::error(
-                            &path,
-                            format!("{kind}{revision} failed with {status}"),
-                        );
-                        eprintln!("{kind} failed with {status}");
-                    }
-                    Error::PatternNotFound {
-                        pattern,
-                        definition_line,
-                    } => {
-                        github_actions::error(&path, format!("Pattern not found{revision}"))
-                            .line(*definition_line);
-                        match pattern {
-                            Pattern::SubString(s) => {
-                                eprintln!("substring `{s}` {} in stderr output", "not found".red())
-                            }
-                            Pattern::Regex(r) => {
-                                eprintln!("`/{r}/` does {} stderr output", "not match".red())
-                            }
-                        }
-                        eprintln!(
-                            "expected because of pattern here: {}",
-                            format!("{path}:{definition_line}").bold()
-                        );
-                    }
-                    Error::NoPatternsFound => {
-                        github_actions::error(
-                            &path,
-                            format!("no error patterns found in fail test{revision}"),
-                        );
-                        eprintln!("{}", "no error patterns found in fail test".red());
-                    }
-                    Error::PatternFoundInPassTest => {
-                        github_actions::error(
-                            &path,
-                            format!("error pattern found in pass test{revision}"),
-                        );
-                        eprintln!("{}", "error pattern found in pass test".red())
-                    }
-                    Error::OutputDiffers {
-                        path: output_path,
-                        actual,
-                        expected,
-                    } => {
-                        let mut err = github_actions::error(
-                            if expected.is_empty() {
-                                path.clone()
-                            } else {
-                                output_path.display().to_string()
-                            },
-                            "actual output differs from expected",
-                        );
-                        writeln!(err, "```diff").unwrap();
-                        for r in ::diff::lines(expected.to_str().unwrap(), actual.to_str().unwrap())
-                        {
-                            match r {
-                                ::diff::Result::Both(l, r) => {
-                                    if l != r {
-                                        writeln!(err, "-{l}").unwrap();
-                                        writeln!(err, "+{r}").unwrap();
-                                    } else {
-                                        writeln!(err, " {l}").unwrap()
-                                    }
-                                }
-                                ::diff::Result::Left(l) => {
-                                    writeln!(err, "-{l}").unwrap();
-                                }
-                                ::diff::Result::Right(r) => {
-                                    writeln!(err, "+{r}").unwrap();
-                                }
-                            }
-                        }
-                        writeln!(err, "```").unwrap();
-                        eprintln!("{}", "actual output differed from expected".underline());
-                        eprintln!("{}", format!("--- {}", output_path.display()).red());
-                        eprintln!("{}", "+++ <stderr output>".green());
-                        diff::print_diff(expected, actual);
-                    }
-                    Error::ErrorsWithoutPattern { path: None, msgs } => {
-                        eprintln!(
-                            "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
-                            msgs.len(),
-                        );
-                        for Message { level, message } in msgs {
-                            eprintln!("    {level:?}: {message}")
-                        }
-                        let mut err = github_actions::error(
-                            &path,
-                            format!("Unmatched diagnostics outside the testfile{revision}"),
-                        );
-                        for Message { level, message } in msgs {
-                            writeln!(err, "{level:?}: {message}").unwrap();
-                        }
-                    }
-                    Error::ErrorsWithoutPattern {
-                        path: Some((path, line)),
-                        msgs,
-                    } => {
-                        let path = path.display();
-                        eprintln!(
-                            "There were {} unmatched diagnostics at {path}:{line}",
-                            msgs.len(),
-                        );
-                        for Message { level, message } in msgs {
-                            eprintln!("    {level:?}: {message}")
-                        }
-                        let mut err = github_actions::error(
-                            &path,
-                            format!("Unmatched diagnostics{revision}"),
-                        )
-                        .line(*line);
-                        for Message { level, message } in msgs {
-                            writeln!(err, "{level:?}: {message}").unwrap();
-                        }
-                    }
-                    Error::InvalidComment { msg, line } => {
-                        let mut err =
-                            github_actions::error(&path, format!("Could not parse comment"))
-                                .line(*line);
-                        writeln!(err, "{msg}").unwrap();
-                        eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
-                    }
-                    Error::Bug(msg) => {
-                        eprintln!("A bug in `ui_test` occurred: {msg}");
-                    }
-                }
-                eprintln!();
+                print_error(error, &path, &revision);
             }
             eprintln!("full stderr:");
             std::io::stderr().write_all(stderr).unwrap();
@@ -685,6 +612,149 @@ pub fn run_tests_generic(
     );
     eprintln!();
     Ok(())
+}
+
+fn print_error(error: &Error, path: &str, revision: &str) {
+    match error {
+        Error::ExitStatus {
+            mode,
+            status,
+            expected,
+        } => {
+            github_actions::error(
+                path,
+                format!("{mode} test{revision} got {status}, but expected {expected}"),
+            );
+            eprintln!("{mode} test got {status}, but expected {expected}")
+        }
+        Error::Command { kind, status } => {
+            github_actions::error(path, format!("{kind}{revision} failed with {status}"));
+            eprintln!("{kind} failed with {status}");
+        }
+        Error::PatternNotFound {
+            pattern,
+            definition_line,
+        } => {
+            github_actions::error(path, format!("Pattern not found{revision}"))
+                .line(*definition_line);
+            match pattern {
+                Pattern::SubString(s) => {
+                    eprintln!("substring `{s}` {} in stderr output", "not found".red())
+                }
+                Pattern::Regex(r) => {
+                    eprintln!("`/{r}/` does {} stderr output", "not match".red())
+                }
+            }
+            eprintln!(
+                "expected because of pattern here: {}",
+                format!("{path}:{definition_line}").bold()
+            );
+        }
+        Error::NoPatternsFound => {
+            github_actions::error(
+                path,
+                format!("no error patterns found in fail test{revision}"),
+            );
+            eprintln!("{}", "no error patterns found in fail test".red());
+        }
+        Error::PatternFoundInPassTest => {
+            github_actions::error(path, format!("error pattern found in pass test{revision}"));
+            eprintln!("{}", "error pattern found in pass test".red())
+        }
+        Error::OutputDiffers {
+            path: output_path,
+            actual,
+            expected,
+        } => {
+            let mut err = github_actions::error(
+                if expected.is_empty() {
+                    path.to_owned()
+                } else {
+                    output_path.display().to_string()
+                },
+                "actual output differs from expected",
+            );
+            writeln!(err, "```diff").unwrap();
+            for r in ::diff::lines(expected.to_str().unwrap(), actual.to_str().unwrap()) {
+                match r {
+                    ::diff::Result::Both(l, r) => {
+                        if l != r {
+                            writeln!(err, "-{l}").unwrap();
+                            writeln!(err, "+{r}").unwrap();
+                        } else {
+                            writeln!(err, " {l}").unwrap()
+                        }
+                    }
+                    ::diff::Result::Left(l) => {
+                        writeln!(err, "-{l}").unwrap();
+                    }
+                    ::diff::Result::Right(r) => {
+                        writeln!(err, "+{r}").unwrap();
+                    }
+                }
+            }
+            writeln!(err, "```").unwrap();
+            eprintln!("{}", "actual output differed from expected".underline());
+            eprintln!("{}", format!("--- {}", output_path.display()).red());
+            eprintln!("{}", "+++ <stderr output>".green());
+            diff::print_diff(expected, actual);
+        }
+        Error::ErrorsWithoutPattern { path: None, msgs } => {
+            eprintln!(
+        "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
+        msgs.len(),
+    );
+            for Message { level, message } in msgs {
+                eprintln!("    {level:?}: {message}")
+            }
+            let mut err = github_actions::error(
+                path,
+                format!("Unmatched diagnostics outside the testfile{revision}"),
+            );
+            for Message { level, message } in msgs {
+                writeln!(err, "{level:?}: {message}").unwrap();
+            }
+        }
+        Error::ErrorsWithoutPattern {
+            path: Some((path, line)),
+            msgs,
+        } => {
+            let path = path.display();
+            eprintln!(
+                "There were {} unmatched diagnostics at {path}:{line}",
+                msgs.len(),
+            );
+            for Message { level, message } in msgs {
+                eprintln!("    {level:?}: {message}")
+            }
+            let mut err = github_actions::error(&path, format!("Unmatched diagnostics{revision}"))
+                .line(*line);
+            for Message { level, message } in msgs {
+                writeln!(err, "{level:?}: {message}").unwrap();
+            }
+        }
+        Error::InvalidComment { msg, line } => {
+            let mut err =
+                github_actions::error(path, format!("Could not parse comment")).line(*line);
+            writeln!(err, "{msg}").unwrap();
+            eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
+        }
+        Error::Bug(msg) => {
+            eprintln!("A bug in `ui_test` occurred: {msg}");
+        }
+        Error::Aux {
+            path: aux_path,
+            errors,
+            line,
+        } => {
+            eprintln!("Aux build from {path}:{line} failed");
+            github_actions::error(path, format!("Aux build failed")).line(*line);
+            for error in errors {
+                print_error(error, &aux_path.display().to_string(), "");
+            }
+        }
+    }
+    eprintln!();
 }
 
 fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
@@ -794,6 +864,12 @@ enum Error {
     },
     /// This catches crashes of ui tests and reports them along the failed test.
     Bug(String),
+    /// An auxiliary build failed with its own set of errors.
+    Aux {
+        path: PathBuf,
+        errors: Vec<Error>,
+        line: usize,
+    },
 }
 
 type Errors = Vec<Error>;
@@ -806,18 +882,10 @@ fn build_command(
     out_dir: Option<&Path>,
     errors: &mut Vec<Error>,
 ) -> Command {
-    let mut cmd = Command::new(&config.program);
+    let mut cmd = config.program.build();
     if let Some(out_dir) = out_dir {
         cmd.arg("--out-dir");
         cmd.arg(out_dir);
-    }
-    cmd.args(config.args.iter());
-    for (var, val) in config.envs.iter() {
-        if let Some(val) = val {
-            cmd.env(var, val);
-        } else {
-            cmd.env_remove(var);
-        }
     }
     cmd.arg(path);
     if !revision.is_empty() {
@@ -856,6 +924,82 @@ fn build_command(
     cmd
 }
 
+fn build_aux(
+    aux_file: &Path,
+    path: &Path,
+    config: &Config,
+    revision: &str,
+    comments: &Comments,
+    kind: &str,
+    aux: &Path,
+    extra_args: &mut Vec<String>,
+) -> Option<(Command, Vec<Error>, Vec<u8>)> {
+    let comments = match parse_comments_in_file(aux_file) {
+        Ok(comments) => comments,
+        Err((msg, mut errors)) => {
+            return Some((
+                build_command(path, config, revision, comments, None, &mut errors),
+                errors,
+                msg,
+            ))
+        }
+    };
+    assert_eq!(comments.revisions, None);
+    // Put aux builds into a separate directory per test so that
+    // tests running in parallel but building the same aux build don't conflict.
+    // FIXME: put aux builds into the regular build queue.
+    let out_dir = config
+        .out_dir
+        .clone()
+        .unwrap_or_default()
+        .join(path.with_extension(""));
+
+    let mut errors = vec![];
+
+    let mut aux_cmd = build_command(
+        aux_file,
+        config,
+        revision,
+        &comments,
+        Some(&out_dir),
+        &mut errors,
+    );
+
+    if !errors.is_empty() {
+        return Some((aux_cmd, errors, vec![]));
+    }
+
+    aux_cmd.arg("--crate-type").arg(kind);
+    aux_cmd.arg("--emit=link");
+    let filename = aux.file_stem().unwrap().to_str().unwrap();
+    let output = aux_cmd.output().unwrap();
+    if !output.status.success() {
+        let error = Error::Command {
+            kind: "compilation of aux build failed".to_string(),
+            status: output.status,
+        };
+        return Some((
+            aux_cmd,
+            vec![error],
+            rustc_stderr::process(path, &output.stderr).rendered,
+        ));
+    }
+
+    // Now run the command again to fetch the output filenames
+    aux_cmd.arg("--print").arg("file-names");
+    let output = aux_cmd.output().unwrap();
+    assert!(output.status.success());
+
+    for file in output.stdout.lines() {
+        let file = std::str::from_utf8(file).unwrap();
+        let crate_name = filename.replace('-', "_");
+        let path = out_dir.join(file);
+        extra_args.push("--extern".into());
+        extra_args.push(format!("{crate_name}={}", path.display()));
+    }
+    None
+}
+
 fn run_test(
     path: &Path,
     config: &Config,
@@ -865,70 +1009,31 @@ fn run_test(
     let mut extra_args = vec![];
     let aux_dir = path.parent().unwrap().join("auxiliary");
     for rev in comments.for_revision(revision) {
-        for (aux, kind) in &rev.aux_builds {
-            let aux_file = aux_dir.join(aux);
-            let comments = match parse_comments_in_file(&aux_file) {
-                Ok(comments) => comments,
-                Err((msg, mut errors)) => {
-                    return (
-                        build_command(path, config, revision, comments, None, &mut errors),
-                        errors,
-                        msg,
-                    )
-                }
+        for (aux, kind, line) in &rev.aux_builds {
+            let aux_file = if aux.starts_with("..") {
+                aux_dir.parent().unwrap().join(aux)
+            } else {
+                aux_dir.join(aux)
             };
-            assert_eq!(comments.revisions, None);
-            // Put aux builds into a separate directory per test so that
-            // tests running in parallel but building the same aux build don't conflict.
-            // FIXME: put aux builds into the regular build queue.
-            let out_dir = config
-                .out_dir
-                .clone()
-                .unwrap_or_default()
-                .join(path.with_extension(""));
-
-            let mut errors = vec![];
-
-            let mut aux_cmd = build_command(
+            if let Some((command, errors, msg)) = build_aux(
                 &aux_file,
+                path,
                 config,
                 revision,
-                &comments,
-                Some(&out_dir),
-                &mut errors,
-            );
-
-            if !errors.is_empty() {
-                return (aux_cmd, errors, vec![]);
-            }
-
-            aux_cmd.arg("--crate-type").arg(kind);
-            aux_cmd.arg("--emit=link");
-            let filename = aux.file_stem().unwrap().to_str().unwrap();
-            let output = aux_cmd.output().unwrap();
-            if !output.status.success() {
-                let error = Error::Command {
-                    kind: format!("auxiliary build for `{}`", path.display()),
-                    status: output.status,
-                };
+                comments,
+                kind,
+                aux,
+                &mut extra_args,
+            ) {
                 return (
-                    aux_cmd,
-                    vec![error],
-                    rustc_stderr::process(path, &output.stderr).rendered,
+                    command,
+                    vec![Error::Aux {
+                        path: aux_file,
+                        errors,
+                        line: *line,
+                    }],
+                    msg,
                 );
-            }
-
-            // Now run the command again to fetch the output filenames
-            aux_cmd.arg("--print").arg("file-names");
-            let output = aux_cmd.output().unwrap();
-            assert!(output.status.success());
-
-            for file in output.stdout.lines() {
-                let file = std::str::from_utf8(file).unwrap();
-                let crate_name = filename.replace('-', "_");
-                let path = out_dir.join(file);
-                extra_args.push("--extern".into());
-                extra_args.push(format!("{crate_name}={}", path.display()));
             }
         }
     }
@@ -1471,8 +1576,8 @@ impl Mode {
             Mode::Run { exit_code } => exit_code,
             Mode::Pass => 0,
             Mode::Panic => 101,
-            Mode::Fix | Mode::Fail { .. } => 1,
-            Mode::Yolo => return vec![],
+            Mode::Fail { .. } => 1,
+            Mode::Fix | Mode::Yolo => return vec![],
         };
         if status.code() == Some(expected) {
             vec![]

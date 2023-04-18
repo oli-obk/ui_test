@@ -1,4 +1,4 @@
-//@aux-build:../../auxiliary/the_proc_macro.rs:proc-macro
+//@aux-build:../auxiliary/the_proc_macro.rs:proc-macro
 
 use the_proc_macro::thing;
 

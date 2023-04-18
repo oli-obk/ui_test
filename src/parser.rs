@@ -8,7 +8,7 @@ use regex::bytes::Regex;
 
 use crate::{rustc_stderr::Level, Error, Mode};
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, Result};
 
 #[cfg(test)]
 mod tests;
@@ -76,7 +76,7 @@ pub(crate) struct Revisioned {
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
-    pub aux_builds: Vec<(PathBuf, String)>,
+    pub aux_builds: Vec<(PathBuf, String, usize)>,
     pub edition: Option<(String, usize)>,
     /// Overwrites the mode from `Config`.
     pub mode: Option<(Mode, usize)>,
@@ -159,7 +159,8 @@ impl Condition {
 
 impl Comments {
     pub(crate) fn parse_file(path: &Path) -> Result<std::result::Result<Self, Vec<Error>>> {
-        let content = std::fs::read(path)?;
+        let content =
+            std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
         Ok(Self::parse(&content))
     }
 
@@ -272,8 +273,8 @@ impl CommentParser<Comments> {
 
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
         let (command, args) = match command
-            .chars()
-            .position(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
+            .char_indices()
+            .find_map(|(i, c)| (!c.is_alphanumeric() && c != '-' && c != '_').then_some(i))
         {
             None => (command, ""),
             Some(i) => {
@@ -388,7 +389,8 @@ impl CommentParser<&mut Revisioned> {
             }
             "aux-build" => {
                 let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));
-                self.aux_builds.push((name.into(), kind.into()));
+                let line = self.line;
+                self.aux_builds.push((name.into(), kind.into(), line));
             }
             "edition" => {
                 self.check(self.edition.is_none(), "cannot specify `edition` twice");
