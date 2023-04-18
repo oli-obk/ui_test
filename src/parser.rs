@@ -76,7 +76,7 @@ pub(crate) struct Revisioned {
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: Option<Level>,
-    pub aux_builds: Vec<(PathBuf, String)>,
+    pub aux_builds: Vec<(PathBuf, String, usize)>,
     pub edition: Option<(String, usize)>,
     /// Overwrites the mode from `Config`.
     pub mode: Option<(Mode, usize)>,
@@ -389,7 +389,8 @@ impl CommentParser<&mut Revisioned> {
             }
             "aux-build" => {
                 let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));
-                self.aux_builds.push((name.into(), kind.into()));
+                let line = self.line;
+                self.aux_builds.push((name.into(), kind.into(), line));
             }
             "edition" => {
                 self.check(self.edition.is_none(), "cannot specify `edition` twice");

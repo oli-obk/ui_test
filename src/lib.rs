@@ -514,146 +514,7 @@ pub fn run_tests_generic(
             eprintln!("command: {cmd:?}");
             eprintln!();
             for error in errors {
-                match error {
-                    Error::ExitStatus {
-                        mode,
-                        status,
-                        expected,
-                    } => {
-                        github_actions::error(
-                            &path,
-                            format!("{mode} test{revision} got {status}, but expected {expected}"),
-                        );
-                        eprintln!("{mode} test got {status}, but expected {expected}")
-                    }
-                    Error::Command { kind, status } => {
-                        github_actions::error(
-                            &path,
-                            format!("{kind}{revision} failed with {status}"),
-                        );
-                        eprintln!("{kind} failed with {status}");
-                    }
-                    Error::PatternNotFound {
-                        pattern,
-                        definition_line,
-                    } => {
-                        github_actions::error(&path, format!("Pattern not found{revision}"))
-                            .line(*definition_line);
-                        match pattern {
-                            Pattern::SubString(s) => {
-                                eprintln!("substring `{s}` {} in stderr output", "not found".red())
-                            }
-                            Pattern::Regex(r) => {
-                                eprintln!("`/{r}/` does {} stderr output", "not match".red())
-                            }
-                        }
-                        eprintln!(
-                            "expected because of pattern here: {}",
-                            format!("{path}:{definition_line}").bold()
-                        );
-                    }
-                    Error::NoPatternsFound => {
-                        github_actions::error(
-                            &path,
-                            format!("no error patterns found in fail test{revision}"),
-                        );
-                        eprintln!("{}", "no error patterns found in fail test".red());
-                    }
-                    Error::PatternFoundInPassTest => {
-                        github_actions::error(
-                            &path,
-                            format!("error pattern found in pass test{revision}"),
-                        );
-                        eprintln!("{}", "error pattern found in pass test".red())
-                    }
-                    Error::OutputDiffers {
-                        path: output_path,
-                        actual,
-                        expected,
-                    } => {
-                        let mut err = github_actions::error(
-                            if expected.is_empty() {
-                                path.clone()
-                            } else {
-                                output_path.display().to_string()
-                            },
-                            "actual output differs from expected",
-                        );
-                        writeln!(err, "```diff").unwrap();
-                        for r in ::diff::lines(expected.to_str().unwrap(), actual.to_str().unwrap())
-                        {
-                            match r {
-                                ::diff::Result::Both(l, r) => {
-                                    if l != r {
-                                        writeln!(err, "-{l}").unwrap();
-                                        writeln!(err, "+{r}").unwrap();
-                                    } else {
-                                        writeln!(err, " {l}").unwrap()
-                                    }
-                                }
-                                ::diff::Result::Left(l) => {
-                                    writeln!(err, "-{l}").unwrap();
-                                }
-                                ::diff::Result::Right(r) => {
-                                    writeln!(err, "+{r}").unwrap();
-                                }
-                            }
-                        }
-                        writeln!(err, "```").unwrap();
-                        eprintln!("{}", "actual output differed from expected".underline());
-                        eprintln!("{}", format!("--- {}", output_path.display()).red());
-                        eprintln!("{}", "+++ <stderr output>".green());
-                        diff::print_diff(expected, actual);
-                    }
-                    Error::ErrorsWithoutPattern { path: None, msgs } => {
-                        eprintln!(
-                            "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
-                            msgs.len(),
-                        );
-                        for Message { level, message } in msgs {
-                            eprintln!("    {level:?}: {message}")
-                        }
-                        let mut err = github_actions::error(
-                            &path,
-                            format!("Unmatched diagnostics outside the testfile{revision}"),
-                        );
-                        for Message { level, message } in msgs {
-                            writeln!(err, "{level:?}: {message}").unwrap();
-                        }
-                    }
-                    Error::ErrorsWithoutPattern {
-                        path: Some((path, line)),
-                        msgs,
-                    } => {
-                        let path = path.display();
-                        eprintln!(
-                            "There were {} unmatched diagnostics at {path}:{line}",
-                            msgs.len(),
-                        );
-                        for Message { level, message } in msgs {
-                            eprintln!("    {level:?}: {message}")
-                        }
-                        let mut err = github_actions::error(
-                            &path,
-                            format!("Unmatched diagnostics{revision}"),
-                        )
-                        .line(*line);
-                        for Message { level, message } in msgs {
-                            writeln!(err, "{level:?}: {message}").unwrap();
-                        }
-                    }
-                    Error::InvalidComment { msg, line } => {
-                        let mut err =
-                            github_actions::error(&path, format!("Could not parse comment"))
-                                .line(*line);
-                        writeln!(err, "{msg}").unwrap();
-                        eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
-                    }
-                    Error::Bug(msg) => {
-                        eprintln!("A bug in `ui_test` occurred: {msg}");
-                    }
-                }
-                eprintln!();
+                print_error(error, &path, &revision);
             }
             eprintln!("full stderr:");
             std::io::stderr().write_all(stderr).unwrap();
@@ -685,6 +546,149 @@ pub fn run_tests_generic(
     );
     eprintln!();
     Ok(())
+}
+
+fn print_error(error: &Error, path: &str, revision: &str) {
+    match error {
+        Error::ExitStatus {
+            mode,
+            status,
+            expected,
+        } => {
+            github_actions::error(
+                path,
+                format!("{mode} test{revision} got {status}, but expected {expected}"),
+            );
+            eprintln!("{mode} test got {status}, but expected {expected}")
+        }
+        Error::Command { kind, status } => {
+            github_actions::error(path, format!("{kind}{revision} failed with {status}"));
+            eprintln!("{kind} failed with {status}");
+        }
+        Error::PatternNotFound {
+            pattern,
+            definition_line,
+        } => {
+            github_actions::error(path, format!("Pattern not found{revision}"))
+                .line(*definition_line);
+            match pattern {
+                Pattern::SubString(s) => {
+                    eprintln!("substring `{s}` {} in stderr output", "not found".red())
+                }
+                Pattern::Regex(r) => {
+                    eprintln!("`/{r}/` does {} stderr output", "not match".red())
+                }
+            }
+            eprintln!(
+                "expected because of pattern here: {}",
+                format!("{path}:{definition_line}").bold()
+            );
+        }
+        Error::NoPatternsFound => {
+            github_actions::error(
+                path,
+                format!("no error patterns found in fail test{revision}"),
+            );
+            eprintln!("{}", "no error patterns found in fail test".red());
+        }
+        Error::PatternFoundInPassTest => {
+            github_actions::error(path, format!("error pattern found in pass test{revision}"));
+            eprintln!("{}", "error pattern found in pass test".red())
+        }
+        Error::OutputDiffers {
+            path: output_path,
+            actual,
+            expected,
+        } => {
+            let mut err = github_actions::error(
+                if expected.is_empty() {
+                    path.to_owned()
+                } else {
+                    output_path.display().to_string()
+                },
+                "actual output differs from expected",
+            );
+            writeln!(err, "```diff").unwrap();
+            for r in ::diff::lines(expected.to_str().unwrap(), actual.to_str().unwrap()) {
+                match r {
+                    ::diff::Result::Both(l, r) => {
+                        if l != r {
+                            writeln!(err, "-{l}").unwrap();
+                            writeln!(err, "+{r}").unwrap();
+                        } else {
+                            writeln!(err, " {l}").unwrap()
+                        }
+                    }
+                    ::diff::Result::Left(l) => {
+                        writeln!(err, "-{l}").unwrap();
+                    }
+                    ::diff::Result::Right(r) => {
+                        writeln!(err, "+{r}").unwrap();
+                    }
+                }
+            }
+            writeln!(err, "```").unwrap();
+            eprintln!("{}", "actual output differed from expected".underline());
+            eprintln!("{}", format!("--- {}", output_path.display()).red());
+            eprintln!("{}", "+++ <stderr output>".green());
+            diff::print_diff(expected, actual);
+        }
+        Error::ErrorsWithoutPattern { path: None, msgs } => {
+            eprintln!(
+        "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
+        msgs.len(),
+    );
+            for Message { level, message } in msgs {
+                eprintln!("    {level:?}: {message}")
+            }
+            let mut err = github_actions::error(
+                path,
+                format!("Unmatched diagnostics outside the testfile{revision}"),
+            );
+            for Message { level, message } in msgs {
+                writeln!(err, "{level:?}: {message}").unwrap();
+            }
+        }
+        Error::ErrorsWithoutPattern {
+            path: Some((path, line)),
+            msgs,
+        } => {
+            let path = path.display();
+            eprintln!(
+                "There were {} unmatched diagnostics at {path}:{line}",
+                msgs.len(),
+            );
+            for Message { level, message } in msgs {
+                eprintln!("    {level:?}: {message}")
+            }
+            let mut err = github_actions::error(&path, format!("Unmatched diagnostics{revision}"))
+                .line(*line);
+            for Message { level, message } in msgs {
+                writeln!(err, "{level:?}: {message}").unwrap();
+            }
+        }
+        Error::InvalidComment { msg, line } => {
+            let mut err =
+                github_actions::error(path, format!("Could not parse comment")).line(*line);
+            writeln!(err, "{msg}").unwrap();
+            eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
+        }
+        Error::Bug(msg) => {
+            eprintln!("A bug in `ui_test` occurred: {msg}");
+        }
+        Error::Aux {
+            path: aux_path,
+            errors,
+            line,
+        } => {
+            eprintln!("Aux build from {path}:{line} failed");
+            github_actions::error(path, format!("Aux build failed")).line(*line);
+            for error in errors {
+                print_error(error, &aux_path.display().to_string(), "");
+            }
+        }
+    }
+    eprintln!();
 }
 
 fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
@@ -794,6 +798,12 @@ enum Error {
     },
     /// This catches crashes of ui tests and reports them along the failed test.
     Bug(String),
+    /// An auxiliary build failed with its own set of errors.
+    Aux {
+        path: PathBuf,
+        errors: Vec<Error>,
+        line: usize,
+    },
 }
 
 type Errors = Vec<Error>;
@@ -907,7 +917,7 @@ fn build_aux(
     let output = aux_cmd.output().unwrap();
     if !output.status.success() {
         let error = Error::Command {
-            kind: format!("auxiliary build for `{}`", path.display()),
+            kind: "compilation of aux build failed".to_string(),
             status: output.status,
         };
         return Some((
@@ -941,8 +951,12 @@ fn run_test(
     let mut extra_args = vec![];
     let aux_dir = path.parent().unwrap().join("auxiliary");
     for rev in comments.for_revision(revision) {
-        for (aux, kind) in &rev.aux_builds {
-            let aux_file = aux_dir.join(aux);
+        for (aux, kind, line) in &rev.aux_builds {
+            let aux_file = if aux.starts_with("..") {
+                aux_dir.parent().unwrap().join(aux)
+            } else {
+                aux_dir.join(aux)
+            };
             if let Some((command, errors, msg)) = build_aux(
                 &aux_file,
                 path,
@@ -953,7 +967,15 @@ fn run_test(
                 aux,
                 &mut extra_args,
             ) {
-                return (command, errors, msg);
+                return (
+                    command,
+                    vec![Error::Aux {
+                        path: aux_file,
+                        errors,
+                        line: *line,
+                    }],
+                    msg,
+                );
             }
         }
     }
