@@ -1391,25 +1391,27 @@ fn check_annotations(
         msgs
     };
 
-    let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
-    if !messages_from_unknown_file_or_line.is_empty() {
-        errors.push(Error::ErrorsWithoutPattern {
-            path: None,
-            msgs: messages_from_unknown_file_or_line,
-        });
-    }
+    let mode = config.mode.maybe_override(comments, revision, errors);
 
-    for (line, msgs) in messages.into_iter().enumerate() {
-        let msgs = filter(msgs);
-        if !msgs.is_empty() {
+    if !matches!(config.mode, Mode::Yolo) {
+        let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
+        if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
-                path: Some((path.to_path_buf(), line)),
-                msgs,
+                path: None,
+                msgs: messages_from_unknown_file_or_line,
             });
         }
-    }
 
-    let mode = config.mode.maybe_override(comments, revision, errors);
+        for (line, msgs) in messages.into_iter().enumerate() {
+            let msgs = filter(msgs);
+            if !msgs.is_empty() {
+                errors.push(Error::ErrorsWithoutPattern {
+                    path: Some((path.to_path_buf(), line)),
+                    msgs,
+                });
+            }
+        }
+    }
 
     match (mode, seen_error_match) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),

@@ -607,9 +607,6 @@ command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../..
 substring ``main` function not found in crate `revisions_bad`` not found in stderr output
 expected because of pattern here: tests/actual_tests_bless/revisions_bad.rs:4
 
-There were 1 unmatched diagnostics at tests/actual_tests_bless/revisions_bad.rs:10
-    Error: `main` function not found in crate `revisions_bad`
-
 full stderr:
 error[E0601]: `main` function not found in crate `revisions_bad`
   --> tests/actual_tests_bless/revisions_bad.rs:10:2
