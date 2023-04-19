@@ -405,14 +405,244 @@ FAILURES:
     tests/actual_tests_bless/revisions_bad.rs
 
 test result: FAIL. 12 tests failed, 11 tests passed, 3 ignored, 0 filtered out
-Error: tests failed
+   Compiler: rustc "--error-format=json"
+   Building test dependencies...
+tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
+tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
+tests/actual_tests_bless/failing_executable.rs ... FAILED
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (b) ... FAILED
+tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
+tests/actual_tests_bless/foomp_aux.rs ... ok
+tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
+tests/actual_tests_bless/pass.rs ... ok
+tests/actual_tests_bless/revised_revision.rs ... FAILED
+tests/actual_tests_bless/revisioned_executable.rs (run) ... ok
+tests/actual_tests_bless/revisioned_executable.rs (panic) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (run) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (panic) ... FAILED
+tests/actual_tests_bless/revisions.rs (foo) ... ok
+tests/actual_tests_bless/revisions.rs (bar) ... ok
+tests/actual_tests_bless/revisions_bad.rs (foo) ... ok
+tests/actual_tests_bless/revisions_bad.rs (bar) ... FAILED
+tests/actual_tests_bless/revisions_filter.rs (foo) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter.rs (bar) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter2.rs (foo) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter2.rs (bar) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (foo) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
+
+tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--edition" "2021" "--crate-type" "lib" "--emit=link"
+
+Aux build from tests/actual_tests_bless/aux_proc_macro_misuse.rs:1 failed
+compilation of aux build failed failed with exit status: 1
+
+
+full stderr:
+error: the `#[proc_macro]` attribute is only usable with crates of the `proc-macro` crate type
+ --> tests/actual_tests_bless/auxiliary/the_proc_macro.rs:7:1
+  |
+7 | #[proc_macro]
+  | ^^^^^^^^^^^^^
+
+error: aborting due to previous error
+
+
+
+
+tests/actual_tests_bless/compiletest-rs-command.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:1 because
+a compiletest-rs style comment was detected.
+Please use text that could not also be interpreted as a command,
+and prefix all actual commands with `//@`
+
+Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:2 because
+a compiletest-rs style comment was detected.
+Please use text that could not also be interpreted as a command,
+and prefix all actual commands with `//@`
+
+Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:4 because
+comment looks suspiciously like a test suite command: `@aux-build:asldkfjasldfj.rs`
+All `//@` test suite commands must be at the start of the line.
+The `//` must be directly followed by `@` or `~`.
+
+full stderr:
+
+
+
+tests/actual_tests_bless/failing_executable.rs FAILED:
+command: "$CMD"
+
+run(0) test got exit status: 101, but expected 0
+
+full stderr:
+
+
+
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `a`) FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error[E0308]: mismatched types
+ --> tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed:6:21
+  |
+6 |     let x: String = 42;
+  |            ------   ^^- help: try using a conversion method: `.to_string()`
+  |            |        |
+  |            |        expected struct `String`, found integer
+  |            expected due to this
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0308`.
+
+
+
+tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `b`) FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error[E0308]: mismatched types
+ --> tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed:6:21
+  |
+6 |     let x: String = 42;
+  |            ------   ^^- help: try using a conversion method: `.to_string()`
+  |            |        |
+  |            |        expected struct `String`, found integer
+  |            expected due to this
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0308`.
+
+
+
+tests/actual_tests_bless/foomp-rustfix-fail.rs FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail.fixed" "--edition" "2021" "--crate-name" "foomp_rustfix_fail"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error[E0308]: mismatched types
+ --> tests/actual_tests_bless/foomp-rustfix-fail.fixed:5:21
+  |
+5 |     let x: String = 42;
+  |            ------   ^^- help: try using a conversion method: `.to_string()`
+  |            |        |
+  |            |        expected struct `String`, found integer
+  |            expected due to this
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0308`.
+
+
+
+tests/actual_tests_bless/non_top_level_configs.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/non_top_level_configs.rs:1 because
+comment looks suspiciously like a test suite command: `@check-pass`
+All `//@` test suite commands must be at the start of the line.
+The `//` must be directly followed by `@` or `~`.
+
+Could not parse comment in tests/actual_tests_bless/non_top_level_configs.rs:4 because
+comment looks suspiciously like a test suite command: `@ignore-target-cheesecake`
+All `//@` test suite commands must be at the start of the line.
+The `//` must be directly followed by `@` or `~`.
+
+full stderr:
+
+
+
+tests/actual_tests_bless/revised_revision.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/revised_revision.rs:2 because
+revisions cannot be declared under a revision
+
+full stderr:
+
+
+
+tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable.rs" "--cfg=panic" "--edition" "2021"
+
+run(101) test got exit status: 0, but expected 101
+
+full stderr:
+
+
+
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) FAILED:
+command: "$CMD"
+
+run(0) test got exit status: 101, but expected 0
+
+full stderr:
+
+
+
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable_panic.rs" "--cfg=panic" "--edition" "2021"
+
+run(101) test got exit status: 0, but expected 101
+
+full stderr:
+
+
+
+tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
+
+substring ``main` function not found in crate `revisions_bad`` not found in stderr output
+expected because of pattern here: tests/actual_tests_bless/revisions_bad.rs:4
+
+There were 1 unmatched diagnostics at tests/actual_tests_bless/revisions_bad.rs:10
+    Error: `main` function not found in crate `revisions_bad`
+
+full stderr:
+error[E0601]: `main` function not found in crate `revisions_bad`
+  --> tests/actual_tests_bless/revisions_bad.rs:10:2
+   |
+10 | }
+   |  ^ consider adding a `main` function to `tests/actual_tests_bless/revisions_bad.rs`
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0601`.
+
+
+FAILURES:
+    tests/actual_tests_bless/aux_proc_macro_misuse.rs
+    tests/actual_tests_bless/compiletest-rs-command.rs
+    tests/actual_tests_bless/failing_executable.rs
+    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
+    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
+    tests/actual_tests_bless/foomp-rustfix-fail.rs
+    tests/actual_tests_bless/non_top_level_configs.rs
+    tests/actual_tests_bless/revised_revision.rs
+    tests/actual_tests_bless/revisioned_executable.rs
+    tests/actual_tests_bless/revisioned_executable_panic.rs
+    tests/actual_tests_bless/revisioned_executable_panic.rs
+    tests/actual_tests_bless/revisions_bad.rs
+
+test result: FAIL. 12 tests failed, 11 tests passed, 3 ignored, 0 filtered out
+thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/lib.rs:603:9
+    $DIR/src/lib.rs:603:9)', tests/ui_tests_bless.rs:43:18
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
-
-Caused by:
-  process didn't exit successfully: `$DIR/target/debug/ui_tests_bless-HASH --test-threads 1` (exit status: 1)
    Compiler: invalid_foobarlaksdfalsdfj
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
 
