@@ -9,9 +9,16 @@ fn main() -> ui_test::color_eyre::Result<()> {
         Mode::Yolo,
     ] {
         let path = "../../../target";
+
+        let root_dir = match mode {
+            Mode::Yolo => "tests/actual_tests_bless_yolo",
+            Mode::Fail { .. } => "tests/actual_tests_bless",
+            _ => unreachable!(),
+        };
+
         let mut config = Config {
             quiet: false,
-            root_dir: "tests/actual_tests_bless".into(),
+            root_dir: root_dir.into(),
             dependencies_crate_manifest_path: Some("Cargo.toml".into()),
             output_conflict_handling: if std::env::var_os("BLESS").is_some() {
                 OutputConflictHandling::Bless
