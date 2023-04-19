@@ -407,30 +407,9 @@ FAILURES:
 test result: FAIL. 12 tests failed, 11 tests passed, 3 ignored, 0 filtered out
    Compiler: rustc "--error-format=json"
    Building test dependencies...
-tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... FAILED
+tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
-
-tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/foomp-rustfix-fail.fixed" "--edition" "2021" "--crate-name" "foomp_rustfix_fail"
-
-rustfix failed with exit status: 1
-
-full stderr:
-error[E0308]: mismatched types
- --> tests/actual_tests_bless_yolo/foomp-rustfix-fail.fixed:5:22
-  |
-5 |     let _x: String = 42;
-  |             ------   ^^- help: try using a conversion method: `.to_string()`
-  |             |        |
-  |             |        expected struct `String`, found integer
-  |             expected due to this
-
-error: aborting due to previous error
-
-For more information about this error, try `rustc --explain E0308`.
-
-
 
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
@@ -451,10 +430,9 @@ For more information about this error, try `rustc --explain E0601`.
 
 
 FAILURES:
-    tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs
     tests/actual_tests_bless_yolo/revisions_bad.rs
 
-test result: FAIL. 2 tests failed, 1 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:

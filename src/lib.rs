@@ -1168,7 +1168,11 @@ fn run_rustfix(
     let suggestions = rustfix::get_suggestions_from_json(
         input,
         &HashSet::new(),
-        rustfix::Filter::MachineApplicableOnly,
+        if let Mode::Yolo = config.mode {
+            rustfix::Filter::Everything
+        } else {
+            rustfix::Filter::MachineApplicableOnly
+        },
     )
     .unwrap_or_else(|err| {
         panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
