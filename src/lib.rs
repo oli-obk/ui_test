@@ -921,11 +921,11 @@ fn build_aux(
     kind: &str,
     aux: &Path,
     extra_args: &mut Vec<String>,
-) -> Option<(Command, Vec<Error>, Vec<u8>)> {
+) -> std::result::Result<(), (Command, Vec<Error>, Vec<u8>)> {
     let comments = match parse_comments_in_file(aux_file) {
         Ok(comments) => comments,
         Err((msg, mut errors)) => {
-            return Some((
+            return Err((
                 build_command(path, config, revision, comments, None, &mut errors),
                 errors,
                 msg,
@@ -933,6 +933,7 @@ fn build_aux(
         }
     };
     assert_eq!(comments.revisions, None);
+
     // Put aux builds into a separate directory per test so that
     // tests running in parallel but building the same aux build don't conflict.
     // FIXME: put aux builds into the regular build queue.
@@ -954,8 +955,15 @@ fn build_aux(
     );
 
     if !errors.is_empty() {
-        return Some((aux_cmd, errors, vec![]));
+        return Err((aux_cmd, errors, vec![]));
     }
+
+    let current_extra_args =
+        build_aux_files(aux_file, aux_file.parent().unwrap(), &comments, "", config)?;
+    // Make sure we see our dependencies
+    aux_cmd.args(current_extra_args.iter());
+    // Make sure our dependents also see our dependencies.
+    extra_args.extend(current_extra_args);
 
     aux_cmd.arg("--crate-type").arg(kind);
     aux_cmd.arg("--emit=link");
@@ -966,7 +974,7 @@ fn build_aux(
             kind: "compilation of aux build failed".to_string(),
             status: output.status,
         };
-        return Some((
+        return Err((
             aux_cmd,
             vec![error],
             rustc_stderr::process(path, &output.stderr).rendered,
@@ -984,8 +992,11 @@ fn build_aux(
         let path = out_dir.join(file);
         extra_args.push("--extern".into());
         extra_args.push(format!("{crate_name}={}", path.display()));
+        // Help cargo find the crates added with `--extern`.
+        extra_args.push("-L".into());
+        extra_args.push(out_dir.display().to_string());
     }
-    None
+    Ok(())
 }
 
 fn run_test(
@@ -994,37 +1005,16 @@ fn run_test(
     revision: &str,
     comments: &Comments,
 ) -> (Command, Errors, Vec<u8>) {
-    let mut extra_args = vec![];
-    let aux_dir = path.parent().unwrap().join("auxiliary");
-    for rev in comments.for_revision(revision) {
-        for (aux, kind, line) in &rev.aux_builds {
-            let aux_file = if aux.starts_with("..") {
-                aux_dir.parent().unwrap().join(aux)
-            } else {
-                aux_dir.join(aux)
-            };
-            if let Some((command, errors, msg)) = build_aux(
-                &aux_file,
-                path,
-                config,
-                revision,
-                comments,
-                kind,
-                aux,
-                &mut extra_args,
-            ) {
-                return (
-                    command,
-                    vec![Error::Aux {
-                        path: aux_file,
-                        errors,
-                        line: *line,
-                    }],
-                    msg,
-                );
-            }
-        }
-    }
+    let extra_args = match build_aux_files(
+        path,
+        &path.parent().unwrap().join("auxiliary"),
+        comments,
+        revision,
+        config,
+    ) {
+        Ok(value) => value,
+        Err(value) => return value,
+    };
 
     let mut errors = vec![];
 
@@ -1101,6 +1091,46 @@ fn run_test(
         }
     }
     (cmd, errors, stderr)
+}
+
+fn build_aux_files(
+    path: &Path,
+    aux_dir: &Path,
+    comments: &Comments,
+    revision: &str,
+    config: &Config,
+) -> Result<Vec<String>, (Command, Vec<Error>, Vec<u8>)> {
+    let mut extra_args = vec![];
+    for rev in comments.for_revision(revision) {
+        for (aux, kind, line) in &rev.aux_builds {
+            let aux_file = if aux.starts_with("..") {
+                aux_dir.parent().unwrap().join(aux)
+            } else {
+                aux_dir.join(aux)
+            };
+            if let Err((command, errors, msg)) = build_aux(
+                &aux_file,
+                path,
+                config,
+                revision,
+                comments,
+                kind,
+                aux,
+                &mut extra_args,
+            ) {
+                return Err((
+                    command,
+                    vec![Error::Aux {
+                        path: aux_file,
+                        errors,
+                        line: *line,
+                    }],
+                    msg,
+                ));
+            }
+        }
+    }
+    Ok(extra_args)
 }
 
 fn run_test_binary(
