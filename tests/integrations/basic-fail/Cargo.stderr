@@ -165,6 +165,10 @@ FAILURES:
     tests/actual_tests/foomp.rs
 
 test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+Error: tests failed
+
+Location:
+    $DIR/src/lib.rs:603:9
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -401,6 +405,10 @@ FAILURES:
     tests/actual_tests_bless/revisions_bad.rs
 
 test result: FAIL. 12 tests failed, 11 tests passed, 3 ignored, 0 filtered out
+Error: tests failed
+
+Location:
+    $DIR/src/lib.rs:603:9
 error: test failed, to rerun pass `--test ui_tests_bless`
 
 Caused by:
@@ -495,6 +503,10 @@ FAILURES:
     tests/actual_tests/foomp.rs
 
 test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+Error: tests failed
+
+Location:
+    $DIR/src/lib.rs:603:9
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:

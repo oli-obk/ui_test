@@ -10,7 +10,7 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::{Context, Result};
+use color_eyre::eyre::{bail, Context, Result};
 use colored::*;
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern, Revisioned};
@@ -600,7 +600,7 @@ pub fn run_tests_generic(
             ignored.to_string().yellow(),
             filtered.to_string().yellow(),
         );
-        std::process::exit(1);
+        bail!("tests failed");
     }
     eprintln!();
     eprintln!(
