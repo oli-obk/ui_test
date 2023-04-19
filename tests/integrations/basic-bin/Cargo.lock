@@ -527,7 +527,7 @@ dependencies = [
 
 [[package]]
 name = "ui_test"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "bstr",
  "cargo-platform",
