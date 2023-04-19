@@ -897,20 +897,8 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let edition = comments
-        .find_one_for_revision(
-            revision,
-            |r| r.edition.as_ref(),
-            |&(_, line)| {
-                errors.push(Error::InvalidComment {
-                    msg: "`edition` specified twice".into(),
-                    line,
-                })
-            },
-        )
-        .map(|(e, _)| e.as_str())
-        .or(config.edition.as_deref());
-    if let Some(edition) = edition {
+    let edition = comments.edition(errors, revision, config);
+    if let Some((edition, _)) = edition {
         cmd.arg("--edition").arg(edition);
     }
     cmd.args(config.trailing_args.iter());
@@ -1185,6 +1173,7 @@ fn run_rustfix(
                     path.display()
                 )
             });
+    let edition = comments.edition(errors, revision, config);
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((
@@ -1209,7 +1198,7 @@ fn run_rustfix(
                     .for_revision(revision)
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
-                edition: None,
+                edition,
                 mode: Some((Mode::Pass, 0)),
                 needs_asm_support: false,
             },
