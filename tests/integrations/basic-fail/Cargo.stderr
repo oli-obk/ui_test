@@ -165,6 +165,10 @@ FAILURES:
     tests/actual_tests/foomp.rs
 
 test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+Error: tests failed
+
+Location:
+    $DIR/src/lib.rs:603:9
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -401,10 +405,40 @@ FAILURES:
     tests/actual_tests_bless/revisions_bad.rs
 
 test result: FAIL. 12 tests failed, 11 tests passed, 3 ignored, 0 filtered out
-error: test failed, to rerun pass `--test ui_tests_bless`
+   Compiler: rustc "--error-format=json"
+   Building test dependencies...
+tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
+tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
+tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
 
-Caused by:
-  process didn't exit successfully: `$DIR/target/debug/ui_tests_bless-HASH --test-threads 1` (exit status: 1)
+tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
+
+substring ``main` function not found in crate `revisions_bad`` not found in stderr output
+expected because of pattern here: tests/actual_tests_bless_yolo/revisions_bad.rs:4
+
+full stderr:
+error[E0601]: `main` function not found in crate `revisions_bad`
+  --> tests/actual_tests_bless_yolo/revisions_bad.rs:10:2
+   |
+10 | }
+   |  ^ consider adding a `main` function to `tests/actual_tests_bless_yolo/revisions_bad.rs`
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0601`.
+
+
+FAILURES:
+    tests/actual_tests_bless_yolo/revisions_bad.rs
+
+test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
+thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
+
+Location:
+    $DIR/src/lib.rs:603:9)', tests/ui_tests_bless.rs:50:18
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: test failed, to rerun pass `--test ui_tests_bless`
    Compiler: invalid_foobarlaksdfalsdfj
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
 
@@ -495,6 +529,10 @@ FAILURES:
     tests/actual_tests/foomp.rs
 
 test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+Error: tests failed
+
+Location:
+    $DIR/src/lib.rs:603:9
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:

@@ -53,6 +53,26 @@ impl Comments {
             }
         })
     }
+
+    pub(crate) fn edition(
+        &self,
+        errors: &mut Vec<Error>,
+        revision: &str,
+        config: &crate::Config,
+    ) -> Option<(String, usize)> {
+        self.find_one_for_revision(
+            revision,
+            |r| r.edition.as_ref(),
+            |&(_, line)| {
+                errors.push(Error::InvalidComment {
+                    msg: "`edition` specified twice".into(),
+                    line,
+                })
+            },
+        )
+        .cloned()
+        .or(config.edition.clone().map(|e| (e, 0)))
+    }
 }
 
 #[derive(Default, Debug)]

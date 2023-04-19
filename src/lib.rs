@@ -10,7 +10,7 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::{Context, Result};
+use color_eyre::eyre::{bail, Context, Result};
 use colored::*;
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern, Revisioned};
@@ -600,7 +600,7 @@ pub fn run_tests_generic(
             ignored.to_string().yellow(),
             filtered.to_string().yellow(),
         );
-        std::process::exit(1);
+        bail!("tests failed");
     }
     eprintln!();
     eprintln!(
@@ -897,20 +897,8 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let edition = comments
-        .find_one_for_revision(
-            revision,
-            |r| r.edition.as_ref(),
-            |&(_, line)| {
-                errors.push(Error::InvalidComment {
-                    msg: "`edition` specified twice".into(),
-                    line,
-                })
-            },
-        )
-        .map(|(e, _)| e.as_str())
-        .or(config.edition.as_deref());
-    if let Some(edition) = edition {
+    let edition = comments.edition(errors, revision, config);
+    if let Some((edition, _)) = edition {
         cmd.arg("--edition").arg(edition);
     }
     cmd.args(config.trailing_args.iter());
@@ -1168,7 +1156,11 @@ fn run_rustfix(
     let suggestions = rustfix::get_suggestions_from_json(
         input,
         &HashSet::new(),
-        rustfix::Filter::MachineApplicableOnly,
+        if let Mode::Yolo = config.mode {
+            rustfix::Filter::Everything
+        } else {
+            rustfix::Filter::MachineApplicableOnly
+        },
     )
     .unwrap_or_else(|err| {
         panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
@@ -1181,6 +1173,7 @@ fn run_rustfix(
                     path.display()
                 )
             });
+    let edition = comments.edition(errors, revision, config);
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((
@@ -1205,7 +1198,7 @@ fn run_rustfix(
                     .for_revision(revision)
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
-                edition: None,
+                edition,
                 mode: Some((Mode::Pass, 0)),
                 needs_asm_support: false,
             },
@@ -1391,25 +1384,27 @@ fn check_annotations(
         msgs
     };
 
-    let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
-    if !messages_from_unknown_file_or_line.is_empty() {
-        errors.push(Error::ErrorsWithoutPattern {
-            path: None,
-            msgs: messages_from_unknown_file_or_line,
-        });
-    }
+    let mode = config.mode.maybe_override(comments, revision, errors);
 
-    for (line, msgs) in messages.into_iter().enumerate() {
-        let msgs = filter(msgs);
-        if !msgs.is_empty() {
+    if !matches!(config.mode, Mode::Yolo) {
+        let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
+        if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
-                path: Some((path.to_path_buf(), line)),
-                msgs,
+                path: None,
+                msgs: messages_from_unknown_file_or_line,
             });
         }
-    }
 
-    let mode = config.mode.maybe_override(comments, revision, errors);
+        for (line, msgs) in messages.into_iter().enumerate() {
+            let msgs = filter(msgs);
+            if !msgs.is_empty() {
+                errors.push(Error::ErrorsWithoutPattern {
+                    path: Some((path.to_path_buf(), line)),
+                    msgs,
+                });
+            }
+        }
+    }
 
     match (mode, seen_error_match) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
