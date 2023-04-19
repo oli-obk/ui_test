@@ -8,7 +8,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::{Config, OutputConflictHandling};
+use crate::{Config, Mode, OutputConflictHandling};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -58,11 +58,12 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
     let setup_command = |cmd: &mut Command| {
         cmd.arg("--manifest-path").arg(manifest_path);
-        if matches!(
-            config.output_conflict_handling,
-            OutputConflictHandling::Error
-        ) {
-            cmd.arg("--locked");
+        match (&config.output_conflict_handling, &config.mode) {
+            (_, Mode::Yolo) => {}
+            (OutputConflictHandling::Error, _) => {
+                cmd.arg("--locked");
+            }
+            _ => {}
         }
     };
 
