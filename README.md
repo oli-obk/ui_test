@@ -30,7 +30,7 @@ their command specifies, or the test will fail without even being run.
 * `//@only-C` **only** runs the test when condition `C` is met. The conditions are the same as with `ignore`.
 * `//@needs-asm-support` **only** runs the test when the target supports `asm!`.
 * `//@stderr-per-bitwidth` produces one stderr file per bitwidth, as they may differ significantly sometimes
-* `//@error-pattern: XXX` makes sure the stderr output contains `XXX`
+* `//@error-in-other-file: XXX` can be used to check for errors that can't have `//~` patterns due to being reported in other files.
 * `//@revisions: XXX YYY` runs the test once for each space separated name in the list
     * emits one stderr file per revision
     * `//~` comments can be restricted to specific revisions by adding the revision name after the `~` in square brackets: `//~[XXX]`
@@ -56,6 +56,7 @@ their command specifies, or the test will fail without even being run.
 ## Significant differences to compiletest-rs
 
 * `ignore-target-*` and `only-target-*` operate solely on the triple, instead of supporting things like `macos`
-* only `//~` comments can be individualized per revision
 * only supports `ui` tests
 * tests are run in named order, so you can prefix slow tests with `0` in order to make them get run first
+* `aux-build`s for proc macros require an additional `:proc-macro` after the file name, but then the aux file itself needs no `#![proc_macro]` or other flags.
+* `aux-build`s require specifying nested aux builds explicitly and will not allow you to reference sibling `aux-build`s' artifacts.

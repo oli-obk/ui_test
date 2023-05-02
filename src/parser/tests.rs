@@ -51,7 +51,7 @@ fn main() {
 #[test]
 fn parse_slash_slash_at() {
     let s = r"
-//@  error-pattern:  foomp
+//@  error-in-other-file:  foomp
 use std::mem;
 
     ";
@@ -59,7 +59,7 @@ use std::mem;
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
-    let pat = &revisioned.error_patterns[0];
+    let pat = &revisioned.error_in_other_files[0];
     assert_eq!(format!("{:?}", pat.0), r#"SubString("foomp")"#);
     assert_eq!(pat.1, 2);
 }
@@ -67,7 +67,7 @@ use std::mem;
 #[test]
 fn parse_regex_error_pattern() {
     let s = r"
-//@  error-pattern:  /foomp/
+//@  error-in-other-file:  /foomp/
 use std::mem;
 
     ";
@@ -75,7 +75,7 @@ use std::mem;
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
-    let pat = &revisioned.error_patterns[0];
+    let pat = &revisioned.error_in_other_files[0];
     assert_eq!(format!("{:?}", pat.0), r#"Regex(foomp)"#);
     assert_eq!(pat.1, 2);
 }

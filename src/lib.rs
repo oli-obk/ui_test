@@ -1221,7 +1221,7 @@ fn run_rustfix(
                     .flat_map(|r| r.env_vars.iter().cloned())
                     .collect(),
                 normalize_stderr: vec![],
-                error_patterns: vec![],
+                error_in_other_files: vec![],
                 error_matches: vec![],
                 require_annotations_for_level: None,
                 aux_builds: comments
@@ -1341,13 +1341,13 @@ fn check_annotations(
 ) {
     let error_patterns = comments
         .for_revision(revision)
-        .flat_map(|r| r.error_patterns.iter());
+        .flat_map(|r| r.error_in_other_files.iter());
 
     let mut seen_error_match = false;
     for (error_pattern, definition_line) in error_patterns {
         seen_error_match = true;
         // first check the diagnostics messages outside of our file. We check this first, so that
-        // you can mix in-file annotations with //@error-pattern annotations, even if there is overlap
+        // you can mix in-file annotations with //@error-in-other-file annotations, even if there is overlap
         // in the messages.
         if let Some(i) = messages_from_unknown_file_or_line
             .iter()

@@ -27,7 +27,7 @@ pub(crate) struct Comments {
 
 impl Comments {
     /// Check that a comment isn't specified twice across multiple differently revisioned statements.
-    /// e.g. `//@[foo, bar] error-pattern: bop` and `//@[foo, baz] error-pattern boop` would end up
+    /// e.g. `//@[foo, bar] error-in-other-file: bop` and `//@[foo, baz] error-in-other-file boop` would end up
     /// specifying two error patterns that are available in revision `foo`.
     pub fn find_one_for_revision<'a, T: 'a>(
         &'a self,
@@ -91,7 +91,9 @@ pub(crate) struct Revisioned {
     /// Normalizations to apply to the stderr output before emitting it to disk
     pub normalize_stderr: Vec<(Regex, Vec<u8>)>,
     /// Arbitrary patterns to look for in the stderr.
-    pub error_patterns: Vec<(Pattern, usize)>,
+    /// The error must be from another file, as errors from the current file must be
+    /// checked via `error_matches`.
+    pub error_in_other_files: Vec<(Pattern, usize)>,
     pub error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
@@ -379,9 +381,12 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "error-pattern" => {
+                self.error("`error-pattern` has been renamed to `error-in-other-file`");
+            }
+            "error-in-other-file" => {
                 let pat = self.parse_error_pattern(args.trim());
                 let line = self.line;
-                self.error_patterns.push((pat, line));
+                self.error_in_other_files.push((pat, line));
             }
             "stderr-per-bitwidth" => {
                 // args are ignored (can be used as comment)
