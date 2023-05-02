@@ -675,20 +675,32 @@ fn print_error(error: &Error, path: &str, revision: &str) {
                 "actual output differs from expected",
             );
             writeln!(err, "```diff").unwrap();
+            let mut seen_diff_line = Some(0);
             for r in ::diff::lines(expected.to_str().unwrap(), actual.to_str().unwrap()) {
+                if let Some(line) = &mut seen_diff_line {
+                    *line += 1;
+                }
+                let mut seen_diff = || {
+                    if let Some(line) = seen_diff_line.take() {
+                        writeln!(err, "{line} unchanged lines skipped").unwrap();
+                    }
+                };
                 match r {
                     ::diff::Result::Both(l, r) => {
                         if l != r {
+                            seen_diff();
                             writeln!(err, "-{l}").unwrap();
                             writeln!(err, "+{r}").unwrap();
-                        } else {
+                        } else if seen_diff_line.is_none() {
                             writeln!(err, " {l}").unwrap()
                         }
                     }
                     ::diff::Result::Left(l) => {
+                        seen_diff();
                         writeln!(err, "-{l}").unwrap();
                     }
                     ::diff::Result::Right(r) => {
+                        seen_diff();
                         writeln!(err, "+{r}").unwrap();
                     }
                 }
