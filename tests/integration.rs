@@ -87,6 +87,10 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                 .to_str()
                 .unwrap()
                 .ends_with("-fail");
+            if cfg!(windows) && path.components().any(|c| c.as_os_str() == "basic-bin") {
+                // on windows there's also a .pdb file, so we get additional errors that aren't there on other platforms
+                return false;
+            }
             path.ends_with("Cargo.toml")
                 && path.parent().unwrap().parent().unwrap() == root_dir
                 && match mode {

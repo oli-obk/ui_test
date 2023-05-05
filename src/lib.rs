@@ -675,20 +675,32 @@ fn print_error(error: &Error, path: &str, revision: &str) {
                 "actual output differs from expected",
             );
             writeln!(err, "```diff").unwrap();
+            let mut seen_diff_line = Some(0);
             for r in ::diff::lines(expected.to_str().unwrap(), actual.to_str().unwrap()) {
+                if let Some(line) = &mut seen_diff_line {
+                    *line += 1;
+                }
+                let mut seen_diff = || {
+                    if let Some(line) = seen_diff_line.take() {
+                        writeln!(err, "{line} unchanged lines skipped").unwrap();
+                    }
+                };
                 match r {
                     ::diff::Result::Both(l, r) => {
                         if l != r {
+                            seen_diff();
                             writeln!(err, "-{l}").unwrap();
                             writeln!(err, "+{r}").unwrap();
-                        } else {
+                        } else if seen_diff_line.is_none() {
                             writeln!(err, " {l}").unwrap()
                         }
                     }
                     ::diff::Result::Left(l) => {
+                        seen_diff();
                         writeln!(err, "-{l}").unwrap();
                     }
                     ::diff::Result::Right(r) => {
+                        seen_diff();
                         writeln!(err, "+{r}").unwrap();
                     }
                 }
@@ -1221,7 +1233,7 @@ fn run_rustfix(
                     .flat_map(|r| r.env_vars.iter().cloned())
                     .collect(),
                 normalize_stderr: vec![],
-                error_patterns: vec![],
+                error_in_other_files: vec![],
                 error_matches: vec![],
                 require_annotations_for_level: None,
                 aux_builds: comments
@@ -1341,13 +1353,13 @@ fn check_annotations(
 ) {
     let error_patterns = comments
         .for_revision(revision)
-        .flat_map(|r| r.error_patterns.iter());
+        .flat_map(|r| r.error_in_other_files.iter());
 
     let mut seen_error_match = false;
     for (error_pattern, definition_line) in error_patterns {
         seen_error_match = true;
         // first check the diagnostics messages outside of our file. We check this first, so that
-        // you can mix in-file annotations with //@error-pattern annotations, even if there is overlap
+        // you can mix in-file annotations with //@error-in-other-file annotations, even if there is overlap
         // in the messages.
         if let Some(i) = messages_from_unknown_file_or_line
             .iter()
