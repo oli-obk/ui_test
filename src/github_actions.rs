@@ -1,6 +1,6 @@
 //! An interface to github actions workflow commands.
 
-use std::fmt::Write;
+use std::fmt::{Debug, Write};
 
 /// Shows an error message directly in a github diff view on drop.
 pub struct Error {
@@ -72,6 +72,12 @@ pub fn group(name: impl std::fmt::Display) -> Group {
 
 /// A guard that closes the current github actions log group on drop.
 pub struct Group(());
+
+impl Debug for Group {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("a handle that will close the github action group on drop")
+    }
+}
 
 impl Drop for Group {
     fn drop(&mut self) {

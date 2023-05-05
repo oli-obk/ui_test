@@ -103,5 +103,6 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                 }
         },
         |_, _| None,
+        ui_test::status_emitter::TextAndGha,
     )
 }

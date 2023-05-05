@@ -16,12 +16,12 @@ use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern, Revisioned};
 use regex::bytes::Regex;
 use rustc_stderr::{Diagnostics, Level, Message};
+use status_emitter::StatusEmitter;
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::fmt::Display;
 use std::fmt::Write;
-use std::io::Write as _;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
@@ -35,6 +35,7 @@ mod diff;
 pub mod github_actions;
 mod parser;
 mod rustc_stderr;
+pub mod status_emitter;
 #[cfg(test)]
 mod tests;
 
@@ -352,6 +353,7 @@ pub fn run_tests(config: Config) -> Result<()> {
         config,
         |path| path.extension().map(|ext| ext == "rs").unwrap_or(false),
         |_, _| None,
+        status_emitter::TextAndGha,
     )
 }
 
@@ -405,6 +407,7 @@ pub fn run_tests_generic(
     mut config: Config,
     file_filter: impl Fn(&Path) -> bool + Sync,
     per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
+    status_emitter: impl StatusEmitter,
 ) -> Result<()> {
     config.fill_host_and_target()?;
 
@@ -564,28 +567,10 @@ pub fn run_tests_generic(
     // Print all errors in a single thread to show reliable output
     if !failures.is_empty() {
         for (path, cmd, revision, errors, stderr) in &failures {
-            let _group = github_actions::group(format_args!("{}:{revision}", path.display()));
-
-            eprintln!();
-            let path = path.display().to_string();
-            eprint!("{}", path.underline().bold());
-            let revision = if revision.is_empty() {
-                String::new()
-            } else {
-                format!(" (revision `{revision}`)")
-            };
-            eprint!("{revision}");
-            eprint!(" {}", "FAILED:".red().bold());
-            eprintln!();
-            eprintln!("command: {cmd:?}");
-            eprintln!();
+            let _guard = status_emitter.failed_test(revision, path, cmd, stderr);
             for error in errors {
-                print_error(error, &path, &revision);
+                print_error(error, &path.display().to_string(), &revision);
             }
-            eprintln!("full stderr:");
-            std::io::stderr().write_all(stderr).unwrap();
-            eprintln!();
-            eprintln!();
         }
         eprintln!("{}", "FAILURES:".red().underline().bold());
         for (path, _cmd, _revision, _errors, _stderr) in &failures {
