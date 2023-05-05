@@ -2,11 +2,11 @@
 
 use colored::Colorize;
 
-use crate::github_actions;
+use crate::{github_actions, Config, TestResult};
 use std::{fmt::Debug, io::Write, path::Path, process::Command};
 
 /// A generic way to handle the output of this crate.
-pub trait StatusEmitter {
+pub trait StatusEmitter: Sync {
     /// Invoked before each failed test prints its errors along with a drop guard that can
     /// gets invoked afterwards.
     fn failed_test<'a>(
@@ -16,6 +16,15 @@ pub trait StatusEmitter {
         cmd: &'a Command,
         stderr: &'a [u8],
     ) -> Box<dyn Debug + 'a>;
+
+    /// Start a test run and return a handle for reporting individual tests' results
+    fn run_tests(&self, config: &Config) -> Box<dyn DuringTestRun>;
+}
+
+/// Report information during test runs.
+pub trait DuringTestRun {
+    /// A test has finished, handle the result.
+    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult);
 }
 
 /// A human readable output emitter.
@@ -54,6 +63,55 @@ impl StatusEmitter for Text {
         }
         Box::new(Guard(stderr))
     }
+
+    fn run_tests(&self, config: &Config) -> Box<dyn DuringTestRun> {
+        if config.quiet {
+            Box::new(Quiet { n: 0 })
+        } else {
+            Box::new(Text)
+        }
+    }
+}
+
+impl DuringTestRun for Text {
+    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
+        let result = match result {
+            TestResult::Ok => "ok".green(),
+            TestResult::Errored { .. } => "FAILED".red().bold(),
+            TestResult::Ignored => "ignored (in-test comment)".yellow(),
+            TestResult::Filtered => return,
+        };
+        eprint!(
+            "{}{} ... ",
+            path.display(),
+            if revision.is_empty() {
+                "".into()
+            } else {
+                format!(" ({revision})")
+            }
+        );
+        eprintln!("{result}");
+    }
+}
+
+struct Quiet {
+    n: usize,
+}
+
+impl DuringTestRun for Quiet {
+    fn test_result(&mut self, _path: &Path, _revision: &str, result: &TestResult) {
+        // Humans start counting at 1
+        self.n += 1;
+        match result {
+            TestResult::Ok => eprint!("{}", ".".green()),
+            TestResult::Errored { .. } => eprint!("{}", "F".red().bold()),
+            TestResult::Ignored => eprint!("{}", "i".yellow()),
+            TestResult::Filtered => {}
+        }
+        if self.n % 100 == 0 {
+            eprintln!(" {}", self.n);
+        }
+    }
 }
 
 /// Emits Github Actions Workspace commands to show the failures directly in the github diff view.
@@ -71,6 +129,14 @@ impl StatusEmitter for Gha {
             path.display()
         )))
     }
+
+    fn run_tests(&self, _config: &Config) -> Box<dyn DuringTestRun> {
+        Box::new(Gha)
+    }
+}
+
+impl DuringTestRun for Gha {
+    fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
 }
 
 /// Prints a human readable message as well as a github action workflow command where applicable.
@@ -87,5 +153,16 @@ impl StatusEmitter for TextAndGha {
             Gha.failed_test(revision, path, cmd, stderr),
             Text.failed_test(revision, path, cmd, stderr),
         ))
+    }
+
+    fn run_tests(&self, _config: &Config) -> Box<dyn DuringTestRun> {
+        Box::new(TextAndGha)
+    }
+}
+
+impl DuringTestRun for TextAndGha {
+    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
+        Text.test_result(path, revision, result);
+        Gha.test_result(path, revision, result);
     }
 }
