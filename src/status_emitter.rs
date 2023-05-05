@@ -29,6 +29,7 @@ pub trait StatusEmitter: Sync {
     /// Start a test run and return a handle for reporting individual tests' results
     fn run_tests(&self, config: &Config) -> Box<dyn DuringTestRun>;
     /// Create a report about the entire test run at the end.
+    #[allow(clippy::type_complexity)]
     fn finalize(
         &self,
         _failures: &[(PathBuf, Command, String, Vec<Error>, Vec<u8>)],
