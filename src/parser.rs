@@ -143,7 +143,8 @@ pub(crate) enum Condition {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum Pattern {
+/// An error pattern parsed from a `//~` comment.
+pub enum Pattern {
     SubString(String),
     Regex(Regex),
 }

@@ -10,18 +10,16 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::{bail, Context, Result};
-use colored::*;
+use color_eyre::eyre::{Context, Result};
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern, Revisioned};
 use regex::bytes::Regex;
 use rustc_stderr::{Diagnostics, Level, Message};
+use status_emitter::StatusEmitter;
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::fmt::Display;
-use std::fmt::Write;
-use std::io::Write as _;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
@@ -35,6 +33,7 @@ mod diff;
 pub mod github_actions;
 mod parser;
 mod rustc_stderr;
+pub mod status_emitter;
 #[cfg(test)]
 mod tests;
 
@@ -352,6 +351,7 @@ pub fn run_tests(config: Config) -> Result<()> {
         config,
         |path| path.extension().map(|ext| ext == "rs").unwrap_or(false),
         |_, _| None,
+        status_emitter::TextAndGha,
     )
 }
 
@@ -383,13 +383,21 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output>
 }
 
 #[allow(clippy::large_enum_variant)]
-enum TestResult {
+/// The possible results a single test can have.
+pub enum TestResult {
+    /// The test passed
     Ok,
+    /// The test was ignored due to a rule (`//@only-*` or `//@ignore-*`)
     Ignored,
+    /// The test was filtered with the `file_filter` argument.
     Filtered,
+    /// The test failed.
     Errored {
+        /// Command that failed
         command: Command,
+        /// The errors that were encountered.
         errors: Vec<Error>,
+        /// The full stderr of the test run.
         stderr: Vec<u8>,
     },
 }
@@ -405,6 +413,7 @@ pub fn run_tests_generic(
     mut config: Config,
     file_filter: impl Fn(&Path) -> bool + Sync,
     per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
+    status_emitter: impl StatusEmitter,
 ) -> Result<()> {
     config.fill_host_and_target()?;
 
@@ -451,44 +460,11 @@ pub fn run_tests_generic(
         let (finished_files_sender, finished_files_recv) = unbounded::<TestRun>();
 
         s.spawn(|| {
-            let _group = github_actions::group("run tests");
-            if config.quiet {
-                for (i, run) in finished_files_recv.into_iter().enumerate() {
-                    // Humans start counting at 1
-                    let i = i + 1;
-                    match run.result {
-                        TestResult::Ok => eprint!("{}", ".".green()),
-                        TestResult::Errored { .. } => eprint!("{}", "F".red().bold()),
-                        TestResult::Ignored => eprint!("{}", "i".yellow()),
-                        TestResult::Filtered => {}
-                    }
-                    if i % 100 == 0 {
-                        eprintln!(" {i}");
-                    }
-                    results.push(run);
-                }
-            } else {
-                for run in finished_files_recv {
-                    let result = match run.result {
-                        TestResult::Ok => Some("ok".green()),
-                        TestResult::Errored { .. } => Some("FAILED".red().bold()),
-                        TestResult::Ignored => Some("ignored (in-test comment)".yellow()),
-                        TestResult::Filtered => None,
-                    };
-                    if let Some(result) = result {
-                        eprint!(
-                            "{}{} ... ",
-                            run.path.display(),
-                            if run.revision.is_empty() {
-                                "".into()
-                            } else {
-                                format!(" ({})", run.revision)
-                            }
-                        );
-                        eprintln!("{result}");
-                    }
-                    results.push(run);
-                }
+            let mut status_emitter = status_emitter.run_tests(&config);
+            for run in finished_files_recv {
+                status_emitter.test_result(&run.path, &run.revision, &run.result);
+
+                results.push(run);
             }
         });
 
@@ -561,212 +537,7 @@ pub fn run_tests_generic(
         }
     }
 
-    // Print all errors in a single thread to show reliable output
-    if !failures.is_empty() {
-        for (path, cmd, revision, errors, stderr) in &failures {
-            let _group = github_actions::group(format_args!("{}:{revision}", path.display()));
-
-            eprintln!();
-            let path = path.display().to_string();
-            eprint!("{}", path.underline().bold());
-            let revision = if revision.is_empty() {
-                String::new()
-            } else {
-                format!(" (revision `{revision}`)")
-            };
-            eprint!("{revision}");
-            eprint!(" {}", "FAILED:".red().bold());
-            eprintln!();
-            eprintln!("command: {cmd:?}");
-            eprintln!();
-            for error in errors {
-                print_error(error, &path, &revision);
-            }
-            eprintln!("full stderr:");
-            std::io::stderr().write_all(stderr).unwrap();
-            eprintln!();
-            eprintln!();
-        }
-        eprintln!("{}", "FAILURES:".red().underline().bold());
-        for (path, _cmd, _revision, _errors, _stderr) in &failures {
-            eprintln!("    {}", path.display());
-        }
-        eprintln!();
-        eprintln!(
-            "test result: {}. {} tests failed, {} tests passed, {} ignored, {} filtered out",
-            "FAIL".red(),
-            failures.len().to_string().red().bold(),
-            succeeded.to_string().green(),
-            ignored.to_string().yellow(),
-            filtered.to_string().yellow(),
-        );
-        bail!("tests failed");
-    }
-    eprintln!();
-    eprintln!(
-        "test result: {}. {} tests passed, {} ignored, {} filtered out",
-        "ok".green(),
-        succeeded.to_string().green(),
-        ignored.to_string().yellow(),
-        filtered.to_string().yellow(),
-    );
-    eprintln!();
-    Ok(())
-}
-
-fn print_error(error: &Error, path: &str, revision: &str) {
-    match error {
-        Error::ExitStatus {
-            mode,
-            status,
-            expected,
-        } => {
-            github_actions::error(
-                path,
-                format!("{mode} test{revision} got {status}, but expected {expected}"),
-            );
-            eprintln!("{mode} test got {status}, but expected {expected}")
-        }
-        Error::Command { kind, status } => {
-            github_actions::error(path, format!("{kind}{revision} failed with {status}"));
-            eprintln!("{kind} failed with {status}");
-        }
-        Error::PatternNotFound {
-            pattern,
-            definition_line,
-        } => {
-            github_actions::error(path, format!("Pattern not found{revision}"))
-                .line(*definition_line);
-            match pattern {
-                Pattern::SubString(s) => {
-                    eprintln!("substring `{s}` {} in stderr output", "not found".red())
-                }
-                Pattern::Regex(r) => {
-                    eprintln!("`/{r}/` does {} stderr output", "not match".red())
-                }
-            }
-            eprintln!(
-                "expected because of pattern here: {}",
-                format!("{path}:{definition_line}").bold()
-            );
-        }
-        Error::NoPatternsFound => {
-            github_actions::error(
-                path,
-                format!("no error patterns found in fail test{revision}"),
-            );
-            eprintln!("{}", "no error patterns found in fail test".red());
-        }
-        Error::PatternFoundInPassTest => {
-            github_actions::error(path, format!("error pattern found in pass test{revision}"));
-            eprintln!("{}", "error pattern found in pass test".red())
-        }
-        Error::OutputDiffers {
-            path: output_path,
-            actual,
-            expected,
-        } => {
-            let mut err = github_actions::error(
-                if expected.is_empty() {
-                    path.to_owned()
-                } else {
-                    output_path.display().to_string()
-                },
-                "actual output differs from expected",
-            );
-            writeln!(err, "```diff").unwrap();
-            let mut seen_diff_line = Some(0);
-            for r in ::diff::lines(expected.to_str().unwrap(), actual.to_str().unwrap()) {
-                if let Some(line) = &mut seen_diff_line {
-                    *line += 1;
-                }
-                let mut seen_diff = || {
-                    if let Some(line) = seen_diff_line.take() {
-                        writeln!(err, "{line} unchanged lines skipped").unwrap();
-                    }
-                };
-                match r {
-                    ::diff::Result::Both(l, r) => {
-                        if l != r {
-                            seen_diff();
-                            writeln!(err, "-{l}").unwrap();
-                            writeln!(err, "+{r}").unwrap();
-                        } else if seen_diff_line.is_none() {
-                            writeln!(err, " {l}").unwrap()
-                        }
-                    }
-                    ::diff::Result::Left(l) => {
-                        seen_diff();
-                        writeln!(err, "-{l}").unwrap();
-                    }
-                    ::diff::Result::Right(r) => {
-                        seen_diff();
-                        writeln!(err, "+{r}").unwrap();
-                    }
-                }
-            }
-            writeln!(err, "```").unwrap();
-            eprintln!("{}", "actual output differed from expected".underline());
-            eprintln!("{}", format!("--- {}", output_path.display()).red());
-            eprintln!("{}", "+++ <stderr output>".green());
-            diff::print_diff(expected, actual);
-        }
-        Error::ErrorsWithoutPattern { path: None, msgs } => {
-            eprintln!(
-        "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
-        msgs.len(),
-    );
-            for Message { level, message } in msgs {
-                eprintln!("    {level:?}: {message}")
-            }
-            let mut err = github_actions::error(
-                path,
-                format!("Unmatched diagnostics outside the testfile{revision}"),
-            );
-            for Message { level, message } in msgs {
-                writeln!(err, "{level:?}: {message}").unwrap();
-            }
-        }
-        Error::ErrorsWithoutPattern {
-            path: Some((path, line)),
-            msgs,
-        } => {
-            let path = path.display();
-            eprintln!(
-                "There were {} unmatched diagnostics at {path}:{line}",
-                msgs.len(),
-            );
-            for Message { level, message } in msgs {
-                eprintln!("    {level:?}: {message}")
-            }
-            let mut err = github_actions::error(&path, format!("Unmatched diagnostics{revision}"))
-                .line(*line);
-            for Message { level, message } in msgs {
-                writeln!(err, "{level:?}: {message}").unwrap();
-            }
-        }
-        Error::InvalidComment { msg, line } => {
-            let mut err =
-                github_actions::error(path, format!("Could not parse comment")).line(*line);
-            writeln!(err, "{msg}").unwrap();
-            eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
-        }
-        Error::Bug(msg) => {
-            eprintln!("A bug in `ui_test` occurred: {msg}");
-        }
-        Error::Aux {
-            path: aux_path,
-            errors,
-            line,
-        } => {
-            eprintln!("Aux build from {path}:{line} failed");
-            github_actions::error(path, format!("Aux build failed")).line(*line);
-            for error in errors {
-                print_error(error, &aux_path.display().to_string(), "");
-            }
-        }
-    }
-    eprintln!();
+    status_emitter.finalize(&failures, succeeded, ignored, filtered)
 }
 
 fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
@@ -840,16 +611,23 @@ fn parse_comments_in_file(path: &Path) -> Result<Comments, (Vec<u8>, Vec<Error>)
     }
 }
 
+/// All the ways in which a test can fail.
 #[derive(Debug)]
-enum Error {
+pub enum Error {
     /// Got an invalid exit status for the given mode.
     ExitStatus {
+        /// The expected mode.
         mode: Mode,
+        /// The exit status of the command.
         status: ExitStatus,
+        /// The expected exit status as set in the file or derived from the mode.
         expected: i32,
     },
+    /// A pattern was declared but had no matching error.
     PatternNotFound {
+        /// The pattern that was missing an error
         pattern: Pattern,
+        /// The line in which the pattern was defined.
         definition_line: usize,
     },
     /// A ui test checking for failure does not have any failure patterns
@@ -858,28 +636,43 @@ enum Error {
     PatternFoundInPassTest,
     /// Stderr/Stdout differed from the `.stderr`/`.stdout` file present.
     OutputDiffers {
+        /// The file containing the expected output that differs from the actual output.
         path: PathBuf,
+        /// The output from the command.
         actual: Vec<u8>,
+        /// The contents of the file.
         expected: Vec<u8>,
     },
+    /// There were errors that don't have a pattern.
     ErrorsWithoutPattern {
+        /// The main message of the error.
         msgs: Vec<Message>,
+        /// File and line information of the error.
         path: Option<(PathBuf, usize)>,
     },
+    /// A comment failed to parse.
     InvalidComment {
+        /// The comment
         msg: String,
+        /// THe line in which it was defined.
         line: usize,
     },
+    /// A subcommand (e.g. rustfix) of a test failed.
     Command {
+        /// The name of the subcommand (e.g. "rustfix").
         kind: String,
+        /// The exit status of the command.
         status: ExitStatus,
     },
     /// This catches crashes of ui tests and reports them along the failed test.
     Bug(String),
     /// An auxiliary build failed with its own set of errors.
     Aux {
+        /// Path to the aux file.
         path: PathBuf,
+        /// The errors that occurred during the build of the aux file.
         errors: Vec<Error>,
+        /// The line in which the aux file was requested to be built.
         line: usize,
     },
 }

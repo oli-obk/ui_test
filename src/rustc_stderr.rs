@@ -24,7 +24,8 @@ pub(crate) enum Level {
 }
 
 #[derive(Debug)]
-pub(crate) struct Message {
+/// A diagnostic message.
+pub struct Message {
     pub(crate) level: Level,
     pub(crate) message: String,
 }

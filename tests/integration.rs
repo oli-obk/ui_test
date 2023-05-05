@@ -43,10 +43,6 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         "--manifest-path".into(),
     ];
 
-    // avoid rendering github actions messages in the dogfood tests as they'd
-    // show up in the diff and thus fail CI.
-    config.program.envs.push(("GITHUB_ACTION".into(), None));
-
     config
         .program
         .envs
@@ -103,5 +99,6 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                 }
         },
         |_, _| None,
+        ui_test::status_emitter::TextAndGha,
     )
 }
