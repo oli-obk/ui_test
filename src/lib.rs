@@ -835,6 +835,7 @@ fn run_test(
         &mut errors,
     );
     cmd.args(&extra_args);
+    cmd.env("UITEST_TEST_RUN", "True");
 
     let output = cmd
         .output()
