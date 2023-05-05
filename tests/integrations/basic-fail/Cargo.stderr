@@ -1,4 +1,3 @@
-   Compiler: rustc "--error-format=json"
    Building test dependencies...
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED
@@ -173,7 +172,6 @@ error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/debug/ui_tests-HASH --test-threads 1` (exit status: 1)
-   Compiler: rustc "--error-format=json"
    Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
@@ -406,7 +404,6 @@ FAILURES:
     tests/actual_tests_bless/revisions_bad.rs
 
 test result: FAIL. 12 tests failed, 12 tests passed, 3 ignored, 0 filtered out
-   Compiler: rustc "--error-format=json"
    Building test dependencies...
 tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
@@ -437,10 +434,9 @@ test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/lib.rs:588:9)', tests/ui_tests_bless.rs:50:18
+    $DIR/src/lib.rs:588:9)', tests/ui_tests_bless.rs:56:18
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
-   Compiler: invalid_foobarlaksdfalsdfj
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
 
 Caused by:
@@ -453,7 +449,6 @@ error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/debug/ui_tests_invalid_program-HASH --test-threads 1` (exit status: 1)
-   Compiler: invalid_foobarlaksdfalsdfj
 thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"', $DIR/src/lib.rs
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 tests/actual_tests/bad_pattern.rs ... FAILED

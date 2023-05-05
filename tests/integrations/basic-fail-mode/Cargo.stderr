@@ -1,4 +1,3 @@
-   Compiler: rustc "--error-format=json"
    Building test dependencies...
 tests/actual_tests/foomp.rs ... ok
 

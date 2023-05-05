@@ -14,5 +14,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
         ..Config::default()
     };
 
-    ui_test::run_tests(config)
+    ui_test::run_tests_generic(
+        config,
+        |path| path.extension().map(|ext| ext == "rs").unwrap_or(false),
+        |_, _| None,
+        // Avoid github actions, as these would end up showing up in `CArgo.stderr`
+        status_emitter::Text,
+    )
 }
