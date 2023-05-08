@@ -167,7 +167,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/status_emitter.rs:123:13
+    $DIR/src/status_emitter.rs:127:13
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -393,15 +393,15 @@ FAILURES:
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
     tests/actual_tests_bless/compiletest-rs-command.rs
     tests/actual_tests_bless/failing_executable.rs
-    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
-    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs
+    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision a)
+    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision b)
     tests/actual_tests_bless/foomp-rustfix-fail.rs
     tests/actual_tests_bless/non_top_level_configs.rs
     tests/actual_tests_bless/revised_revision.rs
-    tests/actual_tests_bless/revisioned_executable.rs
-    tests/actual_tests_bless/revisioned_executable_panic.rs
-    tests/actual_tests_bless/revisioned_executable_panic.rs
-    tests/actual_tests_bless/revisions_bad.rs
+    tests/actual_tests_bless/revisioned_executable.rs (revision panic)
+    tests/actual_tests_bless/revisioned_executable_panic.rs (revision run)
+    tests/actual_tests_bless/revisioned_executable_panic.rs (revision panic)
+    tests/actual_tests_bless/revisions_bad.rs (revision bar)
 
 test result: FAIL. 12 tests failed, 12 tests passed, 3 ignored, 0 filtered out
    Building test dependencies...
@@ -428,13 +428,13 @@ For more information about this error, try `rustc --explain E0601`.
 
 
 FAILURES:
-    tests/actual_tests_bless_yolo/revisions_bad.rs
+    tests/actual_tests_bless_yolo/revisions_bad.rs (revision bar)
 
 test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/status_emitter.rs:123:13)', tests/ui_tests_bless.rs:56:18
+    $DIR/src/status_emitter.rs:127:13)', tests/ui_tests_bless.rs:56:18
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
@@ -528,7 +528,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/status_emitter.rs:123:13
+    $DIR/src/status_emitter.rs:127:13
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
