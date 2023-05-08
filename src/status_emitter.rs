@@ -384,8 +384,9 @@ impl DuringTestRun for Quiet {
 }
 
 /// Emits Github Actions Workspace commands to show the failures directly in the github diff view.
-pub struct Gha;
-impl StatusEmitter for Gha {
+/// If the const generic `GROUP` boolean is `true`, also emit `::group` commands.
+pub struct Gha<const GROUP: bool>;
+impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
     fn failed_test(
         &self,
         revision: &str,
@@ -393,14 +394,18 @@ impl StatusEmitter for Gha {
         _cmd: &Command,
         _stderr: &[u8],
     ) -> Box<dyn Debug> {
-        Box::new(github_actions::group(format_args!(
-            "{}:{revision}",
-            path.display()
-        )))
+        if GROUP {
+            Box::new(github_actions::group(format_args!(
+                "{}:{revision}",
+                path.display()
+            )))
+        } else {
+            Box::new(())
+        }
     }
 
     fn run_tests(&self, _config: &Config) -> Box<dyn DuringTestRun> {
-        Box::new(Gha)
+        Box::new(Gha::<GROUP>)
     }
 
     fn finalize(
@@ -416,7 +421,10 @@ impl StatusEmitter for Gha {
             } else {
                 format!(" (revision: {revision})")
             };
-            let _guard = self.failed_test(&revision, path, cmd, stderr);
+            let _guard;
+            if GROUP {
+                _guard = self.failed_test(&revision, path, cmd, stderr);
+            }
             for error in errors {
                 gha_error(error, &path.display().to_string(), &revision);
             }
@@ -425,7 +433,7 @@ impl StatusEmitter for Gha {
     }
 }
 
-impl DuringTestRun for Gha {
+impl<const GROUP: bool> DuringTestRun for Gha<GROUP> {
     fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
 }
 
@@ -440,7 +448,7 @@ impl StatusEmitter for TextAndGha {
         stderr: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
         Box::new((
-            Gha.failed_test(revision, path, cmd, stderr),
+            Gha::<true>.failed_test(revision, path, cmd, stderr),
             Text.failed_test(revision, path, cmd, stderr),
         ))
     }
@@ -453,6 +461,6 @@ impl StatusEmitter for TextAndGha {
 impl DuringTestRun for TextAndGha {
     fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
         Text.test_result(path, revision, result);
-        Gha.test_result(path, revision, result);
+        Gha::<true>.test_result(path, revision, result);
     }
 }
