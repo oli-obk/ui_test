@@ -1049,7 +1049,7 @@ fn run_rustfix(
     let path = check_output(
         fixed_code.as_bytes(),
         path,
-        &mut vec![],
+        errors,
         revised(revision, "fixed"),
         &Filter::default(),
         config,
