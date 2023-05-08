@@ -48,7 +48,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config
         .program
         .envs
-        .push(("BLESS".into(), Some(bless.to_string().into())));
+        .push(("BLESS".into(), bless.then(|| String::new().into())));
 
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
