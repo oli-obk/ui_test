@@ -10,7 +10,7 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::{Context, Result};
+use color_eyre::eyre::{eyre, Context, Result};
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern, Revisioned};
 use regex::bytes::Regex;
@@ -537,7 +537,13 @@ pub fn run_tests_generic(
         }
     }
 
-    status_emitter.finalize(&failures, succeeded, ignored, filtered)
+    status_emitter.finalize(&failures, succeeded, ignored, filtered);
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(eyre!("tests failed"))
+    }
 }
 
 fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {

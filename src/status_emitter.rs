@@ -1,12 +1,9 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
 use bstr::ByteSlice;
-use color_eyre::eyre::bail;
 use colored::Colorize;
 
-use crate::{
-    github_actions, parser::Pattern, rustc_stderr::Message, Config, Error, Result, TestResult,
-};
+use crate::{github_actions, parser::Pattern, rustc_stderr::Message, Config, Error, TestResult};
 use std::{
     fmt::{Debug, Write as _},
     io::Write as _,
@@ -36,9 +33,7 @@ pub trait StatusEmitter: Sync {
         _succeeded: usize,
         _ignored: usize,
         _filtered: usize,
-    ) -> Result<()> {
-        Ok(())
-    }
+    );
 }
 
 /// Report information during test runs.
@@ -98,9 +93,19 @@ impl StatusEmitter for Text {
         succeeded: usize,
         ignored: usize,
         filtered: usize,
-    ) -> Result<()> {
+    ) {
         // Print all errors in a single thread to show reliable output
-        if !failures.is_empty() {
+        if failures.is_empty() {
+            eprintln!();
+            eprintln!(
+                "test result: {}. {} tests passed, {} ignored, {} filtered out",
+                "ok".green(),
+                succeeded.to_string().green(),
+                ignored.to_string().yellow(),
+                filtered.to_string().yellow(),
+            );
+            eprintln!();
+        } else {
             for (path, cmd, revision, errors, stderr) in failures {
                 let _guard = self.failed_test(revision, path, cmd, stderr);
                 for error in errors {
@@ -124,18 +129,7 @@ impl StatusEmitter for Text {
                 ignored.to_string().yellow(),
                 filtered.to_string().yellow(),
             );
-            bail!("tests failed");
         }
-        eprintln!();
-        eprintln!(
-            "test result: {}. {} tests passed, {} ignored, {} filtered out",
-            "ok".green(),
-            succeeded.to_string().green(),
-            ignored.to_string().yellow(),
-            filtered.to_string().yellow(),
-        );
-        eprintln!();
-        Ok(())
     }
 }
 
@@ -418,7 +412,7 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
         _succeeded: usize,
         _ignored: usize,
         _filtered: usize,
-    ) -> Result<()> {
+    ) {
         for (path, cmd, revision, errors, stderr) in failures {
             let revision = if revision.is_empty() {
                 "".to_string()
@@ -433,7 +427,6 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
                 gha_error(error, &path.display().to_string(), &revision);
             }
         }
-        Ok(())
     }
 }
 
@@ -459,6 +452,17 @@ impl StatusEmitter for TextAndGha {
 
     fn run_tests(&self, _config: &Config) -> Box<dyn DuringTestRun> {
         Box::new(TextAndGha)
+    }
+
+    fn finalize(
+        &self,
+        failures: &[(PathBuf, Command, String, Vec<Error>, Vec<u8>)],
+        succeeded: usize,
+        ignored: usize,
+        filtered: usize,
+    ) {
+        Text.finalize(failures, succeeded, ignored, filtered);
+        Gha::<true>.finalize(failures, succeeded, ignored, filtered);
     }
 }
 

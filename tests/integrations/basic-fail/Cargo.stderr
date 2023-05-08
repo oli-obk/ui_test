@@ -167,7 +167,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/status_emitter.rs:127:13
+    $DIR/src/lib.rs:545:13
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -434,7 +434,7 @@ test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/status_emitter.rs:127:13)', tests/ui_tests_bless.rs:56:18
+    $DIR/src/lib.rs:545:13)', tests/ui_tests_bless.rs:56:18
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
@@ -528,7 +528,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/status_emitter.rs:127:13
+    $DIR/src/lib.rs:545:13
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
