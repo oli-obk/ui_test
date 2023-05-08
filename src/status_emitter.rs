@@ -201,9 +201,6 @@ fn print_error(error: &Error, path: &str) {
             }
         }
         Error::InvalidComment { msg, line } => {
-            let mut err =
-                github_actions::error(path, format!("Could not parse comment")).line(*line);
-            writeln!(err, "{msg}").unwrap();
             eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
         }
         Error::Bug(msg) => {
