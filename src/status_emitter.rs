@@ -108,8 +108,12 @@ impl StatusEmitter for Text {
                 }
             }
             eprintln!("{}", "FAILURES:".red().underline().bold());
-            for (path, _cmd, _revision, _errors, _stderr) in failures {
-                eprintln!("    {}", path.display());
+            for (path, _cmd, revision, _errors, _stderr) in failures {
+                eprint!("    {}", path.display());
+                if !revision.is_empty() {
+                    eprint!(" (revision {revision})");
+                }
+                eprintln!();
             }
             eprintln!();
             eprintln!(
