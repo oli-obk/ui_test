@@ -8,6 +8,8 @@ fn main() -> Result<()> {
     run("integrations", Mode::Pass)?;
     run("integrations", Mode::Panic)?;
 
+    eprintln!("integration tests done");
+
     Ok(())
 }
 
