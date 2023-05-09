@@ -127,7 +127,7 @@ impl StatusEmitter for Text {
             impl Summary for Summarizer {
                 fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
                     for error in errors {
-                        print_error(&error, &path.display().to_string());
+                        print_error(error, &path.display().to_string());
                     }
 
                     self.failures.push(if revision.is_empty() {
@@ -452,7 +452,7 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
                     format!(" (revision: {revision})")
                 };
                 for error in errors {
-                    gha_error(&error, &path.display().to_string(), &revision);
+                    gha_error(error, &path.display().to_string(), &revision);
                 }
             }
         }
