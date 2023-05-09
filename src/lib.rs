@@ -10,7 +10,7 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::{Context, Result};
+use color_eyre::eyre::{eyre, Context, Result};
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern, Revisioned};
 use regex::bytes::Regex;
@@ -537,7 +537,17 @@ pub fn run_tests_generic(
         }
     }
 
-    status_emitter.finalize(&failures, succeeded, ignored, filtered)
+    let mut failure_emitter = status_emitter.finalize(failures.len(), succeeded, ignored, filtered);
+    for (path, command, revision, errors, stderr) in &failures {
+        let _guard = status_emitter.failed_test(revision, path, command, stderr);
+        failure_emitter.test_failure(path, revision, errors);
+    }
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(eyre!("tests failed"))
+    }
 }
 
 fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
@@ -1043,7 +1053,7 @@ fn run_rustfix(
     let path = check_output(
         fixed_code.as_bytes(),
         path,
-        &mut vec![],
+        errors,
         revised(revision, "fixed"),
         &Filter::default(),
         config,

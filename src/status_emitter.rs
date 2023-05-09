@@ -1,16 +1,15 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
 use bstr::ByteSlice;
-use color_eyre::eyre::bail;
 use colored::Colorize;
 
 use crate::{
-    github_actions, parser::Pattern, rustc_stderr::Message, Config, Error, Result, TestResult,
+    github_actions, parser::Pattern, rustc_stderr::Message, Config, Error, Errors, TestResult,
 };
 use std::{
     fmt::{Debug, Write as _},
     io::Write as _,
-    path::{Path, PathBuf},
+    path::Path,
     process::Command,
 };
 
@@ -32,13 +31,11 @@ pub trait StatusEmitter: Sync {
     #[allow(clippy::type_complexity)]
     fn finalize(
         &self,
-        _failures: &[(PathBuf, Command, String, Vec<Error>, Vec<u8>)],
-        _succeeded: usize,
-        _ignored: usize,
-        _filtered: usize,
-    ) -> Result<()> {
-        Ok(())
-    }
+        failed: usize,
+        succeeded: usize,
+        ignored: usize,
+        filtered: usize,
+    ) -> Box<dyn Summary>;
 }
 
 /// Report information during test runs.
@@ -46,6 +43,14 @@ pub trait DuringTestRun {
     /// A test has finished, handle the result.
     fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
 }
+
+/// Report a summary at the end of a test run.
+pub trait Summary {
+    /// A test has finished, handle the result.
+    fn test_failure(&mut self, _path: &Path, _revision: &str, _errors: &Errors) {}
+}
+
+impl Summary for () {}
 
 /// A human readable output emitter.
 pub struct Text;
@@ -94,48 +99,69 @@ impl StatusEmitter for Text {
 
     fn finalize(
         &self,
-        failures: &[(PathBuf, Command, String, Vec<Error>, Vec<u8>)],
+        failures: usize,
         succeeded: usize,
         ignored: usize,
         filtered: usize,
-    ) -> Result<()> {
+    ) -> Box<dyn Summary> {
         // Print all errors in a single thread to show reliable output
-        if !failures.is_empty() {
-            for (path, cmd, revision, errors, stderr) in failures {
-                let _guard = self.failed_test(revision, path, cmd, stderr);
-                for error in errors {
-                    print_error(error, &path.display().to_string());
-                }
-            }
-            eprintln!("{}", "FAILURES:".red().underline().bold());
-            for (path, _cmd, revision, _errors, _stderr) in failures {
-                eprint!("    {}", path.display());
-                if !revision.is_empty() {
-                    eprint!(" (revision {revision})");
-                }
-                eprintln!();
-            }
+        if failures == 0 {
             eprintln!();
             eprintln!(
-                "test result: {}. {} tests failed, {} tests passed, {} ignored, {} filtered out",
-                "FAIL".red(),
-                failures.len().to_string().red().bold(),
+                "test result: {}. {} tests passed, {} ignored, {} filtered out",
+                "ok".green(),
                 succeeded.to_string().green(),
                 ignored.to_string().yellow(),
                 filtered.to_string().yellow(),
             );
-            bail!("tests failed");
+            eprintln!();
+            Box::new(())
+        } else {
+            struct Summarizer {
+                failures: Vec<String>,
+                succeeded: usize,
+                ignored: usize,
+                filtered: usize,
+            }
+
+            impl Summary for Summarizer {
+                fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
+                    for error in errors {
+                        print_error(error, &path.display().to_string());
+                    }
+
+                    self.failures.push(if revision.is_empty() {
+                        format!("    {}", path.display())
+                    } else {
+                        format!("    {} (revision {revision})", path.display())
+                    });
+                }
+            }
+
+            impl Drop for Summarizer {
+                fn drop(&mut self) {
+                    eprintln!("{}", "FAILURES:".red().underline().bold());
+                    for line in &self.failures {
+                        eprintln!("{line}");
+                    }
+                    eprintln!();
+                    eprintln!(
+                        "test result: {}. {} tests failed, {} tests passed, {} ignored, {} filtered out",
+                        "FAIL".red(),
+                        self.failures.len().to_string().red().bold(),
+                        self.succeeded.to_string().green(),
+                        self.ignored.to_string().yellow(),
+                        self.filtered.to_string().yellow(),
+                    );
+                }
+            }
+            Box::new(Summarizer {
+                failures: vec![],
+                succeeded,
+                ignored,
+                filtered,
+            })
         }
-        eprintln!();
-        eprintln!(
-            "test result: {}. {} tests passed, {} ignored, {} filtered out",
-            "ok".green(),
-            succeeded.to_string().green(),
-            ignored.to_string().yellow(),
-            filtered.to_string().yellow(),
-        );
-        eprintln!();
-        Ok(())
     }
 }
 
@@ -207,9 +233,6 @@ fn print_error(error: &Error, path: &str) {
             }
         }
         Error::InvalidComment { msg, line } => {
-            let mut err =
-                github_actions::error(path, format!("Could not parse comment")).line(*line);
-            writeln!(err, "{msg}").unwrap();
             eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
         }
         Error::Bug(msg) => {
@@ -414,26 +437,27 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
 
     fn finalize(
         &self,
-        failures: &[(PathBuf, Command, String, Vec<Error>, Vec<u8>)],
+        _failures: usize,
         _succeeded: usize,
         _ignored: usize,
         _filtered: usize,
-    ) -> Result<()> {
-        for (path, cmd, revision, errors, stderr) in failures {
-            let revision = if revision.is_empty() {
-                "".to_string()
-            } else {
-                format!(" (revision: {revision})")
-            };
-            let _guard;
-            if GROUP {
-                _guard = self.failed_test(&revision, path, cmd, stderr);
-            }
-            for error in errors {
-                gha_error(error, &path.display().to_string(), &revision);
+    ) -> Box<dyn Summary> {
+        struct Summarizer<const GROUP: bool>;
+
+        impl<const GROUP: bool> Summary for Summarizer<GROUP> {
+            fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
+                let revision = if revision.is_empty() {
+                    "".to_string()
+                } else {
+                    format!(" (revision: {revision})")
+                };
+                for error in errors {
+                    gha_error(error, &path.display().to_string(), &revision);
+                }
             }
         }
-        Ok(())
+
+        Box::new(Summarizer::<GROUP>)
     }
 }
 
@@ -459,6 +483,26 @@ impl StatusEmitter for TextAndGha {
 
     fn run_tests(&self, _config: &Config) -> Box<dyn DuringTestRun> {
         Box::new(TextAndGha)
+    }
+
+    fn finalize(
+        &self,
+        failures: usize,
+        succeeded: usize,
+        ignored: usize,
+        filtered: usize,
+    ) -> Box<dyn Summary> {
+        Box::new((
+            Gha::<true>.finalize(failures, succeeded, ignored, filtered),
+            Text.finalize(failures, succeeded, ignored, filtered),
+        ))
+    }
+}
+
+impl Summary for (Box<dyn Summary>, Box<dyn Summary>) {
+    fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
+        self.0.test_failure(path, revision, errors);
+        self.1.test_failure(path, revision, errors);
     }
 }
 
