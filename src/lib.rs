@@ -537,7 +537,11 @@ pub fn run_tests_generic(
         }
     }
 
-    status_emitter.finalize(&failures, succeeded, ignored, filtered);
+    let mut failure_emitter = status_emitter.finalize(failures.len(), succeeded, ignored, filtered);
+    for (path, command, revision, errors, stderr) in &failures {
+        let _guard = status_emitter.failed_test(revision, path, command, stderr);
+        failure_emitter.test_failure(path, revision, errors);
+    }
 
     if failures.is_empty() {
         Ok(())
