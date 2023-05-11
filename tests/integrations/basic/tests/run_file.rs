@@ -9,7 +9,7 @@ fn run_file() -> Result<()> {
     let tmp_dir = tempfile::tempdir()?;
     config.out_dir = Some(tmp_dir.path().into());
 
-    let mut result = ui_test::run_file(
+    let mut result = ui_test::test_command(
         config,
         &Path::new(file!())
             .parent()
@@ -37,7 +37,7 @@ fn run_file_with_deps() -> Result<()> {
         .envs
         .push(("CARGO_TARGET_DIR".into(), Some(path.into())));
 
-    let mut result = ui_test::run_file(
+    let mut result = ui_test::test_command(
         config,
         &Path::new(file!())
             .parent()
@@ -61,7 +61,7 @@ fn non_utf8() -> Result<()> {
     config.program = CommandBuilder::cmd("cat");
     config.edition = None;
 
-    let mut result = ui_test::run_file(config, &path)?;
+    let mut result = ui_test::test_command(config, &path)?;
     ensure!(result.output()?.status.success(), "");
     Ok(())
 }

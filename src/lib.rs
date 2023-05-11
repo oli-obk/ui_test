@@ -355,9 +355,9 @@ pub fn run_tests(config: Config) -> Result<()> {
     )
 }
 
-/// Run a single file, with the settings from the `config` argument. Ignores various
-/// settings from `Config` that relate to finding test files.
-pub fn run_file(mut config: Config, path: &Path) -> Result<Command> {
+/// Create a command for running a single file, with the settings from the `config` argument.
+/// Ignores various settings from `Config` that relate to finding test files.
+pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.build_dependencies_and_link_them()?;
 
     let comments =
