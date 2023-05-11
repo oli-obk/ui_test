@@ -10,7 +10,7 @@
 
 use bstr::ByteSlice;
 pub use color_eyre;
-use color_eyre::eyre::{eyre, Context, Result};
+use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::unbounded;
 use parser::{ErrorMatch, Pattern, Revisioned};
 use regex::bytes::Regex;
@@ -357,7 +357,7 @@ pub fn run_tests(config: Config) -> Result<()> {
 
 /// Run a single file, with the settings from the `config` argument. Ignores various
 /// settings from `Config` that relate to finding test files.
-pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output> {
+pub fn run_file(mut config: Config, path: &Path) -> Result<Command> {
     config.build_dependencies_and_link_them()?;
 
     let comments =
@@ -370,16 +370,9 @@ pub fn run_file(mut config: Config, path: &Path) -> Result<std::process::Output>
         &comments,
         config.out_dir.as_deref(),
         &mut errors,
-    )
-    .output()
-    .wrap_err_with(|| {
-        format!(
-            "path `{}` is not an executable",
-            config.program.program.display()
-        )
-    });
+    );
     assert!(errors.is_empty(), "{errors:#?}");
-    result
+    Ok(result)
 }
 
 #[allow(clippy::large_enum_variant)]
