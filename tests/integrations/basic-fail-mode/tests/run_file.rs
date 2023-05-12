@@ -9,14 +9,14 @@ fn run_file() -> Result<()> {
     let tmp_dir = tempfile::tempdir()?;
     config.out_dir = Some(tmp_dir.path().into());
 
-    let result = ui_test::run_file(
+    let mut result = ui_test::test_command(
         config,
         &Path::new(file!())
             .parent()
             .unwrap()
             .join("run_file/run_file.rs"),
     )?;
-    ensure!(result.status.success(), "");
+    ensure!(result.output()?.status.success(), "");
     Ok(())
 }
 
@@ -25,13 +25,15 @@ fn fail_run_file() {
     let mut config = Config::default();
     config.program = CommandBuilder::cmd("invalid_alsdkfjalsdfjalskdfj");
 
-    let _ = ui_test::run_file(
+    let _ = ui_test::test_command(
         config,
         &Path::new(file!())
             .parent()
             .unwrap()
             .join("run_file/run_file.rs"),
     )
+    .unwrap()
+    .output()
     .unwrap_err();
 }
 
@@ -52,13 +54,13 @@ fn run_file_no_deps() -> Result<()> {
         .envs
         .push(("CARGO_TARGET_DIR".into(), Some(path.into())));
 
-    let result = ui_test::run_file(
+    let mut result = ui_test::test_command(
         config,
         &Path::new(file!())
             .parent()
             .unwrap()
             .join("run_file/run_file_with_deps.rs"),
     )?;
-    ensure!(result.status.success(), "");
+    ensure!(result.output()?.status.success(), "");
     Ok(())
 }
