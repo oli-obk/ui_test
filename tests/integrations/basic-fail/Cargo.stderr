@@ -7,7 +7,7 @@ tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
+command: UITEST_TEST_RUN="True" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 substring `miesmätsched types` not found in stderr output
 expected because of pattern here: tests/actual_tests/bad_pattern.rs:5
@@ -52,7 +52,7 @@ full stderr:
 
 
 tests/actual_tests/executable_compile_err.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
+command: UITEST_TEST_RUN="True" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
 
 run(0) test got exit status: 1, but expected 0
 
@@ -90,7 +90,7 @@ error: aborting due to previous error
 
 
 tests/actual_tests/exit_code_fail.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
+command: UITEST_TEST_RUN="True" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
 fail test got exit status: 0, but expected 1
 
@@ -111,7 +111,7 @@ full stderr:
 
 
 tests/actual_tests/foomp.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--edition" "2021"
+command: UITEST_TEST_RUN="True" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 actual output differed from expected
 --- tests/actual_tests/foomp.stderr
@@ -342,7 +342,7 @@ full stderr:
 
 
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable.rs" "--cfg=panic" "--edition" "2021"
+command: UITEST_TEST_RUN="True" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable.rs" "--cfg=panic" "--edition" "2021"
 
 run(101) test got exit status: 0, but expected 101
 
@@ -360,7 +360,7 @@ full stderr:
 
 
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable_panic.rs" "--cfg=panic" "--edition" "2021"
+command: UITEST_TEST_RUN="True" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable_panic.rs" "--cfg=panic" "--edition" "2021"
 
 run(101) test got exit status: 0, but expected 101
 
@@ -369,7 +369,7 @@ full stderr:
 
 
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
+command: UITEST_TEST_RUN="True" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 substring ``main` function not found in crate `revisions_bad`` not found in stderr output
 expected because of pattern here: tests/actual_tests_bless/revisions_bad.rs:4
@@ -410,7 +410,7 @@ tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
 
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
+command: UITEST_TEST_RUN="True" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 substring ``main` function not found in crate `revisions_bad`` not found in stderr output
 expected because of pattern here: tests/actual_tests_bless_yolo/revisions_bad.rs:4
@@ -449,23 +449,23 @@ error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/debug/ui_tests_invalid_program-HASH --test-threads 1` (exit status: 1)
-thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"', $DIR/src/lib.rs
+thread '<unnamed>' panicked at 'could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"', $DIR/src/lib.rs
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 tests/actual_tests/bad_pattern.rs ... FAILED
-thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable.rs" "--edition" "2021"', $DIR/src/lib.rs
+thread '<unnamed>' panicked at 'could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable.rs" "--edition" "2021"', $DIR/src/lib.rs
 tests/actual_tests/executable.rs ... FAILED
-thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"', $DIR/src/lib.rs
+thread '<unnamed>' panicked at 'could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"', $DIR/src/lib.rs
 tests/actual_tests/executable_compile_err.rs ... FAILED
-thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"', $DIR/src/lib.rs
+thread '<unnamed>' panicked at 'could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"', $DIR/src/lib.rs
 tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
-thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs" "--edition" "2021"', $DIR/src/lib.rs
+thread '<unnamed>' panicked at 'could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs" "--edition" "2021"', $DIR/src/lib.rs
 tests/actual_tests/foomp.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
 command: "<unknown>"
 
-A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
+A bug in `ui_test` occurred: could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 full stderr:
 
@@ -474,7 +474,7 @@ full stderr:
 tests/actual_tests/executable.rs FAILED:
 command: "<unknown>"
 
-A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable.rs" "--edition" "2021"
+A bug in `ui_test` occurred: could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable.rs" "--edition" "2021"
 
 full stderr:
 
@@ -483,7 +483,7 @@ full stderr:
 tests/actual_tests/executable_compile_err.rs FAILED:
 command: "<unknown>"
 
-A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
+A bug in `ui_test` occurred: could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
 
 full stderr:
 
@@ -492,7 +492,7 @@ full stderr:
 tests/actual_tests/exit_code_fail.rs FAILED:
 command: "<unknown>"
 
-A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
+A bug in `ui_test` occurred: could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
 full stderr:
 
@@ -511,7 +511,7 @@ full stderr:
 tests/actual_tests/foomp.rs FAILED:
 command: "<unknown>"
 
-A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs" "--edition" "2021"
+A bug in `ui_test` occurred: could not execute UITEST_TEST_RUN="True" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 full stderr:
 
@@ -533,8 +533,22 @@ error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/debug/ui_tests_invalid_program2-HASH --test-threads 1` (exit status: 1)
-error: 4 targets failed:
+   Compiler: ../runner.py
+Error: failed to parse rustc version info: ../runner.py
+
+Caused by:
+
+
+
+Location:
+    $DIR/src/lib.rs:175:21
+error: test failed, to rerun pass `--test ui_tests_with_wrapper_script`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/debug/ui_tests_with_wrapper_script-HASH --test-threads 1` (exit status: 1)
+error: 5 targets failed:
     `--test ui_tests`
     `--test ui_tests_bless`
     `--test ui_tests_invalid_program`
     `--test ui_tests_invalid_program2`
+    `--test ui_tests_with_wrapper_script`

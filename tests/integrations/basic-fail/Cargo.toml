@@ -24,3 +24,7 @@ harness = false
 [[test]]
 name = "ui_tests_bless"
 harness = false
+
+[[test]]
+name = "ui_tests_with_wrapper_script"
+harness = false

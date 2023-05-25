@@ -14,5 +14,9 @@ name = "ui_tests"
 harness = false
 
 [[test]]
+name = "ui_tests_with_wrapper_script"
+harness = false
+
+[[test]]
 name = "run_file"
 harness = true
