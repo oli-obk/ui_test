@@ -779,7 +779,7 @@ fn build_aux(
     // Put aux builds into a separate directory per test so that
     // tests running in parallel but building the same aux build don't conflict.
     // FIXME: put aux builds into the regular build queue.
-    config.out_dir = config.out_dir.clone().join(path.with_extension(""));
+    config.out_dir = config.out_dir.join(path.with_extension(""));
 
     let mut errors = vec![];
 
