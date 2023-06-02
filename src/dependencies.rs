@@ -20,7 +20,7 @@ pub struct Dependencies {
 }
 
 fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
-    let mut cmd = config.cfgs.build();
+    let mut cmd = config.cfgs.build(&config.out_dir);
     cmd.arg("--target").arg(config.target.as_ref().unwrap());
     let output = cmd.output()?;
     let stdout = String::from_utf8(output.stdout)?;
@@ -49,7 +49,7 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
     let manifest_path = &manifest_path;
     config.fill_host_and_target()?;
     eprintln!("   Building test dependencies...");
-    let mut build = config.dependency_builder.build();
+    let mut build = config.dependency_builder.build(&config.out_dir);
 
     if let Some(target) = &config.target {
         build.arg(format!("--target={target}"));

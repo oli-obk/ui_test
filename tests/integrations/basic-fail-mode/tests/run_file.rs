@@ -6,8 +6,10 @@ use ui_test::*;
 fn run_file() -> Result<()> {
     let mut config = Config::default();
 
-    let tmp_dir = tempfile::tempdir()?;
-    config.out_dir = Some(tmp_dir.path().into());
+    let tmp_dir = tempfile::tempdir_in(env!("CARGO_TARGET_TMPDIR"))?;
+    let tmp_dir = tmp_dir.path();
+    config.out_dir = tmp_dir.into();
+    config.path_stderr_filter(tmp_dir, "$TMP");
 
     let mut result = ui_test::test_command(
         config,
@@ -43,16 +45,14 @@ fn run_file_no_deps() -> Result<()> {
 
     let mut config = Config::default();
 
-    let tmp_dir = tempfile::tempdir()?;
-    config.out_dir = Some(tmp_dir.path().into());
+    let tmp_dir = tempfile::tempdir_in(path)?;
+    let tmp_dir = tmp_dir.path();
+    config.out_dir = tmp_dir.into();
+    config.path_stderr_filter(tmp_dir, "$TMP");
 
     // Don't build a binary, we only provide .rmeta dependencies for now
     config.program.args.push("--emit=metadata".into());
     config.dependencies_crate_manifest_path = Some("Cargo.toml".into());
-    config
-        .dependency_builder
-        .envs
-        .push(("CARGO_TARGET_DIR".into(), Some(path.into())));
 
     let mut result = ui_test::test_command(
         config,

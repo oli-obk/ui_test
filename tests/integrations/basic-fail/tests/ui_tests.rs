@@ -15,14 +15,12 @@ fn main() -> ui_test::color_eyre::Result<()> {
         num_test_threads: NonZeroUsize::new(1).unwrap(),
         ..Config::default()
     };
-    config
-        .dependency_builder
-        .envs
-        .push(("CARGO_TARGET_DIR".into(), Some(path.into())));
 
     // hide binaries generated for successfully passing tests
-    let tmp_dir = tempfile::tempdir()?;
-    config.out_dir = Some(tmp_dir.path().into());
+    let tmp_dir = tempfile::tempdir_in(path)?;
+    let tmp_dir = tmp_dir.path();
+    config.out_dir = tmp_dir.into();
+    config.path_stderr_filter(tmp_dir, "$TMP");
 
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");

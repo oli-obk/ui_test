@@ -7,7 +7,7 @@ tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 substring `miesmätsched types` not found in stderr output
 expected because of pattern here: tests/actual_tests/bad_pattern.rs:5
@@ -53,7 +53,7 @@ full stderr:
 
 
 tests/actual_tests/executable_compile_err.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
 
 run(0) test got exit status: 1, but expected 0
 
@@ -92,7 +92,7 @@ error: aborting due to previous error
 
 
 tests/actual_tests/exit_code_fail.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
 fail test got exit status: 0, but expected 1
 
@@ -113,7 +113,7 @@ full stderr:
 
 
 tests/actual_tests/foomp.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp.stderr` to the actual output
@@ -170,7 +170,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/lib.rs:572:13
+    $DIR/src/lib.rs:577:13
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -208,7 +208,7 @@ tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
 
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--edition" "2021" "--crate-type" "lib" "--emit=link"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--edition" "2021" "--crate-type" "lib" "--emit=link"
 
 Aux build from tests/actual_tests_bless/aux_proc_macro_misuse.rs:1 failed
 compilation of aux build failed failed with exit status: 1
@@ -258,7 +258,7 @@ full stderr:
 
 
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `a`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
 
 rustfix failed with exit status: 1
 
@@ -279,7 +279,7 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `b`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
 
 rustfix failed with exit status: 1
 
@@ -300,7 +300,7 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 tests/actual_tests_bless/foomp-rustfix-fail.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail.fixed" "--edition" "2021" "--crate-name" "foomp_rustfix_fail"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail.fixed" "--edition" "2021" "--crate-name" "foomp_rustfix_fail"
 
 rustfix failed with exit status: 1
 
@@ -321,7 +321,7 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 tests/actual_tests_bless/no_main.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
 
 fail test got exit status: 0, but expected 1
 
@@ -332,7 +332,7 @@ full stderr:
 
 
 tests/actual_tests_bless/no_main_manual.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main_manual.rs" "--crate-type=bin" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main_manual.rs" "--crate-type=bin" "--edition" "2021"
 
 There were 1 unmatched diagnostics that occurred outside the testfile and had no pattern
     Error: cannot mix `bin` crate type with others
@@ -358,7 +358,7 @@ For more information about this error, try `rustc --explain E0601`.
 
 
 tests/actual_tests_bless/no_test.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--test" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--test" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
 
 fail test got exit status: 0, but expected 1
 
@@ -396,7 +396,7 @@ full stderr:
 
 
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable.rs" "--cfg=panic" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable.rs" "--cfg=panic" "--edition" "2021"
 
 run(101) test got exit status: 0, but expected 101
 
@@ -414,7 +414,7 @@ full stderr:
 
 
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable_panic.rs" "--cfg=panic" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable_panic.rs" "--cfg=panic" "--edition" "2021"
 
 run(101) test got exit status: 0, but expected 101
 
@@ -423,7 +423,7 @@ full stderr:
 
 
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 substring ``main` function not found in crate `revisions_bad`` not found in stderr output
 expected because of pattern here: tests/actual_tests_bless/revisions_bad.rs:4
@@ -467,7 +467,7 @@ tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
 
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 substring ``main` function not found in crate `revisions_bad`` not found in stderr output
 expected because of pattern here: tests/actual_tests_bless_yolo/revisions_bad.rs:4
@@ -491,7 +491,7 @@ test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/lib.rs:572:13)', tests/ui_tests_bless.rs:54:18
+    $DIR/src/lib.rs:577:13)', tests/ui_tests_bless.rs:52:18
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
@@ -501,7 +501,7 @@ Caused by:
 
 
 Location:
-    $DIR/src/lib.rs:180:21
+    $DIR/src/lib.rs:181:21
 error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
@@ -585,7 +585,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/lib.rs:572:13
+    $DIR/src/lib.rs:577:13
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
