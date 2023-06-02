@@ -184,6 +184,8 @@ tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (b) ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/foomp_aux.rs ... ok
 tests/actual_tests_bless/nested_aux.rs ... ok
+tests/actual_tests_bless/no_main.rs ... FAILED
+tests/actual_tests_bless/no_test.rs ... FAILED
 tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/revised_revision.rs ... FAILED
@@ -317,6 +319,48 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 
+tests/actual_tests_bless/no_main.rs FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
+
+There were 1 unmatched diagnostics at tests/actual_tests_bless/no_main.rs:1
+    Error: `main` function not found in crate `no_main`
+
+no error patterns found in fail test
+
+full stderr:
+error[E0601]: `main` function not found in crate `no_main`
+ --> tests/actual_tests_bless/no_main.rs:1:16
+  |
+1 | pub fn foo() {}
+  |                ^ consider adding a `main` function to `tests/actual_tests_bless/no_main.rs`
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0601`.
+
+
+
+tests/actual_tests_bless/no_test.rs FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
+
+There were 1 unmatched diagnostics at tests/actual_tests_bless/no_test.rs:2
+    Error: `main` function not found in crate `no_test`
+
+no error patterns found in fail test
+
+full stderr:
+error[E0601]: `main` function not found in crate `no_test`
+ --> tests/actual_tests_bless/no_test.rs:2:12
+  |
+2 | fn foo() {}
+  |            ^ consider adding a `main` function to `tests/actual_tests_bless/no_test.rs`
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0601`.
+
+
+
 tests/actual_tests_bless/non_top_level_configs.rs FAILED:
 command: "parse comments"
 
@@ -399,6 +443,8 @@ FAILURES:
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision a)
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision b)
     tests/actual_tests_bless/foomp-rustfix-fail.rs
+    tests/actual_tests_bless/no_main.rs
+    tests/actual_tests_bless/no_test.rs
     tests/actual_tests_bless/non_top_level_configs.rs
     tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisioned_executable.rs (revision panic)
@@ -406,7 +452,7 @@ FAILURES:
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision panic)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
 
-test result: FAIL. 12 tests failed, 12 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 14 tests failed, 12 tests passed, 3 ignored, 0 filtered out
    Building test dependencies...
 tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
