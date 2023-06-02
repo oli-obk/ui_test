@@ -63,6 +63,9 @@ pub struct Config {
     /// The command to run to obtain the cfgs that the output is supposed to
     pub cfgs: CommandBuilder,
     /// What to do in case the stdout/stderr output differs from the expected one.
+    /// By default, errors in case of conflict, but emits a message informing the user
+    /// that running `cargo test -- -- --bless` will automatically overwrite the
+    /// `.stdout` and `.stderr` files with the latest output.
     pub output_conflict_handling: OutputConflictHandling,
     /// Only run tests with one of these strings in their path/name
     pub path_filter: Vec<String>,
@@ -102,7 +105,9 @@ impl Default for Config {
             },
             program: CommandBuilder::rustc(),
             cfgs: CommandBuilder::cfgs(),
-            output_conflict_handling: OutputConflictHandling::Error,
+            output_conflict_handling: OutputConflictHandling::Error(
+                "cargo test -- -- --bless".into(),
+            ),
             path_filter: vec![],
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
@@ -286,11 +291,13 @@ impl CommandBuilder {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 /// The different options for what to do when stdout/stderr files differ from the actual output.
 pub enum OutputConflictHandling {
     /// The default: emit a diff of the expected/actual output.
-    Error,
+    ///
+    /// The string should be a command that can be executed to bless all tests.
+    Error(String),
     /// Ignore mismatches in the stderr/stdout files.
     Ignore,
     /// Instead of erroring if the stderr/stdout differs from the expected
@@ -645,6 +652,8 @@ pub enum Error {
         actual: Vec<u8>,
         /// The contents of the file.
         expected: Vec<u8>,
+        /// A command, that when run, causes the output to get blessed instead of erroring.
+        bless_command: String,
     },
     /// There were errors that don't have a pattern.
     ErrorsWithoutPattern {
@@ -1269,7 +1278,7 @@ fn check_output(
     let target = config.target.as_ref().unwrap();
     let output = normalize(path, output, filters, comments, revision);
     let path = output_path(path, comments, kind, target, revision);
-    match config.output_conflict_handling {
+    match &config.output_conflict_handling {
         OutputConflictHandling::Bless => {
             if output.is_empty() {
                 let _ = std::fs::remove_file(&path);
@@ -1277,13 +1286,14 @@ fn check_output(
                 std::fs::write(&path, &output).unwrap();
             }
         }
-        OutputConflictHandling::Error => {
+        OutputConflictHandling::Error(bless_command) => {
             let expected_output = std::fs::read(&path).unwrap_or_default();
             if output != expected_output {
                 errors.push(Error::OutputDiffers {
                     path: path.clone(),
                     actual: output,
                     expected: expected_output,
+                    bless_command: bless_command.clone(),
                 });
             }
         }

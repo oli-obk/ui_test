@@ -22,15 +22,14 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         root_dir: root_dir.clone(),
         trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
         program: CommandBuilder::cmd("cargo"),
-        output_conflict_handling: if bless {
-            OutputConflictHandling::Bless
-        } else {
-            OutputConflictHandling::Error
-        },
         mode,
         edition: None,
         ..Config::default()
     };
+
+    if bless {
+        config.output_conflict_handling = OutputConflictHandling::Bless;
+    }
 
     config.program.args = vec![
         "test".into(),

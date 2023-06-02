@@ -40,6 +40,7 @@ tests/actual_tests/executable.rs FAILED:
 command: "$CMD"
 
 actual output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.stdout` to the actual output
 --- tests/actual_tests/executable.stdout
 +++ <stderr output>
 -69
@@ -57,6 +58,7 @@ command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../..
 run(0) test got exit status: 1, but expected 0
 
 actual output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual output
 --- tests/actual_tests/executable_compile_err.stderr
 +++ <stderr output>
 +error: this file contains an unclosed delimiter
@@ -114,6 +116,7 @@ tests/actual_tests/foomp.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 actual output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp.stderr` to the actual output
 --- tests/actual_tests/foomp.stderr
 +++ <stderr output>
 ... 3 lines skipped ...
@@ -167,7 +170,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/lib.rs:542:13
+    $DIR/src/lib.rs:549:13
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -434,7 +437,7 @@ test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/lib.rs:542:13)', tests/ui_tests_bless.rs:56:18
+    $DIR/src/lib.rs:549:13)', tests/ui_tests_bless.rs:54:18
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
@@ -444,7 +447,7 @@ Caused by:
 
 
 Location:
-    $DIR/src/lib.rs:175:21
+    $DIR/src/lib.rs:180:21
 error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
@@ -528,7 +531,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/lib.rs:542:13
+    $DIR/src/lib.rs:549:13
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:

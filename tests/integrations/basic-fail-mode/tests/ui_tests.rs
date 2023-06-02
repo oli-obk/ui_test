@@ -6,16 +6,14 @@ fn main() -> ui_test::color_eyre::Result<()> {
         quiet: false,
         root_dir: "tests/actual_tests".into(),
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
-        output_conflict_handling: if std::env::var_os("BLESS").is_some() {
-            OutputConflictHandling::Bless
-        } else {
-            OutputConflictHandling::Error
-        },
         mode: Mode::Fail {
             require_patterns: true,
         },
         ..Config::default()
     };
+    if std::env::var_os("BLESS").is_some() {
+        config.output_conflict_handling = OutputConflictHandling::Bless
+    }
     config
         .dependency_builder
         .envs
@@ -24,7 +22,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
     config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
-    
+
     ui_test::run_tests_generic(
         config,
         |path| path.extension().map(|ext| ext == "rs").unwrap_or(false),

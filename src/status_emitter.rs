@@ -204,8 +204,14 @@ fn print_error(error: &Error, path: &str) {
             path: output_path,
             actual,
             expected,
+            bless_command,
         } => {
             eprintln!("{}", "actual output differed from expected".underline());
+            eprintln!(
+                "Execute `{}` to update `{}` to the actual output",
+                bless_command,
+                output_path.display()
+            );
             eprintln!("{}", format!("--- {}", output_path.display()).red());
             eprintln!("{}", "+++ <stderr output>".green());
             crate::diff::print_diff(expected, actual);
@@ -287,6 +293,7 @@ fn gha_error(error: &Error, path: &str, revision: &str) {
             path: output_path,
             actual,
             expected,
+            bless_command: _,
         } => {
             let mut err = github_actions::error(
                 if expected.is_empty() {
