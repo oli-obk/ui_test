@@ -185,6 +185,7 @@ tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/foomp_aux.rs ... ok
 tests/actual_tests_bless/nested_aux.rs ... ok
 tests/actual_tests_bless/no_main.rs ... FAILED
+tests/actual_tests_bless/no_main_manual.rs ... FAILED
 tests/actual_tests_bless/no_test.rs ... FAILED
 tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/pass.rs ... ok
@@ -330,6 +331,32 @@ full stderr:
 
 
 
+tests/actual_tests_bless/no_main_manual.rs FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main_manual.rs" "--crate-type=bin" "--edition" "2021"
+
+There were 1 unmatched diagnostics that occurred outside the testfile and had no pattern
+    Error: cannot mix `bin` crate type with others
+
+There were 1 unmatched diagnostics at tests/actual_tests_bless/no_main_manual.rs:3
+    Error: `main` function not found in crate `no_main_manual`
+
+no error patterns found in fail test
+
+full stderr:
+error: cannot mix `bin` crate type with others
+
+error[E0601]: `main` function not found in crate `no_main_manual`
+ --> tests/actual_tests_bless/no_main_manual.rs:3:16
+  |
+3 | pub fn foo() {}
+  |                ^ consider adding a `main` function to `tests/actual_tests_bless/no_main_manual.rs`
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0601`.
+
+
+
 tests/actual_tests_bless/no_test.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--test" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
 
@@ -424,6 +451,7 @@ FAILURES:
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision b)
     tests/actual_tests_bless/foomp-rustfix-fail.rs
     tests/actual_tests_bless/no_main.rs
+    tests/actual_tests_bless/no_main_manual.rs
     tests/actual_tests_bless/no_test.rs
     tests/actual_tests_bless/non_top_level_configs.rs
     tests/actual_tests_bless/revised_revision.rs
@@ -432,7 +460,7 @@ FAILURES:
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision panic)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
 
-test result: FAIL. 14 tests failed, 12 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 15 tests failed, 12 tests passed, 3 ignored, 0 filtered out
    Building test dependencies...
 tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
