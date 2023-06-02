@@ -60,7 +60,7 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
         cmd.arg("--manifest-path").arg(manifest_path);
         match (&config.output_conflict_handling, &config.mode) {
             (_, Mode::Yolo) => {}
-            (OutputConflictHandling::Error, _) => {
+            (OutputConflictHandling::Error(_), _) => {
                 cmd.arg("--locked");
             }
             _ => {}

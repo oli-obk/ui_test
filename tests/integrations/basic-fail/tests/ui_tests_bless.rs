@@ -20,16 +20,14 @@ fn main() -> ui_test::color_eyre::Result<()> {
             quiet: false,
             root_dir: root_dir.into(),
             dependencies_crate_manifest_path: Some("Cargo.toml".into()),
-            output_conflict_handling: if std::env::var_os("BLESS").is_some() {
-                OutputConflictHandling::Bless
-            } else {
-                OutputConflictHandling::Error
-            },
             // Make sure our tests are ordered for reliable output.
             num_test_threads: NonZeroUsize::new(1).unwrap(),
             mode,
             ..Config::default()
         };
+        if std::env::var_os("BLESS").is_some() {
+            config.output_conflict_handling = OutputConflictHandling::Bless
+        }
         config
             .dependency_builder
             .envs
