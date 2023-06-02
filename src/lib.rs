@@ -79,7 +79,8 @@ pub struct Config {
     /// How many threads to use for running tests. Defaults to number of cores
     pub num_test_threads: NonZeroUsize,
     /// Where to dump files like the binaries compiled from tests.
-    pub out_dir: Option<PathBuf>,
+    /// Defaults to `target/ui` in the current directory.
+    pub out_dir: PathBuf,
     /// The default edition to use on all tests
     pub edition: Option<String>,
 }
@@ -113,7 +114,7 @@ impl Default for Config {
             dependency_builder: CommandBuilder::cargo(),
             quiet: false,
             num_test_threads: std::thread::available_parallelism().unwrap(),
-            out_dir: None,
+            out_dir: std::env::current_dir().unwrap().join("target/ui"),
             edition: Some("2021".into()),
         }
     }
@@ -212,6 +213,8 @@ pub struct CommandBuilder {
     pub program: PathBuf,
     /// Arguments to the binary.
     pub args: Vec<OsString>,
+    /// A flag to prefix before the path to where output files should be written.
+    pub out_dir_flag: Option<OsString>,
     /// Environment variables passed to the binary that is executed.
     /// The environment variable is removed if the second tuple field is `None`
     pub envs: Vec<(OsString, Option<OsString>)>,
@@ -223,6 +226,7 @@ impl CommandBuilder {
         Self {
             program: PathBuf::from(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())),
             args: vec!["build".into()],
+            out_dir_flag: Some("--target-dir".into()),
             envs: vec![],
         }
     }
@@ -235,6 +239,7 @@ impl CommandBuilder {
         Self {
             program: PathBuf::from(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into())),
             args: vec!["--error-format=json".into()],
+            out_dir_flag: Some("--out-dir".into()),
             envs: vec![],
         }
     }
@@ -253,6 +258,7 @@ impl CommandBuilder {
         Self {
             program: cmd.into(),
             args: vec![],
+            out_dir_flag: None,
             envs: vec![],
         }
     }
@@ -266,6 +272,9 @@ impl CommandBuilder {
                 for arg in &self.0.args {
                     write!(f, " {arg:?}")?;
                 }
+                if let Some(flag) = &self.0.out_dir_flag {
+                    write!(f, " {flag:?} OUT_DIR")?;
+                }
                 Ok(())
             }
         }
@@ -273,9 +282,12 @@ impl CommandBuilder {
     }
 
     /// Create a command with the given settings.
-    pub fn build(&self) -> Command {
+    pub fn build(&self, out_dir: &Path) -> Command {
         let mut cmd = Command::new(&self.program);
         cmd.args(self.args.iter());
+        if let Some(flag) = &self.out_dir_flag {
+            cmd.arg(flag).arg(out_dir);
+        }
         self.apply_env(&mut cmd);
         cmd
     }
@@ -714,11 +726,7 @@ fn build_command(
     comments: &Comments,
     errors: &mut Vec<Error>,
 ) -> Command {
-    let mut cmd = config.program.build();
-    if let Some(out_dir) = &config.out_dir {
-        cmd.arg("--out-dir");
-        cmd.arg(out_dir);
-    }
+    let mut cmd = config.program.build(&config.out_dir);
     cmd.arg(path);
     if !revision.is_empty() {
         cmd.arg(format!("--cfg={revision}"));
@@ -771,13 +779,7 @@ fn build_aux(
     // Put aux builds into a separate directory per test so that
     // tests running in parallel but building the same aux build don't conflict.
     // FIXME: put aux builds into the regular build queue.
-    config.out_dir = Some(
-        config
-            .out_dir
-            .clone()
-            .unwrap_or_default()
-            .join(path.with_extension("")),
-    );
+    config.out_dir = config.out_dir.clone().join(path.with_extension(""));
 
     let mut errors = vec![];
 
@@ -815,18 +817,15 @@ fn build_aux(
     let output = aux_cmd.output().unwrap();
     assert!(output.status.success());
 
-    // Unwrap is ok here, as we just filled the field with `Some`.
-    let out_dir = config.out_dir.unwrap();
-
     for file in output.stdout.lines() {
         let file = std::str::from_utf8(file).unwrap();
         let crate_name = filename.replace('-', "_");
-        let path = out_dir.join(file);
+        let path = config.out_dir.join(file);
         extra_args.push("--extern".into());
         extra_args.push(format!("{crate_name}={}", path.display()));
         // Help cargo find the crates added with `--extern`.
         extra_args.push("-L".into());
-        extra_args.push(out_dir.display().to_string());
+        extra_args.push(config.out_dir.display().to_string());
     }
     Ok(())
 }
@@ -967,7 +966,6 @@ fn run_test_binary(
     config: &Config,
     errors: &mut Vec<Error>,
 ) -> Command {
-    let out_dir = config.out_dir.as_deref();
     cmd.arg("--print").arg("file-names");
     let output = cmd.output().unwrap();
     assert!(output.status.success());
@@ -976,10 +974,7 @@ fn run_test_binary(
     let file = files.next().unwrap();
     assert_eq!(files.next(), None);
     let file = std::str::from_utf8(file).unwrap();
-    let exe = match out_dir {
-        None => PathBuf::from(file),
-        Some(path) => path.join(file),
-    };
+    let exe = config.out_dir.join(file);
     let mut exe = Command::new(exe);
     let output = exe.output().unwrap();
 
