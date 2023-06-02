@@ -170,7 +170,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/lib.rs:549:13
+    $DIR/src/lib.rs:572:13
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -320,44 +320,24 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 tests/actual_tests_bless/no_main.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
 
-There were 1 unmatched diagnostics at tests/actual_tests_bless/no_main.rs:1
-    Error: `main` function not found in crate `no_main`
+fail test got exit status: 0, but expected 1
 
 no error patterns found in fail test
 
 full stderr:
-error[E0601]: `main` function not found in crate `no_main`
- --> tests/actual_tests_bless/no_main.rs:1:16
-  |
-1 | pub fn foo() {}
-  |                ^ consider adding a `main` function to `tests/actual_tests_bless/no_main.rs`
-
-error: aborting due to previous error
-
-For more information about this error, try `rustc --explain E0601`.
 
 
 
 tests/actual_tests_bless/no_test.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TRIPLE/debug" "--test" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
 
-There were 1 unmatched diagnostics at tests/actual_tests_bless/no_test.rs:2
-    Error: `main` function not found in crate `no_test`
+fail test got exit status: 0, but expected 1
 
 no error patterns found in fail test
 
 full stderr:
-error[E0601]: `main` function not found in crate `no_test`
- --> tests/actual_tests_bless/no_test.rs:2:12
-  |
-2 | fn foo() {}
-  |            ^ consider adding a `main` function to `tests/actual_tests_bless/no_test.rs`
-
-error: aborting due to previous error
-
-For more information about this error, try `rustc --explain E0601`.
 
 
 
@@ -483,7 +463,7 @@ test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/lib.rs:549:13)', tests/ui_tests_bless.rs:54:18
+    $DIR/src/lib.rs:572:13)', tests/ui_tests_bless.rs:54:18
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
@@ -577,7 +557,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/lib.rs:549:13
+    $DIR/src/lib.rs:572:13
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:

@@ -1,9 +1,0 @@
-error[E0601]: `main` function not found in crate `no_main`
- --> $DIR/no_main.rs:1:16
-  |
-1 | pub fn foo() {}
-  |                ^ consider adding a `main` function to `$DIR/no_main.rs`
-
-error: aborting due to previous error
-
-For more information about this error, try `rustc --explain E0601`.
