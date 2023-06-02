@@ -27,7 +27,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config,
         |path| path.extension().map(|ext| ext == "rs").unwrap_or(false),
         |_, _| None,
-        // Avoid github actions, as these would end up showing up in `CArgo.stderr`
+        // Avoid github actions, as these would end up showing up in `Cargo.stderr`
         status_emitter::Text,
     )
 }
