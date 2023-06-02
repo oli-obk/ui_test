@@ -393,14 +393,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let mut errors = vec![];
-    let result = build_command(
-        path,
-        &config,
-        "",
-        &comments,
-        config.out_dir.as_deref(),
-        &mut errors,
-    );
+    let result = build_command(path, &config, "", &comments, &mut errors);
     assert!(errors.is_empty(), "{errors:#?}");
     Ok(result)
 }
@@ -719,11 +712,10 @@ fn build_command(
     config: &Config,
     revision: &str,
     comments: &Comments,
-    out_dir: Option<&Path>,
     errors: &mut Vec<Error>,
 ) -> Command {
     let mut cmd = config.program.build();
-    if let Some(out_dir) = out_dir {
+    if let Some(out_dir) = &config.out_dir {
         cmd.arg("--out-dir");
         cmd.arg(out_dir);
     }
@@ -766,7 +758,7 @@ fn build_aux(
         Ok(comments) => comments,
         Err((msg, mut errors)) => {
             return Err((
-                build_command(path, config, revision, comments, None, &mut errors),
+                build_command(path, config, revision, comments, &mut errors),
                 errors,
                 msg,
             ))
@@ -774,32 +766,29 @@ fn build_aux(
     };
     assert_eq!(comments.revisions, None);
 
+    let mut config = config.clone();
+
     // Put aux builds into a separate directory per test so that
     // tests running in parallel but building the same aux build don't conflict.
     // FIXME: put aux builds into the regular build queue.
-    let out_dir = config
-        .out_dir
-        .clone()
-        .unwrap_or_default()
-        .join(path.with_extension(""));
+    config.out_dir = Some(
+        config
+            .out_dir
+            .clone()
+            .unwrap_or_default()
+            .join(path.with_extension("")),
+    );
 
     let mut errors = vec![];
 
-    let mut aux_cmd = build_command(
-        aux_file,
-        config,
-        revision,
-        &comments,
-        Some(&out_dir),
-        &mut errors,
-    );
+    let mut aux_cmd = build_command(aux_file, &config, revision, &comments, &mut errors);
 
     if !errors.is_empty() {
         return Err((aux_cmd, errors, vec![]));
     }
 
     let current_extra_args =
-        build_aux_files(aux_file, aux_file.parent().unwrap(), &comments, "", config)?;
+        build_aux_files(aux_file, aux_file.parent().unwrap(), &comments, "", &config)?;
     // Make sure we see our dependencies
     aux_cmd.args(current_extra_args.iter());
     // Make sure our dependents also see our dependencies.
@@ -825,6 +814,9 @@ fn build_aux(
     aux_cmd.arg("--print").arg("file-names");
     let output = aux_cmd.output().unwrap();
     assert!(output.status.success());
+
+    // Unwrap is ok here, as we just filled the field with `Some`.
+    let out_dir = config.out_dir.unwrap();
 
     for file in output.stdout.lines() {
         let file = std::str::from_utf8(file).unwrap();
@@ -858,14 +850,7 @@ fn run_test(
 
     let mut errors = vec![];
 
-    let mut cmd = build_command(
-        path,
-        config,
-        revision,
-        comments,
-        config.out_dir.as_deref(),
-        &mut errors,
-    );
+    let mut cmd = build_command(path, config, revision, comments, &mut errors);
     cmd.args(&extra_args);
 
     let output = cmd
@@ -1086,14 +1071,7 @@ fn run_rustfix(
         revision,
     );
 
-    let mut cmd = build_command(
-        &path,
-        config,
-        revision,
-        &rustfix_comments,
-        config.out_dir.as_deref(),
-        errors,
-    );
+    let mut cmd = build_command(&path, config, revision, &rustfix_comments, errors);
     cmd.args(extra_args);
     (cmd, path)
 }
