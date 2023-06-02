@@ -377,8 +377,8 @@ pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
     let file_contents = std::fs::read(path).unwrap();
     if file_contents.find(b"#[test]").is_some() {
         config.program.args.push("--test".into());
-    } else if !file_contents.find(b"fn main()").is_some()
-        && !file_contents.find(b"#[start]").is_some()
+    } else if file_contents.find(b"fn main()").is_none()
+        && file_contents.find(b"#[start]").is_none()
     {
         config.program.args.push("--crate-type=lib".into());
     }
