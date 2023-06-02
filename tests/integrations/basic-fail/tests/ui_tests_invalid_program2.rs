@@ -16,11 +16,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
         ..Config::default()
     };
 
-    ui_test::run_tests_generic(
+    run_tests_generic(
         config,
-        |path| path.extension().map(|ext| ext == "rs").unwrap_or(false),
-        |_, _| None,
-        // Avoid github actions, as these would end up showing up in `CArgo.stderr`
+        default_file_filter,
+        default_per_file_config,
+        // Avoid github actions, as these would end up showing up in `Cargo.stderr`
         status_emitter::Text,
     )
 }

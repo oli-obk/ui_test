@@ -356,10 +356,33 @@ pub fn run_tests(config: Config) -> Result<()> {
 
     run_tests_generic(
         config,
-        |path| path.extension().map(|ext| ext == "rs").unwrap_or(false),
-        |_, _| None,
+        default_file_filter,
+        default_per_file_config,
         status_emitter::TextAndGha,
     )
+}
+
+/// The filter used by `run_tests` to only run on `.rs` files.
+pub fn default_file_filter(path: &Path) -> bool {
+    path.extension().map(|ext| ext == "rs").unwrap_or(false)
+}
+
+/// The default per-file config used by `run_tests`.
+pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
+    let mut config = config.clone();
+    // Heuristic:
+    // * if the file contains `#[test]`, automatically pass `--cfg test`.
+    // * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
+    // This avoids having to spam `fn main() {}` in almost every test.
+    let file_contents = std::fs::read(path).unwrap();
+    if file_contents.find(b"#[test]").is_some() {
+        config.program.args.push("--test".into());
+    } else if file_contents.find(b"fn main()").is_none()
+        && file_contents.find(b"#[start]").is_none()
+    {
+        config.program.args.push("--crate-type=lib".into());
+    }
+    Some(config)
 }
 
 /// Create a command for running a single file, with the settings from the `config` argument.
