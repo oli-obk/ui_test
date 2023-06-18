@@ -17,7 +17,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
         };
 
         let mut config = Config {
-            quiet: false,
             root_dir: root_dir.into(),
             dependencies_crate_manifest_path: Some("Cargo.toml".into()),
             // Make sure our tests are ordered for reliable output.

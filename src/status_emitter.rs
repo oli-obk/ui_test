@@ -3,9 +3,7 @@
 use bstr::ByteSlice;
 use colored::Colorize;
 
-use crate::{
-    github_actions, parser::Pattern, rustc_stderr::Message, Config, Error, Errors, TestResult,
-};
+use crate::{github_actions, parser::Pattern, rustc_stderr::Message, Error, Errors, TestResult};
 use std::{
     fmt::{Debug, Write as _},
     io::Write as _,
@@ -25,8 +23,9 @@ pub trait StatusEmitter: Sync {
         stderr: &'a [u8],
     ) -> Box<dyn Debug + 'a>;
 
-    /// Start a test run and return a handle for reporting individual tests' results
-    fn run_tests(&self, config: &Config) -> Box<dyn DuringTestRun>;
+    /// A test has finished, handle the result immediately.
+    fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
+
     /// Create a report about the entire test run at the end.
     #[allow(clippy::type_complexity)]
     fn finalize(
@@ -36,12 +35,6 @@ pub trait StatusEmitter: Sync {
         ignored: usize,
         filtered: usize,
     ) -> Box<dyn Summary>;
-}
-
-/// Report information during test runs.
-pub trait DuringTestRun {
-    /// A test has finished, handle the result.
-    fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
 }
 
 /// Report a summary at the end of a test run.
@@ -89,12 +82,23 @@ impl StatusEmitter for Text {
         Box::new(Guard(stderr))
     }
 
-    fn run_tests(&self, config: &Config) -> Box<dyn DuringTestRun> {
-        if config.quiet {
-            Box::new(Quiet { n: 0 })
-        } else {
-            Box::new(Text)
-        }
+    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
+        let result = match result {
+            TestResult::Ok => "ok".green(),
+            TestResult::Errored { .. } => "FAILED".red().bold(),
+            TestResult::Ignored => "ignored (in-test comment)".yellow(),
+            TestResult::Filtered => return,
+        };
+        eprint!(
+            "{}{} ... ",
+            path.display(),
+            if revision.is_empty() {
+                "".into()
+            } else {
+                format!(" ({revision})")
+            }
+        );
+        eprintln!("{result}");
     }
 
     fn finalize(
@@ -376,32 +380,13 @@ fn gha_error(error: &Error, path: &str, revision: &str) {
     eprintln!();
 }
 
-impl DuringTestRun for Text {
-    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
-        let result = match result {
-            TestResult::Ok => "ok".green(),
-            TestResult::Errored { .. } => "FAILED".red().bold(),
-            TestResult::Ignored => "ignored (in-test comment)".yellow(),
-            TestResult::Filtered => return,
-        };
-        eprint!(
-            "{}{} ... ",
-            path.display(),
-            if revision.is_empty() {
-                "".into()
-            } else {
-                format!(" ({revision})")
-            }
-        );
-        eprintln!("{result}");
-    }
-}
-
-struct Quiet {
+/// Just print some dots instead of a whole line per run test.
+#[derive(Default)]
+pub struct Quiet {
     n: usize,
 }
 
-impl DuringTestRun for Quiet {
+impl StatusEmitter for Quiet {
     fn test_result(&mut self, _path: &Path, _revision: &str, result: &TestResult) {
         // Humans start counting at 1
         self.n += 1;
@@ -414,6 +399,26 @@ impl DuringTestRun for Quiet {
         if self.n % 100 == 0 {
             eprintln!(" {}", self.n);
         }
+    }
+
+    fn failed_test<'a>(
+        &'a self,
+        revision: &'a str,
+        path: &'a Path,
+        cmd: &'a Command,
+        stderr: &'a [u8],
+    ) -> Box<dyn Debug + 'a> {
+        Text.failed_test(revision, path, cmd, stderr)
+    }
+
+    fn finalize(
+        &self,
+        failed: usize,
+        succeeded: usize,
+        ignored: usize,
+        filtered: usize,
+    ) -> Box<dyn Summary> {
+        Text.finalize(failed, succeeded, ignored, filtered)
     }
 }
 
@@ -438,9 +443,7 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
         }
     }
 
-    fn run_tests(&self, _config: &Config) -> Box<dyn DuringTestRun> {
-        Box::new(Gha::<GROUP>)
-    }
+    fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
 
     fn finalize(
         &self,
@@ -468,10 +471,6 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
     }
 }
 
-impl<const GROUP: bool> DuringTestRun for Gha<GROUP> {
-    fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
-}
-
 /// Prints a human readable message as well as a github action workflow command where applicable.
 pub struct TextAndGha;
 impl StatusEmitter for TextAndGha {
@@ -488,8 +487,9 @@ impl StatusEmitter for TextAndGha {
         ))
     }
 
-    fn run_tests(&self, _config: &Config) -> Box<dyn DuringTestRun> {
-        Box::new(TextAndGha)
+    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
+        Text.test_result(path, revision, result);
+        Gha::<true>.test_result(path, revision, result);
     }
 
     fn finalize(
@@ -510,12 +510,5 @@ impl Summary for (Box<dyn Summary>, Box<dyn Summary>) {
     fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
         self.0.test_failure(path, revision, errors);
         self.1.test_failure(path, revision, errors);
-    }
-}
-
-impl DuringTestRun for TextAndGha {
-    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
-        Text.test_result(path, revision, result);
-        Gha::<true>.test_result(path, revision, result);
     }
 }
