@@ -367,7 +367,7 @@ pub fn run_tests(config: Config) -> Result<()> {
         config,
         default_file_filter,
         default_per_file_config,
-        status_emitter::TextAndGha,
+        (status_emitter::Text, status_emitter::Gha::<true>),
     )
 }
 

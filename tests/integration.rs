@@ -100,6 +100,9 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                 }
         },
         |_, _| None,
-        ui_test::status_emitter::TextAndGha,
+        (
+            ui_test::status_emitter::Text,
+            ui_test::status_emitter::Gha::<true>,
+        ),
     )
 }

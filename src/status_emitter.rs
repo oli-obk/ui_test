@@ -471,9 +471,7 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
     }
 }
 
-/// Prints a human readable message as well as a github action workflow command where applicable.
-pub struct TextAndGha;
-impl StatusEmitter for TextAndGha {
+impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
     fn failed_test<'a>(
         &'a self,
         revision: &'a str,
@@ -482,14 +480,14 @@ impl StatusEmitter for TextAndGha {
         stderr: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
         Box::new((
-            Gha::<true>.failed_test(revision, path, cmd, stderr),
-            Text.failed_test(revision, path, cmd, stderr),
+            self.0.failed_test(revision, path, cmd, stderr),
+            self.1.failed_test(revision, path, cmd, stderr),
         ))
     }
 
     fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
-        Text.test_result(path, revision, result);
-        Gha::<true>.test_result(path, revision, result);
+        self.0.test_result(path, revision, result);
+        self.1.test_result(path, revision, result);
     }
 
     fn finalize(
@@ -500,8 +498,8 @@ impl StatusEmitter for TextAndGha {
         filtered: usize,
     ) -> Box<dyn Summary> {
         Box::new((
-            Gha::<true>.finalize(failures, succeeded, ignored, filtered),
-            Text.finalize(failures, succeeded, ignored, filtered),
+            self.1.finalize(failures, succeeded, ignored, filtered),
+            self.0.finalize(failures, succeeded, ignored, filtered),
         ))
     }
 }
