@@ -74,8 +74,6 @@ pub struct Config {
     /// The command to run can be changed from `cargo` to any custom command to build the
     /// dependencies in `dependencies_crate_manifest_path`
     pub dependency_builder: CommandBuilder,
-    /// Print one character per test instead of one line
-    pub quiet: bool,
     /// How many threads to use for running tests. Defaults to number of cores
     pub num_test_threads: NonZeroUsize,
     /// Where to dump files like the binaries compiled from tests.
@@ -112,7 +110,6 @@ impl Default for Config {
             path_filter: vec![],
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
-            quiet: false,
             num_test_threads: std::thread::available_parallelism().unwrap(),
             out_dir: std::env::current_dir().unwrap().join("target/ui"),
             edition: Some("2021".into()),
@@ -370,7 +367,7 @@ pub fn run_tests(config: Config) -> Result<()> {
         config,
         default_file_filter,
         default_per_file_config,
-        status_emitter::TextAndGha,
+        (status_emitter::Text, status_emitter::Gha::<true>),
     )
 }
 
@@ -441,7 +438,7 @@ pub fn run_tests_generic(
     mut config: Config,
     file_filter: impl Fn(&Path) -> bool + Sync,
     per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
-    status_emitter: impl StatusEmitter,
+    mut status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
     config.fill_host_and_target()?;
 
@@ -488,7 +485,6 @@ pub fn run_tests_generic(
         let (finished_files_sender, finished_files_recv) = unbounded::<TestRun>();
 
         s.spawn(|| {
-            let mut status_emitter = status_emitter.run_tests(&config);
             for run in finished_files_recv {
                 status_emitter.test_result(&run.path, &run.revision, &run.result);
 

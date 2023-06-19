@@ -4,7 +4,6 @@ use ui_test::*;
 fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
     let mut config = Config {
-        quiet: false,
         root_dir: "tests/actual_tests".into(),
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
         // Never bless integrations-fail tests, we want to see stderr mismatches
