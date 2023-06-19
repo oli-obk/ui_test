@@ -363,11 +363,13 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 pub fn run_tests(config: Config) -> Result<()> {
     eprintln!("   Compiler: {}", config.program.display());
 
+    let name = config.root_dir.display().to_string();
+
     run_tests_generic(
         config,
         default_file_filter,
         default_per_file_config,
-        (status_emitter::Text, status_emitter::Gha::<true>),
+        (status_emitter::Text, status_emitter::Gha::<true> { name }),
     )
 }
 

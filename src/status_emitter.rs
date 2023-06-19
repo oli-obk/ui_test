@@ -424,7 +424,11 @@ impl StatusEmitter for Quiet {
 
 /// Emits Github Actions Workspace commands to show the failures directly in the github diff view.
 /// If the const generic `GROUP` boolean is `true`, also emit `::group` commands.
-pub struct Gha<const GROUP: bool>;
+pub struct Gha<const GROUP: bool> {
+    /// Show a specific name for the final summary.
+    pub name: String,
+}
+
 impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
     fn failed_test(
         &self,
@@ -448,11 +452,17 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
     fn finalize(
         &self,
         _failures: usize,
-        _succeeded: usize,
-        _ignored: usize,
-        _filtered: usize,
+        succeeded: usize,
+        ignored: usize,
+        filtered: usize,
     ) -> Box<dyn Summary> {
-        struct Summarizer<const GROUP: bool>;
+        struct Summarizer<const GROUP: bool> {
+            failures: Vec<String>,
+            succeeded: usize,
+            ignored: usize,
+            filtered: usize,
+            name: String,
+        }
 
         impl<const GROUP: bool> Summary for Summarizer<GROUP> {
             fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
@@ -464,10 +474,39 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
                 for error in errors {
                     gha_error(error, &path.display().to_string(), &revision);
                 }
+                self.failures.push(format!("{}{revision}", path.display()));
+            }
+        }
+        impl<const GROUP: bool> Drop for Summarizer<GROUP> {
+            fn drop(&mut self) {
+                if let Some(mut file) = github_actions::summary() {
+                    writeln!(file, "### {}", self.name).unwrap();
+                    for line in &self.failures {
+                        writeln!(file, "* {line}").unwrap();
+                    }
+                    writeln!(file).unwrap();
+                    writeln!(file, "| failed | passed | ignored | filtered out |").unwrap();
+                    writeln!(file, "| --- | --- | --- | --- |").unwrap();
+                    writeln!(
+                        file,
+                        "| {} | {} | {} | {} |",
+                        self.failures.len(),
+                        self.succeeded,
+                        self.ignored,
+                        self.filtered,
+                    )
+                    .unwrap();
+                }
             }
         }
 
-        Box::new(Summarizer::<GROUP>)
+        Box::new(Summarizer::<GROUP> {
+            failures: vec![],
+            succeeded,
+            ignored,
+            filtered,
+            name: self.name.clone(),
+        })
     }
 }
 

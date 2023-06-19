@@ -54,6 +54,12 @@ impl Drop for Error {
     }
 }
 
+/// Append to the summary file that will be shown for the entire CI run.
+pub fn summary() -> Option<impl std::io::Write> {
+    let path = std::env::var_os("GITHUB_STEP_SUMMARY")?;
+    Some(std::fs::OpenOptions::new().append(true).open(path).unwrap())
+}
+
 fn github_action_multiline_escape(s: &str) -> String {
     s.replace('%', "%25")
         .replace('\n', "%0A")
