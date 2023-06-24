@@ -67,8 +67,6 @@ pub struct Config {
     /// that running `cargo test -- -- --bless` will automatically overwrite the
     /// `.stdout` and `.stderr` files with the latest output.
     pub output_conflict_handling: OutputConflictHandling,
-    /// Only run tests with one of these strings in their path/name
-    pub path_filter: Vec<String>,
     /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
     pub dependencies_crate_manifest_path: Option<PathBuf>,
     /// The command to run can be changed from `cargo` to any custom command to build the
@@ -107,7 +105,6 @@ impl Default for Config {
             output_conflict_handling: OutputConflictHandling::Error(
                 "cargo test -- -- --bless".into(),
             ),
-            path_filter: vec![],
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
             num_test_threads: std::thread::available_parallelism().unwrap(),
@@ -582,20 +579,6 @@ pub fn run_tests_generic(
 }
 
 fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
-    if !config.path_filter.is_empty() {
-        let path_display = path.display().to_string();
-        if !config
-            .path_filter
-            .iter()
-            .any(|filter| path_display.contains(filter))
-        {
-            return vec![TestRun {
-                result: TestResult::Filtered,
-                path: path.into(),
-                revision: "".into(),
-            }];
-        }
-    }
     let comments = match parse_comments_in_file(path) {
         Ok(comments) => comments,
         Err((stderr, errors)) => {
