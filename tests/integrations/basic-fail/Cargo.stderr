@@ -25,7 +25,7 @@ error[E0308]: mismatched types
   |     arguments to this function are incorrect
   |
 note: function defined here
- --> $DIR/$DIR/src/lib.rs:1:8
+ --> $DIR/$DIR/src/lib.rs:LL:CC
   |
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
@@ -126,7 +126,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 +  |     arguments to this function are incorrect
    |
  note: function defined here
-~ --> $DIR/$DIR/src/lib.rs:1:8
+~ --> $DIR/$DIR/src/lib.rs:LL:CC
    |
  1 | pub fn add(left: usize, right: usize) -> usize {
 ~  |        ^^^ some expected text that isn't in the actual message░
@@ -148,7 +148,7 @@ error[E0308]: mismatched types
   |     arguments to this function are incorrect
   |
 note: function defined here
- --> $DIR/$DIR/src/lib.rs:1:8
+ --> $DIR/$DIR/src/lib.rs:LL:CC
   |
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
@@ -170,7 +170,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/lib.rs:580:13
+    $DIR/src/lib.rs:LL:CC
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -491,7 +491,7 @@ test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/lib.rs:580:13)', tests/ui_tests_bless.rs:51:18
+    $DIR/src/lib.rs:LL:CC)', tests/ui_tests_bless.rs:51:18
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
@@ -501,7 +501,7 @@ Caused by:
 
 
 Location:
-    $DIR/src/lib.rs:178:21
+    $DIR/src/lib.rs:LL:CC
 error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
@@ -585,7 +585,7 @@ test result: FAIL. 6 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
-    $DIR/src/lib.rs:580:13
+    $DIR/src/lib.rs:LL:CC
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
