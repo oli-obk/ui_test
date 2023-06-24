@@ -17,7 +17,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     eprintln!("\n{} `{name}` tests in mode {mode}", "Running".green());
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join(name);
-    let bless = std::env::args().any(|arg| arg == "--bless");
+    let bless = std::env::args().all(|arg| arg != "--check");
     let mut config = Config {
         root_dir: root_dir.clone(),
         trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
