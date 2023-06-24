@@ -19,13 +19,13 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     let root_dir = path.join(name);
     let bless = std::env::args().all(|arg| arg != "--check");
     let mut config = Config {
-        root_dir: root_dir.clone(),
         trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
-        program: CommandBuilder::cmd("cargo"),
         mode,
-        edition: None,
-        ..Config::default()
+        ..Config::cargo(root_dir.clone())
     };
+
+    // FIXME: CommandBuilder::cargo() does not actually produce a working command
+    config.program.out_dir_flag = None;
 
     if bless {
         config.output_conflict_handling = OutputConflictHandling::Bless;

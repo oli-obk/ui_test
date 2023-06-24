@@ -53,8 +53,10 @@ pub struct Config {
     pub edition: Option<String>,
 }
 
-impl Default for Config {
-    fn default() -> Self {
+impl Config {
+    /// Create a configuration for testing the output of running
+    /// `rustc` on the test files.
+    pub fn rustc(root_dir: PathBuf) -> Self {
         Self {
             trailing_args: vec![],
             host: None,
@@ -68,7 +70,7 @@ impl Default for Config {
                 #[cfg(windows)]
                 (Match::Exact(vec![b'\r']), b""),
             ],
-            root_dir: PathBuf::new(),
+            root_dir,
             mode: Mode::Fail {
                 require_patterns: true,
             },
@@ -84,9 +86,17 @@ impl Default for Config {
             edition: Some("2021".into()),
         }
     }
-}
 
-impl Config {
+    /// Create a configuration for testing the output of running
+    /// `cargo` on the test `Cargo.toml` files.
+    pub fn cargo(root_dir: PathBuf) -> Self {
+        Self {
+            program: CommandBuilder::cargo(),
+            edition: None,
+            ..Self::rustc(root_dir)
+        }
+    }
+
     /// Replace all occurrences of a path in stderr with a byte string.
     pub fn path_stderr_filter(
         &mut self,
