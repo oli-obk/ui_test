@@ -72,6 +72,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("   [0-9]: .*", "");
     config.stderr_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
     config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
+    config.stderr_filter("(src/lib.rs):[0-9]+:[0-9]+", "$1:LL:CC");
 
     run_tests_generic(
         config,
