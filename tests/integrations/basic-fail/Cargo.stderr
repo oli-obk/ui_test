@@ -174,7 +174,7 @@ Location:
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/debug/ui_tests-HASH --test-threads 1` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/debug/ui_tests-HASH --test-threads 1` (exit status: 1)
    Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
@@ -491,7 +491,7 @@ test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/lib.rs:LL:CC)', tests/ui_tests_bless.rs:51:18
+    $DIR/src/lib.rs:LL:CC)', tests/ui_tests_bless.rs:50:18
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
@@ -501,11 +501,11 @@ Caused by:
 
 
 Location:
-    $DIR/src/lib.rs:LL:CC
+    $DIR/src/config.rs:LL:CC
 error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/debug/ui_tests_invalid_program-HASH --test-threads 1` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/debug/ui_tests_invalid_program-HASH --test-threads 1` (exit status: 1)
 thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"', $DIR/src/lib.rs
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 tests/actual_tests/bad_pattern.rs ... FAILED
@@ -589,7 +589,7 @@ Location:
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/debug/ui_tests_invalid_program2-HASH --test-threads 1` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/debug/ui_tests_invalid_program2-HASH --test-threads 1` (exit status: 1)
 error: 4 targets failed:
     `--test ui_tests`
     `--test ui_tests_bless`

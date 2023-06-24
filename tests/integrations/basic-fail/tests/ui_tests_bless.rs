@@ -17,12 +17,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
         };
 
         let mut config = Config {
-            root_dir: root_dir.into(),
             dependencies_crate_manifest_path: Some("Cargo.toml".into()),
             // Make sure our tests are ordered for reliable output.
             num_test_threads: NonZeroUsize::new(1).unwrap(),
             mode,
-            ..Config::default()
+            ..Config::rustc(root_dir.into())
         };
         if std::env::var_os("BLESS").is_some() {
             config.output_conflict_handling = OutputConflictHandling::Bless

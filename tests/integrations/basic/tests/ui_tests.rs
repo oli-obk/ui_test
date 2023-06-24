@@ -4,10 +4,9 @@ use ui_test::*;
 fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
     let mut config = Config {
-        root_dir: "tests/actual_tests".into(),
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
         num_test_threads: NonZeroUsize::new(1).unwrap(),
-        ..Config::default()
+        ..Config::rustc("tests/actual_tests".into())
     };
     if std::env::var_os("BLESS").is_some() {
         config.output_conflict_handling = OutputConflictHandling::Bless;

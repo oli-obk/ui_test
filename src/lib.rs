@@ -12,309 +12,35 @@ use bstr::ByteSlice;
 pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::unbounded;
-use parser::{ErrorMatch, Pattern, Revisioned};
+use parser::{ErrorMatch, Revisioned};
 use regex::bytes::Regex;
 use rustc_stderr::{Diagnostics, Level, Message};
 use status_emitter::StatusEmitter;
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
-use std::ffi::OsString;
-use std::fmt::Display;
-use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 use std::thread;
 
-use crate::dependencies::build_dependencies;
 use crate::parser::{Comments, Condition};
 
+mod cmd;
+mod config;
 mod dependencies;
 mod diff;
+mod error;
 pub mod github_actions;
+mod mode;
 mod parser;
 mod rustc_stderr;
 pub mod status_emitter;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone)]
-/// Central datastructure containing all information to run the tests.
-pub struct Config {
-    /// Arguments passed to the binary that is executed.
-    /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
-    pub trailing_args: Vec<OsString>,
-    /// Host triple; usually will be auto-detected.
-    pub host: Option<String>,
-    /// `None` to run on the host, otherwise a target triple
-    pub target: Option<String>,
-    /// Filters applied to stderr output before processing it.
-    /// By default contains a filter for replacing backslashes with regular slashes.
-    /// On windows, contains a filter to replace `\n` with `\r\n`.
-    pub stderr_filters: Filter,
-    /// Filters applied to stdout output before processing it.
-    /// On windows, contains a filter to replace `\n` with `\r\n`.
-    pub stdout_filters: Filter,
-    /// The folder in which to start searching for .rs files
-    pub root_dir: PathBuf,
-    /// The mode in which to run the tests.
-    pub mode: Mode,
-    /// The binary to actually execute.
-    pub program: CommandBuilder,
-    /// The command to run to obtain the cfgs that the output is supposed to
-    pub cfgs: CommandBuilder,
-    /// What to do in case the stdout/stderr output differs from the expected one.
-    /// By default, errors in case of conflict, but emits a message informing the user
-    /// that running `cargo test -- -- --bless` will automatically overwrite the
-    /// `.stdout` and `.stderr` files with the latest output.
-    pub output_conflict_handling: OutputConflictHandling,
-    /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
-    pub dependencies_crate_manifest_path: Option<PathBuf>,
-    /// The command to run can be changed from `cargo` to any custom command to build the
-    /// dependencies in `dependencies_crate_manifest_path`
-    pub dependency_builder: CommandBuilder,
-    /// How many threads to use for running tests. Defaults to number of cores
-    pub num_test_threads: NonZeroUsize,
-    /// Where to dump files like the binaries compiled from tests.
-    /// Defaults to `target/ui` in the current directory.
-    pub out_dir: PathBuf,
-    /// The default edition to use on all tests
-    pub edition: Option<String>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            trailing_args: vec![],
-            host: None,
-            target: None,
-            stderr_filters: vec![
-                (Match::Exact(vec![b'\\']), b"/"),
-                #[cfg(windows)]
-                (Match::Exact(vec![b'\r']), b""),
-            ],
-            stdout_filters: vec![
-                #[cfg(windows)]
-                (Match::Exact(vec![b'\r']), b""),
-            ],
-            root_dir: PathBuf::new(),
-            mode: Mode::Fail {
-                require_patterns: true,
-            },
-            program: CommandBuilder::rustc(),
-            cfgs: CommandBuilder::cfgs(),
-            output_conflict_handling: OutputConflictHandling::Error(
-                "cargo test -- -- --bless".into(),
-            ),
-            dependencies_crate_manifest_path: None,
-            dependency_builder: CommandBuilder::cargo(),
-            num_test_threads: std::thread::available_parallelism().unwrap(),
-            out_dir: std::env::current_dir().unwrap().join("target/ui"),
-            edition: Some("2021".into()),
-        }
-    }
-}
-
-impl Config {
-    /// Replace all occurrences of a path in stderr with a byte string.
-    pub fn path_stderr_filter(
-        &mut self,
-        path: &Path,
-        replacement: &'static (impl AsRef<[u8]> + ?Sized),
-    ) {
-        let pattern = path.canonicalize().unwrap();
-        self.stderr_filters
-            .push((pattern.parent().unwrap().into(), replacement.as_ref()));
-    }
-
-    /// Replace all occurrences of a regex pattern in stderr with a byte string.
-    pub fn stderr_filter(
-        &mut self,
-        pattern: &str,
-        replacement: &'static (impl AsRef<[u8]> + ?Sized),
-    ) {
-        self.stderr_filters
-            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
-    }
-
-    /// Replace all occurrences of a regex pattern in stdout with a byte string.
-    pub fn stdout_filter(
-        &mut self,
-        pattern: &str,
-        replacement: &'static (impl AsRef<[u8]> + ?Sized),
-    ) {
-        self.stdout_filters
-            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
-    }
-
-    fn build_dependencies_and_link_them(&mut self) -> Result<()> {
-        let dependencies = build_dependencies(self)?;
-        for (name, artifacts) in dependencies.dependencies {
-            for dependency in artifacts {
-                self.program.args.push("--extern".into());
-                let mut dep = OsString::from(&name);
-                dep.push("=");
-                dep.push(dependency);
-                self.program.args.push(dep);
-            }
-        }
-        for import_path in dependencies.import_paths {
-            self.program.args.push("-L".into());
-            self.program.args.push(import_path.into());
-        }
-        Ok(())
-    }
-
-    /// Make sure we have the host and target triples.
-    pub fn fill_host_and_target(&mut self) -> Result<()> {
-        if self.host.is_none() {
-            self.host = Some(
-                rustc_version::VersionMeta::for_command(std::process::Command::new(
-                    &self.program.program,
-                ))
-                .map_err(|err| {
-                    color_eyre::eyre::Report::new(err).wrap_err(format!(
-                        "failed to parse rustc version info: {}",
-                        self.program.display()
-                    ))
-                })?
-                .host,
-            );
-        }
-        if self.target.is_none() {
-            self.target = Some(self.host.clone().unwrap());
-        }
-        Ok(())
-    }
-
-    fn has_asm_support(&self) -> bool {
-        static ASM_SUPPORTED_ARCHS: &[&str] = &[
-            "x86", "x86_64", "arm", "aarch64", "riscv32",
-            "riscv64",
-            // These targets require an additional asm_experimental_arch feature.
-            // "nvptx64", "hexagon", "mips", "mips64", "spirv", "wasm32",
-        ];
-        ASM_SUPPORTED_ARCHS
-            .iter()
-            .any(|arch| self.target.as_ref().unwrap().contains(arch))
-    }
-}
-
-#[derive(Debug, Clone)]
-/// A command, its args and its environment. Used for
-/// the main command, the dependency builder and the cfg-reader.
-pub struct CommandBuilder {
-    /// Path to the binary.
-    pub program: PathBuf,
-    /// Arguments to the binary.
-    pub args: Vec<OsString>,
-    /// A flag to prefix before the path to where output files should be written.
-    pub out_dir_flag: Option<OsString>,
-    /// Environment variables passed to the binary that is executed.
-    /// The environment variable is removed if the second tuple field is `None`
-    pub envs: Vec<(OsString, Option<OsString>)>,
-}
-
-impl CommandBuilder {
-    /// Uses the `CARGO` env var or just a program named `cargo` and the argument `build`.
-    pub fn cargo() -> Self {
-        Self {
-            program: PathBuf::from(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())),
-            args: vec!["build".into()],
-            out_dir_flag: Some("--target-dir".into()),
-            envs: vec![],
-        }
-    }
-
-    /// Uses the `RUSTC` env var or just a program named `rustc` and the argument `--error-format=json`.
-    ///
-    /// Take care to only append unless you actually meant to overwrite the defaults.
-    /// Overwriting the defaults may make `//~ ERROR` style comments stop working.
-    pub fn rustc() -> Self {
-        Self {
-            program: PathBuf::from(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into())),
-            args: vec!["--error-format=json".into()],
-            out_dir_flag: Some("--out-dir".into()),
-            envs: vec![],
-        }
-    }
-
-    /// Same as [`rustc`], but with arguments for obtaining the cfgs.
-    pub fn cfgs() -> Self {
-        Self {
-            args: vec!["--print".into(), "cfg".into()],
-            ..Self::rustc()
-        }
-    }
-
-    /// Build a `CommandBuilder` for a command without any argumemnts.
-    /// You can still add arguments later.
-    pub fn cmd(cmd: impl Into<PathBuf>) -> Self {
-        Self {
-            program: cmd.into(),
-            args: vec![],
-            out_dir_flag: None,
-            envs: vec![],
-        }
-    }
-
-    /// Render the command like you'd use it on a command line.
-    pub fn display(&self) -> impl std::fmt::Display + '_ {
-        struct Display<'a>(&'a CommandBuilder);
-        impl std::fmt::Display for Display<'_> {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                for (var, val) in &self.0.envs {
-                    if let Some(val) = val {
-                        write!(f, "{var:?}={val:?} ")?;
-                    }
-                }
-                self.0.program.display().fmt(f)?;
-                for arg in &self.0.args {
-                    write!(f, " {arg:?}")?;
-                }
-                if let Some(flag) = &self.0.out_dir_flag {
-                    write!(f, " {flag:?} OUT_DIR")?;
-                }
-                Ok(())
-            }
-        }
-        Display(self)
-    }
-
-    /// Create a command with the given settings.
-    pub fn build(&self, out_dir: &Path) -> Command {
-        let mut cmd = Command::new(&self.program);
-        cmd.args(self.args.iter());
-        if let Some(flag) = &self.out_dir_flag {
-            cmd.arg(flag).arg(out_dir);
-        }
-        self.apply_env(&mut cmd);
-        cmd
-    }
-
-    fn apply_env(&self, cmd: &mut Command) {
-        for (var, val) in self.envs.iter() {
-            if let Some(val) = val {
-                cmd.env(var, val);
-            } else {
-                cmd.env_remove(var);
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-/// The different options for what to do when stdout/stderr files differ from the actual output.
-pub enum OutputConflictHandling {
-    /// The default: emit a diff of the expected/actual output.
-    ///
-    /// The string should be a command that can be executed to bless all tests.
-    Error(String),
-    /// Ignore mismatches in the stderr/stdout files.
-    Ignore,
-    /// Instead of erroring if the stderr/stdout differs from the expected
-    /// automatically replace it with the found output (after applying filters).
-    Bless,
-}
+pub use cmd::*;
+pub use config::*;
+pub use error::*;
+pub use mode::*;
 
 /// A filter's match rule.
 #[derive(Clone, Debug)]
@@ -634,76 +360,6 @@ fn parse_comments_in_file(path: &Path) -> Result<Comments, (Vec<u8>, Vec<Error>)
         Err(err) => Err((format!("{err:?}").into(), vec![])),
     }
 }
-
-/// All the ways in which a test can fail.
-#[derive(Debug)]
-pub enum Error {
-    /// Got an invalid exit status for the given mode.
-    ExitStatus {
-        /// The expected mode.
-        mode: Mode,
-        /// The exit status of the command.
-        status: ExitStatus,
-        /// The expected exit status as set in the file or derived from the mode.
-        expected: i32,
-    },
-    /// A pattern was declared but had no matching error.
-    PatternNotFound {
-        /// The pattern that was missing an error
-        pattern: Pattern,
-        /// The line in which the pattern was defined.
-        definition_line: usize,
-    },
-    /// A ui test checking for failure does not have any failure patterns
-    NoPatternsFound,
-    /// A ui test checking for success has failure patterns
-    PatternFoundInPassTest,
-    /// Stderr/Stdout differed from the `.stderr`/`.stdout` file present.
-    OutputDiffers {
-        /// The file containing the expected output that differs from the actual output.
-        path: PathBuf,
-        /// The output from the command.
-        actual: Vec<u8>,
-        /// The contents of the file.
-        expected: Vec<u8>,
-        /// A command, that when run, causes the output to get blessed instead of erroring.
-        bless_command: String,
-    },
-    /// There were errors that don't have a pattern.
-    ErrorsWithoutPattern {
-        /// The main message of the error.
-        msgs: Vec<Message>,
-        /// File and line information of the error.
-        path: Option<(PathBuf, usize)>,
-    },
-    /// A comment failed to parse.
-    InvalidComment {
-        /// The comment
-        msg: String,
-        /// THe line in which it was defined.
-        line: usize,
-    },
-    /// A subcommand (e.g. rustfix) of a test failed.
-    Command {
-        /// The name of the subcommand (e.g. "rustfix").
-        kind: String,
-        /// The exit status of the command.
-        status: ExitStatus,
-    },
-    /// This catches crashes of ui tests and reports them along the failed test.
-    Bug(String),
-    /// An auxiliary build failed with its own set of errors.
-    Aux {
-        /// Path to the aux file.
-        path: PathBuf,
-        /// The errors that occurred during the build of the aux file.
-        errors: Vec<Error>,
-        /// The line in which the aux file was requested to be built.
-        line: usize,
-    },
-}
-
-type Errors = Vec<Error>;
 
 fn build_command(
     path: &Path,
@@ -1370,78 +1026,4 @@ fn normalize(
         text = from.replace_all(&text, to).into_owned();
     }
     text
-}
-
-#[derive(Copy, Clone, Debug)]
-/// Decides what is expected of each test's exit status.
-pub enum Mode {
-    /// The test fails with an error, but passes after running rustfix
-    Fix,
-    /// The test passes a full execution of the rustc driver
-    Pass,
-    /// The test produces an executable binary that can get executed on the host
-    Run {
-        /// The expected exit code
-        exit_code: i32,
-    },
-    /// The rustc driver panicked
-    Panic,
-    /// The rustc driver emitted an error
-    Fail {
-        /// Whether failing tests must have error patterns. Set to false if you just care about .stderr output.
-        require_patterns: bool,
-    },
-    /// Run the tests, but always pass them as long as all annotations are satisfied and stderr files match.
-    Yolo,
-}
-
-impl Mode {
-    fn ok(self, status: ExitStatus) -> Errors {
-        let expected = match self {
-            Mode::Run { exit_code } => exit_code,
-            Mode::Pass => 0,
-            Mode::Panic => 101,
-            Mode::Fail { .. } => 1,
-            Mode::Fix | Mode::Yolo => return vec![],
-        };
-        if status.code() == Some(expected) {
-            vec![]
-        } else {
-            vec![Error::ExitStatus {
-                mode: self,
-                status,
-                expected,
-            }]
-        }
-    }
-    fn maybe_override(self, comments: &Comments, revision: &str, errors: &mut Vec<Error>) -> Self {
-        comments
-            .find_one_for_revision(
-                revision,
-                |r| r.mode.as_ref(),
-                |&(_, line)| {
-                    errors.push(Error::InvalidComment {
-                        msg: "multiple mode changes found".into(),
-                        line,
-                    })
-                },
-            )
-            .map(|&(mode, _)| mode)
-            .unwrap_or(self)
-    }
-}
-
-impl Display for Mode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Mode::Run { exit_code } => write!(f, "run({exit_code})"),
-            Mode::Pass => write!(f, "pass"),
-            Mode::Panic => write!(f, "panic"),
-            Mode::Fail {
-                require_patterns: _,
-            } => write!(f, "fail"),
-            Mode::Yolo => write!(f, "yolo"),
-            Mode::Fix => write!(f, "fix"),
-        }
-    }
 }

@@ -19,12 +19,9 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     let root_dir = path.join(name);
     let bless = std::env::args().all(|arg| arg != "--check");
     let mut config = Config {
-        root_dir: root_dir.clone(),
         trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
-        program: CommandBuilder::cmd("cargo"),
         mode,
-        edition: None,
-        ..Config::default()
+        ..Config::cargo(root_dir.clone())
     };
 
     if bless {
@@ -39,9 +36,6 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         "--jobs".into(),
         "1".into(),
         "--no-fail-fast".into(),
-        "--target-dir".into(),
-        path.parent().unwrap().join("target").into(),
-        "--manifest-path".into(),
     ];
 
     config
@@ -72,7 +66,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("   [0-9]: .*", "");
     config.stderr_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
     config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
-    config.stderr_filter("(src/lib.rs):[0-9]+:[0-9]+", "$1:LL:CC");
+    config.stderr_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
 
     run_tests_generic(
         config,

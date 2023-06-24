@@ -1,10 +1,10 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use ui_test::color_eyre::{eyre::ensure, Result};
 use ui_test::*;
 
 #[test]
 fn run_file() -> Result<()> {
-    let mut config = Config::default();
+    let mut config = Config::rustc(PathBuf::new());
 
     let tmp_dir = tempfile::tempdir_in(env!("CARGO_TARGET_TMPDIR"))?;
     let tmp_dir = tmp_dir.path();
@@ -26,7 +26,7 @@ fn run_file() -> Result<()> {
 fn run_file_with_deps() -> Result<()> {
     let path = "../../../target";
 
-    let mut config = Config::default();
+    let mut config = Config::rustc(PathBuf::new());
 
     let tmp_dir = tempfile::tempdir_in(path)?;
     let tmp_dir = tmp_dir.path();
@@ -57,7 +57,7 @@ fn non_utf8() -> Result<()> {
     if cfg!(windows) {
         return Ok(());
     }
-    let mut config = Config::default();
+    let mut config = Config::rustc(PathBuf::new());
     config.program = CommandBuilder::cmd("cat");
     config.edition = None;
 
