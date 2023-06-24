@@ -265,6 +265,11 @@ impl CommandBuilder {
         struct Display<'a>(&'a CommandBuilder);
         impl std::fmt::Display for Display<'_> {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                for (var, val) in &self.0.envs {
+                    if let Some(val) = val {
+                        write!(f, "{var:?}={val:?} ")?;
+                    }
+                }
                 self.0.program.display().fmt(f)?;
                 for arg in &self.0.args {
                     write!(f, " {arg:?}")?;
