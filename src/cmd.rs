@@ -14,6 +14,9 @@ pub struct CommandBuilder {
     pub args: Vec<OsString>,
     /// A flag to prefix before the path to where output files should be written.
     pub out_dir_flag: Option<OsString>,
+    /// A flag to set as the last flag in the command, so the `build` caller can
+    /// append the filename themselves.
+    pub input_file_flag: Option<OsString>,
     /// Environment variables passed to the binary that is executed.
     /// The environment variable is removed if the second tuple field is `None`
     pub envs: Vec<(OsString, Option<OsString>)>,
@@ -26,6 +29,7 @@ impl CommandBuilder {
             program: PathBuf::from(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())),
             args: vec!["build".into()],
             out_dir_flag: Some("--target-dir".into()),
+            input_file_flag: Some("--manifest-path".into()),
             envs: vec![],
         }
     }
@@ -39,6 +43,7 @@ impl CommandBuilder {
             program: PathBuf::from(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into())),
             args: vec!["--error-format=json".into()],
             out_dir_flag: Some("--out-dir".into()),
+            input_file_flag: None,
             envs: vec![],
         }
     }
@@ -58,6 +63,7 @@ impl CommandBuilder {
             program: cmd.into(),
             args: vec![],
             out_dir_flag: None,
+            input_file_flag: None,
             envs: vec![],
         }
     }
@@ -79,6 +85,9 @@ impl CommandBuilder {
                 if let Some(flag) = &self.0.out_dir_flag {
                     write!(f, " {flag:?} OUT_DIR")?;
                 }
+                if let Some(flag) = &self.0.input_file_flag {
+                    write!(f, " {flag:?}")?;
+                }
                 Ok(())
             }
         }
@@ -91,6 +100,9 @@ impl CommandBuilder {
         cmd.args(self.args.iter());
         if let Some(flag) = &self.out_dir_flag {
             cmd.arg(flag).arg(out_dir);
+        }
+        if let Some(flag) = &self.input_file_flag {
+            cmd.arg(flag);
         }
         self.apply_env(&mut cmd);
         cmd

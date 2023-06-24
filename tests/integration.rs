@@ -24,9 +24,6 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         ..Config::cargo(root_dir.clone())
     };
 
-    // FIXME: CommandBuilder::cargo() does not actually produce a working command
-    config.program.out_dir_flag = None;
-
     if bless {
         config.output_conflict_handling = OutputConflictHandling::Bless;
     }
@@ -39,9 +36,6 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         "--jobs".into(),
         "1".into(),
         "--no-fail-fast".into(),
-        "--target-dir".into(),
-        path.parent().unwrap().join("target").into(),
-        "--manifest-path".into(),
     ];
 
     config
