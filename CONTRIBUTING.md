@@ -1,4 +1,7 @@
 ## Running the test suite
 
-You need to run `cargo test -- -- --bless` first in order to update the `.stderr`
+Running `cargo test` will automatically update the `.stderr`
 and `.stdout` files.
+
+If you only want to check that the output files match and not
+update them, use `cargo test -- -- --check`
