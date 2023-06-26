@@ -114,7 +114,10 @@ pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
     // * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
     // This avoids having to spam `fn main() {}` in almost every test.
     let file_contents = std::fs::read(path).unwrap();
-    if file_contents.find(b"#[proc_macro").is_some() {
+    if file_contents.find(b"#[proc_macro]").is_some()
+        || file_contents.find(b"#[proc_macro_attribute]").is_some()
+        || file_contents.find(b"#[proc_macro_derive]").is_some()
+    {
         config.program.args.push("--crate-type=proc-macro".into())
     } else if file_contents.find(b"#[test]").is_some() {
         config.program.args.push("--test".into());
