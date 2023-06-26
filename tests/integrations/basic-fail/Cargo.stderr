@@ -177,6 +177,7 @@ Caused by:
   process didn't exit successfully: `$DIR/target/ui/debug/ui_tests-HASH --test-threads 1` (exit status: 1)
    Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
+tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
 tests/actual_tests_bless/failing_executable.rs ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
@@ -220,6 +221,26 @@ error: the `#[proc_macro]` attribute is only usable with crates of the `proc-mac
   |
 7 | #[proc_macro]
   | ^^^^^^^^^^^^^
+
+error: aborting due to previous error
+
+
+
+
+tests/actual_tests_bless/aux_proc_macro_no_main.rs FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/aux_proc_macro_no_main/libthe_proc_macro.so" "-L" "$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/aux_proc_macro_no_main"
+
+There were 1 unmatched diagnostics at tests/actual_tests_bless/aux_proc_macro_no_main.rs:7
+    Error: expected one of `!` or `::`, found `<eof>`
+
+no error patterns found in fail test
+
+full stderr:
+error: expected one of `!` or `::`, found `<eof>`
+ --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:8
+  |
+7 | thing!(cake);
+  |        ^^^^ expected one of `!` or `::`
 
 error: aborting due to previous error
 
@@ -445,6 +466,7 @@ For more information about this error, try `rustc --explain E0601`.
 
 FAILURES:
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
+    tests/actual_tests_bless/aux_proc_macro_no_main.rs
     tests/actual_tests_bless/compiletest-rs-command.rs
     tests/actual_tests_bless/failing_executable.rs
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision a)
@@ -460,7 +482,7 @@ FAILURES:
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision panic)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
 
-test result: FAIL. 15 tests failed, 12 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 16 tests failed, 12 tests passed, 3 ignored, 0 filtered out
    Building test dependencies...
 tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
