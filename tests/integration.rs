@@ -66,6 +66,10 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("   [0-9]: .*", "");
     config.stderr_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
     config.stderr_filter("/target/[^/]+/tests", "/target/$$TMP/tests");
+    // Normalize proc macro filenames on windows to their linux repr
+    config.stderr_filter("/([^/\\.]+)\\.dll", "/lib$1.so");
+    // Normalize proc macro filenames on mac to their linux repr
+    config.stderr_filter("/([^/\\.]+)\\.dylib", "/$1.so");
     config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
     config.stderr_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
 
