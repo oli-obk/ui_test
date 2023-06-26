@@ -418,6 +418,24 @@ fn build_aux(
 
     let mut config = config.clone();
 
+    // Strip any `crate-type` flags from the args, as we need to set our own,
+    // and they may conflict (e.g. `lib` vs `proc-macro`);
+    let mut prev_was_crate_type = false;
+    config.program.args.retain(|arg| {
+        if prev_was_crate_type {
+            prev_was_crate_type = false;
+            return false;
+        }
+        if arg == "--crate-type" {
+            prev_was_crate_type = true;
+            false
+        } else if let Some(arg) = arg.to_str() {
+            !arg.starts_with("--crate-type=")
+        } else {
+            true
+        }
+    });
+
     // Put aux builds into a separate directory per test so that
     // tests running in parallel but building the same aux build don't conflict.
     // FIXME: put aux builds into the regular build queue.

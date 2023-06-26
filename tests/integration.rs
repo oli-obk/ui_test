@@ -65,6 +65,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.stderr_filter("   [0-9]: .*", "");
     config.stderr_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
+    config.stderr_filter("/target/[^/]+/tests", "/target/$$TMP/tests");
     config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
     config.stderr_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
 

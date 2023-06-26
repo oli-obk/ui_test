@@ -1,0 +1,8 @@
+error: expected one of `!` or `::`, found `<eof>`
+ --> $DIR/aux_proc_macro_no_main.rs:7:8
+  |
+7 | thing!(cake);
+  |        ^^^^ expected one of `!` or `::`
+
+error: aborting due to previous error
+
