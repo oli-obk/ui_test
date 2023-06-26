@@ -521,7 +521,7 @@ fn run_test(
 
     let output = cmd
         .output()
-        .unwrap_or_else(|_| panic!("could not execute {cmd:?}"));
+        .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err:?}"));
     let mode = config.mode.maybe_override(comments, revision, &mut errors);
     let status_check = mode.ok(output.status);
     if status_check.is_empty() && matches!(mode, Mode::Run { .. }) {
