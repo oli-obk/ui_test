@@ -72,6 +72,8 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("/([^/\\.]+)\\.dylib", "/$1.so");
     config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
     config.stderr_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
+    config.stderr_filter("program not found", "No such file or directory");
+    config.stderr_filter(" \\(os error [0-9]+\\)", "");
 
     run_tests_generic(
         config,
