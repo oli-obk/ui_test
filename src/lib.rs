@@ -426,7 +426,9 @@ fn build_aux(
             prev_was_crate_type = false;
             return false;
         }
-        if arg == "--crate-type" {
+        if arg == "--test" {
+            false
+        } else if arg == "--crate-type" {
             prev_was_crate_type = true;
             false
         } else if let Some(arg) = arg.to_str() {
