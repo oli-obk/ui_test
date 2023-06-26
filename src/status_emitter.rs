@@ -543,6 +543,32 @@ impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
     }
 }
 
+impl<T: StatusEmitter> StatusEmitter for Box<T> {
+    fn failed_test<'a>(
+        &'a self,
+        revision: &'a str,
+        path: &'a Path,
+        cmd: &'a Command,
+        stderr: &'a [u8],
+    ) -> Box<dyn Debug + 'a> {
+        (**self).failed_test(revision, path, cmd, stderr)
+    }
+
+    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
+        (**self).test_result(path, revision, result);
+    }
+
+    fn finalize(
+        &self,
+        failures: usize,
+        succeeded: usize,
+        ignored: usize,
+        filtered: usize,
+    ) -> Box<dyn Summary> {
+        (**self).finalize(failures, succeeded, ignored, filtered)
+    }
+}
+
 impl Summary for (Box<dyn Summary>, Box<dyn Summary>) {
     fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
         self.0.test_failure(path, revision, errors);
