@@ -18,7 +18,7 @@ mod tests;
 /// get processed by their respective use sites.
 #[derive(Default, Debug)]
 pub(crate) struct Comments {
-    /// List of revision names to execute. Can only be speicified once
+    /// List of revision names to execute. Can only be specified once
     pub revisions: Option<Vec<String>>,
     /// Comments that are only available under specific revisions.
     /// The defaults are in key `vec![]`
