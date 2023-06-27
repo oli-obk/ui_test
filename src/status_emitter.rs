@@ -543,7 +543,7 @@ impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
     }
 }
 
-impl<T: StatusEmitter> StatusEmitter for Box<T> {
+impl<T: StatusEmitter + ?Sized> StatusEmitter for Box<T> {
     fn failed_test<'a>(
         &'a self,
         revision: &'a str,
