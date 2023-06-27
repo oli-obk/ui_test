@@ -207,6 +207,8 @@ tests/actual_tests_bless/revisions_multiple_per_annotation.rs (foo) ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
+tests/actual_tests_bless/unknown_revision.rs ... FAILED
+tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--edition" "2021" "--crate-type" "lib" "--emit=link"
@@ -464,6 +466,26 @@ error: aborting due to previous error
 For more information about this error, try `rustc --explain E0601`.
 
 
+
+tests/actual_tests_bless/unknown_revision.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/unknown_revision.rs:3 because
+there are no revisions in this test
+
+full stderr:
+
+
+
+tests/actual_tests_bless/unknown_revision2.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/unknown_revision2.rs:5 because
+the revision `cake` is not known
+
+full stderr:
+
+
 FAILURES:
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
     tests/actual_tests_bless/aux_proc_macro_no_main.rs
@@ -481,8 +503,10 @@ FAILURES:
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision run)
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision panic)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
+    tests/actual_tests_bless/unknown_revision.rs
+    tests/actual_tests_bless/unknown_revision2.rs
 
-test result: FAIL. 16 tests failed, 12 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 18 tests failed, 12 tests passed, 3 ignored, 0 filtered out
    Building test dependencies...
 tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
