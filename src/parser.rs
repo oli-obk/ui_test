@@ -18,7 +18,7 @@ mod tests;
 /// get processed by their respective use sites.
 #[derive(Default, Debug)]
 pub(crate) struct Comments {
-    /// List of revision names to execute. Can only be speicified once
+    /// List of revision names to execute. Can only be specified once
     pub revisions: Option<Vec<String>>,
     /// Comments that are only available under specific revisions.
     /// The defaults are in key `vec![]`
@@ -78,6 +78,9 @@ impl Comments {
 #[derive(Default, Debug)]
 /// Comments that can be filtered for specific revisions.
 pub(crate) struct Revisioned {
+    /// The line in which this revisioned item was first added.
+    /// Used for reporting errors on unknown revisions.
+    pub line: usize,
     /// Don't run this test if any of these filters apply
     pub ignore: Vec<Condition>,
     /// Only run this test if all of these filters apply
@@ -210,6 +213,27 @@ impl Comments {
                 }),
             }
         }
+        if let Some(revisions) = &parser.comments.revisions {
+            for (key, revisioned) in &parser.comments.revisioned {
+                for rev in key {
+                    if !revisions.contains(rev) {
+                        parser.errors.push(Error::InvalidComment {
+                            msg: format!("the revision `{rev}` is not known"),
+                            line: revisioned.line,
+                        })
+                    }
+                }
+            }
+        } else {
+            for (key, revisioned) in &parser.comments.revisioned {
+                if !key.is_empty() {
+                    parser.errors.push(Error::InvalidComment {
+                        msg: "there are no revisions in this test".into(),
+                        line: revisioned.line,
+                    })
+                }
+            }
+        }
         if parser.errors.is_empty() {
             Ok(parser.comments)
         } else {
@@ -332,10 +356,17 @@ impl CommentParser<Comments> {
         revisions: Vec<String>,
         f: impl FnOnce(&mut CommentParser<&mut Revisioned>),
     ) {
+        let line = self.line;
         let mut this = CommentParser {
             errors: std::mem::take(&mut self.errors),
-            line: self.line,
-            comments: self.revisioned.entry(revisions).or_default(),
+            line,
+            comments: self
+                .revisioned
+                .entry(revisions)
+                .or_insert_with(|| Revisioned {
+                    line,
+                    ..Default::default()
+                }),
         };
         f(&mut this);
         self.errors = this.errors;

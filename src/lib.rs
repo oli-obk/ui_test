@@ -696,6 +696,7 @@ fn run_rustfix(
         revisioned: std::iter::once((
             vec![],
             Revisioned {
+                line: 0,
                 ignore: vec![],
                 only: vec![],
                 stderr_per_bitwidth: false,
