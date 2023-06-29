@@ -82,7 +82,10 @@ impl Config {
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
             num_test_threads: std::thread::available_parallelism().unwrap(),
-            out_dir: std::env::current_dir().unwrap().join("target/ui"),
+            out_dir: std::env::var_os("CARGO_TARGET_DIR")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"))
+                .join("ui"),
             edition: Some("2021".into()),
         }
     }
