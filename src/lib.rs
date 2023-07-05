@@ -11,7 +11,7 @@
 use bstr::ByteSlice;
 pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
-use crossbeam_channel::unbounded;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use parser::{ErrorMatch, Revisioned};
 use regex::bytes::Regex;
 use rustc_stderr::{Diagnostics, Level, Message};
@@ -179,15 +179,11 @@ pub fn run_tests_generic(
 
     config.build_dependencies_and_link_them()?;
 
-    // A channel for files to process
-    let (submit, receive) = unbounded();
-
     let mut results = vec![];
 
-    thread::scope(|s| -> Result<()> {
-        // Create a thread that is in charge of walking the directory and submitting jobs.
-        // It closes the channel when it is done.
-        s.spawn(|| {
+    run_and_collect(
+        config.num_test_threads.get(),
+        |submit| {
             let mut todo = VecDeque::new();
             todo.push_back(config.root_dir.clone());
             while let Some(path) = todo.pop_front() {
@@ -210,73 +206,51 @@ pub fn run_tests_generic(
                     submit.send(path).unwrap();
                 }
             }
-            // There will be no more jobs. This signals the workers to quit.
-            // (This also ensures `submit` is moved into this closure.)
-            drop(submit);
-        });
-
-        // A channel for the messages emitted by the individual test threads.
-        // Used to produce live updates while running the tests.
-        let (finished_files_sender, finished_files_recv) = unbounded::<TestRun>();
-
-        s.spawn(|| {
+        },
+        |receive, finished_files_sender| -> Result<()> {
+            for path in receive {
+                let maybe_config;
+                let config = match per_file_config(&config, &path) {
+                    None => &config,
+                    Some(config) => {
+                        maybe_config = config;
+                        &maybe_config
+                    }
+                };
+                let result = match std::panic::catch_unwind(|| parse_and_test_file(&path, config)) {
+                    Ok(res) => res,
+                    Err(err) => {
+                        finished_files_sender.send(TestRun {
+                            result: TestResult::Errored {
+                                command: Command::new("<unknown>"),
+                                errors: vec![Error::Bug(
+                                    *Box::<dyn std::any::Any + Send + 'static>::downcast::<String>(
+                                        err,
+                                    )
+                                    .unwrap(),
+                                )],
+                                stderr: vec![],
+                            },
+                            path,
+                            revision: String::new(),
+                        })?;
+                        continue;
+                    }
+                };
+                for result in result {
+                    finished_files_sender.send(result)?;
+                }
+            }
+            Ok(())
+        },
+        |finished_files_recv| {
             for run in finished_files_recv {
                 status_emitter.test_result(&run.path, &run.revision, &run.result);
 
                 results.push(run);
             }
-        });
-
-        let mut threads = vec![];
-
-        // Create N worker threads that receive files to test.
-        for _ in 0..config.num_test_threads.get() {
-            let finished_files_sender = finished_files_sender.clone();
-            threads.push(s.spawn(|| -> Result<()> {
-                let finished_files_sender = finished_files_sender;
-                for path in &receive {
-                    let maybe_config;
-                    let config = match per_file_config(&config, &path) {
-                        None => &config,
-                        Some(config) => {
-                            maybe_config = config;
-                            &maybe_config
-                        }
-                    };
-                    let result =
-                        match std::panic::catch_unwind(|| parse_and_test_file(&path, config)) {
-                            Ok(res) => res,
-                            Err(err) => {
-                                finished_files_sender.send(TestRun {
-                                    result: TestResult::Errored {
-                                        command: Command::new("<unknown>"),
-                                        errors: vec![Error::Bug(
-                                            *Box::<dyn std::any::Any + Send + 'static>::downcast::<
-                                                String,
-                                            >(err)
-                                            .unwrap(),
-                                        )],
-                                        stderr: vec![],
-                                    },
-                                    path,
-                                    revision: String::new(),
-                                })?;
-                                continue;
-                            }
-                        };
-                    for result in result {
-                        finished_files_sender.send(result)?;
-                    }
-                }
-                Ok(())
-            }));
-        }
-
-        for thread in threads {
-            thread.join().unwrap()?;
-        }
-        Ok(())
-    })?;
+        },
+    )?;
 
     let mut failures = vec![];
     let mut succeeded = 0;
@@ -307,6 +281,43 @@ pub fn run_tests_generic(
     } else {
         Err(eyre!("tests failed"))
     }
+}
+
+/// A generic multithreaded runner that has a thread for producing work,
+/// a thread for collecting work, and `num_threads` threads for doing the work.
+pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
+    num_threads: usize,
+    submitter: impl FnOnce(Sender<SUBMISSION>) + Send,
+    runner: impl Sync + Fn(&Receiver<SUBMISSION>, Sender<RESULT>) -> Result<()>,
+    collector: impl FnOnce(Receiver<RESULT>) + Send,
+) -> Result<()> {
+    // A channel for files to process
+    let (submit, receive) = unbounded();
+
+    thread::scope(|s| {
+        // Create a thread that is in charge of walking the directory and submitting jobs.
+        // It closes the channel when it is done.
+        s.spawn(|| submitter(submit));
+
+        // A channel for the messages emitted by the individual test threads.
+        // Used to produce live updates while running the tests.
+        let (finished_files_sender, finished_files_recv) = unbounded();
+
+        s.spawn(|| collector(finished_files_recv));
+
+        let mut threads = vec![];
+
+        // Create N worker threads that receive files to test.
+        for _ in 0..num_threads {
+            let finished_files_sender = finished_files_sender.clone();
+            threads.push(s.spawn(|| runner(&receive, finished_files_sender)));
+        }
+
+        for thread in threads {
+            thread.join().unwrap()?;
+        }
+        Ok(())
+    })
 }
 
 fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
