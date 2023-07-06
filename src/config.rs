@@ -12,9 +12,6 @@ use std::{
 #[derive(Debug, Clone)]
 /// Central datastructure containing all information to run the tests.
 pub struct Config {
-    /// Arguments passed to the binary that is executed.
-    /// These arguments are passed *after* the args inserted via `//@compile-flags:`.
-    pub trailing_args: Vec<OsString>,
     /// Host triple; usually will be auto-detected.
     pub host: Option<String>,
     /// `None` to run on the host, otherwise a target triple
@@ -58,7 +55,6 @@ impl Config {
     /// `rustc` on the test files.
     pub fn rustc(root_dir: PathBuf) -> Self {
         Self {
-            trailing_args: vec![],
             host: None,
             target: None,
             stderr_filters: vec![

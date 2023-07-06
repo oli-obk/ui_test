@@ -19,7 +19,6 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     let root_dir = path.join(name);
     let bless = std::env::args().all(|arg| arg != "--check");
     let mut config = Config {
-        trailing_args: vec!["--".into(), "--test-threads".into(), "1".into()],
         mode,
         ..Config::cargo(root_dir.clone())
     };
@@ -37,6 +36,10 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         "1".into(),
         "--no-fail-fast".into(),
     ];
+    config
+        .program
+        .envs
+        .push(("RUST_TEST_THREADS".into(), Some("1".into())));
 
     config
         .program
