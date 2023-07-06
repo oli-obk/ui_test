@@ -98,7 +98,7 @@ use std::mem;
     }
     match &errors[1] {
         Error::InvalidComment { msg, line: 2 } => {
-            assert_eq!(msg, "unknown command `error-patttern`");
+            assert_eq!(msg, "`error-patttern` is not a command known to `ui_test`");
         }
         _ => unreachable!(),
     }

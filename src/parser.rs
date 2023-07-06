@@ -507,7 +507,7 @@ impl CommentParser<&mut Revisioned> {
                     }
                     return;
                 }
-                self.error(format!("unknown command `{command}`"));
+                self.error(format!("`{command}` is not a command known to `ui_test`"));
             }
         }
     }
