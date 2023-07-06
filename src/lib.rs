@@ -399,7 +399,6 @@ fn build_command(
     if let Some((edition, _)) = edition {
         cmd.arg("--edition").arg(edition);
     }
-    cmd.args(config.trailing_args.iter());
     cmd.envs(
         comments
             .for_revision(revision)
