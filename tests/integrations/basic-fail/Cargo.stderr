@@ -254,7 +254,7 @@ tests/actual_tests_bless/compile_flags_quotes.rs FAILED:
 command: "parse comments"
 
 Could not parse comment in tests/actual_tests_bless/compile_flags_quotes.rs:1 because
-`compile-flag` is not a command known to `ui_test`
+`compile-flag` is not a command known to `ui_test`, did you mean `compile-flags`?
 
 Could not parse comment in tests/actual_tests_bless/compile_flags_quotes.rs:3 because
 `-Z "cheese is good` contains an unclosed quotation mark

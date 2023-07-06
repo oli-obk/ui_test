@@ -116,7 +116,11 @@ struct CommentParser<T> {
     errors: Vec<Error>,
     /// The line currently being parsed.
     line: usize,
+    /// The available commands and their parsing logic
+    commands: HashMap<&'static str, CommandParserFunc>,
 }
+
+type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: &str);
 
 impl<T> std::ops::Deref for CommentParser<T> {
     type Target = T;
@@ -199,6 +203,7 @@ impl Comments {
             comments: Comments::default(),
             errors: vec![],
             line: 0,
+            commands: CommentParser::<_>::commands(),
         };
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
@@ -275,17 +280,17 @@ impl CommentParser<Comments> {
                             line: 0,
                             errors: vec![],
                             comments: Comments::default(),
+                            commands: std::mem::take(&mut self.commands),
                         };
                         parser.parse_command(rest.to_str()?);
                         if parser.errors.is_empty() {
-                            self.errors.push(Error::InvalidComment {
-                                msg: "a compiletest-rs style comment was detected.\n\
+                            self.error(
+                                "a compiletest-rs style comment was detected.\n\
                                 Please use text that could not also be interpreted as a command,\n\
-                                and prefix all actual commands with `//@`"
-                                    .into(),
-                                line: self.line,
-                            });
+                                and prefix all actual commands with `//@`",
+                            );
                         }
+                        self.commands = parser.commands;
                     }
                 }
             }
@@ -359,6 +364,7 @@ impl CommentParser<Comments> {
         let line = self.line;
         let mut this = CommentParser {
             errors: std::mem::take(&mut self.errors),
+            commands: std::mem::take(&mut self.commands),
             line,
             comments: self
                 .revisioned
@@ -369,146 +375,166 @@ impl CommentParser<Comments> {
                 }),
         };
         f(&mut this);
-        self.errors = this.errors;
+        let CommentParser {
+            errors, commands, ..
+        } = this;
+        self.commands = commands;
+        self.errors = errors;
     }
 }
 
 impl CommentParser<&mut Revisioned> {
-    fn parse_command(&mut self, command: &str, args: &str) {
-        match command {
-            "compile-flags" => {
+    fn commands() -> HashMap<&'static str, CommandParserFunc> {
+        let mut commands = HashMap::<_, CommandParserFunc>::new();
+        macro_rules! commands {
+            ($($name:expr => ($this:ident, $args:ident)$block:block)*) => {
+                $(commands.insert($name, |$this, $args| {
+                    $block
+                });)*
+            };
+        }
+        commands! {
+            "compile-flags" => (this, args){
                 if let Some(parsed) = comma::parse_command(args) {
-                    self.compile_flags.extend(parsed);
+                    this.compile_flags.extend(parsed);
                 } else {
-                    self.error(format!("`{args}` contains an unclosed quotation mark"));
+                    this.error(format!("`{args}` contains an unclosed quotation mark"));
                 }
             }
-            "rustc-env" => {
+            "rustc-env" => (this, args){
                 for env in args.split_whitespace() {
-                    if let Some((k, v)) = self.check_some(
+                    if let Some((k, v)) = this.check_some(
                         env.split_once('='),
                         "environment variables must be key/value pairs separated by a `=`",
                     ) {
-                        self.env_vars.push((k.to_string(), v.to_string()));
+                        this.env_vars.push((k.to_string(), v.to_string()));
                     }
                 }
             }
-            "normalize-stderr-test" => {
-                let (from, rest) = self.parse_str(args);
+            "normalize-stderr-test" => (this, args){
+                let (from, rest) = this.parse_str(args);
 
                 let to = match rest.strip_prefix("->") {
                     Some(v) => v,
                     None => {
-                        self.error("normalize-stderr-test needs a pattern and replacement separated by `->`");
+                        this.error("normalize-stderr-test needs a pattern and replacement separated by `->`");
                         return;
                     },
                 }.trim_start();
-                let (to, rest) = self.parse_str(to);
+                let (to, rest) = this.parse_str(to);
 
-                self.check(
+                this.check(
                     rest.is_empty(),
                     format!("trailing text after pattern replacement: {rest}"),
                 );
 
-                if let Some(regex) = self.parse_regex(from) {
-                    self.normalize_stderr
+                if let Some(regex) = this.parse_regex(from) {
+                    this.normalize_stderr
                         .push((regex, to.as_bytes().to_owned()))
                 }
             }
-            "error-pattern" => {
-                self.error("`error-pattern` has been renamed to `error-in-other-file`");
+            "error-pattern" => (this, _args){
+                this.error("`error-pattern` has been renamed to `error-in-other-file`");
             }
-            "error-in-other-file" => {
-                let pat = self.parse_error_pattern(args.trim());
-                let line = self.line;
-                self.error_in_other_files.push((pat, line));
+            "error-in-other-file" => (this, args){
+                let pat = this.parse_error_pattern(args.trim());
+                let line = this.line;
+                this.error_in_other_files.push((pat, line));
             }
-            "stderr-per-bitwidth" => {
+            "stderr-per-bitwidth" => (this, _args){
                 // args are ignored (can be used as comment)
-                self.check(
-                    !self.stderr_per_bitwidth,
+                this.check(
+                    !this.stderr_per_bitwidth,
                     "cannot specify `stderr-per-bitwidth` twice",
                 );
-                self.stderr_per_bitwidth = true;
+                this.stderr_per_bitwidth = true;
             }
-            "run-rustfix" => {
+            "run-rustfix" => (this, _args){
                 // args are ignored (can be used as comment)
-                self.check(
-                    self.mode.is_none(),
+                this.check(
+                    this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
-                self.mode = Some((Mode::Fix, self.line))
+                this.mode = Some((Mode::Fix, this.line))
             }
-            "needs-asm-support" => {
+            "needs-asm-support" => (this, _args){
                 // args are ignored (can be used as comment)
-                self.check(
-                    !self.needs_asm_support,
+                this.check(
+                    !this.needs_asm_support,
                     "cannot specify `needs-asm-support` twice",
                 );
-                self.needs_asm_support = true;
+                this.needs_asm_support = true;
             }
-            "aux-build" => {
+            "aux-build" => (this, args){
                 let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));
-                let line = self.line;
-                self.aux_builds.push((name.into(), kind.into(), line));
+                let line = this.line;
+                this.aux_builds.push((name.into(), kind.into(), line));
             }
-            "edition" => {
-                self.check(self.edition.is_none(), "cannot specify `edition` twice");
-                self.edition = Some((args.into(), self.line))
+            "edition" => (this, args){
+                this.check(this.edition.is_none(), "cannot specify `edition` twice");
+                this.edition = Some((args.into(), this.line))
             }
-            "check-pass" => {
+            "check-pass" => (this, _args){
                 // args are ignored (can be used as comment)
-                self.check(
-                    self.mode.is_none(),
+                this.check(
+                    this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
-                self.mode = Some((Mode::Pass, self.line))
+                this.mode = Some((Mode::Pass, this.line))
             }
-            "run" => {
-                self.check(
-                    self.mode.is_none(),
+            "run" => (this, args){
+                this.check(
+                    this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
-                let mut set = |exit_code| self.mode = Some((Mode::Run { exit_code }, self.line));
+                let mut set = |exit_code| this.mode = Some((Mode::Run { exit_code }, this.line));
                 if args.is_empty() {
                     set(0);
                 } else {
                     match args.parse() {
                         Ok(exit_code) => set(exit_code),
-                        Err(err) => self.error(err.to_string()),
+                        Err(err) => this.error(err.to_string()),
                     }
                 }
             }
-            "require-annotations-for-level" => {
-                self.check(
-                    self.require_annotations_for_level.is_none(),
+            "require-annotations-for-level" => (this, args){
+                this.check(
+                    this.require_annotations_for_level.is_none(),
                     "cannot specify `require-annotations-for-level` twice",
                 );
                 match args.trim().parse() {
-                    Ok(it) => self.require_annotations_for_level = Some(it),
-                    Err(msg) => self.error(msg),
+                    Ok(it) => this.require_annotations_for_level = Some(it),
+                    Err(msg) => this.error(msg),
                 }
             }
-            command => {
-                if let Some(s) = command.strip_prefix("ignore-") {
-                    // args are ignored (can be used as comment)
-                    match Condition::parse(s) {
-                        Ok(cond) => self.ignore.push(cond),
-                        Err(msg) => self.error(msg),
-                    }
-                    return;
-                }
+        }
+        commands
+    }
 
-                if let Some(s) = command.strip_prefix("only-") {
-                    // args are ignored (can be used as comment)
-                    match Condition::parse(s) {
-                        Ok(cond) => self.only.push(cond),
-                        Err(msg) => self.error(msg),
-                    }
-                    return;
-                }
-                self.error(format!("`{command}` is not a command known to `ui_test`"));
+    fn parse_command(&mut self, command: &str, args: &str) {
+        if let Some(command) = self.commands.get(command) {
+            command(self, args);
+        } else if let Some(s) = command.strip_prefix("ignore-") {
+            // args are ignored (can be used as comment)
+            match Condition::parse(s) {
+                Ok(cond) => self.ignore.push(cond),
+                Err(msg) => self.error(msg),
             }
+        } else if let Some(s) = command.strip_prefix("only-") {
+            // args are ignored (can be used as comment)
+            match Condition::parse(s) {
+                Ok(cond) => self.only.push(cond),
+                Err(msg) => self.error(msg),
+            }
+        } else {
+            let best_match = self
+                .commands
+                .keys()
+                .min_by_key(|key| distance::damerau_levenshtein(key, command))
+                .unwrap();
+            self.error(format!(
+                "`{command}` is not a command known to `ui_test`, did you mean `{best_match}`?"
+            ));
         }
     }
 }

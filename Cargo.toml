@@ -25,6 +25,7 @@ bstr = "1.0.1"
 rustfix = "0.6.1"
 cargo-platform = "0.1.2"
 comma = "1.0.0"
+distance = "0.4.0"
 
 [dependencies.regex]
 version = "1.5.5"
