@@ -164,7 +164,7 @@ tests/actual_tests/pattern_too_many_arrow.rs FAILED:
 command: "parse comments"
 
 Could not parse comment in tests/actual_tests/pattern_too_many_arrow.rs:3 because
-//~^ pattern is trying to refer to 7 lines previous, but is only on line 3
+//~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
 
 full stderr:
 
@@ -637,7 +637,7 @@ tests/actual_tests/pattern_too_many_arrow.rs FAILED:
 command: "parse comments"
 
 Could not parse comment in tests/actual_tests/pattern_too_many_arrow.rs:3 because
-//~^ pattern is trying to refer to 7 lines previous, but is only on line 3
+//~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
 
 full stderr:
 
