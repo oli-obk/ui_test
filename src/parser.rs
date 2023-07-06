@@ -377,8 +377,11 @@ impl CommentParser<&mut Revisioned> {
     fn parse_command(&mut self, command: &str, args: &str) {
         match command {
             "compile-flags" => {
-                self.compile_flags
-                    .extend(args.split_whitespace().map(|s| s.to_string()));
+                if let Some(parsed) = comma::parse_command(args) {
+                    self.compile_flags.extend(parsed);
+                } else {
+                    self.error(format!("`{args}` contains an unclosed quotation mark"));
+                }
             }
             "rustc-env" => {
                 for env in args.split_whitespace() {

@@ -178,6 +178,7 @@ Caused by:
    Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
+tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
 tests/actual_tests_bless/failing_executable.rs ... FAILED
 tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
@@ -246,6 +247,19 @@ error: expected one of `!` or `::`, found `<eof>`
 
 error: aborting due to previous error
 
+
+
+
+tests/actual_tests_bless/compile_flags_quotes.rs FAILED:
+command: "parse comments"
+
+Could not parse comment in tests/actual_tests_bless/compile_flags_quotes.rs:1 because
+unknown command `compile-flag`
+
+Could not parse comment in tests/actual_tests_bless/compile_flags_quotes.rs:3 because
+`-Z "cheese is good` contains an unclosed quotation mark
+
+full stderr:
 
 
 
@@ -489,6 +503,7 @@ full stderr:
 FAILURES:
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
     tests/actual_tests_bless/aux_proc_macro_no_main.rs
+    tests/actual_tests_bless/compile_flags_quotes.rs
     tests/actual_tests_bless/compiletest-rs-command.rs
     tests/actual_tests_bless/failing_executable.rs
     tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision a)
@@ -506,7 +521,7 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
 
-test result: FAIL. 18 tests failed, 12 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 19 tests failed, 12 tests passed, 3 ignored, 0 filtered out
    Building test dependencies...
 tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
