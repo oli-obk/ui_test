@@ -131,7 +131,9 @@ impl Config {
             .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
     }
 
-    pub(crate) fn build_dependencies_and_link_them(&mut self) -> Result<()> {
+    /// Compile dependencies and make sure `Config::program` contains the right flags
+    /// to find the dependencies.
+    pub fn build_dependencies_and_link_them(&mut self) -> Result<()> {
         let dependencies = build_dependencies(self)?;
         for (name, artifacts) in dependencies.dependencies {
             for dependency in artifacts {
