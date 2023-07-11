@@ -625,7 +625,18 @@ impl CommentParser<&mut Revisioned> {
             ),
             Some('^') => {
                 let offset = pattern.chars().take_while(|&c| c == '^').count();
-                (self.line - offset, &pattern[offset..])
+                match self.line.checked_sub(offset) {
+                    // lines are one-indexed, so a target line of 0 is invalid
+                    Some(match_line) if match_line > 0 => (match_line, &pattern[offset..]),
+                    _ => {
+                        self.error(format!(
+                            "//~^ pattern is trying to refer to {} lines above, but there are only {} lines above",
+                            offset,
+                            self.line - 1
+                        ));
+                        return;
+                    }
+                }
             }
             Some(_) => (self.line, pattern),
             None => {
