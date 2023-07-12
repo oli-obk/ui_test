@@ -119,7 +119,10 @@ pub fn run_tests(config: Config) -> Result<()> {
         config,
         default_file_filter,
         default_per_file_config,
-        (status_emitter::Text, status_emitter::Gha::<true> { name }),
+        (
+            status_emitter::Text::verbose(),
+            status_emitter::Gha::<true> { name },
+        ),
     )
 }
 

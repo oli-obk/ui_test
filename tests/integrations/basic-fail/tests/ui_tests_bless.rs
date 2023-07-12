@@ -42,7 +42,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
             default_file_filter,
             default_per_file_config,
             // Avoid github actions, as these would end up showing up in `Cargo.stderr`
-            status_emitter::Text,
+            status_emitter::Text::verbose(),
         );
         match (&result, mode) {
             (Ok(_), Mode::Yolo) => {}

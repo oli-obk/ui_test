@@ -46,7 +46,23 @@ pub trait Summary {
 impl Summary for () {}
 
 /// A human readable output emitter.
-pub struct Text;
+pub struct Text {
+    /// In case of `Some`, the `usize` is the number of tests
+    /// that were already executed.
+    quiet: Option<usize>,
+}
+
+impl Text {
+    /// Print one line per test that gets run.
+    pub fn verbose() -> Self {
+        Self { quiet: None }
+    }
+    /// Print one `.` per test that gets run.
+    pub fn quiet() -> Self {
+        Self { quiet: Some(0) }
+    }
+}
+
 impl StatusEmitter for Text {
     fn failed_test<'a>(
         &self,
@@ -83,22 +99,36 @@ impl StatusEmitter for Text {
     }
 
     fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
-        let result = match result {
-            TestResult::Ok => "ok".green(),
-            TestResult::Errored { .. } => "FAILED".red().bold(),
-            TestResult::Ignored => "ignored (in-test comment)".yellow(),
-            TestResult::Filtered => return,
-        };
-        eprint!(
-            "{}{} ... ",
-            path.display(),
-            if revision.is_empty() {
-                "".into()
-            } else {
-                format!(" ({revision})")
+        if let Some(n) = &mut self.quiet {
+            // Humans start counting at 1
+            *n += 1;
+            match result {
+                TestResult::Ok => eprint!("{}", ".".green()),
+                TestResult::Errored { .. } => eprint!("{}", "F".red().bold()),
+                TestResult::Ignored => eprint!("{}", "i".yellow()),
+                TestResult::Filtered => {}
             }
-        );
-        eprintln!("{result}");
+            if *n % 100 == 0 {
+                eprintln!(" {}", n);
+            }
+        } else {
+            let result = match result {
+                TestResult::Ok => "ok".green(),
+                TestResult::Errored { .. } => "FAILED".red().bold(),
+                TestResult::Ignored => "ignored (in-test comment)".yellow(),
+                TestResult::Filtered => return,
+            };
+            eprint!(
+                "{}{} ... ",
+                path.display(),
+                if revision.is_empty() {
+                    "".into()
+                } else {
+                    format!(" ({revision})")
+                }
+            );
+            eprintln!("{result}");
+        }
     }
 
     fn finalize(
@@ -378,48 +408,6 @@ fn gha_error(error: &Error, path: &str, revision: &str) {
         }
     }
     eprintln!();
-}
-
-/// Just print some dots instead of a whole line per run test.
-#[derive(Default)]
-pub struct Quiet {
-    n: usize,
-}
-
-impl StatusEmitter for Quiet {
-    fn test_result(&mut self, _path: &Path, _revision: &str, result: &TestResult) {
-        // Humans start counting at 1
-        self.n += 1;
-        match result {
-            TestResult::Ok => eprint!("{}", ".".green()),
-            TestResult::Errored { .. } => eprint!("{}", "F".red().bold()),
-            TestResult::Ignored => eprint!("{}", "i".yellow()),
-            TestResult::Filtered => {}
-        }
-        if self.n % 100 == 0 {
-            eprintln!(" {}", self.n);
-        }
-    }
-
-    fn failed_test<'a>(
-        &'a self,
-        revision: &'a str,
-        path: &'a Path,
-        cmd: &'a Command,
-        stderr: &'a [u8],
-    ) -> Box<dyn Debug + 'a> {
-        Text.failed_test(revision, path, cmd, stderr)
-    }
-
-    fn finalize(
-        &self,
-        failed: usize,
-        succeeded: usize,
-        ignored: usize,
-        filtered: usize,
-    ) -> Box<dyn Summary> {
-        Text.finalize(failed, succeeded, ignored, filtered)
-    }
 }
 
 /// Emits Github Actions Workspace commands to show the failures directly in the github diff view.
