@@ -534,7 +534,7 @@ fn run_test(
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
     let mode = config.mode.maybe_override(comments, revision, &mut errors);
     let status_check = mode.ok(output.status);
-    if status_check.is_empty() && matches!(mode, Mode::Run { .. }) {
+    if matches!(mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
         let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
         return (cmd, errors, vec![]);
     }
