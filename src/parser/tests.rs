@@ -76,7 +76,7 @@ use std::mem;
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
     let pat = &revisioned.error_in_other_files[0];
-    assert_eq!(format!("{:?}", pat.0), r#"Regex(foomp)"#);
+    assert_eq!(format!("{:?}", pat.0), r#"Regex(Regex("foomp"))"#);
     assert_eq!(pat.1, 2);
 }
 
