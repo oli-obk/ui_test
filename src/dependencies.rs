@@ -80,20 +80,24 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
     let artifact_output = output.stdout;
     let artifact_output = String::from_utf8(artifact_output)?;
     let mut import_paths: HashSet<PathBuf> = HashSet::new();
-    let mut artifacts: HashMap<_, _> = artifact_output
-        .lines()
-        .filter_map(|line| {
-            let message = serde_json::from_str::<cargo_metadata::Message>(line).ok()?;
-            if let cargo_metadata::Message::CompilerArtifact(artifact) = message {
-                for filename in &artifact.filenames {
-                    import_paths.insert(filename.parent().unwrap().into());
-                }
-                Some((artifact.package_id, artifact.filenames))
-            } else {
-                None
+    let mut artifacts = HashMap::new();
+    for line in artifact_output.lines() {
+        let Ok(message) = serde_json::from_str::<cargo_metadata::Message>(line) else {
+            continue
+        };
+        if let cargo_metadata::Message::CompilerArtifact(artifact) = message {
+            for filename in &artifact.filenames {
+                import_paths.insert(filename.parent().unwrap().into());
             }
-        })
-        .collect();
+            let package_id = artifact.package_id;
+            if artifacts
+                .insert(package_id.clone(), artifact.filenames)
+                .is_some()
+            {
+                bail!("`ui_test` does not support crates that appear as both build-dependencies and core dependencies: {package_id}")
+            }
+        }
+    }
 
     // Check which crates are mentioned in the crate itself
     let mut metadata = cargo_metadata::MetadataCommand::new().cargo_command();
