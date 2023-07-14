@@ -207,7 +207,7 @@ tests/actual_tests_bless/revised_revision.rs ... FAILED
 tests/actual_tests_bless/revisioned_executable.rs (run) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (panic) ... FAILED
 tests/actual_tests_bless/revisioned_executable_panic.rs (run) ... FAILED
-tests/actual_tests_bless/revisioned_executable_panic.rs (panic) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (panic) ... ok
 tests/actual_tests_bless/revisions.rs (foo) ... ok
 tests/actual_tests_bless/revisions.rs (bar) ... ok
 tests/actual_tests_bless/revisions_bad.rs (foo) ... ok
@@ -220,6 +220,7 @@ tests/actual_tests_bless/revisions_multiple_per_annotation.rs (foo) ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
+tests/actual_tests_bless/run_panic.rs ... ok
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 
@@ -445,7 +446,7 @@ full stderr:
 
 
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable.rs" "--cfg=panic" "--edition" "2021"
+command: "$CMD"
 
 run(101) test got exit status: 0, but expected 101
 
@@ -457,15 +458,6 @@ tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) FAILED:
 command: "$CMD"
 
 run(0) test got exit status: 101, but expected 0
-
-full stderr:
-
-
-
-tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisioned_executable_panic.rs" "--cfg=panic" "--edition" "2021"
-
-run(101) test got exit status: 0, but expected 101
 
 full stderr:
 
@@ -528,12 +520,11 @@ FAILURES:
     tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisioned_executable.rs (revision panic)
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision run)
-    tests/actual_tests_bless/revisioned_executable_panic.rs (revision panic)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
 
-test result: FAIL. 19 tests failed, 12 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 18 tests failed, 14 tests passed, 3 ignored, 0 filtered out
    Building test dependencies...
 tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
