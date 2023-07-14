@@ -12,8 +12,9 @@ use bstr::ByteSlice;
 pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
+use lazy_static::lazy_static;
 use parser::{ErrorMatch, Revisioned};
-use regex::bytes::Regex;
+use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Diagnostics, Level, Message};
 use status_emitter::StatusEmitter;
 use std::borrow::Cow;
@@ -49,12 +50,33 @@ pub enum Match {
     Regex(Regex),
     /// If the exact byte sequence is found, the filter applies
     Exact(Vec<u8>),
+    /// Uses a heuristic to find backslashes in windows style paths
+    PathBackslash,
 }
 impl Match {
     fn replace_all<'a>(&self, text: &'a [u8], replacement: &[u8]) -> Cow<'a, [u8]> {
         match self {
             Match::Regex(regex) => regex.replace_all(text, replacement),
             Match::Exact(needle) => text.replace(needle, replacement).into(),
+            Match::PathBackslash => {
+                lazy_static! {
+                    static ref PATH_RE: Regex = Regex::new(
+                        r#"(?x)
+                        (?:
+                            # Match paths to files with extensions that don't include spaces
+                            \\(?:[\pL\pN.\-_']+[/\\])*[\pL\pN.\-_']+\.\pL+
+                        |
+                            # Allow spaces in absolute paths
+                            [A-Z]:\\(?:[\pL\pN.\-_'\ ]+[/\\])+
+                        )"#,
+                    )
+                    .unwrap();
+                }
+
+                PATH_RE.replace_all(text, |caps: &Captures<'_>| {
+                    caps[0].replace(r"\", replacement)
+                })
+            }
         }
     }
 }
@@ -1051,8 +1073,8 @@ fn normalize(
         text = text.replace(lib_path, "RUSTLIB");
     }
 
-    for (regex, replacement) in filters {
-        text = regex.replace_all(&text, replacement).into_owned();
+    for (rule, replacement) in filters {
+        text = rule.replace_all(&text, replacement).into_owned();
     }
 
     for (from, to) in comments
