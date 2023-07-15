@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use clap::Parser;
 use colored::Colorize;
 use ui_test::color_eyre::Result;
 use ui_test::*;
@@ -17,13 +18,13 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     eprintln!("\n{} `{name}` tests in mode {mode}", "Running".green());
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join(name);
-    let bless = std::env::args().all(|arg| arg != "--check");
     let mut config = Config {
         mode,
         ..Config::cargo(root_dir.clone())
     };
+    let args = Args::parse();
 
-    if bless {
+    if !args.check {
         config.output_conflict_handling = OutputConflictHandling::Bless;
     }
 
@@ -44,7 +45,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config
         .program
         .envs
-        .push(("BLESS".into(), bless.then(|| String::new().into())));
+        .push(("BLESS".into(), (!args.check).then(|| String::new().into())));
 
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
@@ -80,7 +81,8 @@ fn run(name: &str, mode: Mode) -> Result<()> {
 
     run_tests_generic(
         config,
-        |path| {
+        args,
+        |path, args| {
             let fail = path
                 .parent()
                 .unwrap()
@@ -103,6 +105,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                     Mode::Panic => fail,
                     Mode::Fix | Mode::Run { .. } | Mode::Yolo | Mode::Fail { .. } => unreachable!(),
                 }
+                && default_filter_by_arg(path, args)
         },
         |_, _| None,
         (
