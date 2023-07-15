@@ -17,11 +17,12 @@ pub struct Config {
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
     /// Filters applied to stderr output before processing it.
-    /// By default contains a filter for replacing backslashes with regular slashes.
-    /// On windows, contains a filter to replace `\n` with `\r\n`.
+    /// By default contains a filter for replacing backslashes in paths with
+    /// regular slashes.
+    /// On windows, contains a filter to remove `\r`.
     pub stderr_filters: Filter,
     /// Filters applied to stdout output before processing it.
-    /// On windows, contains a filter to replace `\n` with `\r\n`.
+    /// On windows, contains a filter to remove `\r`.
     pub stdout_filters: Filter,
     /// The folder in which to start searching for .rs files
     pub root_dir: PathBuf,
@@ -58,7 +59,7 @@ impl Config {
             host: None,
             target: None,
             stderr_filters: vec![
-                (Match::Exact(vec![b'\\']), b"/"),
+                (Match::PathBackslash, b"/"),
                 #[cfg(windows)]
                 (Match::Exact(vec![b'\r']), b""),
             ],
