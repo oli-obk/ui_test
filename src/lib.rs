@@ -9,6 +9,7 @@
 //! A crate to run the Rust compiler (or other binaries) and test their command line output.
 
 use bstr::ByteSlice;
+use clap::Parser;
 pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -110,22 +111,39 @@ impl From<Regex> for Match {
 pub type Filter = Vec<(Match, &'static [u8])>;
 
 /// Run all tests as described in the config argument.
+/// Will additionally process command line arguments.
 pub fn run_tests(config: Config) -> Result<()> {
     eprintln!("   Compiler: {}", config.program.display());
 
     let name = config.root_dir.display().to_string();
 
+    let args = Args::parse();
+
     run_tests_generic(
         config,
+        args,
         default_file_filter,
         default_per_file_config,
-        (status_emitter::Text, status_emitter::Gha::<true> { name }),
+        (
+            status_emitter::Text::verbose(),
+            status_emitter::Gha::<true> { name },
+        ),
     )
 }
 
-/// The filter used by `run_tests` to only run on `.rs` files.
-pub fn default_file_filter(path: &Path) -> bool {
-    path.extension().map(|ext| ext == "rs").unwrap_or(false)
+/// The filter used by `run_tests` to only run on `.rs` files
+/// and those specified in the command line args.
+pub fn default_file_filter(path: &Path, args: &Args) -> bool {
+    path.extension().is_some_and(|ext| ext == "rs") && default_filter_by_arg(path, args)
+}
+
+/// Run on all files that are matched by the filter in the argument list
+pub fn default_filter_by_arg(path: &Path, args: &Args) -> bool {
+    if args.filters.is_empty() {
+        return true;
+    }
+    let path = path.display().to_string();
+    args.filters.iter().any(|f| path.contains(f))
 }
 
 /// The default per-file config used by `run_tests`.
@@ -193,7 +211,8 @@ struct TestRun {
 /// A version of `run_tests` that allows more fine-grained control over running tests.
 pub fn run_tests_generic(
     mut config: Config,
-    file_filter: impl Fn(&Path) -> bool + Sync,
+    args: Args,
+    file_filter: impl Fn(&Path, &Args) -> bool + Sync,
     per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
     mut status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
@@ -223,7 +242,7 @@ pub fn run_tests_generic(
                     for entry in entries {
                         todo.push_back(entry.path());
                     }
-                } else if file_filter(&path) {
+                } else if file_filter(&path, &args) {
                     // Forward .rs files to the test workers.
                     submit.send(path).unwrap();
                 }

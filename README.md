@@ -4,6 +4,8 @@ A smaller version of compiletest-rs
 
 * Tests are run in order of their filenames (files first, then recursing into folders).
   So if you have any slow tests, prepend them with a small integral number to make them get run first, taking advantage of parallelism as much as possible (instead of waiting for the slow tests at the end).
+* `cargo test --test your_test_name -- --help` lists the commands you can specify for filtering, blessing and making your tests less verbose.
+    * Since `cargo test` on its own runs all tests, using `cargo test -- --check` will not work on its own, but `cargo test -- --quiet` and `cargo test -- some_test_name` will work just fine, as the CLI matches.
 
 ## Supported magic comment annotations
 

@@ -39,10 +39,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
         let result = run_tests_generic(
             config,
+            Args::default(),
             default_file_filter,
             default_per_file_config,
             // Avoid github actions, as these would end up showing up in `Cargo.stderr`
-            status_emitter::Text,
+            status_emitter::Text::verbose(),
         );
         match (&result, mode) {
             (Ok(_), Mode::Yolo) => {}

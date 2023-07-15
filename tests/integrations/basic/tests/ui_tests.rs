@@ -8,7 +8,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         num_test_threads: NonZeroUsize::new(1).unwrap(),
         ..Config::rustc("tests/actual_tests".into())
     };
-    if std::env::var_os("BLESS").is_some() {
+    if std::env::var_os("BLESS").is_none() {
         config.output_conflict_handling = OutputConflictHandling::Bless;
     }
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
@@ -24,9 +24,10 @@ fn main() -> ui_test::color_eyre::Result<()> {
 
     run_tests_generic(
         config,
+        Args::default(),
         default_file_filter,
         default_per_file_config,
         // Avoid github actions, as these would end up showing up in `Cargo.stderr`
-        status_emitter::Text,
+        status_emitter::Text::verbose(),
     )
 }

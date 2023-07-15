@@ -9,6 +9,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod args;
+pub use args::Args;
+
 #[derive(Debug, Clone)]
 /// Central datastructure containing all information to run the tests.
 pub struct Config {
@@ -73,9 +76,13 @@ impl Config {
             },
             program: CommandBuilder::rustc(),
             cfgs: CommandBuilder::cfgs(),
-            output_conflict_handling: OutputConflictHandling::Error(
-                "cargo test -- -- --bless".into(),
-            ),
+            output_conflict_handling: OutputConflictHandling::Error(format!(
+                "{} --bless",
+                std::env::args()
+                    .map(|s| format!("{s:?}"))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )),
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
             num_test_threads: std::thread::available_parallelism().unwrap(),
