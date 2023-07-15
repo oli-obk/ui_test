@@ -193,9 +193,6 @@ tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
 tests/actual_tests_bless/failing_executable.rs ... FAILED
-tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (a) ... FAILED
-tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (b) ... FAILED
-tests/actual_tests_bless/foomp-rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/foomp_aux.rs ... ok
 tests/actual_tests_bless/nested_aux.rs ... ok
 tests/actual_tests_bless/no_main.rs ... FAILED
@@ -221,6 +218,9 @@ tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
+tests/actual_tests_bless/rustfix-fail-revisions.rs (a) ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.rs (b) ... FAILED
+tests/actual_tests_bless/rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 
@@ -304,69 +304,6 @@ command: "$CMD"
 run(0) test got exit status: 101, but expected 0
 
 full stderr:
-
-
-
-tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `a`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
-
-rustfix failed with exit status: 1
-
-full stderr:
-error[E0308]: mismatched types
- --> tests/actual_tests_bless/foomp-rustfix-fail-revisions.a.fixed:6:21
-  |
-6 |     let x: String = 42;
-  |            ------   ^^- help: try using a conversion method: `.to_string()`
-  |            |        |
-  |            |        expected `String`, found integer
-  |            expected due to this
-
-error: aborting due to previous error
-
-For more information about this error, try `rustc --explain E0308`.
-
-
-
-tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision `b`) FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "foomp_rustfix_fail_revisions"
-
-rustfix failed with exit status: 1
-
-full stderr:
-error[E0308]: mismatched types
- --> tests/actual_tests_bless/foomp-rustfix-fail-revisions.b.fixed:6:21
-  |
-6 |     let x: String = 42;
-  |            ------   ^^- help: try using a conversion method: `.to_string()`
-  |            |        |
-  |            |        expected `String`, found integer
-  |            expected due to this
-
-error: aborting due to previous error
-
-For more information about this error, try `rustc --explain E0308`.
-
-
-
-tests/actual_tests_bless/foomp-rustfix-fail.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/foomp-rustfix-fail.fixed" "--edition" "2021" "--crate-name" "foomp_rustfix_fail"
-
-rustfix failed with exit status: 1
-
-full stderr:
-error[E0308]: mismatched types
- --> tests/actual_tests_bless/foomp-rustfix-fail.fixed:5:21
-  |
-5 |     let x: String = 42;
-  |            ------   ^^- help: try using a conversion method: `.to_string()`
-  |            |        |
-  |            |        expected `String`, found integer
-  |            expected due to this
-
-error: aborting due to previous error
-
-For more information about this error, try `rustc --explain E0308`.
 
 
 
@@ -485,6 +422,90 @@ For more information about this error, try `rustc --explain E0601`.
 
 
 
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error[E0382]: use of moved value: `x`
+  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:12:5
+   |
+5  |     let x = match 0 {
+   |         - move occurs because `x` has type `String`, which does not implement the `Copy` trait
+...
+11 |     x;
+   |     - value moved here
+12 |     x;
+   |     ^ value used here after move
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+11 |     x.clone();
+   |      ++++++++
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0382`.
+
+
+
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error[E0382]: use of moved value: `x`
+  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:12:5
+   |
+5  |     let x = match 0 {
+   |         - move occurs because `x` has type `String`, which does not implement the `Copy` trait
+...
+11 |     x;
+   |     - value moved here
+12 |     x;
+   |     ^ value used here after move
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+11 |     x.clone();
+   |      ++++++++
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0382`.
+
+
+
+tests/actual_tests_bless/rustfix-fail.rs FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--edition" "2021" "--crate-name" "rustfix_fail"
+
+rustfix failed with exit status: 1
+
+full stderr:
+error[E0382]: use of moved value: `x`
+  --> tests/actual_tests_bless/rustfix-fail.fixed:11:5
+   |
+4  |     let x = match 0 {
+   |         - move occurs because `x` has type `String`, which does not implement the `Copy` trait
+...
+10 |     x;
+   |     - value moved here
+11 |     x;
+   |     ^ value used here after move
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+10 |     x.clone();
+   |      ++++++++
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0382`.
+
+
+
 tests/actual_tests_bless/unknown_revision.rs FAILED:
 command: "parse comments"
 
@@ -510,9 +531,6 @@ FAILURES:
     tests/actual_tests_bless/compile_flags_quotes.rs
     tests/actual_tests_bless/compiletest-rs-command.rs
     tests/actual_tests_bless/failing_executable.rs
-    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision a)
-    tests/actual_tests_bless/foomp-rustfix-fail-revisions.rs (revision b)
-    tests/actual_tests_bless/foomp-rustfix-fail.rs
     tests/actual_tests_bless/no_main.rs
     tests/actual_tests_bless/no_main_manual.rs
     tests/actual_tests_bless/no_test.rs
@@ -521,14 +539,17 @@ FAILURES:
     tests/actual_tests_bless/revisioned_executable.rs (revision panic)
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision run)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
+    tests/actual_tests_bless/rustfix-fail-revisions.rs (revision a)
+    tests/actual_tests_bless/rustfix-fail-revisions.rs (revision b)
+    tests/actual_tests_bless/rustfix-fail.rs
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
 
 test result: FAIL. 18 tests failed, 14 tests passed, 3 ignored, 0 filtered out
    Building test dependencies...
-tests/actual_tests_bless_yolo/foomp-rustfix-fail.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
+tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
 
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"

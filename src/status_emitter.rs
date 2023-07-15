@@ -288,6 +288,10 @@ fn print_error(error: &Error, path: &str) {
                 print_error(error, &aux_path.display().to_string());
             }
         }
+        Error::Rustfix(error) => {
+            eprintln!("failed to apply suggestions for {path} with rustfix: {error}");
+            eprintln!("Add //@no-rustfix to the test file to ignore rustfix suggestions");
+        }
     }
     eprintln!();
 }
@@ -405,6 +409,12 @@ fn gha_error(error: &Error, path: &str, revision: &str) {
             for error in errors {
                 gha_error(error, &aux_path.display().to_string(), "")
             }
+        }
+        Error::Rustfix(error) => {
+            github_actions::error(
+                path,
+                format!("failed to apply suggestions with rustfix: {error}"),
+            );
         }
     }
     eprintln!();

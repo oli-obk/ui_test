@@ -49,11 +49,13 @@ their command specifies, or the test will fail without even being run.
     * this is only useful if there are any annotations like `HELP`, `WARN` or `NOTE`, as these would automatically require annotations for all other diagnostics of the same or higher level.
 * `//@check-pass` overrides the `Config::mode` and will make the test behave as if the test suite were in `Mode::Pass`.
 * `//@edition: EDITION` overwrites the default edition (2021) to the given edition.
-* `//@run-rustfix` runs rustfix on the output and recompiles the result. The result must suceed to compile.
+* `//@no-rustfix` do not run [rustfix] on tests that have machine applicable suggestions.
 * `//@aux-build: filename` looks for a file in the `auxiliary` directory (within the directory of the test), compiles it as a library and links the current crate against it. This allows you import the crate with `extern crate` or just via `use` statements.
     * you can optionally specify a crate type via `//@aux-build: filename.rs:proc-macro`. This is necessary for some crates (like proc macros), but can also be used to change the linkage against the aux build.
 * `//@run` compiles the test and runs the resulting binary. The resulting binary must exit successfully. Stdout and stderr are taken from the resulting binary. Any warnings during compilation are ignored.
     * You can also specify a different exit code/status that is expected via e.g. `//@run: 1` or `//@run: 101` (the latter is the standard Rust exit code for panics).
+
+[rustfix]: https://github.com/rust-lang/rustfix
 
 ## Significant differences to compiletest-rs
 

@@ -590,17 +590,15 @@ fn run_test(
     }
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
-    let rustfixed = matches!(mode, Mode::Fix).then(|| {
-        run_rustfix(
-            &output.stderr,
-            path,
-            comments,
-            revision,
-            config,
-            extra_args,
-            &mut errors,
-        )
-    });
+    let rustfixed = run_rustfix(
+        &output.stderr,
+        path,
+        comments,
+        revision,
+        config,
+        extra_args,
+        &mut errors,
+    );
     let stderr = check_test_result(
         path,
         config,
@@ -719,7 +717,21 @@ fn run_rustfix(
     config: &Config,
     extra_args: Vec<String>,
     errors: &mut Vec<Error>,
-) -> (Command, PathBuf) {
+) -> Option<(Command, PathBuf)> {
+    let no_run_rustfix = comments.find_one_for_revision(
+        revision,
+        |r| r.no_rustfix,
+        |line| {
+            errors.push(Error::InvalidComment {
+                msg: "no-rustfix specified multiple times".into(),
+                line,
+            })
+        },
+    );
+    if no_run_rustfix.is_some() || !config.rustfix {
+        return None;
+    }
+
     let input = std::str::from_utf8(stderr).unwrap();
     let suggestions = rustfix::get_suggestions_from_json(
         input,
@@ -733,14 +745,19 @@ fn run_rustfix(
     .unwrap_or_else(|err| {
         panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
     });
+    if suggestions.is_empty() {
+        return None;
+    }
+
     let fixed_code =
-        rustfix::apply_suggestions(&std::fs::read_to_string(path).unwrap(), &suggestions)
-            .unwrap_or_else(|e| {
-                panic!(
-                    "failed to apply suggestions for {:?} with rustfix: {e}",
-                    path.display()
-                )
-            });
+        match rustfix::apply_suggestions(&std::fs::read_to_string(path).unwrap(), &suggestions) {
+            Ok(fixed_code) => fixed_code,
+            Err(e) => {
+                errors.push(Error::Rustfix(e));
+                return None;
+            }
+        };
+
     let edition = comments.edition(errors, revision, config);
     let rustfix_comments = Comments {
         revisions: None,
@@ -769,6 +786,7 @@ fn run_rustfix(
                     .collect(),
                 edition,
                 mode: Some((Mode::Pass, 0)),
+                no_rustfix: Some(0),
                 needs_asm_support: false,
             },
         ))
@@ -787,7 +805,7 @@ fn run_rustfix(
 
     let mut cmd = build_command(&path, config, revision, &rustfix_comments, errors);
     cmd.args(extra_args);
-    (cmd, path)
+    Some((cmd, path))
 }
 
 fn revised(revision: &str, extension: &str) -> String {

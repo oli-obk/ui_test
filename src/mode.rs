@@ -7,8 +7,6 @@ use std::process::ExitStatus;
 #[derive(Copy, Clone, Debug)]
 /// Decides what is expected of each test's exit status.
 pub enum Mode {
-    /// The test fails with an error, but passes after running rustfix
-    Fix,
     /// The test passes a full execution of the rustc driver
     Pass,
     /// The test produces an executable binary that can get executed on the host
@@ -34,7 +32,7 @@ impl Mode {
             Mode::Pass => 0,
             Mode::Panic => 101,
             Mode::Fail { .. } => 1,
-            Mode::Fix | Mode::Yolo => return vec![],
+            Mode::Yolo => return vec![],
         };
         if status.code() == Some(expected) {
             vec![]
@@ -78,7 +76,6 @@ impl Display for Mode {
                 require_patterns: _,
             } => write!(f, "fail"),
             Mode::Yolo => write!(f, "yolo"),
-            Mode::Fix => write!(f, "fix"),
         }
     }
 }

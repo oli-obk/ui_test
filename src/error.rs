@@ -67,6 +67,8 @@ pub enum Error {
         /// The line in which the aux file was requested to be built.
         line: usize,
     },
+    /// An error occured applying [`rustfix`] suggestions
+    Rustfix(anyhow::Error),
 }
 
 pub(crate) type Errors = Vec<Error>;

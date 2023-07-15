@@ -8,7 +8,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         num_test_threads: NonZeroUsize::new(1).unwrap(),
         ..Config::rustc("tests/actual_tests".into())
     };
-    if std::env::var_os("BLESS").is_none() {
+    if std::env::var_os("BLESS").is_some() {
         config.output_conflict_handling = OutputConflictHandling::Bless;
     }
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
