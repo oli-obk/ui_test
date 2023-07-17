@@ -35,15 +35,16 @@ impl Comments {
     pub fn find_one_for_revision<'a, T: 'a>(
         &'a self,
         revision: &'a str,
+        kind: &str,
         f: impl Fn(&'a Revisioned) -> Option<WithLine<T>>,
-        error: impl FnOnce(usize),
-    ) -> Option<WithLine<T>> {
+    ) -> Option<(WithLine<T>, Option<Error>)> {
         let mut rev = self.for_revision(revision).filter_map(f);
-        let result = rev.next();
-        if let Some(next) = rev.next() {
-            error(next.line());
-        }
-        result
+        let result = rev.next()?;
+        let error = rev.next().map(|next| Error::InvalidComment {
+            msg: format!("multiple {kind} found"),
+            line: next.line(),
+        });
+        Some((result, error))
     }
 
     /// Returns an iterator over all revisioned comments that match the revision.
@@ -59,21 +60,13 @@ impl Comments {
 
     pub(crate) fn edition(
         &self,
-        errors: &mut Vec<Error>,
         revision: &str,
         config: &crate::Config,
-    ) -> Option<WithLine<String>> {
-        self.find_one_for_revision(
-            revision,
-            |r| r.edition.as_ref().cloned(),
-            |line| {
-                errors.push(Error::InvalidComment {
-                    msg: "`edition` specified twice".into(),
-                    line,
-                })
-            },
-        )
-        .or(config.edition.clone().map(|e| WithLine::new(e, 0)))
+    ) -> Option<(WithLine<String>, Option<Error>)> {
+        self.find_one_for_revision(revision, "`edition` annotations", |r| {
+            r.edition.as_ref().cloned()
+        })
+        .or(config.edition.clone().map(|e| (WithLine::new(e, 0), None)))
     }
 }
 

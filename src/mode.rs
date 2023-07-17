@@ -48,21 +48,11 @@ impl Mode {
         self,
         comments: &Comments,
         revision: &str,
-        errors: &mut Vec<Error>,
-    ) -> Self {
+    ) -> (Self, Option<Error>) {
         comments
-            .find_one_for_revision(
-                revision,
-                |r| r.mode.as_ref().cloned(),
-                |line| {
-                    errors.push(Error::InvalidComment {
-                        msg: "multiple mode changes found".into(),
-                        line,
-                    })
-                },
-            )
-            .map(|wl| *wl)
-            .unwrap_or(self)
+            .find_one_for_revision(revision, "mode changes", |r| r.mode.as_ref().cloned())
+            .map(|(wl, error)| (*wl, error))
+            .unwrap_or((self, None))
     }
 }
 

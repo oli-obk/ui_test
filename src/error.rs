@@ -7,6 +7,7 @@ use std::{path::PathBuf, process::ExitStatus};
 
 /// All the ways in which a test can fail.
 #[derive(Debug)]
+#[must_use]
 pub enum Error {
     /// Got an invalid exit status for the given mode.
     ExitStatus {

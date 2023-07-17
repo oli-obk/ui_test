@@ -436,10 +436,12 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let edition = comments.edition(errors, revision, config);
-    if let Some(wl) = edition {
+    let edition = comments.edition(revision, config);
+    if let Some((wl, error)) = edition {
         cmd.arg("--edition").arg(&*wl);
+        errors.extend(error);
     }
+
     cmd.envs(
         comments
             .for_revision(revision)
@@ -573,7 +575,8 @@ fn run_test(
     let output = cmd
         .output()
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
-    let mode = config.mode.maybe_override(comments, revision, &mut errors);
+    let (mode, error) = config.mode.maybe_override(comments, revision);
+    errors.extend(error);
     let status_check = mode.ok(output.status);
     if matches!(mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
         let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
@@ -720,16 +723,14 @@ fn run_rustfix(
     extra_args: Vec<String>,
     errors: &mut Vec<Error>,
 ) -> Option<(Command, PathBuf)> {
-    let no_run_rustfix = comments.find_one_for_revision(
-        revision,
-        |r| r.no_rustfix.as_ref().cloned(),
-        |line| {
-            errors.push(Error::InvalidComment {
-                msg: "no-rustfix specified multiple times".into(),
-                line,
-            })
-        },
-    );
+    let no_run_rustfix = comments
+        .find_one_for_revision(revision, "`no-rustfix` annotations", |r| {
+            r.no_rustfix.as_ref().cloned()
+        })
+        .map(|(wl, error)| {
+            errors.extend(error);
+            wl
+        });
     if no_run_rustfix.is_some() || !config.rustfix {
         return None;
     }
@@ -760,7 +761,10 @@ fn run_rustfix(
             }
         };
 
-    let edition = comments.edition(errors, revision, config);
+    let edition = comments.edition(revision, config).map(|(edition, error)| {
+        errors.extend(error);
+        edition
+    });
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((
@@ -947,21 +951,21 @@ fn check_annotations(
     let required_annotation_level = comments
         .find_one_for_revision(
             revision,
+            "`require_annotations_for_level` annotations",
             |r| r.require_annotations_for_level.as_ref().cloned(),
-            |line| {
-                errors.push(Error::InvalidComment {
-                    msg: "`require_annotations_for_level` specified twice for same revision".into(),
-                    line,
-                })
-            },
         )
+        .map(|(lvl, error)| {
+            errors.extend(error);
+            lvl
+        })
         .unwrap_or(lowest_annotation_level);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
         msgs.retain(|msg| msg.level >= *required_annotation_level);
         msgs
     };
 
-    let mode = config.mode.maybe_override(comments, revision, errors);
+    let (mode, error) = config.mode.maybe_override(comments, revision);
+    errors.extend(error);
 
     if !matches!(config.mode, Mode::Yolo) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
