@@ -734,7 +734,7 @@ fn run_rustfix(
             wl
         });
     let fixed_code = (no_run_rustfix.is_none() && config.rustfix)
-        .then(|| ())
+        .then_some(())
         .and_then(|()| {
             let input = std::str::from_utf8(stderr).unwrap();
             let suggestions = rustfix::get_suggestions_from_json(
@@ -795,7 +795,7 @@ fn run_rustfix(
                     .for_revision(revision)
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
-                edition: edition.into(),
+                edition,
                 mode: OptWithLine::new(Mode::Pass, 0),
                 no_rustfix: OptWithLine::new((), 0),
                 needs_asm_support: false,
