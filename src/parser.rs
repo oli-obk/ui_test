@@ -103,7 +103,7 @@ pub(crate) struct Revisioned {
     pub error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
-    pub require_annotations_for_level: Option<Level>,
+    pub require_annotations_for_level: OptWithLine<Level>,
     pub aux_builds: Vec<WithLine<(PathBuf, String)>>,
     pub edition: OptWithLine<String>,
     /// Overwrites the mode from `Config`.
@@ -508,14 +508,19 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "require-annotations-for-level" => (this, args){
+                let line = this.line;
+                let prev = match args.trim().parse() {
+                    Ok(it) =>  this.require_annotations_for_level.set(it, line),
+                    Err(msg) => {
+                        this.error(msg);
+                        None
+                    },
+                };
+
                 this.check(
-                    this.require_annotations_for_level.is_none(),
+                    prev.is_none(),
                     "cannot specify `require-annotations-for-level` twice",
                 );
-                match args.trim().parse() {
-                    Ok(it) => this.require_annotations_for_level = Some(it),
-                    Err(msg) => this.error(msg),
-                }
             }
         }
         commands

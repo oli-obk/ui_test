@@ -14,7 +14,7 @@ pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, OptWithLine, Revisioned};
+use parser::{ErrorMatch, OptWithLine, Revisioned, WithLine};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Diagnostics, Level, Message};
 use status_emitter::StatusEmitter;
@@ -781,7 +781,7 @@ fn run_rustfix(
                 normalize_stderr: vec![],
                 error_in_other_files: vec![],
                 error_matches: vec![],
-                require_annotations_for_level: None,
+                require_annotations_for_level: Default::default(),
                 aux_builds: comments
                     .for_revision(revision)
                     .flat_map(|r| r.aux_builds.iter().cloned())
@@ -914,7 +914,7 @@ fn check_annotations(
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
-    let mut lowest_annotation_level = Level::Error;
+    let mut lowest_annotation_level = WithLine::new(Level::Error, 0);
     for &ErrorMatch {
         ref pattern,
         level,
@@ -927,7 +927,9 @@ fn check_annotations(
         // If we found a diagnostic with a level annotation, make sure that all
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
-        lowest_annotation_level = std::cmp::min(lowest_annotation_level, level);
+        if *lowest_annotation_level > level {
+            lowest_annotation_level = WithLine::new(level, line);
+        }
 
         if let Some(msgs) = messages.get_mut(line) {
             let found = msgs
@@ -945,17 +947,18 @@ fn check_annotations(
     let required_annotation_level = comments
         .find_one_for_revision(
             revision,
-            |r| r.require_annotations_for_level,
-            |_| {
+            |r| r.require_annotations_for_level.as_ref(),
+            |wl| {
                 errors.push(Error::InvalidComment {
                     msg: "`require_annotations_for_level` specified twice for same revision".into(),
-                    line: 0,
+                    line: wl.line(),
                 })
             },
         )
+        .cloned()
         .unwrap_or(lowest_annotation_level);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
-        msgs.retain(|msg| msg.level >= required_annotation_level);
+        msgs.retain(|msg| msg.level >= *required_annotation_level);
         msgs
     };
 
