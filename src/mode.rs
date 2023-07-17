@@ -53,15 +53,15 @@ impl Mode {
         comments
             .find_one_for_revision(
                 revision,
-                |r| r.mode.as_ref(),
-                |wl| {
+                |r| r.mode.as_ref().cloned(),
+                |line| {
                     errors.push(Error::InvalidComment {
                         msg: "multiple mode changes found".into(),
-                        line: wl.line(),
+                        line,
                     })
                 },
             )
-            .map(|wl| **wl)
+            .map(|wl| *wl)
             .unwrap_or(self)
     }
 }

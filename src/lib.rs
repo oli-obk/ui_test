@@ -722,11 +722,11 @@ fn run_rustfix(
 ) -> Option<(Command, PathBuf)> {
     let no_run_rustfix = comments.find_one_for_revision(
         revision,
-        |r| r.no_rustfix.as_ref(),
-        |wl| {
+        |r| r.no_rustfix.as_ref().cloned(),
+        |line| {
             errors.push(Error::InvalidComment {
                 msg: "no-rustfix specified multiple times".into(),
-                line: wl.line(),
+                line,
             })
         },
     );
@@ -947,15 +947,14 @@ fn check_annotations(
     let required_annotation_level = comments
         .find_one_for_revision(
             revision,
-            |r| r.require_annotations_for_level.as_ref(),
-            |wl| {
+            |r| r.require_annotations_for_level.as_ref().cloned(),
+            |line| {
                 errors.push(Error::InvalidComment {
                     msg: "`require_annotations_for_level` specified twice for same revision".into(),
-                    line: wl.line(),
+                    line,
                 })
             },
         )
-        .cloned()
         .unwrap_or(lowest_annotation_level);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
         msgs.retain(|msg| msg.level >= *required_annotation_level);

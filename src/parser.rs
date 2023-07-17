@@ -35,13 +35,13 @@ impl Comments {
     pub fn find_one_for_revision<'a, T: 'a>(
         &'a self,
         revision: &'a str,
-        f: impl Fn(&'a Revisioned) -> Option<T>,
-        error: impl FnOnce(T),
-    ) -> Option<T> {
+        f: impl Fn(&'a Revisioned) -> Option<WithLine<T>>,
+        error: impl FnOnce(usize),
+    ) -> Option<WithLine<T>> {
         let mut rev = self.for_revision(revision).filter_map(f);
         let result = rev.next();
         if let Some(next) = rev.next() {
-            error(next);
+            error(next.line());
         }
         result
     }
@@ -65,15 +65,14 @@ impl Comments {
     ) -> Option<WithLine<String>> {
         self.find_one_for_revision(
             revision,
-            |r| r.edition.as_ref(),
-            |wl| {
+            |r| r.edition.as_ref().cloned(),
+            |line| {
                 errors.push(Error::InvalidComment {
                     msg: "`edition` specified twice".into(),
-                    line: wl.line(),
+                    line,
                 })
             },
         )
-        .cloned()
         .or(config.edition.clone().map(|e| WithLine::new(e, 0)))
     }
 }
