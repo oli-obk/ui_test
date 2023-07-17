@@ -44,9 +44,8 @@ fn main() {
         &comments,
     );
     match &errors[..] {
-        [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern {
-            path: Some((_, 5)), ..
-        }] if pattern.line() == 5 => {}
+        [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern { path, .. }]
+            if path.as_ref().is_some_and(|p| p.line() == 5) && pattern.line() == 5 => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -106,9 +105,8 @@ fn main() {
             &comments,
         );
         match &errors[..] {
-            [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern {
-                path: Some((_, 4)), ..
-            }] if pattern.line() == 5 => {}
+            [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern { path, .. }]
+                if path.as_ref().is_some_and(|p| p.line() == 4) && pattern.line() == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -214,9 +212,8 @@ fn main() {
         &comments,
     );
     match &errors[..] {
-        [Error::ErrorsWithoutPattern {
-            path: Some((_, 5)), ..
-        }] => {}
+        [Error::ErrorsWithoutPattern { path, .. }]
+            if path.as_ref().is_some_and(|p| p.line() == 5) => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -265,17 +262,17 @@ fn main() {
         &comments,
     );
     match &errors[..] {
-        [Error::ErrorsWithoutPattern {
-            path: Some((_, 5)),
-            msgs,
-            ..
-        }] => match &msgs[..] {
-            [Message {
-                message,
-                level: Level::Warn,
-            }] if message == "kaboom" => {}
-            _ => panic!("{:#?}", msgs),
-        },
+        [Error::ErrorsWithoutPattern { path, msgs, .. }]
+            if path.as_ref().is_some_and(|p| p.line() == 5) =>
+        {
+            match &msgs[..] {
+                [Message {
+                    message,
+                    level: Level::Warn,
+                }] if message == "kaboom" => {}
+                _ => panic!("{:#?}", msgs),
+            }
+        }
         _ => panic!("{:#?}", errors),
     }
 }

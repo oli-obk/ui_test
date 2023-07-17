@@ -968,7 +968,7 @@ fn check_annotations(
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
         if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
-                path: None,
+                path: Default::default(),
                 msgs: messages_from_unknown_file_or_line,
             });
         }
@@ -977,7 +977,7 @@ fn check_annotations(
             let msgs = filter(msgs);
             if !msgs.is_empty() {
                 errors.push(Error::ErrorsWithoutPattern {
-                    path: Some((path.to_path_buf(), line)),
+                    path: OptWithLine::new(path.to_path_buf(), line),
                     msgs,
                 });
             }

@@ -1,5 +1,5 @@
 use crate::{
-    parser::{Pattern, WithLine},
+    parser::{OptWithLine, Pattern, WithLine},
     rustc_stderr::Message,
     Mode,
 };
@@ -39,7 +39,7 @@ pub enum Error {
         /// The main message of the error.
         msgs: Vec<Message>,
         /// File and line information of the error.
-        path: Option<(PathBuf, usize)>,
+        path: OptWithLine<PathBuf>,
     },
     /// A comment failed to parse.
     InvalidComment {
