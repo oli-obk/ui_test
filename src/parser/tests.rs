@@ -18,7 +18,7 @@ fn main() {
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
-    assert_eq!(revisioned.error_matches[0].pattern.line(), 5);
+    assert_eq!(revisioned.error_matches[0].pattern.line().get(), 5);
     match &*revisioned.error_matches[0].pattern {
         Pattern::SubString(s) => {
             assert_eq!(
@@ -43,7 +43,9 @@ fn main() {
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 1);
     match &errors[0] {
-        Error::InvalidComment { msg, line: 5 } => assert_eq!(msg, "unknown level `encountered`"),
+        Error::InvalidComment { msg, line } if line.get() == 5 => {
+            assert_eq!(msg, "unknown level `encountered`")
+        }
         _ => unreachable!(),
     }
 }
@@ -61,7 +63,7 @@ use std::mem;
     let revisioned = &comments.revisioned[&vec![]];
     let pat = &revisioned.error_in_other_files[0];
     assert_eq!(format!("{:?}", **pat), r#"SubString("foomp")"#);
-    assert_eq!(pat.line(), 2);
+    assert_eq!(pat.line().get(), 2);
 }
 
 #[test]
@@ -77,7 +79,7 @@ use std::mem;
     let revisioned = &comments.revisioned[&vec![]];
     let pat = &revisioned.error_in_other_files[0];
     assert_eq!(format!("{:?}", **pat), r#"Regex(Regex("foomp"))"#);
-    assert_eq!(pat.line(), 2);
+    assert_eq!(pat.line().get(), 2);
 }
 
 #[test]
@@ -91,13 +93,13 @@ use std::mem;
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 2);
     match &errors[0] {
-        Error::InvalidComment { msg, line: 2 } => {
+        Error::InvalidComment { msg, line } if line.get() == 2 => {
             assert!(msg.contains("must be followed by `:`"))
         }
         _ => unreachable!(),
     }
     match &errors[1] {
-        Error::InvalidComment { msg, line: 2 } => {
+        Error::InvalidComment { msg, line } if line.get() == 2 => {
             assert_eq!(msg, "`error-patttern` is not a command known to `ui_test`, did you mean `error-pattern`?");
         }
         _ => unreachable!(),
@@ -115,7 +117,7 @@ use std::mem;
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 1);
     match &errors[0] {
-        Error::InvalidComment { msg, line: 2 } => {
+        Error::InvalidComment { msg, line } if line.get() == 2 => {
             assert!(msg.contains("must be followed by `:`"))
         }
         _ => unreachable!(),

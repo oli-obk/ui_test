@@ -1,6 +1,9 @@
 //! An interface to github actions workflow commands.
 
-use std::fmt::{Debug, Write};
+use std::{
+    fmt::{Debug, Write},
+    num::NonZeroUsize,
+};
 
 /// Shows an error message directly in a github diff view on drop.
 pub struct Error {
@@ -11,8 +14,8 @@ pub struct Error {
 }
 impl Error {
     /// Set a line for this error. By default the message is shown at the top of the file.
-    pub fn line(mut self, line: usize) -> Self {
-        self.line = line;
+    pub fn line(mut self, line: NonZeroUsize) -> Self {
+        self.line = line.get();
         self
     }
 }

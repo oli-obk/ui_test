@@ -1,9 +1,9 @@
 use crate::{
-    parser::{OptWithLine, Pattern, WithLine},
+    parser::{Pattern, WithLine},
     rustc_stderr::Message,
     Mode,
 };
-use std::{path::PathBuf, process::ExitStatus};
+use std::{num::NonZeroUsize, path::PathBuf, process::ExitStatus};
 
 /// All the ways in which a test can fail.
 #[derive(Debug)]
@@ -40,14 +40,14 @@ pub enum Error {
         /// The main message of the error.
         msgs: Vec<Message>,
         /// File and line information of the error.
-        path: OptWithLine<PathBuf>,
+        path: Option<WithLine<PathBuf>>,
     },
     /// A comment failed to parse.
     InvalidComment {
         /// The comment
         msg: String,
-        /// THe line in which it was defined.
-        line: usize,
+        /// The line in which it was defined.
+        line: NonZeroUsize,
     },
     /// A subcommand (e.g. rustfix) of a test failed.
     Command {
@@ -65,7 +65,7 @@ pub enum Error {
         /// The errors that occurred during the build of the aux file.
         errors: Vec<Error>,
         /// The line in which the aux file was requested to be built.
-        line: usize,
+        line: NonZeroUsize,
     },
     /// An error occured applying [`rustfix`] suggestions
     Rustfix(anyhow::Error),

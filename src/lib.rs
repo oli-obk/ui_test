@@ -14,12 +14,13 @@ pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, OptWithLine, Revisioned, WithLine};
+use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Diagnostics, Level, Message};
 use status_emitter::StatusEmitter;
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
+use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::thread;
@@ -436,10 +437,11 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    comments.edition(revision, config).map(|(edition, error)| {
-        cmd.arg("--edition").arg(edition);
-        errors.extend(error);
-    });
+    let (edition, error) = comments.edition(revision, config);
+    errors.extend(error);
+    if let Some(edition) = edition {
+        cmd.arg("--edition").arg(&*edition);
+    }
 
     cmd.envs(
         comments
@@ -574,13 +576,8 @@ fn run_test(
     let output = cmd
         .output()
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
-    let mode = config
-        .mode
-        .maybe_override(comments, revision)
-        .map(|(mode, error)| {
-            errors.extend(error);
-            mode
-        });
+    let (mode, error) = config.mode.maybe_override(comments, revision);
+    errors.extend(error);
     let status_check = mode.ok(output.status);
     if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
         let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
@@ -683,7 +680,7 @@ fn build_aux_files(
 }
 
 fn run_test_binary(
-    mode: WithLine<Mode>,
+    mode: MaybeWithLine<Mode>,
     path: &Path,
     revision: &str,
     comments: &Comments,
@@ -727,12 +724,10 @@ fn run_rustfix(
     extra_args: Vec<String>,
     errors: &mut Vec<Error>,
 ) -> Option<(Command, PathBuf)> {
-    let no_run_rustfix = comments
-        .find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)
-        .map(|(wl, error)| {
-            errors.extend(error);
-            wl
-        });
+    let (no_run_rustfix, error) =
+        comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix);
+    errors.extend(error);
+
     let fixed_code = (no_run_rustfix.is_none() && config.rustfix)
         .then_some(())
         .and_then(|()| {
@@ -766,16 +761,20 @@ fn run_rustfix(
             Some(fixed_code)
         });
 
-    let edition = comments.edition(revision, config).map(|(edition, error)| {
-        errors.extend(error);
-        edition
-    });
+    let (edition, error) = comments.edition(revision, config);
+    errors.extend(error);
+    let edition = edition
+        .map(|mwl| {
+            let line = mwl.line().unwrap_or(NonZeroUsize::MAX);
+            WithLine::new(mwl.into_inner(), line)
+        })
+        .into();
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((
             vec![],
             Revisioned {
-                line: 0,
+                line: NonZeroUsize::MAX,
                 ignore: vec![],
                 only: vec![],
                 stderr_per_bitwidth: false,
@@ -796,8 +795,8 @@ fn run_rustfix(
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
                 edition,
-                mode: OptWithLine::new(Mode::Pass, 0),
-                no_rustfix: OptWithLine::new((), 0),
+                mode: OptWithLine::new(Mode::Pass, NonZeroUsize::MAX),
+                no_rustfix: OptWithLine::new((), NonZeroUsize::MAX),
                 needs_asm_support: false,
             },
         ))
@@ -929,7 +928,7 @@ fn check_annotations(
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
-    let mut lowest_annotation_level = WithLine::new(Level::Error, 0);
+    let mut lowest_annotation_level = MaybeWithLine::new_config(Level::Error);
     for &ErrorMatch {
         ref pattern,
         level,
@@ -943,10 +942,10 @@ fn check_annotations(
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
         if *lowest_annotation_level > level {
-            lowest_annotation_level = WithLine::new(level, line);
+            lowest_annotation_level = MaybeWithLine::new(level, line);
         }
 
-        if let Some(msgs) = messages.get_mut(line) {
+        if let Some(msgs) = messages.get_mut(line.get()) {
             let found = msgs
                 .iter()
                 .position(|msg| pattern.matches(&msg.message) && msg.level == level);
@@ -959,35 +958,27 @@ fn check_annotations(
         errors.push(Error::PatternNotFound(pattern.clone()));
     }
 
-    let required_annotation_level = comments
-        .find_one_for_revision(
-            revision,
-            "`require_annotations_for_level` annotations",
-            |r| r.require_annotations_for_level,
-        )
-        .map(|(lvl, error)| {
-            errors.extend(error);
-            lvl
-        })
-        .unwrap_or(lowest_annotation_level);
+    let (required_annotation_level, error) = comments.find_one_for_revision(
+        revision,
+        "`require_annotations_for_level` annotations",
+        |r| r.require_annotations_for_level,
+    );
+    errors.extend(error);
+    let required_annotation_level =
+        required_annotation_level.map_or(*lowest_annotation_level, |l| *l);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
-        msgs.retain(|msg| msg.level >= *required_annotation_level);
+        msgs.retain(|msg| msg.level >= required_annotation_level);
         msgs
     };
 
-    let mode = config
-        .mode
-        .maybe_override(comments, revision)
-        .map(|(mode, error)| {
-            errors.extend(error);
-            mode
-        });
+    let (mode, error) = config.mode.maybe_override(comments, revision);
+    errors.extend(error);
 
     if !matches!(config.mode, Mode::Yolo) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
         if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
-                path: Default::default(),
+                path: None,
                 msgs: messages_from_unknown_file_or_line,
             });
         }
@@ -995,8 +986,9 @@ fn check_annotations(
         for (line, msgs) in messages.into_iter().enumerate() {
             let msgs = filter(msgs);
             if !msgs.is_empty() {
+                let line = NonZeroUsize::new(line).expect("line 0 is always empty");
                 errors.push(Error::ErrorsWithoutPattern {
-                    path: OptWithLine::new(path.to_path_buf(), line),
+                    path: Some(WithLine::new(path.to_path_buf(), line)),
                     msgs,
                 });
             }
