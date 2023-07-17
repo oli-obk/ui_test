@@ -1,6 +1,7 @@
 use super::Error;
 use super::Errors;
 use crate::parser::Comments;
+use crate::parser::WithLine;
 use std::fmt::Display;
 use std::process::ExitStatus;
 
@@ -44,11 +45,14 @@ impl Mode {
             }]
         }
     }
-    pub(crate) fn maybe_override(self, comments: &Comments, revision: &str) -> (Self, Vec<Error>) {
+    pub(crate) fn maybe_override(
+        self,
+        comments: &Comments,
+        revision: &str,
+    ) -> WithLine<(Self, Vec<Error>)> {
         comments
-            .find_one_for_revision(revision, "mode changes", |r| r.mode.as_ref().cloned())
-            .map(|(wl, error)| (*wl, error))
-            .unwrap_or((self, vec![]))
+            .find_one_for_revision(revision, "mode changes", |r| r.mode)
+            .unwrap_or(WithLine::new((self, vec![]), 0))
     }
 }
 

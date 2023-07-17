@@ -36,18 +36,20 @@ impl Comments {
         &'a self,
         revision: &'a str,
         kind: &str,
-        f: impl Fn(&'a Revisioned) -> Option<WithLine<T>>,
-    ) -> Option<(WithLine<T>, Vec<Error>)> {
-        let mut result: Option<(_, Vec<_>)> = None;
+        f: impl Fn(&'a Revisioned) -> OptWithLine<T>,
+    ) -> OptWithLine<(T, Vec<Error>)> {
+        let mut result: OptWithLine<(_, Vec<_>)> = Default::default();
         for rev in self.for_revision(revision) {
-            if let Some(found) = f(rev) {
-                if let Some((_, errors)) = &mut result {
+            if let Some(found) = f(rev).into_inner() {
+                result = result.map(|(result, mut errors)| {
                     errors.push(Error::InvalidComment {
                         msg: format!("multiple {kind} found"),
                         line: found.line(),
                     });
-                } else {
-                    result = Some((found, vec![]));
+                    (result, errors)
+                });
+                if result.is_none() {
+                    result = found.map(|f| (f, vec![])).into();
                 }
             }
         }
@@ -69,14 +71,12 @@ impl Comments {
         &self,
         revision: &str,
         config: &crate::Config,
-    ) -> Option<(WithLine<String>, Vec<Error>)> {
-        self.find_one_for_revision(revision, "`edition` annotations", |r| {
-            r.edition.as_ref().cloned()
-        })
-        .or(config
-            .edition
-            .clone()
-            .map(|e| (WithLine::new(e, 0), vec![])))
+    ) -> OptWithLine<(String, Vec<Error>)> {
+        self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())
+            .or(config
+                .edition
+                .clone()
+                .map(|e| WithLine::new((e, vec![]), 0)))
     }
 }
 

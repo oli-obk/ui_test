@@ -436,11 +436,10 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let edition = comments.edition(revision, config);
-    if let Some((wl, error)) = edition {
-        cmd.arg("--edition").arg(&*wl);
+    comments.edition(revision, config).map(|(edition, error)| {
+        cmd.arg("--edition").arg(edition);
         errors.extend(error);
-    }
+    });
 
     cmd.envs(
         comments
@@ -575,10 +574,15 @@ fn run_test(
     let output = cmd
         .output()
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
-    let (mode, error) = config.mode.maybe_override(comments, revision);
-    errors.extend(error);
+    let mode = config
+        .mode
+        .maybe_override(comments, revision)
+        .map(|(mode, error)| {
+            errors.extend(error);
+            mode
+        });
     let status_check = mode.ok(output.status);
-    if matches!(mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
+    if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
         let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
         return (cmd, errors, vec![]);
     }
@@ -679,7 +683,7 @@ fn build_aux_files(
 }
 
 fn run_test_binary(
-    mode: Mode,
+    mode: WithLine<Mode>,
     path: &Path,
     revision: &str,
     comments: &Comments,
@@ -724,9 +728,7 @@ fn run_rustfix(
     errors: &mut Vec<Error>,
 ) -> Option<(Command, PathBuf)> {
     let no_run_rustfix = comments
-        .find_one_for_revision(revision, "`no-rustfix` annotations", |r| {
-            r.no_rustfix.as_ref().cloned()
-        })
+        .find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)
         .map(|(wl, error)| {
             errors.extend(error);
             wl
@@ -952,7 +954,7 @@ fn check_annotations(
         .find_one_for_revision(
             revision,
             "`require_annotations_for_level` annotations",
-            |r| r.require_annotations_for_level.as_ref().cloned(),
+            |r| r.require_annotations_for_level,
         )
         .map(|(lvl, error)| {
             errors.extend(error);
@@ -964,8 +966,13 @@ fn check_annotations(
         msgs
     };
 
-    let (mode, error) = config.mode.maybe_override(comments, revision);
-    errors.extend(error);
+    let mode = config
+        .mode
+        .maybe_override(comments, revision)
+        .map(|(mode, error)| {
+            errors.extend(error);
+            mode
+        });
 
     if !matches!(config.mode, Mode::Yolo) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
@@ -987,7 +994,7 @@ fn check_annotations(
         }
     }
 
-    match (mode, seen_error_match) {
+    match (*mode, seen_error_match) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
         (
             Mode::Fail {
