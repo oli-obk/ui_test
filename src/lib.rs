@@ -733,35 +733,38 @@ fn run_rustfix(
             errors.extend(error);
             wl
         });
-    if no_run_rustfix.is_some() || !config.rustfix {
-        return None;
-    }
-
-    let input = std::str::from_utf8(stderr).unwrap();
-    let suggestions = rustfix::get_suggestions_from_json(
-        input,
-        &HashSet::new(),
-        if let Mode::Yolo = config.mode {
-            rustfix::Filter::Everything
-        } else {
-            rustfix::Filter::MachineApplicableOnly
-        },
-    )
-    .unwrap_or_else(|err| {
-        panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
-    });
-    if suggestions.is_empty() {
-        return None;
-    }
-
-    let fixed_code =
-        match rustfix::apply_suggestions(&std::fs::read_to_string(path).unwrap(), &suggestions) {
-            Ok(fixed_code) => fixed_code,
-            Err(e) => {
-                errors.push(Error::Rustfix(e));
+    let fixed_code = (no_run_rustfix.is_none() && config.rustfix)
+        .then(|| ())
+        .and_then(|()| {
+            let input = std::str::from_utf8(stderr).unwrap();
+            let suggestions = rustfix::get_suggestions_from_json(
+                input,
+                &HashSet::new(),
+                if let Mode::Yolo = config.mode {
+                    rustfix::Filter::Everything
+                } else {
+                    rustfix::Filter::MachineApplicableOnly
+                },
+            )
+            .unwrap_or_else(|err| {
+                panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
+            });
+            if suggestions.is_empty() {
                 return None;
             }
-        };
+
+            let fixed_code = match rustfix::apply_suggestions(
+                &std::fs::read_to_string(path).unwrap(),
+                &suggestions,
+            ) {
+                Ok(fixed_code) => fixed_code,
+                Err(e) => {
+                    errors.push(Error::Rustfix(e));
+                    return None;
+                }
+            };
+            Some(fixed_code)
+        });
 
     let edition = comments.edition(revision, config).map(|(edition, error)| {
         errors.extend(error);
@@ -800,8 +803,12 @@ fn run_rustfix(
         ))
         .collect(),
     };
+
+    let run = fixed_code.is_some();
     let path = check_output(
-        fixed_code.as_bytes(),
+        // Always check for `.fixed` files, even if there were reasons not to run rustfix.
+        // We don't want to leave around stray `.fixed` files
+        fixed_code.unwrap_or_default().as_bytes(),
         path,
         errors,
         revised(revision, "fixed"),
@@ -811,9 +818,11 @@ fn run_rustfix(
         revision,
     );
 
-    let mut cmd = build_command(&path, config, revision, &rustfix_comments, errors);
-    cmd.args(extra_args);
-    Some((cmd, path))
+    run.then(|| {
+        let mut cmd = build_command(&path, config, revision, &rustfix_comments, errors);
+        cmd.args(extra_args);
+        (cmd, path)
+    })
 }
 
 fn revised(revision: &str, extension: &str) -> String {
