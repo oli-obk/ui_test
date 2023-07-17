@@ -1,12 +1,13 @@
 use std::{
     collections::HashMap,
+    num::NonZeroUsize,
     path::{Path, PathBuf},
 };
 
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error, Mode};
+use crate::{rustc_stderr::Level, Error, Errors, Mode};
 
 use color_eyre::eyre::{Context, Result};
 
@@ -37,23 +38,22 @@ impl Comments {
         revision: &'a str,
         kind: &str,
         f: impl Fn(&'a Revisioned) -> OptWithLine<T>,
-    ) -> OptWithLine<(T, Vec<Error>)> {
-        let mut result: OptWithLine<(_, Vec<_>)> = Default::default();
+    ) -> (OptWithLine<T>, Errors) {
+        let mut result = None;
+        let mut errors = vec![];
         for rev in self.for_revision(revision) {
             if let Some(found) = f(rev).into_inner() {
-                result = result.map(|(result, mut errors)| {
+                if result.is_some() {
                     errors.push(Error::InvalidComment {
                         msg: format!("multiple {kind} found"),
                         line: found.line(),
                     });
-                    (result, errors)
-                });
-                if result.is_none() {
-                    result = found.map(|f| (f, vec![])).into();
+                } else {
+                    result = found.into();
                 }
             }
         }
-        result
+        (result.into(), errors)
     }
 
     /// Returns an iterator over all revisioned comments that match the revision.
@@ -71,21 +71,23 @@ impl Comments {
         &self,
         revision: &str,
         config: &crate::Config,
-    ) -> OptWithLine<(String, Vec<Error>)> {
-        self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())
-            .or(config
-                .edition
-                .clone()
-                .map(|e| WithLine::new((e, vec![]), 0)))
+    ) -> (Option<MaybeWithLine<String>>, Errors) {
+        let (edition, errors) =
+            self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone());
+        let edition = edition
+            .into_inner()
+            .map(MaybeWithLine::from)
+            .or(config.edition.clone().map(MaybeWithLine::new_config));
+        (edition, errors)
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 /// Comments that can be filtered for specific revisions.
 pub(crate) struct Revisioned {
     /// The line in which this revisioned item was first added.
     /// Used for reporting errors on unknown revisions.
-    pub line: usize,
+    pub line: NonZeroUsize,
     /// Don't run this test if any of these filters apply
     pub ignore: Vec<Condition>,
     /// Only run this test if all of these filters apply
@@ -122,7 +124,7 @@ struct CommentParser<T> {
     /// Any errors that ocurred during comment parsing.
     errors: Vec<Error>,
     /// The line currently being parsed.
-    line: usize,
+    line: NonZeroUsize,
     /// The available commands and their parsing logic
     commands: HashMap<&'static str, CommandParserFunc>,
 }
@@ -168,7 +170,7 @@ pub(crate) struct ErrorMatch {
     pub pattern: WithLine<Pattern>,
     pub level: Level,
     /// The line this pattern is expecting to find a message in.
-    pub line: usize,
+    pub line: NonZeroUsize,
 }
 
 impl Condition {
@@ -207,13 +209,13 @@ impl Comments {
         let mut parser = CommentParser {
             comments: Comments::default(),
             errors: vec![],
-            line: 0,
+            line: NonZeroUsize::MAX,
             commands: CommentParser::<_>::commands(),
         };
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
         for (l, line) in content.as_ref().lines().enumerate() {
-            let l = l + 1; // enumerate starts at 0, but line numbers start at 1
+            let l = NonZeroUsize::new(l + 1).unwrap(); // enumerate starts at 0, but line numbers start at 1
             parser.line = l;
             match parser.parse_checked_line(&mut fallthrough_to, line) {
                 Ok(()) => {}
@@ -255,7 +257,7 @@ impl Comments {
 impl CommentParser<Comments> {
     fn parse_checked_line(
         &mut self,
-        fallthrough_to: &mut Option<usize>,
+        fallthrough_to: &mut Option<NonZeroUsize>,
         line: &[u8],
     ) -> std::result::Result<(), Utf8Error> {
         if let Some(command) = line.strip_prefix(b"//@") {
@@ -282,7 +284,7 @@ impl CommentParser<Comments> {
                         })
                     } else {
                         let mut parser = Self {
-                            line: 0,
+                            line: NonZeroUsize::MAX,
                             errors: vec![],
                             comments: Comments::default(),
                             commands: std::mem::take(&mut self.commands),
@@ -376,7 +378,20 @@ impl CommentParser<Comments> {
                 .entry(revisions)
                 .or_insert_with(|| Revisioned {
                     line,
-                    ..Default::default()
+                    ignore: Default::default(),
+                    only: Default::default(),
+                    stderr_per_bitwidth: Default::default(),
+                    compile_flags: Default::default(),
+                    env_vars: Default::default(),
+                    normalize_stderr: Default::default(),
+                    error_in_other_files: Default::default(),
+                    error_matches: Default::default(),
+                    require_annotations_for_level: Default::default(),
+                    aux_builds: Default::default(),
+                    edition: Default::default(),
+                    mode: Default::default(),
+                    needs_asm_support: Default::default(),
+                    no_rustfix: Default::default(),
                 }),
         };
         f(&mut this);
@@ -628,7 +643,7 @@ impl<CommentsType> CommentParser<CommentsType> {
 
 impl CommentParser<&mut Revisioned> {
     // parse something like (\[[a-z]+(,[a-z]+)*\])?(?P<offset>\||[\^]+)? *(?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*)
-    fn parse_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<usize>) {
+    fn parse_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<NonZeroUsize>) {
         let (match_line, pattern) = match pattern.chars().next() {
             Some('|') => (
                 match fallthrough_to {
@@ -642,14 +657,20 @@ impl CommentParser<&mut Revisioned> {
             ),
             Some('^') => {
                 let offset = pattern.chars().take_while(|&c| c == '^').count();
-                match self.line.checked_sub(offset) {
-                    // lines are one-indexed, so a target line of 0 is invalid
-                    Some(match_line) if match_line > 0 => (match_line, &pattern[offset..]),
+                match self
+                    .line
+                    .get()
+                    .checked_sub(offset)
+                    .and_then(NonZeroUsize::new)
+                {
+                    // lines are one-indexed, so a target line of 0 is invalid, but also
+                    // prevented via `NonZeroUsize`
+                    Some(match_line) => (match_line, &pattern[offset..]),
                     _ => {
                         self.error(format!(
                             "//~^ pattern is trying to refer to {} lines above, but there are only {} lines above",
                             offset,
-                            self.line - 1
+                            self.line.get() - 1
                         ));
                         return;
                     }
