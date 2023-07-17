@@ -493,7 +493,7 @@ impl CommentParser<&mut Revisioned> {
             }
             "run" => (this, args){
                 this.check(
-                    this.mode.as_ref().is_none(),
+                    this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
                 let line = this.line;

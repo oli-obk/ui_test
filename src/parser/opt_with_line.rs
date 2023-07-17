@@ -24,6 +24,14 @@ impl<T> WithLine<T> {
 #[derive(Debug, Clone)]
 pub struct OptWithLine<T>(Option<WithLine<T>>);
 
+impl<T> std::ops::Deref for OptWithLine<T> {
+    type Target = Option<WithLine<T>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl<T> From<Option<WithLine<T>>> for OptWithLine<T> {
     fn from(value: Option<WithLine<T>>) -> Self {
         Self(value)
@@ -45,8 +53,5 @@ impl<T> OptWithLine<T> {
         let old = self.0.take();
         self.0 = Some(WithLine::new(data, line));
         old
-    }
-    pub fn as_ref(&self) -> Option<&WithLine<T>> {
-        self.0.as_ref()
     }
 }
