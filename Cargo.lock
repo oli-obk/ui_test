@@ -736,6 +736,7 @@ dependencies = [
 name = "ui_test"
 version = "0.11.7"
 dependencies = [
+ "anyhow",
  "bstr",
  "cargo-platform",
  "cargo_metadata",

@@ -106,6 +106,8 @@ pub(crate) struct Revisioned {
     /// Overwrites the mode from `Config`.
     pub mode: Option<(Mode, usize)>,
     pub needs_asm_support: bool,
+    /// Don't run [`rustfix`] for this test
+    pub no_rustfix: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -450,12 +452,11 @@ impl CommentParser<&mut Revisioned> {
                 this.stderr_per_bitwidth = true;
             }
             "run-rustfix" => (this, _args){
+                this.error("rustfix is now ran by default when applicable suggestions are found");
+            }
+            "no-rustfix" => (this, _args){
                 // args are ignored (can be used as comment)
-                this.check(
-                    this.mode.is_none(),
-                    "cannot specify test mode changes twice",
-                );
-                this.mode = Some((Mode::Fix, this.line))
+                this.no_rustfix = Some(this.line);
             }
             "needs-asm-support" => (this, _args){
                 // args are ignored (can be used as comment)

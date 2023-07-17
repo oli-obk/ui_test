@@ -31,6 +31,9 @@ pub struct Config {
     pub root_dir: PathBuf,
     /// The mode in which to run the tests.
     pub mode: Mode,
+    /// Run [`rustfix`] on tests that produce machine applicable (or any
+    /// with [`Mode::Yolo`]) suggestions
+    pub rustfix: bool,
     /// The binary to actually execute.
     pub program: CommandBuilder,
     /// The command to run to obtain the cfgs that the output is supposed to
@@ -74,6 +77,7 @@ impl Config {
             mode: Mode::Fail {
                 require_patterns: true,
             },
+            rustfix: true,
             program: CommandBuilder::rustc(),
             cfgs: CommandBuilder::cfgs(),
             output_conflict_handling: OutputConflictHandling::Error(format!(
@@ -100,6 +104,7 @@ impl Config {
         Self {
             program: CommandBuilder::cargo(),
             edition: None,
+            rustfix: false,
             ..Self::rustc(root_dir)
         }
     }

@@ -1,5 +1,4 @@
 //@aux-build:derive_proc_macro.rs:proc-macro
-//@run-rustfix
 
 #[macro_use]
 extern crate derive_proc_macro;

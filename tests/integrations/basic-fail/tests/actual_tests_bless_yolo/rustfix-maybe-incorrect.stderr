@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
- --> $DIR/foomp-rustfix-fail.rs:5:22
+ --> $DIR/rustfix-maybe-incorrect.rs:4:22
   |
-5 |     let _x: String = 42;
+4 |     let _x: String = 42;
   |             ------   ^^- help: try using a conversion method: `.to_string()`
   |             |        |
   |             |        expected `String`, found integer

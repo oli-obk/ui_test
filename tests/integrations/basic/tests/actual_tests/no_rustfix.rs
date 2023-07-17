@@ -1,3 +1,5 @@
+//@no-rustfix
+
 #![deny(warnings)]
 
 fn main() {
