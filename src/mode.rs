@@ -54,14 +54,14 @@ impl Mode {
             .find_one_for_revision(
                 revision,
                 |r| r.mode.as_ref(),
-                |&(_, line)| {
+                |wl| {
                     errors.push(Error::InvalidComment {
                         msg: "multiple mode changes found".into(),
-                        line,
+                        line: wl.line(),
                     })
                 },
             )
-            .map(|&(mode, _)| mode)
+            .map(|wl| **wl)
             .unwrap_or(self)
     }
 }

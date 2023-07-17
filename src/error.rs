@@ -1,4 +1,8 @@
-use crate::{parser::Pattern, rustc_stderr::Message, Mode};
+use crate::{
+    parser::{Pattern, WithLine},
+    rustc_stderr::Message,
+    Mode,
+};
 use std::{path::PathBuf, process::ExitStatus};
 
 /// All the ways in which a test can fail.
@@ -14,12 +18,7 @@ pub enum Error {
         expected: i32,
     },
     /// A pattern was declared but had no matching error.
-    PatternNotFound {
-        /// The pattern that was missing an error
-        pattern: Pattern,
-        /// The line in which the pattern was defined.
-        definition_line: usize,
-    },
+    PatternNotFound(WithLine<Pattern>),
     /// A ui test checking for failure does not have any failure patterns
     NoPatternsFound,
     /// A ui test checking for success has failure patterns

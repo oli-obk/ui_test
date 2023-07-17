@@ -14,7 +14,7 @@ pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, Revisioned};
+use parser::{ErrorMatch, OptWithLine, Revisioned};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Diagnostics, Level, Message};
 use status_emitter::StatusEmitter;
@@ -437,8 +437,8 @@ fn build_command(
         cmd.arg(arg);
     }
     let edition = comments.edition(errors, revision, config);
-    if let Some((edition, _)) = edition {
-        cmd.arg("--edition").arg(edition);
+    if let Some(wl) = edition {
+        cmd.arg("--edition").arg(&*wl);
     }
     cmd.envs(
         comments
@@ -642,7 +642,9 @@ fn build_aux_files(
 ) -> Result<Vec<String>, (Command, Vec<Error>, Vec<u8>)> {
     let mut extra_args = vec![];
     for rev in comments.for_revision(revision) {
-        for (aux, kind, line) in &rev.aux_builds {
+        for aux in &rev.aux_builds {
+            let line = aux.line();
+            let (aux, kind) = &**aux;
             let aux_file = if aux.starts_with("..") {
                 aux_dir.parent().unwrap().join(aux)
             } else {
@@ -663,7 +665,7 @@ fn build_aux_files(
                     vec![Error::Aux {
                         path: aux_file,
                         errors,
-                        line: *line,
+                        line,
                     }],
                     msg,
                 ));
@@ -720,11 +722,11 @@ fn run_rustfix(
 ) -> Option<(Command, PathBuf)> {
     let no_run_rustfix = comments.find_one_for_revision(
         revision,
-        |r| r.no_rustfix,
-        |line| {
+        |r| r.no_rustfix.as_ref(),
+        |wl| {
             errors.push(Error::InvalidComment {
                 msg: "no-rustfix specified multiple times".into(),
-                line,
+                line: wl.line(),
             })
         },
     );
@@ -784,9 +786,9 @@ fn run_rustfix(
                     .for_revision(revision)
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
-                edition,
-                mode: Some((Mode::Pass, 0)),
-                no_rustfix: Some(0),
+                edition: edition.into(),
+                mode: OptWithLine::new(Mode::Pass, 0),
+                no_rustfix: OptWithLine::new((), 0),
                 needs_asm_support: false,
             },
         ))
@@ -894,7 +896,7 @@ fn check_annotations(
         .flat_map(|r| r.error_in_other_files.iter());
 
     let mut seen_error_match = false;
-    for (error_pattern, definition_line) in error_patterns {
+    for error_pattern in error_patterns {
         seen_error_match = true;
         // first check the diagnostics messages outside of our file. We check this first, so that
         // you can mix in-file annotations with //@error-in-other-file annotations, even if there is overlap
@@ -905,10 +907,7 @@ fn check_annotations(
         {
             messages_from_unknown_file_or_line.remove(i);
         } else {
-            errors.push(Error::PatternNotFound {
-                pattern: error_pattern.clone(),
-                definition_line: *definition_line,
-            });
+            errors.push(Error::PatternNotFound(error_pattern.clone()));
         }
     }
 
@@ -918,9 +917,8 @@ fn check_annotations(
     let mut lowest_annotation_level = Level::Error;
     for &ErrorMatch {
         ref pattern,
-        definition_line,
-        line,
         level,
+        line,
     } in comments
         .for_revision(revision)
         .flat_map(|r| r.error_matches.iter())
@@ -941,10 +939,7 @@ fn check_annotations(
             }
         }
 
-        errors.push(Error::PatternNotFound {
-            pattern: pattern.clone(),
-            definition_line,
-        });
+        errors.push(Error::PatternNotFound(pattern.clone()));
     }
 
     let required_annotation_level = comments

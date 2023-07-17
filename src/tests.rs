@@ -44,11 +44,9 @@ fn main() {
         &comments,
     );
     match &errors[..] {
-        [Error::PatternNotFound {
-            definition_line: 5, ..
-        }, Error::ErrorsWithoutPattern {
+        [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern {
             path: Some((_, 5)), ..
-        }] => {}
+        }] if pattern.line() == 5 => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -108,11 +106,9 @@ fn main() {
             &comments,
         );
         match &errors[..] {
-            [Error::PatternNotFound {
-                definition_line: 5, ..
-            }, Error::ErrorsWithoutPattern {
+            [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern {
                 path: Some((_, 4)), ..
-            }] => {}
+            }] if pattern.line() == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -140,9 +136,7 @@ fn main() {
         );
         match &errors[..] {
             // Note no `ErrorsWithoutPattern`, because there are no `//~NOTE` in the test file, so we ignore them
-            [Error::PatternNotFound {
-                definition_line: 5, ..
-            }] => {}
+            [Error::PatternNotFound(pattern)] if pattern.line() == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -180,9 +174,7 @@ fn main() {
         &comments,
     );
     match &errors[..] {
-        [Error::PatternNotFound {
-            definition_line: 6, ..
-        }] => {}
+        [Error::PatternNotFound(pattern)] if pattern.line() == 6 => {}
         _ => panic!("{:#?}", errors),
     }
 }

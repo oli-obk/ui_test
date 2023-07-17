@@ -211,11 +211,8 @@ fn print_error(error: &Error, path: &str) {
         Error::Command { kind, status } => {
             eprintln!("{kind} failed with {status}");
         }
-        Error::PatternNotFound {
-            pattern,
-            definition_line,
-        } => {
-            match pattern {
+        Error::PatternNotFound(pattern) => {
+            match &**pattern {
                 Pattern::SubString(s) => {
                     eprintln!("substring `{s}` {} in stderr output", "not found".red())
                 }
@@ -225,7 +222,7 @@ fn print_error(error: &Error, path: &str) {
             }
             eprintln!(
                 "expected because of pattern here: {}",
-                format!("{path}:{definition_line}").bold()
+                format!("{path}:{}", pattern.line()).bold()
             );
         }
         Error::NoPatternsFound => {
@@ -311,12 +308,9 @@ fn gha_error(error: &Error, path: &str, revision: &str) {
         Error::Command { kind, status } => {
             github_actions::error(path, format!("{kind}{revision} failed with {status}"));
         }
-        Error::PatternNotFound {
-            pattern: _,
-            definition_line,
-        } => {
+        Error::PatternNotFound(pattern) => {
             github_actions::error(path, format!("Pattern not found{revision}"))
-                .line(*definition_line);
+                .line(pattern.line());
         }
         Error::NoPatternsFound => {
             github_actions::error(

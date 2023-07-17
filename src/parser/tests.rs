@@ -18,8 +18,8 @@ fn main() {
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
-    assert_eq!(revisioned.error_matches[0].definition_line, 5);
-    match &revisioned.error_matches[0].pattern {
+    assert_eq!(revisioned.error_matches[0].pattern.line(), 5);
+    match &*revisioned.error_matches[0].pattern {
         Pattern::SubString(s) => {
             assert_eq!(
                 s,
@@ -60,8 +60,8 @@ use std::mem;
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
     let pat = &revisioned.error_in_other_files[0];
-    assert_eq!(format!("{:?}", pat.0), r#"SubString("foomp")"#);
-    assert_eq!(pat.1, 2);
+    assert_eq!(format!("{:?}", **pat), r#"SubString("foomp")"#);
+    assert_eq!(pat.line(), 2);
 }
 
 #[test]
@@ -76,8 +76,8 @@ use std::mem;
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
     let pat = &revisioned.error_in_other_files[0];
-    assert_eq!(format!("{:?}", pat.0), r#"Regex(Regex("foomp"))"#);
-    assert_eq!(pat.1, 2);
+    assert_eq!(format!("{:?}", **pat), r#"Regex(Regex("foomp"))"#);
+    assert_eq!(pat.line(), 2);
 }
 
 #[test]
