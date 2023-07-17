@@ -211,11 +211,8 @@ fn print_error(error: &Error, path: &str) {
         Error::Command { kind, status } => {
             eprintln!("{kind} failed with {status}");
         }
-        Error::PatternNotFound {
-            pattern,
-            definition_line,
-        } => {
-            match pattern {
+        Error::PatternNotFound(pattern) => {
+            match &**pattern {
                 Pattern::SubString(s) => {
                     eprintln!("substring `{s}` {} in stderr output", "not found".red())
                 }
@@ -225,7 +222,7 @@ fn print_error(error: &Error, path: &str) {
             }
             eprintln!(
                 "expected because of pattern here: {}",
-                format!("{path}:{definition_line}").bold()
+                format!("{path}:{}", pattern.line()).bold()
             );
         }
         Error::NoPatternsFound => {
@@ -250,26 +247,25 @@ fn print_error(error: &Error, path: &str) {
             eprintln!("{}", "+++ <stderr output>".green());
             crate::diff::print_diff(expected, actual);
         }
-        Error::ErrorsWithoutPattern { path: None, msgs } => {
-            eprintln!(
-                "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
-                msgs.len(),
-            );
-            for Message { level, message } in msgs {
-                eprintln!("    {level:?}: {message}")
-            }
-        }
-        Error::ErrorsWithoutPattern {
-            path: Some((path, line)),
-            msgs,
-        } => {
-            let path = path.display();
-            eprintln!(
-                "There were {} unmatched diagnostics at {path}:{line}",
-                msgs.len(),
-            );
-            for Message { level, message } in msgs {
-                eprintln!("    {level:?}: {message}")
+        Error::ErrorsWithoutPattern { path, msgs } => {
+            if let Some(path) = path.as_ref() {
+                let line = path.line();
+                let path = path.display();
+                eprintln!(
+                    "There were {} unmatched diagnostics at {path}:{line}",
+                    msgs.len(),
+                );
+                for Message { level, message } in msgs {
+                    eprintln!("    {level:?}: {message}")
+                }
+            } else {
+                eprintln!(
+                    "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
+                    msgs.len(),
+                );
+                for Message { level, message } in msgs {
+                    eprintln!("    {level:?}: {message}")
+                }
             }
         }
         Error::InvalidComment { msg, line } => {
@@ -296,7 +292,7 @@ fn print_error(error: &Error, path: &str) {
     eprintln!();
 }
 
-fn gha_error(error: &Error, path: &str, revision: &str) {
+fn gha_error(error: &Error, test_path: &str, revision: &str) {
     match error {
         Error::ExitStatus {
             mode,
@@ -304,28 +300,28 @@ fn gha_error(error: &Error, path: &str, revision: &str) {
             expected,
         } => {
             github_actions::error(
-                path,
+                test_path,
                 format!("{mode} test{revision} got {status}, but expected {expected}"),
             );
         }
         Error::Command { kind, status } => {
-            github_actions::error(path, format!("{kind}{revision} failed with {status}"));
+            github_actions::error(test_path, format!("{kind}{revision} failed with {status}"));
         }
-        Error::PatternNotFound {
-            pattern: _,
-            definition_line,
-        } => {
-            github_actions::error(path, format!("Pattern not found{revision}"))
-                .line(*definition_line);
+        Error::PatternNotFound(pattern) => {
+            github_actions::error(test_path, format!("Pattern not found{revision}"))
+                .line(pattern.line());
         }
         Error::NoPatternsFound => {
             github_actions::error(
-                path,
+                test_path,
                 format!("no error patterns found in fail test{revision}"),
             );
         }
         Error::PatternFoundInPassTest => {
-            github_actions::error(path, format!("error pattern found in pass test{revision}"));
+            github_actions::error(
+                test_path,
+                format!("error pattern found in pass test{revision}"),
+            );
         }
         Error::OutputDiffers {
             path: output_path,
@@ -335,7 +331,7 @@ fn gha_error(error: &Error, path: &str, revision: &str) {
         } => {
             let mut err = github_actions::error(
                 if expected.is_empty() {
-                    path.to_owned()
+                    test_path.to_owned()
                 } else {
                     output_path.display().to_string()
                 },
@@ -374,29 +370,29 @@ fn gha_error(error: &Error, path: &str, revision: &str) {
             }
             writeln!(err, "```").unwrap();
         }
-        Error::ErrorsWithoutPattern { path: None, msgs } => {
-            let mut err = github_actions::error(
-                path,
-                format!("Unmatched diagnostics outside the testfile{revision}"),
-            );
-            for Message { level, message } in msgs {
-                writeln!(err, "{level:?}: {message}").unwrap();
-            }
-        }
-        Error::ErrorsWithoutPattern {
-            path: Some((path, line)),
-            msgs,
-        } => {
-            let path = path.display();
-            let mut err = github_actions::error(&path, format!("Unmatched diagnostics{revision}"))
-                .line(*line);
-            for Message { level, message } in msgs {
-                writeln!(err, "{level:?}: {message}").unwrap();
+        Error::ErrorsWithoutPattern { path, msgs } => {
+            if let Some(path) = path.as_ref() {
+                let line = path.line();
+                let path = path.display();
+                let mut err =
+                    github_actions::error(&path, format!("Unmatched diagnostics{revision}"))
+                        .line(line);
+                for Message { level, message } in msgs {
+                    writeln!(err, "{level:?}: {message}").unwrap();
+                }
+            } else {
+                let mut err = github_actions::error(
+                    test_path,
+                    format!("Unmatched diagnostics outside the testfile{revision}"),
+                );
+                for Message { level, message } in msgs {
+                    writeln!(err, "{level:?}: {message}").unwrap();
+                }
             }
         }
         Error::InvalidComment { msg, line } => {
             let mut err =
-                github_actions::error(path, format!("Could not parse comment")).line(*line);
+                github_actions::error(test_path, format!("Could not parse comment")).line(*line);
             writeln!(err, "{msg}").unwrap();
         }
         Error::Bug(_) => {}
@@ -405,14 +401,14 @@ fn gha_error(error: &Error, path: &str, revision: &str) {
             errors,
             line,
         } => {
-            github_actions::error(path, format!("Aux build failed")).line(*line);
+            github_actions::error(test_path, format!("Aux build failed")).line(*line);
             for error in errors {
                 gha_error(error, &aux_path.display().to_string(), "")
             }
         }
         Error::Rustfix(error) => {
             github_actions::error(
-                path,
+                test_path,
                 format!("failed to apply suggestions with rustfix: {error}"),
             );
         }

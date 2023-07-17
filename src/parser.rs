@@ -10,6 +10,9 @@ use crate::{rustc_stderr::Level, Error, Mode};
 
 use color_eyre::eyre::{Context, Result};
 
+pub(crate) use opt_with_line::*;
+
+mod opt_with_line;
 #[cfg(test)]
 mod tests;
 
@@ -32,13 +35,23 @@ impl Comments {
     pub fn find_one_for_revision<'a, T: 'a>(
         &'a self,
         revision: &'a str,
-        f: impl Fn(&'a Revisioned) -> Option<T>,
-        error: impl FnOnce(T),
-    ) -> Option<T> {
-        let mut rev = self.for_revision(revision).filter_map(f);
-        let result = rev.next();
-        if let Some(next) = rev.next() {
-            error(next);
+        kind: &str,
+        f: impl Fn(&'a Revisioned) -> OptWithLine<T>,
+    ) -> OptWithLine<(T, Vec<Error>)> {
+        let mut result: OptWithLine<(_, Vec<_>)> = Default::default();
+        for rev in self.for_revision(revision) {
+            if let Some(found) = f(rev).into_inner() {
+                result = result.map(|(result, mut errors)| {
+                    errors.push(Error::InvalidComment {
+                        msg: format!("multiple {kind} found"),
+                        line: found.line(),
+                    });
+                    (result, errors)
+                });
+                if result.is_none() {
+                    result = found.map(|f| (f, vec![])).into();
+                }
+            }
         }
         result
     }
@@ -56,22 +69,14 @@ impl Comments {
 
     pub(crate) fn edition(
         &self,
-        errors: &mut Vec<Error>,
         revision: &str,
         config: &crate::Config,
-    ) -> Option<(String, usize)> {
-        self.find_one_for_revision(
-            revision,
-            |r| r.edition.as_ref(),
-            |&(_, line)| {
-                errors.push(Error::InvalidComment {
-                    msg: "`edition` specified twice".into(),
-                    line,
-                })
-            },
-        )
-        .cloned()
-        .or(config.edition.clone().map(|e| (e, 0)))
+    ) -> OptWithLine<(String, Vec<Error>)> {
+        self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())
+            .or(config
+                .edition
+                .clone()
+                .map(|e| WithLine::new((e, vec![]), 0)))
     }
 }
 
@@ -96,18 +101,18 @@ pub(crate) struct Revisioned {
     /// Arbitrary patterns to look for in the stderr.
     /// The error must be from another file, as errors from the current file must be
     /// checked via `error_matches`.
-    pub error_in_other_files: Vec<(Pattern, usize)>,
+    pub error_in_other_files: Vec<WithLine<Pattern>>,
     pub error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
-    pub require_annotations_for_level: Option<Level>,
-    pub aux_builds: Vec<(PathBuf, String, usize)>,
-    pub edition: Option<(String, usize)>,
+    pub require_annotations_for_level: OptWithLine<Level>,
+    pub aux_builds: Vec<WithLine<(PathBuf, String)>>,
+    pub edition: OptWithLine<String>,
     /// Overwrites the mode from `Config`.
-    pub mode: Option<(Mode, usize)>,
+    pub mode: OptWithLine<Mode>,
     pub needs_asm_support: bool,
     /// Don't run [`rustfix`] for this test
-    pub no_rustfix: Option<usize>,
+    pub no_rustfix: OptWithLine<()>,
 }
 
 #[derive(Debug)]
@@ -160,10 +165,8 @@ pub enum Pattern {
 
 #[derive(Debug)]
 pub(crate) struct ErrorMatch {
-    pub pattern: Pattern,
+    pub pattern: WithLine<Pattern>,
     pub level: Level,
-    /// The line where the message was defined, for reporting issues with it (e.g. in case it wasn't found).
-    pub definition_line: usize,
     /// The line this pattern is expecting to find a message in.
     pub line: usize,
 }
@@ -441,7 +444,7 @@ impl CommentParser<&mut Revisioned> {
             "error-in-other-file" => (this, args){
                 let pat = this.parse_error_pattern(args.trim());
                 let line = this.line;
-                this.error_in_other_files.push((pat, line));
+                this.error_in_other_files.push(WithLine::new(pat, line));
             }
             "stderr-per-bitwidth" => (this, _args){
                 // args are ignored (can be used as comment)
@@ -456,7 +459,12 @@ impl CommentParser<&mut Revisioned> {
             }
             "no-rustfix" => (this, _args){
                 // args are ignored (can be used as comment)
-                this.no_rustfix = Some(this.line);
+                let line = this.line;
+                let prev = this.no_rustfix.set((), line);
+                this.check(
+                    prev.is_none(),
+                    "cannot specify `no-rustfix` twice",
+                );
             }
             "needs-asm-support" => (this, _args){
                 // args are ignored (can be used as comment)
@@ -469,44 +477,52 @@ impl CommentParser<&mut Revisioned> {
             "aux-build" => (this, args){
                 let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));
                 let line = this.line;
-                this.aux_builds.push((name.into(), kind.into(), line));
+                this.aux_builds.push(WithLine::new((name.into(), kind.into()), line));
             }
             "edition" => (this, args){
-                this.check(this.edition.is_none(), "cannot specify `edition` twice");
-                this.edition = Some((args.into(), this.line))
+                let line = this.line;
+                let prev = this.edition.set(args.into(), line);
+                this.check(prev.is_none(), "cannot specify `edition` twice");
             }
             "check-pass" => (this, _args){
+                let line = this.line;
+                let prev = this.mode.set(Mode::Pass, line);
                 // args are ignored (can be used as comment)
                 this.check(
-                    this.mode.is_none(),
+                    prev.is_none(),
                     "cannot specify test mode changes twice",
                 );
-                this.mode = Some((Mode::Pass, this.line))
             }
             "run" => (this, args){
                 this.check(
                     this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
-                let mut set = |exit_code| this.mode = Some((Mode::Run { exit_code }, this.line));
+                let line = this.line;
+                let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, line);
                 if args.is_empty() {
                     set(0);
                 } else {
                     match args.parse() {
-                        Ok(exit_code) => set(exit_code),
+                        Ok(exit_code) => {set(exit_code);},
                         Err(err) => this.error(err.to_string()),
                     }
                 }
             }
             "require-annotations-for-level" => (this, args){
+                let line = this.line;
+                let prev = match args.trim().parse() {
+                    Ok(it) =>  this.require_annotations_for_level.set(it, line),
+                    Err(msg) => {
+                        this.error(msg);
+                        None
+                    },
+                };
+
                 this.check(
-                    this.require_annotations_for_level.is_none(),
+                    prev.is_none(),
                     "cannot specify `require-annotations-for-level` twice",
                 );
-                match args.trim().parse() {
-                    Ok(it) => this.require_annotations_for_level = Some(it),
-                    Err(msg) => this.error(msg),
-                }
             }
         }
         commands
@@ -679,11 +695,10 @@ impl CommentParser<&mut Revisioned> {
 
         *fallthrough_to = Some(match_line);
 
-        let definition_line = self.line;
+        let pattern = WithLine::new(pattern, self.line);
         self.error_matches.push(ErrorMatch {
             pattern,
             level,
-            definition_line,
             line: match_line,
         });
     }

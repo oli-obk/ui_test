@@ -1,6 +1,7 @@
 use super::Error;
 use super::Errors;
 use crate::parser::Comments;
+use crate::parser::WithLine;
 use std::fmt::Display;
 use std::process::ExitStatus;
 
@@ -48,21 +49,10 @@ impl Mode {
         self,
         comments: &Comments,
         revision: &str,
-        errors: &mut Vec<Error>,
-    ) -> Self {
+    ) -> WithLine<(Self, Vec<Error>)> {
         comments
-            .find_one_for_revision(
-                revision,
-                |r| r.mode.as_ref(),
-                |&(_, line)| {
-                    errors.push(Error::InvalidComment {
-                        msg: "multiple mode changes found".into(),
-                        line,
-                    })
-                },
-            )
-            .map(|&(mode, _)| mode)
-            .unwrap_or(self)
+            .find_one_for_revision(revision, "mode changes", |r| r.mode)
+            .unwrap_or(WithLine::new((self, vec![]), 0))
     }
 }
 

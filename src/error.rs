@@ -1,8 +1,13 @@
-use crate::{parser::Pattern, rustc_stderr::Message, Mode};
+use crate::{
+    parser::{OptWithLine, Pattern, WithLine},
+    rustc_stderr::Message,
+    Mode,
+};
 use std::{path::PathBuf, process::ExitStatus};
 
 /// All the ways in which a test can fail.
 #[derive(Debug)]
+#[must_use]
 pub enum Error {
     /// Got an invalid exit status for the given mode.
     ExitStatus {
@@ -14,12 +19,7 @@ pub enum Error {
         expected: i32,
     },
     /// A pattern was declared but had no matching error.
-    PatternNotFound {
-        /// The pattern that was missing an error
-        pattern: Pattern,
-        /// The line in which the pattern was defined.
-        definition_line: usize,
-    },
+    PatternNotFound(WithLine<Pattern>),
     /// A ui test checking for failure does not have any failure patterns
     NoPatternsFound,
     /// A ui test checking for success has failure patterns
@@ -40,7 +40,7 @@ pub enum Error {
         /// The main message of the error.
         msgs: Vec<Message>,
         /// File and line information of the error.
-        path: Option<(PathBuf, usize)>,
+        path: OptWithLine<PathBuf>,
     },
     /// A comment failed to parse.
     InvalidComment {

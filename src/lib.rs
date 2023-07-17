@@ -14,7 +14,7 @@ pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, Revisioned};
+use parser::{ErrorMatch, OptWithLine, Revisioned, WithLine};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Diagnostics, Level, Message};
 use status_emitter::StatusEmitter;
@@ -436,10 +436,11 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let edition = comments.edition(errors, revision, config);
-    if let Some((edition, _)) = edition {
+    comments.edition(revision, config).map(|(edition, error)| {
         cmd.arg("--edition").arg(edition);
-    }
+        errors.extend(error);
+    });
+
     cmd.envs(
         comments
             .for_revision(revision)
@@ -573,9 +574,15 @@ fn run_test(
     let output = cmd
         .output()
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
-    let mode = config.mode.maybe_override(comments, revision, &mut errors);
+    let mode = config
+        .mode
+        .maybe_override(comments, revision)
+        .map(|(mode, error)| {
+            errors.extend(error);
+            mode
+        });
     let status_check = mode.ok(output.status);
-    if matches!(mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
+    if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
         let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
         return (cmd, errors, vec![]);
     }
@@ -642,7 +649,9 @@ fn build_aux_files(
 ) -> Result<Vec<String>, (Command, Vec<Error>, Vec<u8>)> {
     let mut extra_args = vec![];
     for rev in comments.for_revision(revision) {
-        for (aux, kind, line) in &rev.aux_builds {
+        for aux in &rev.aux_builds {
+            let line = aux.line();
+            let (aux, kind) = &**aux;
             let aux_file = if aux.starts_with("..") {
                 aux_dir.parent().unwrap().join(aux)
             } else {
@@ -663,7 +672,7 @@ fn build_aux_files(
                     vec![Error::Aux {
                         path: aux_file,
                         errors,
-                        line: *line,
+                        line,
                     }],
                     msg,
                 ));
@@ -674,7 +683,7 @@ fn build_aux_files(
 }
 
 fn run_test_binary(
-    mode: Mode,
+    mode: WithLine<Mode>,
     path: &Path,
     revision: &str,
     comments: &Comments,
@@ -718,47 +727,49 @@ fn run_rustfix(
     extra_args: Vec<String>,
     errors: &mut Vec<Error>,
 ) -> Option<(Command, PathBuf)> {
-    let no_run_rustfix = comments.find_one_for_revision(
-        revision,
-        |r| r.no_rustfix,
-        |line| {
-            errors.push(Error::InvalidComment {
-                msg: "no-rustfix specified multiple times".into(),
-                line,
-            })
-        },
-    );
-    if no_run_rustfix.is_some() || !config.rustfix {
-        return None;
-    }
-
-    let input = std::str::from_utf8(stderr).unwrap();
-    let suggestions = rustfix::get_suggestions_from_json(
-        input,
-        &HashSet::new(),
-        if let Mode::Yolo = config.mode {
-            rustfix::Filter::Everything
-        } else {
-            rustfix::Filter::MachineApplicableOnly
-        },
-    )
-    .unwrap_or_else(|err| {
-        panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
-    });
-    if suggestions.is_empty() {
-        return None;
-    }
-
-    let fixed_code =
-        match rustfix::apply_suggestions(&std::fs::read_to_string(path).unwrap(), &suggestions) {
-            Ok(fixed_code) => fixed_code,
-            Err(e) => {
-                errors.push(Error::Rustfix(e));
+    let no_run_rustfix = comments
+        .find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)
+        .map(|(wl, error)| {
+            errors.extend(error);
+            wl
+        });
+    let fixed_code = (no_run_rustfix.is_none() && config.rustfix)
+        .then_some(())
+        .and_then(|()| {
+            let input = std::str::from_utf8(stderr).unwrap();
+            let suggestions = rustfix::get_suggestions_from_json(
+                input,
+                &HashSet::new(),
+                if let Mode::Yolo = config.mode {
+                    rustfix::Filter::Everything
+                } else {
+                    rustfix::Filter::MachineApplicableOnly
+                },
+            )
+            .unwrap_or_else(|err| {
+                panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
+            });
+            if suggestions.is_empty() {
                 return None;
             }
-        };
 
-    let edition = comments.edition(errors, revision, config);
+            let fixed_code = match rustfix::apply_suggestions(
+                &std::fs::read_to_string(path).unwrap(),
+                &suggestions,
+            ) {
+                Ok(fixed_code) => fixed_code,
+                Err(e) => {
+                    errors.push(Error::Rustfix(e));
+                    return None;
+                }
+            };
+            Some(fixed_code)
+        });
+
+    let edition = comments.edition(revision, config).map(|(edition, error)| {
+        errors.extend(error);
+        edition
+    });
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((
@@ -779,21 +790,25 @@ fn run_rustfix(
                 normalize_stderr: vec![],
                 error_in_other_files: vec![],
                 error_matches: vec![],
-                require_annotations_for_level: None,
+                require_annotations_for_level: Default::default(),
                 aux_builds: comments
                     .for_revision(revision)
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
                 edition,
-                mode: Some((Mode::Pass, 0)),
-                no_rustfix: Some(0),
+                mode: OptWithLine::new(Mode::Pass, 0),
+                no_rustfix: OptWithLine::new((), 0),
                 needs_asm_support: false,
             },
         ))
         .collect(),
     };
+
+    let run = fixed_code.is_some();
     let path = check_output(
-        fixed_code.as_bytes(),
+        // Always check for `.fixed` files, even if there were reasons not to run rustfix.
+        // We don't want to leave around stray `.fixed` files
+        fixed_code.unwrap_or_default().as_bytes(),
         path,
         errors,
         revised(revision, "fixed"),
@@ -803,9 +818,11 @@ fn run_rustfix(
         revision,
     );
 
-    let mut cmd = build_command(&path, config, revision, &rustfix_comments, errors);
-    cmd.args(extra_args);
-    Some((cmd, path))
+    run.then(|| {
+        let mut cmd = build_command(&path, config, revision, &rustfix_comments, errors);
+        cmd.args(extra_args);
+        (cmd, path)
+    })
 }
 
 fn revised(revision: &str, extension: &str) -> String {
@@ -894,7 +911,7 @@ fn check_annotations(
         .flat_map(|r| r.error_in_other_files.iter());
 
     let mut seen_error_match = false;
-    for (error_pattern, definition_line) in error_patterns {
+    for error_pattern in error_patterns {
         seen_error_match = true;
         // first check the diagnostics messages outside of our file. We check this first, so that
         // you can mix in-file annotations with //@error-in-other-file annotations, even if there is overlap
@@ -905,22 +922,18 @@ fn check_annotations(
         {
             messages_from_unknown_file_or_line.remove(i);
         } else {
-            errors.push(Error::PatternNotFound {
-                pattern: error_pattern.clone(),
-                definition_line: *definition_line,
-            });
+            errors.push(Error::PatternNotFound(error_pattern.clone()));
         }
     }
 
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
-    let mut lowest_annotation_level = Level::Error;
+    let mut lowest_annotation_level = WithLine::new(Level::Error, 0);
     for &ErrorMatch {
         ref pattern,
-        definition_line,
-        line,
         level,
+        line,
     } in comments
         .for_revision(revision)
         .flat_map(|r| r.error_matches.iter())
@@ -929,7 +942,9 @@ fn check_annotations(
         // If we found a diagnostic with a level annotation, make sure that all
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
-        lowest_annotation_level = std::cmp::min(lowest_annotation_level, level);
+        if *lowest_annotation_level > level {
+            lowest_annotation_level = WithLine::new(level, line);
+        }
 
         if let Some(msgs) = messages.get_mut(line) {
             let found = msgs
@@ -941,36 +956,38 @@ fn check_annotations(
             }
         }
 
-        errors.push(Error::PatternNotFound {
-            pattern: pattern.clone(),
-            definition_line,
-        });
+        errors.push(Error::PatternNotFound(pattern.clone()));
     }
 
     let required_annotation_level = comments
         .find_one_for_revision(
             revision,
+            "`require_annotations_for_level` annotations",
             |r| r.require_annotations_for_level,
-            |_| {
-                errors.push(Error::InvalidComment {
-                    msg: "`require_annotations_for_level` specified twice for same revision".into(),
-                    line: 0,
-                })
-            },
         )
+        .map(|(lvl, error)| {
+            errors.extend(error);
+            lvl
+        })
         .unwrap_or(lowest_annotation_level);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
-        msgs.retain(|msg| msg.level >= required_annotation_level);
+        msgs.retain(|msg| msg.level >= *required_annotation_level);
         msgs
     };
 
-    let mode = config.mode.maybe_override(comments, revision, errors);
+    let mode = config
+        .mode
+        .maybe_override(comments, revision)
+        .map(|(mode, error)| {
+            errors.extend(error);
+            mode
+        });
 
     if !matches!(config.mode, Mode::Yolo) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
         if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
-                path: None,
+                path: Default::default(),
                 msgs: messages_from_unknown_file_or_line,
             });
         }
@@ -979,14 +996,14 @@ fn check_annotations(
             let msgs = filter(msgs);
             if !msgs.is_empty() {
                 errors.push(Error::ErrorsWithoutPattern {
-                    path: Some((path.to_path_buf(), line)),
+                    path: OptWithLine::new(path.to_path_buf(), line),
                     msgs,
                 });
             }
         }
     }
 
-    match (mode, seen_error_match) {
+    match (*mode, seen_error_match) {
         (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
         (
             Mode::Fail {
