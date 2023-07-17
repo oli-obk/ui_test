@@ -44,15 +44,11 @@ impl Mode {
             }]
         }
     }
-    pub(crate) fn maybe_override(
-        self,
-        comments: &Comments,
-        revision: &str,
-    ) -> (Self, Option<Error>) {
+    pub(crate) fn maybe_override(self, comments: &Comments, revision: &str) -> (Self, Vec<Error>) {
         comments
             .find_one_for_revision(revision, "mode changes", |r| r.mode.as_ref().cloned())
             .map(|(wl, error)| (*wl, error))
-            .unwrap_or((self, None))
+            .unwrap_or((self, vec![]))
     }
 }
 

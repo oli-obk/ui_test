@@ -37,14 +37,21 @@ impl Comments {
         revision: &'a str,
         kind: &str,
         f: impl Fn(&'a Revisioned) -> Option<WithLine<T>>,
-    ) -> Option<(WithLine<T>, Option<Error>)> {
-        let mut rev = self.for_revision(revision).filter_map(f);
-        let result = rev.next()?;
-        let error = rev.next().map(|next| Error::InvalidComment {
-            msg: format!("multiple {kind} found"),
-            line: next.line(),
-        });
-        Some((result, error))
+    ) -> Option<(WithLine<T>, Vec<Error>)> {
+        let mut result: Option<(_, Vec<_>)> = None;
+        for rev in self.for_revision(revision) {
+            if let Some(found) = f(rev) {
+                if let Some((_, errors)) = &mut result {
+                    errors.push(Error::InvalidComment {
+                        msg: format!("multiple {kind} found"),
+                        line: found.line(),
+                    });
+                } else {
+                    result = Some((found, vec![]));
+                }
+            }
+        }
+        result
     }
 
     /// Returns an iterator over all revisioned comments that match the revision.
@@ -62,11 +69,14 @@ impl Comments {
         &self,
         revision: &str,
         config: &crate::Config,
-    ) -> Option<(WithLine<String>, Option<Error>)> {
+    ) -> Option<(WithLine<String>, Vec<Error>)> {
         self.find_one_for_revision(revision, "`edition` annotations", |r| {
             r.edition.as_ref().cloned()
         })
-        .or(config.edition.clone().map(|e| (WithLine::new(e, 0), None)))
+        .or(config
+            .edition
+            .clone()
+            .map(|e| (WithLine::new(e, 0), vec![])))
     }
 }
 
