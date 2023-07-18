@@ -730,19 +730,27 @@ fn run_rustfix(
     let fixed_code = (no_run_rustfix.is_none() && config.rustfix)
         .then_some(())
         .and_then(|()| {
-            let input = std::str::from_utf8(stderr).unwrap();
-            let suggestions = rustfix::get_suggestions_from_json(
-                input,
-                &HashSet::new(),
-                if let Mode::Yolo = config.mode {
-                    rustfix::Filter::Everything
-                } else {
-                    rustfix::Filter::MachineApplicableOnly
-                },
-            )
-            .unwrap_or_else(|err| {
-                panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
-            });
+            let suggestions = std::str::from_utf8(stderr)
+                .unwrap()
+                .lines()
+                .flat_map(|line| {
+                    if !line.starts_with('{') {
+                        return vec![];
+                    }
+                    rustfix::get_suggestions_from_json(
+                        line,
+                        &HashSet::new(),
+                        if let Mode::Yolo = config.mode {
+                            rustfix::Filter::Everything
+                        } else {
+                            rustfix::Filter::MachineApplicableOnly
+                        },
+                    )
+                    .unwrap_or_else(|err| {
+                        panic!("could not deserialize diagnostics json for rustfix {err}:{line}")
+                    })
+                })
+                .collect::<Vec<_>>();
             if suggestions.is_empty() {
                 return None;
             }
