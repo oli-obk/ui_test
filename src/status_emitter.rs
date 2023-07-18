@@ -2,6 +2,7 @@
 
 use bstr::ByteSlice;
 use colored::Colorize;
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
 
 use crate::{github_actions, parser::Pattern, rustc_stderr::Message, Error, Errors, TestResult};
 use std::{
@@ -11,10 +12,7 @@ use std::{
     panic::RefUnwindSafe,
     path::{Path, PathBuf},
     process::Command,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    time::Duration,
 };
 
 /// A generic way to handle the output of this crate.
@@ -62,45 +60,57 @@ pub trait Summary {
 impl Summary for () {}
 
 /// A human readable output emitter.
+#[derive(Clone)]
 pub struct Text {
-    /// In case of `Some`, the `usize` is the number of tests
-    /// that were already executed.
-    quiet: Option<Arc<AtomicUsize>>,
+    all: MultiProgress,
+    progress: Option<ProgressBar>,
 }
 
 impl Text {
     /// Print one line per test that gets run.
     pub fn verbose() -> Self {
-        Self { quiet: None }
-    }
-    /// Print one `.` per test that gets run.
-    pub fn quiet() -> Self {
         Self {
-            quiet: Some(Arc::new(AtomicUsize::new(0))),
+            all: MultiProgress::new(),
+            progress: None,
+        }
+    }
+    /// Print a progress bar.
+    pub fn quiet() -> Self {
+        let all = MultiProgress::new();
+        let progress = ProgressBar::new(0);
+        all.add(progress.clone());
+        Self {
+            all,
+            progress: Some(progress),
         }
     }
 }
 
+#[derive(Clone)]
 struct TextTest {
-    quiet: Option<Arc<AtomicUsize>>,
+    text: Text,
     path: PathBuf,
     revision: String,
+    spinner: ProgressBar,
+}
+
+fn spinner(path: &Path, revision: &str, all: &MultiProgress) -> ProgressBar {
+    let msg = if revision.is_empty() {
+        path.display().to_string()
+    } else {
+        format!("{} ({revision})", path.display())
+    };
+    let spinner = ProgressBar::new_spinner().with_message(msg);
+    spinner.enable_steady_tick(Duration::from_millis(100));
+    all.add(spinner.clone());
+    spinner
 }
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult) {
-        if let Some(n) = &self.quiet {
-            // Humans start counting at 1
-            let n = n.fetch_add(1, Ordering::Release);
-            match result {
-                TestResult::Ok => eprint!("{}", ".".green()),
-                TestResult::Errored { .. } => eprint!("{}", "F".red().bold()),
-                TestResult::Ignored => eprint!("{}", "i".yellow()),
-                TestResult::Filtered => {}
-            }
-            if (n + 1) % 100 == 0 {
-                eprintln!(" {}", n);
-            }
+        if let Some(progress) = &self.text.progress {
+            progress.inc(1);
+            self.spinner.finish_and_clear();
         } else {
             let result = match result {
                 TestResult::Ok => "ok".green(),
@@ -108,8 +118,8 @@ impl TestStatus for TextTest {
                 TestResult::Ignored => "ignored (in-test comment)".yellow(),
                 TestResult::Filtered => return,
             };
-            eprint!(
-                "{}{} ... ",
+            let msg = format!(
+                "{}{} ... {result}",
                 self.path.display(),
                 if self.revision.is_empty() {
                     "".into()
@@ -117,7 +127,11 @@ impl TestStatus for TextTest {
                     format!(" ({})", self.revision)
                 }
             );
-            eprintln!("{result}");
+            if ProgressDrawTarget::stderr().is_hidden() {
+                eprintln!("{msg}");
+            } else {
+                self.spinner.finish_with_message(msg);
+            }
         }
     }
 
@@ -155,11 +169,20 @@ impl TestStatus for TextTest {
 
     fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
         assert_eq!(self.revision, "");
-        Box::new(Self {
-            quiet: self.quiet.clone(),
-            path: self.path.clone(),
-            revision: revision.to_owned(),
-        })
+        if revision.is_empty() {
+            Box::new(self.clone())
+        } else {
+            if let Some(progress) = &self.text.progress {
+                progress.inc_length(1);
+            }
+            let spinner = spinner(&self.path, &self.revision, &self.text.all);
+            Box::new(Self {
+                text: self.text.clone(),
+                path: self.path.clone(),
+                revision: revision.to_owned(),
+                spinner,
+            })
+        }
     }
 
     fn revision(&self) -> &str {
@@ -169,8 +192,13 @@ impl TestStatus for TextTest {
 
 impl StatusEmitter for Text {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
+        if let Some(progress) = &self.progress {
+            progress.inc_length(1);
+        }
+        let spinner = spinner(&path, "", &self.all);
         Box::new(TextTest {
-            quiet: self.quiet.clone(),
+            text: self.clone(),
+            spinner,
             path,
             revision: String::new(),
         })

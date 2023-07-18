@@ -119,16 +119,18 @@ pub fn run_tests(config: Config) -> Result<()> {
     let name = config.root_dir.display().to_string();
 
     let args = Args::parse();
+    let text = if args.quiet {
+        status_emitter::Text::quiet()
+    } else {
+        status_emitter::Text::verbose()
+    };
 
     run_tests_generic(
         config,
         args,
         default_file_filter,
         default_per_file_config,
-        (
-            status_emitter::Text::verbose(),
-            status_emitter::Gha::<true> { name },
-        ),
+        (text, status_emitter::Gha::<true> { name }),
     )
 }
 
@@ -378,10 +380,11 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun>
         }
     };
     // Run the test for all revisions
-    comments
+    let revisions = comments
         .revisions
         .clone()
-        .unwrap_or_else(|| vec![String::new()])
+        .unwrap_or_else(|| vec![String::new()]);
+    revisions
         .into_iter()
         .map(|revision| {
             let status = status.for_revision(&revision);
