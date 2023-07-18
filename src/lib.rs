@@ -17,7 +17,7 @@ use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Diagnostics, Level, Message};
-use status_emitter::StatusEmitter;
+use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::num::NonZeroUsize;
@@ -205,8 +205,7 @@ pub enum TestResult {
 
 struct TestRun {
     result: TestResult,
-    path: PathBuf,
-    revision: String,
+    status: Box<dyn status_emitter::TestStatus>,
 }
 
 /// A version of `run_tests` that allows more fine-grained control over running tests.
@@ -244,23 +243,25 @@ pub fn run_tests_generic(
                         todo.push_back(entry.path());
                     }
                 } else if file_filter(&path, &args) {
-                    status_emitter.register_test(&path);
+                    let status = status_emitter.register_test(path);
                     // Forward .rs files to the test workers.
-                    submit.send(path).unwrap();
+                    submit.send(status).unwrap();
                 }
             }
         },
         |receive, finished_files_sender| -> Result<()> {
-            for path in receive {
+            for status in receive {
+                let path = status.path();
                 let maybe_config;
-                let config = match per_file_config(&config, &path) {
+                let config = match per_file_config(&config, path) {
                     None => &config,
                     Some(config) => {
                         maybe_config = config;
                         &maybe_config
                     }
                 };
-                let result = match std::panic::catch_unwind(|| parse_and_test_file(&path, config)) {
+                let result = match std::panic::catch_unwind(|| parse_and_test_file(&status, config))
+                {
                     Ok(res) => res,
                     Err(err) => {
                         finished_files_sender.send(TestRun {
@@ -274,8 +275,7 @@ pub fn run_tests_generic(
                                 )],
                                 stderr: vec![],
                             },
-                            path,
-                            revision: String::new(),
+                            status,
                         })?;
                         continue;
                     }
@@ -288,7 +288,7 @@ pub fn run_tests_generic(
         },
         |finished_files_recv| {
             for run in finished_files_recv {
-                status_emitter.test_result(&run.path, &run.revision, &run.result);
+                run.status.done(&run.result);
 
                 results.push(run);
             }
@@ -309,14 +309,14 @@ pub fn run_tests_generic(
                 command,
                 errors,
                 stderr,
-            } => failures.push((run.path, command, run.revision, errors, stderr)),
+            } => failures.push((run.status, command, errors, stderr)),
         }
     }
 
     let mut failure_emitter = status_emitter.finalize(failures.len(), succeeded, ignored, filtered);
-    for (path, command, revision, errors, stderr) in &failures {
-        let _guard = status_emitter.failed_test(revision, path, command, stderr);
-        failure_emitter.test_failure(path, revision, errors);
+    for (status, command, errors, stderr) in &failures {
+        let _guard = status.failed_test(command, stderr);
+        failure_emitter.test_failure(status, errors);
     }
 
     if failures.is_empty() {
@@ -363,8 +363,8 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
     })
 }
 
-fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
-    let comments = match parse_comments_in_file(path) {
+fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun> {
+    let comments = match parse_comments_in_file(status.path()) {
         Ok(comments) => comments,
         Err((stderr, errors)) => {
             return vec![TestRun {
@@ -373,8 +373,7 @@ fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
                     errors,
                     stderr,
                 },
-                path: path.into(),
-                revision: "".into(),
+                status: status.for_revision(""),
             }]
         }
     };
@@ -385,15 +384,15 @@ fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
         .unwrap_or_else(|| vec![String::new()])
         .into_iter()
         .map(|revision| {
+            let status = status.for_revision(&revision);
             // Ignore file if only/ignore rules do (not) apply
             if !test_file_conditions(&comments, config, &revision) {
                 return TestRun {
                     result: TestResult::Ignored,
-                    path: path.into(),
-                    revision,
+                    status,
                 };
             }
-            let (command, errors, stderr) = run_test(path, config, &revision, &comments);
+            let (command, errors, stderr) = run_test(status.path(), config, &revision, &comments);
             let result = if errors.is_empty() {
                 TestResult::Ok
             } else {
@@ -403,11 +402,7 @@ fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
                     stderr,
                 }
             };
-            TestRun {
-                result,
-                revision,
-                path: path.into(),
-            }
+            TestRun { result, status }
         })
         .collect()
 }
