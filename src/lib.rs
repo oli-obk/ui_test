@@ -215,7 +215,7 @@ pub fn run_tests_generic(
     args: Args,
     file_filter: impl Fn(&Path, &Args) -> bool + Sync,
     per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
-    mut status_emitter: impl StatusEmitter + Send,
+    status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
     config.fill_host_and_target()?;
 
@@ -244,6 +244,7 @@ pub fn run_tests_generic(
                         todo.push_back(entry.path());
                     }
                 } else if file_filter(&path, &args) {
+                    status_emitter.register_test(&path);
                     // Forward .rs files to the test workers.
                     submit.send(path).unwrap();
                 }

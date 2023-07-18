@@ -10,10 +10,15 @@ use std::{
     num::NonZeroUsize,
     path::Path,
     process::Command,
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 /// A generic way to handle the output of this crate.
 pub trait StatusEmitter: Sync {
+    /// Invoked the moment we know a test will later be run.
+    /// Useful for progress bars and such.
+    fn register_test(&self, path: &Path);
+
     /// Invoked before each failed test prints its errors along with a drop guard that can
     /// gets invoked afterwards.
     fn failed_test<'a>(
@@ -25,7 +30,7 @@ pub trait StatusEmitter: Sync {
     ) -> Box<dyn Debug + 'a>;
 
     /// A test has finished, handle the result immediately.
-    fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
+    fn test_result(&self, _path: &Path, _revision: &str, _result: &TestResult) {}
 
     /// Create a report about the entire test run at the end.
     #[allow(clippy::type_complexity)]
@@ -50,7 +55,7 @@ impl Summary for () {}
 pub struct Text {
     /// In case of `Some`, the `usize` is the number of tests
     /// that were already executed.
-    quiet: Option<usize>,
+    quiet: Option<AtomicUsize>,
 }
 
 impl Text {
@@ -60,11 +65,14 @@ impl Text {
     }
     /// Print one `.` per test that gets run.
     pub fn quiet() -> Self {
-        Self { quiet: Some(0) }
+        Self {
+            quiet: Some(AtomicUsize::new(0)),
+        }
     }
 }
 
 impl StatusEmitter for Text {
+    fn register_test(&self, _path: &Path) {}
     fn failed_test<'a>(
         &self,
         revision: &str,
@@ -99,17 +107,17 @@ impl StatusEmitter for Text {
         Box::new(Guard(stderr))
     }
 
-    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
-        if let Some(n) = &mut self.quiet {
+    fn test_result(&self, path: &Path, revision: &str, result: &TestResult) {
+        if let Some(n) = &self.quiet {
             // Humans start counting at 1
-            *n += 1;
+            let n = n.fetch_add(1, Ordering::Release);
             match result {
                 TestResult::Ok => eprint!("{}", ".".green()),
                 TestResult::Errored { .. } => eprint!("{}", "F".red().bold()),
                 TestResult::Ignored => eprint!("{}", "i".yellow()),
                 TestResult::Filtered => {}
             }
-            if *n % 100 == 0 {
+            if (n + 1) % 100 == 0 {
                 eprintln!(" {}", n);
             }
         } else {
@@ -439,6 +447,7 @@ pub struct Gha<const GROUP: bool> {
 }
 
 impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
+    fn register_test(&self, _path: &Path) {}
     fn failed_test(
         &self,
         revision: &str,
@@ -456,7 +465,7 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
         }
     }
 
-    fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
+    fn test_result(&self, _path: &Path, _revision: &str, _result: &TestResult) {}
 
     fn finalize(
         &self,
@@ -520,6 +529,10 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
 }
 
 impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
+    fn register_test(&self, path: &Path) {
+        self.0.register_test(path);
+        self.1.register_test(path);
+    }
     fn failed_test<'a>(
         &'a self,
         revision: &'a str,
@@ -533,7 +546,7 @@ impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
         ))
     }
 
-    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
+    fn test_result(&self, path: &Path, revision: &str, result: &TestResult) {
         self.0.test_result(path, revision, result);
         self.1.test_result(path, revision, result);
     }
@@ -553,6 +566,9 @@ impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
 }
 
 impl<T: StatusEmitter + ?Sized> StatusEmitter for Box<T> {
+    fn register_test(&self, path: &Path) {
+        (**self).register_test(path);
+    }
     fn failed_test<'a>(
         &'a self,
         revision: &'a str,
@@ -563,7 +579,7 @@ impl<T: StatusEmitter + ?Sized> StatusEmitter for Box<T> {
         (**self).failed_test(revision, path, cmd, stderr)
     }
 
-    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
+    fn test_result(&self, path: &Path, revision: &str, result: &TestResult) {
         (**self).test_result(path, revision, result);
     }
 
