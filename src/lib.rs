@@ -9,6 +9,7 @@
 //! A crate to run the Rust compiler (or other binaries) and test their command line output.
 
 use bstr::ByteSlice;
+pub use clap;
 use clap::Parser;
 pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
