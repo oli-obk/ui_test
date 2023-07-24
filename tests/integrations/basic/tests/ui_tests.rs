@@ -6,7 +6,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     let mut config = Config {
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
         num_test_threads: NonZeroUsize::new(1).unwrap(),
-        ..Config::rustc("tests/actual_tests".into())
+        ..Config::rustc("tests/actual_tests")
     };
     if std::env::var_os("BLESS").is_some() {
         config.output_conflict_handling = OutputConflictHandling::Bless;

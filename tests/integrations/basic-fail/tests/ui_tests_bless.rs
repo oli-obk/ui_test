@@ -21,7 +21,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
             // Make sure our tests are ordered for reliable output.
             num_test_threads: NonZeroUsize::new(1).unwrap(),
             mode,
-            ..Config::rustc(root_dir.into())
+            ..Config::rustc(root_dir)
         };
         if std::env::var_os("BLESS").is_some() {
             config.output_conflict_handling = OutputConflictHandling::Bless
