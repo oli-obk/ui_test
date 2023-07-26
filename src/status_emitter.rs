@@ -222,10 +222,8 @@ impl TestStatus for TextTest {
 
     fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
         assert_eq!(self.revision, "");
-        if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) {
-            if self.text.progress {
-                self.text.sender.send(Msg::IncLength).unwrap();
-            }
+        if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) && self.text.progress {
+            self.text.sender.send(Msg::IncLength).unwrap();
         }
 
         let text = Self {
