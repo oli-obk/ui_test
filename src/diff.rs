@@ -1,5 +1,5 @@
 use colored::*;
-use prettydiff::{basic::DiffOp, diff_lines, diff_words};
+use prettydiff::{basic::DiffOp, basic::DiffOp::*, diff_lines, diff_words};
 
 /// How many lines of context are displayed around the actual diffs
 const CONTEXT: usize = 2;
@@ -29,7 +29,6 @@ fn skip(skipped_lines: &[&str]) {
 }
 
 fn row(row: DiffOp<&str>) {
-    use prettydiff::basic::DiffOp::*;
     match row {
         Remove(l) => {
             for l in l {
@@ -41,86 +40,7 @@ fn row(row: DiffOp<&str>) {
         }
         Replace(l, r) => {
             for (l, r) in l.iter().zip(r) {
-                let diff = diff_words(l, r);
-                let diff = diff.diff();
-                let mut seen_l = false;
-                let mut seen_r = false;
-                for char in &diff {
-                    let is_whitespace =
-                        |s: &[&str]| s.iter().any(|s| s.chars().any(|s| s.is_whitespace()));
-                    match char {
-                        Insert(l) if !is_whitespace(l) => seen_l = true,
-                        Remove(r) if !is_whitespace(r) => seen_r = true,
-                        Replace(l, r) if !is_whitespace(l) && !is_whitespace(r) => {
-                            seen_l = true;
-                            seen_r = true;
-                            break;
-                        }
-                        _ => {}
-                    }
-                }
-                if seen_l && seen_r {
-                    // The line both adds and removes chars, print both lines, but highlight their differences instead of
-                    // drawing the entire line in red/green.
-                    eprint!("{}", "-".red());
-                    for char in &diff {
-                        match *char {
-                            Replace(l, _) | Remove(l) => {
-                                for l in l {
-                                    eprint!("{}", l.to_string().on_red())
-                                }
-                            }
-                            Insert(_) => {}
-                            Equal(l) => {
-                                for l in l {
-                                    eprint!("{l}")
-                                }
-                            }
-                        }
-                    }
-                    eprintln!();
-                    eprint!("{}", "+".green());
-                    for char in diff {
-                        match char {
-                            Remove(_) => {}
-                            Replace(_, r) | Insert(r) => {
-                                for r in r {
-                                    eprint!("{}", r.to_string().on_green())
-                                }
-                            }
-                            Equal(r) => {
-                                for r in r {
-                                    eprint!("{r}")
-                                }
-                            }
-                        }
-                    }
-                    eprintln!();
-                } else {
-                    // The line only adds or only removes chars, print a single line highlighting their differences.
-                    eprint!("{}", "~".yellow());
-                    for char in diff {
-                        match char {
-                            Remove(l) => {
-                                for l in l {
-                                    eprint!("{}", l.to_string().on_red())
-                                }
-                            }
-                            Equal(w) => {
-                                for w in w {
-                                    eprint!("{w}")
-                                }
-                            }
-                            Insert(r) => {
-                                for r in r {
-                                    eprint!("{}", r.to_string().on_green())
-                                }
-                            }
-                            Replace(..) => unreachable!(),
-                        }
-                    }
-                    eprintln!();
-                }
+                print_line_diff(l, r);
             }
         }
         Insert(r) => {
@@ -129,6 +49,88 @@ fn row(row: DiffOp<&str>) {
             }
         }
     }
+}
+
+fn print_line_diff(l: &str, r: &str) {
+    let diff = diff_words(l, r);
+    let diff = diff.diff();
+    if has_both_insertions_and_deletions(&diff) {
+        // The line both adds and removes chars, print both lines, but highlight their differences instead of
+        // drawing the entire line in red/green.
+        eprint!("{}", "-".red());
+        for char in &diff {
+            match *char {
+                Replace(l, _) | Remove(l) => {
+                    for l in l {
+                        eprint!("{}", l.to_string().on_red())
+                    }
+                }
+                Insert(_) => {}
+                Equal(l) => {
+                    for l in l {
+                        eprint!("{l}")
+                    }
+                }
+            }
+        }
+        eprintln!();
+        eprint!("{}", "+".green());
+        for char in diff {
+            match char {
+                Remove(_) => {}
+                Replace(_, r) | Insert(r) => {
+                    for r in r {
+                        eprint!("{}", r.to_string().on_green())
+                    }
+                }
+                Equal(r) => {
+                    for r in r {
+                        eprint!("{r}")
+                    }
+                }
+            }
+        }
+        eprintln!();
+    } else {
+        // The line only adds or only removes chars, print a single line highlighting their differences.
+        eprint!("{}", "~".yellow());
+        for char in diff {
+            match char {
+                Remove(l) => {
+                    for l in l {
+                        eprint!("{}", l.to_string().on_red())
+                    }
+                }
+                Equal(w) => {
+                    for w in w {
+                        eprint!("{w}")
+                    }
+                }
+                Insert(r) => {
+                    for r in r {
+                        eprint!("{}", r.to_string().on_green())
+                    }
+                }
+                Replace(..) => unreachable!(),
+            }
+        }
+        eprintln!();
+    }
+}
+
+fn has_both_insertions_and_deletions(diff: &[DiffOp<'_, &str>]) -> bool {
+    let mut seen_l = false;
+    let mut seen_r = false;
+    for char in diff {
+        let is_whitespace = |s: &[&str]| s.iter().any(|s| s.chars().any(|s| s.is_whitespace()));
+        match char {
+            Insert(l) if !is_whitespace(l) => seen_l = true,
+            Remove(r) if !is_whitespace(r) => seen_r = true,
+            Replace(l, r) if !is_whitespace(l) && !is_whitespace(r) => return true,
+            _ => {}
+        }
+    }
+    seen_l && seen_r
 }
 
 pub fn print_diff(expected: &[u8], actual: &[u8]) {
