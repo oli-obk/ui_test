@@ -52,7 +52,6 @@ impl Drop for Error {
                 format!("::{}", github_action_multiline_escape(message))
             };
             eprintln!("::error file={file},line={line},title={title}{message}");
-            eprintln!("error file={file},line={line},title={title}{message}");
         }
     }
 }
