@@ -2,30 +2,25 @@
 
 use bstr::ByteSlice;
 use colored::Colorize;
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
 
 use crate::{github_actions, parser::Pattern, rustc_stderr::Message, Error, Errors, TestResult};
 use std::{
     fmt::{Debug, Write as _},
     io::Write as _,
     num::NonZeroUsize,
-    path::Path,
+    panic::RefUnwindSafe,
+    path::{Path, PathBuf},
     process::Command,
+    sync::atomic::AtomicBool,
+    time::Duration,
 };
 
 /// A generic way to handle the output of this crate.
 pub trait StatusEmitter: Sync {
-    /// Invoked before each failed test prints its errors along with a drop guard that can
-    /// gets invoked afterwards.
-    fn failed_test<'a>(
-        &'a self,
-        revision: &'a str,
-        path: &'a Path,
-        cmd: &'a Command,
-        stderr: &'a [u8],
-    ) -> Box<dyn Debug + 'a>;
-
-    /// A test has finished, handle the result immediately.
-    fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
+    /// Invoked the moment we know a test will later be run.
+    /// Useful for progress bars and such.
+    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus>;
 
     /// Create a report about the entire test run at the end.
     #[allow(clippy::type_complexity)]
@@ -38,47 +33,117 @@ pub trait StatusEmitter: Sync {
     ) -> Box<dyn Summary>;
 }
 
+/// Information about a specific test run.
+pub trait TestStatus: Send + Sync + RefUnwindSafe {
+    /// Create a copy of this test for a new revision.
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus>;
+
+    /// Invoked before each failed test prints its errors along with a drop guard that can
+    /// gets invoked afterwards.
+    fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a>;
+
+    /// A test has finished, handle the result immediately.
+    fn done(&self, _result: &TestResult) {}
+
+    /// The path of the test file.
+    fn path(&self) -> &Path;
+
+    /// The revision, usually an empty string.
+    fn revision(&self) -> &str;
+}
+
 /// Report a summary at the end of a test run.
 pub trait Summary {
     /// A test has finished, handle the result.
-    fn test_failure(&mut self, _path: &Path, _revision: &str, _errors: &Errors) {}
+    fn test_failure(&mut self, _status: &dyn TestStatus, _errors: &Errors) {}
 }
 
 impl Summary for () {}
 
 /// A human readable output emitter.
+#[derive(Clone)]
 pub struct Text {
-    /// In case of `Some`, the `usize` is the number of tests
-    /// that were already executed.
-    quiet: Option<usize>,
+    all: MultiProgress,
+    progress: Option<ProgressBar>,
 }
 
 impl Text {
     /// Print one line per test that gets run.
     pub fn verbose() -> Self {
-        Self { quiet: None }
+        Self {
+            all: MultiProgress::new(),
+            progress: None,
+        }
     }
-    /// Print one `.` per test that gets run.
+    /// Print a progress bar.
     pub fn quiet() -> Self {
-        Self { quiet: Some(0) }
+        let all = MultiProgress::new();
+        let progress = ProgressBar::new(0);
+        all.add(progress.clone());
+        Self {
+            all,
+            progress: Some(progress),
+        }
     }
 }
 
-impl StatusEmitter for Text {
-    fn failed_test<'a>(
-        &self,
-        revision: &str,
-        path: &Path,
-        cmd: &Command,
-        stderr: &'a [u8],
-    ) -> Box<dyn Debug + 'a> {
+struct TextTest {
+    text: Text,
+    path: PathBuf,
+    revision: String,
+    spinner: Option<ProgressBar>,
+    first: AtomicBool,
+}
+
+fn spinner(path: &Path, revision: &str, all: &MultiProgress) -> ProgressBar {
+    let msg = if revision.is_empty() {
+        path.display().to_string()
+    } else {
+        format!("{} ({revision})", path.display())
+    };
+    let spinner = ProgressBar::new_spinner().with_message(msg);
+    spinner.enable_steady_tick(Duration::from_millis(100));
+    all.add(spinner.clone());
+    spinner
+}
+
+impl TestStatus for TextTest {
+    fn done(&self, result: &TestResult) {
+        if let Some(progress) = &self.text.progress {
+            progress.inc(1);
+            self.spinner.as_ref().unwrap().finish_and_clear();
+        } else {
+            let result = match result {
+                TestResult::Ok => "ok".green(),
+                TestResult::Errored { .. } => "FAILED".red().bold(),
+                TestResult::Ignored => "ignored (in-test comment)".yellow(),
+                TestResult::Filtered => return,
+            };
+            let msg = format!(
+                "{}{} ... {result}",
+                self.path.display(),
+                if self.revision.is_empty() {
+                    "".into()
+                } else {
+                    format!(" ({})", self.revision)
+                }
+            );
+            if ProgressDrawTarget::stderr().is_hidden() {
+                eprintln!("{msg}");
+            } else {
+                self.spinner.as_ref().unwrap().finish_with_message(msg);
+            }
+        }
+    }
+
+    fn failed_test<'a>(&self, cmd: &Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
         eprintln!();
-        let path = path.display().to_string();
+        let path = self.path.display().to_string();
         eprint!("{}", path.underline().bold());
-        let revision = if revision.is_empty() {
+        let revision = if self.revision.is_empty() {
             String::new()
         } else {
-            format!(" (revision `{revision}`)")
+            format!(" (revision `{}`)", self.revision)
         };
         eprint!("{revision}");
         eprint!(" {}", "FAILED:".red().bold());
@@ -99,37 +164,44 @@ impl StatusEmitter for Text {
         Box::new(Guard(stderr))
     }
 
-    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
-        if let Some(n) = &mut self.quiet {
-            // Humans start counting at 1
-            *n += 1;
-            match result {
-                TestResult::Ok => eprint!("{}", ".".green()),
-                TestResult::Errored { .. } => eprint!("{}", "F".red().bold()),
-                TestResult::Ignored => eprint!("{}", "i".yellow()),
-                TestResult::Filtered => {}
+    fn path(&self) -> &Path {
+        &self.path
+    }
+
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+        assert_eq!(self.revision, "");
+        if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) {
+            if let Some(progress) = &self.text.progress {
+                progress.inc_length(1);
             }
-            if *n % 100 == 0 {
-                eprintln!(" {}", n);
-            }
-        } else {
-            let result = match result {
-                TestResult::Ok => "ok".green(),
-                TestResult::Errored { .. } => "FAILED".red().bold(),
-                TestResult::Ignored => "ignored (in-test comment)".yellow(),
-                TestResult::Filtered => return,
-            };
-            eprint!(
-                "{}{} ... ",
-                path.display(),
-                if revision.is_empty() {
-                    "".into()
-                } else {
-                    format!(" ({revision})")
-                }
-            );
-            eprintln!("{result}");
         }
+        let spinner = spinner(&self.path, &self.revision, &self.text.all);
+        Box::new(Self {
+            text: self.text.clone(),
+            path: self.path.clone(),
+            revision: revision.to_owned(),
+            spinner: Some(spinner),
+            first: AtomicBool::new(false),
+        })
+    }
+
+    fn revision(&self) -> &str {
+        &self.revision
+    }
+}
+
+impl StatusEmitter for Text {
+    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
+        if let Some(progress) = &self.progress {
+            progress.inc_length(1);
+        }
+        Box::new(TextTest {
+            text: self.clone(),
+            spinner: None,
+            path,
+            revision: String::new(),
+            first: AtomicBool::new(true),
+        })
     }
 
     fn finalize(
@@ -160,15 +232,19 @@ impl StatusEmitter for Text {
             }
 
             impl Summary for Summarizer {
-                fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
+                fn test_failure(&mut self, status: &dyn TestStatus, errors: &Errors) {
                     for error in errors {
-                        print_error(error, &path.display().to_string());
+                        print_error(error, &status.path().display().to_string());
                     }
 
-                    self.failures.push(if revision.is_empty() {
-                        format!("    {}", path.display())
+                    self.failures.push(if status.revision().is_empty() {
+                        format!("    {}", status.path().display())
                     } else {
-                        format!("    {} (revision {revision})", path.display())
+                        format!(
+                            "    {} (revision {})",
+                            status.path().display(),
+                            status.revision()
+                        )
                     });
                 }
             }
@@ -438,25 +514,49 @@ pub struct Gha<const GROUP: bool> {
     pub name: String,
 }
 
-impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
-    fn failed_test(
-        &self,
-        revision: &str,
-        path: &Path,
-        _cmd: &Command,
-        _stderr: &[u8],
-    ) -> Box<dyn Debug> {
+#[derive(Clone)]
+struct PathAndRev<const GROUP: bool> {
+    path: PathBuf,
+    revision: String,
+}
+
+impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
+    fn path(&self) -> &Path {
+        &self.path
+    }
+
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+        assert_eq!(self.revision, "");
+        Box::new(Self {
+            path: self.path.clone(),
+            revision: revision.to_owned(),
+        })
+    }
+
+    fn failed_test(&self, _cmd: &Command, _stderr: &[u8]) -> Box<dyn Debug> {
         if GROUP {
             Box::new(github_actions::group(format_args!(
-                "{}:{revision}",
-                path.display()
+                "{}:{}",
+                self.path.display(),
+                self.revision
             )))
         } else {
             Box::new(())
         }
     }
 
-    fn test_result(&mut self, _path: &Path, _revision: &str, _result: &TestResult) {}
+    fn revision(&self) -> &str {
+        &self.revision
+    }
+}
+
+impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
+    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
+        Box::new(PathAndRev::<GROUP> {
+            path,
+            revision: String::new(),
+        })
+    }
 
     fn finalize(
         &self,
@@ -474,16 +574,17 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
         }
 
         impl<const GROUP: bool> Summary for Summarizer<GROUP> {
-            fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
-                let revision = if revision.is_empty() {
+            fn test_failure(&mut self, status: &dyn TestStatus, errors: &Errors) {
+                let revision = if status.revision().is_empty() {
                     "".to_string()
                 } else {
-                    format!(" (revision: {revision})")
+                    format!(" (revision: {})", status.revision())
                 };
                 for error in errors {
-                    gha_error(error, &path.display().to_string(), &revision);
+                    gha_error(error, &status.path().display().to_string(), &revision);
                 }
-                self.failures.push(format!("{}{revision}", path.display()));
+                self.failures
+                    .push(format!("{}{revision}", status.path().display()));
             }
         }
         impl<const GROUP: bool> Drop for Summarizer<GROUP> {
@@ -519,23 +620,42 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
     }
 }
 
-impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
-    fn failed_test<'a>(
-        &'a self,
-        revision: &'a str,
-        path: &'a Path,
-        cmd: &'a Command,
-        stderr: &'a [u8],
-    ) -> Box<dyn Debug + 'a> {
+impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
+    fn done(&self, result: &TestResult) {
+        self.0.done(result);
+        self.1.done(result);
+    }
+
+    fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
         Box::new((
-            self.0.failed_test(revision, path, cmd, stderr),
-            self.1.failed_test(revision, path, cmd, stderr),
+            self.0.failed_test(cmd, stderr),
+            self.1.failed_test(cmd, stderr),
         ))
     }
 
-    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
-        self.0.test_result(path, revision, result);
-        self.1.test_result(path, revision, result);
+    fn path(&self) -> &Path {
+        let path = self.0.path();
+        assert_eq!(path, self.1.path());
+        path
+    }
+
+    fn revision(&self) -> &str {
+        let rev = self.0.revision();
+        assert_eq!(rev, self.1.revision());
+        rev
+    }
+
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+        Box::new((self.0.for_revision(revision), self.1.for_revision(revision)))
+    }
+}
+
+impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
+    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
+        Box::new((
+            self.0.register_test(path.clone()),
+            self.1.register_test(path),
+        ))
     }
 
     fn finalize(
@@ -552,19 +672,31 @@ impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
     }
 }
 
-impl<T: StatusEmitter + ?Sized> StatusEmitter for Box<T> {
-    fn failed_test<'a>(
-        &'a self,
-        revision: &'a str,
-        path: &'a Path,
-        cmd: &'a Command,
-        stderr: &'a [u8],
-    ) -> Box<dyn Debug + 'a> {
-        (**self).failed_test(revision, path, cmd, stderr)
+impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
+    fn done(&self, result: &TestResult) {
+        (**self).done(result);
     }
 
-    fn test_result(&mut self, path: &Path, revision: &str, result: &TestResult) {
-        (**self).test_result(path, revision, result);
+    fn path(&self) -> &Path {
+        (**self).path()
+    }
+
+    fn revision(&self) -> &str {
+        (**self).revision()
+    }
+
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+        (**self).for_revision(revision)
+    }
+
+    fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
+        (**self).failed_test(cmd, stderr)
+    }
+}
+
+impl<T: StatusEmitter + ?Sized> StatusEmitter for Box<T> {
+    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
+        (**self).register_test(path)
     }
 
     fn finalize(
@@ -579,8 +711,8 @@ impl<T: StatusEmitter + ?Sized> StatusEmitter for Box<T> {
 }
 
 impl Summary for (Box<dyn Summary>, Box<dyn Summary>) {
-    fn test_failure(&mut self, path: &Path, revision: &str, errors: &Errors) {
-        self.0.test_failure(path, revision, errors);
-        self.1.test_failure(path, revision, errors);
+    fn test_failure(&mut self, status: &dyn TestStatus, errors: &Errors) {
+        self.0.test_failure(status, errors);
+        self.1.test_failure(status, errors);
     }
 }

@@ -4,7 +4,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
     let mut config = Config {
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
-        ..Config::rustc("tests/actual_tests".into())
+        ..Config::rustc("tests/actual_tests")
     };
     if std::env::var_os("BLESS").is_some() {
         config.output_conflict_handling = OutputConflictHandling::Bless

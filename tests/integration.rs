@@ -79,6 +79,12 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("program not found", "No such file or directory");
     config.stderr_filter(" \\(os error [0-9]+\\)", "");
 
+    let text = if args.quiet {
+        ui_test::status_emitter::Text::quiet()
+    } else {
+        ui_test::status_emitter::Text::verbose()
+    };
+
     run_tests_generic(
         config,
         args,
@@ -109,7 +115,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         },
         |_, _| None,
         (
-            ui_test::status_emitter::Text::verbose(),
+            text,
             ui_test::status_emitter::Gha::<true> {
                 name: format!("{mode:?}"),
             },

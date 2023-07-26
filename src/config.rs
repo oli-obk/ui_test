@@ -60,7 +60,7 @@ pub struct Config {
 impl Config {
     /// Create a configuration for testing the output of running
     /// `rustc` on the test files.
-    pub fn rustc(root_dir: PathBuf) -> Self {
+    pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
         Self {
             host: None,
             target: None,
@@ -73,7 +73,7 @@ impl Config {
                 #[cfg(windows)]
                 (Match::Exact(vec![b'\r']), b""),
             ],
-            root_dir,
+            root_dir: root_dir.into(),
             mode: Mode::Fail {
                 require_patterns: true,
             },
@@ -100,7 +100,7 @@ impl Config {
 
     /// Create a configuration for testing the output of running
     /// `cargo` on the test `Cargo.toml` files.
-    pub fn cargo(root_dir: PathBuf) -> Self {
+    pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
         Self {
             program: CommandBuilder::cargo(),
             edition: None,

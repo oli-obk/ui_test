@@ -7,7 +7,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         mode: Mode::Fail {
             require_patterns: true,
         },
-        ..Config::rustc("tests/actual_tests".into())
+        ..Config::rustc("tests/actual_tests")
     };
     if std::env::var_os("BLESS").is_some() {
         config.output_conflict_handling = OutputConflictHandling::Bless

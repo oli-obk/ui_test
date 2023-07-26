@@ -11,7 +11,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         ),
         // Make sure our tests are ordered for reliable output.
         num_test_threads: NonZeroUsize::new(1).unwrap(),
-        ..Config::rustc("tests/actual_tests".into())
+        ..Config::rustc("tests/actual_tests")
     };
 
     run_tests_generic(

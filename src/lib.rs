@@ -9,6 +9,7 @@
 //! A crate to run the Rust compiler (or other binaries) and test their command line output.
 
 use bstr::ByteSlice;
+pub use clap;
 use clap::Parser;
 pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
@@ -17,7 +18,7 @@ use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Diagnostics, Level, Message};
-use status_emitter::StatusEmitter;
+use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::num::NonZeroUsize;
@@ -119,16 +120,18 @@ pub fn run_tests(config: Config) -> Result<()> {
     let name = config.root_dir.display().to_string();
 
     let args = Args::parse();
+    let text = if args.quiet {
+        status_emitter::Text::quiet()
+    } else {
+        status_emitter::Text::verbose()
+    };
 
     run_tests_generic(
         config,
         args,
         default_file_filter,
         default_per_file_config,
-        (
-            status_emitter::Text::verbose(),
-            status_emitter::Gha::<true> { name },
-        ),
+        (text, status_emitter::Gha::<true> { name }),
     )
 }
 
@@ -205,8 +208,7 @@ pub enum TestResult {
 
 struct TestRun {
     result: TestResult,
-    path: PathBuf,
-    revision: String,
+    status: Box<dyn status_emitter::TestStatus>,
 }
 
 /// A version of `run_tests` that allows more fine-grained control over running tests.
@@ -215,7 +217,7 @@ pub fn run_tests_generic(
     args: Args,
     file_filter: impl Fn(&Path, &Args) -> bool + Sync,
     per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
-    mut status_emitter: impl StatusEmitter + Send,
+    status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
     config.fill_host_and_target()?;
 
@@ -244,22 +246,25 @@ pub fn run_tests_generic(
                         todo.push_back(entry.path());
                     }
                 } else if file_filter(&path, &args) {
+                    let status = status_emitter.register_test(path);
                     // Forward .rs files to the test workers.
-                    submit.send(path).unwrap();
+                    submit.send(status).unwrap();
                 }
             }
         },
         |receive, finished_files_sender| -> Result<()> {
-            for path in receive {
+            for status in receive {
+                let path = status.path();
                 let maybe_config;
-                let config = match per_file_config(&config, &path) {
+                let config = match per_file_config(&config, path) {
                     None => &config,
                     Some(config) => {
                         maybe_config = config;
                         &maybe_config
                     }
                 };
-                let result = match std::panic::catch_unwind(|| parse_and_test_file(&path, config)) {
+                let result = match std::panic::catch_unwind(|| parse_and_test_file(&status, config))
+                {
                     Ok(res) => res,
                     Err(err) => {
                         finished_files_sender.send(TestRun {
@@ -273,8 +278,7 @@ pub fn run_tests_generic(
                                 )],
                                 stderr: vec![],
                             },
-                            path,
-                            revision: String::new(),
+                            status,
                         })?;
                         continue;
                     }
@@ -287,7 +291,7 @@ pub fn run_tests_generic(
         },
         |finished_files_recv| {
             for run in finished_files_recv {
-                status_emitter.test_result(&run.path, &run.revision, &run.result);
+                run.status.done(&run.result);
 
                 results.push(run);
             }
@@ -308,14 +312,14 @@ pub fn run_tests_generic(
                 command,
                 errors,
                 stderr,
-            } => failures.push((run.path, command, run.revision, errors, stderr)),
+            } => failures.push((run.status, command, errors, stderr)),
         }
     }
 
     let mut failure_emitter = status_emitter.finalize(failures.len(), succeeded, ignored, filtered);
-    for (path, command, revision, errors, stderr) in &failures {
-        let _guard = status_emitter.failed_test(revision, path, command, stderr);
-        failure_emitter.test_failure(path, revision, errors);
+    for (status, command, errors, stderr) in &failures {
+        let _guard = status.failed_test(command, stderr);
+        failure_emitter.test_failure(status, errors);
     }
 
     if failures.is_empty() {
@@ -362,8 +366,8 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
     })
 }
 
-fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
-    let comments = match parse_comments_in_file(path) {
+fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun> {
+    let comments = match parse_comments_in_file(status.path()) {
         Ok(comments) => comments,
         Err((stderr, errors)) => {
             return vec![TestRun {
@@ -372,27 +376,27 @@ fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
                     errors,
                     stderr,
                 },
-                path: path.into(),
-                revision: "".into(),
+                status: status.for_revision(""),
             }]
         }
     };
     // Run the test for all revisions
-    comments
+    let revisions = comments
         .revisions
         .clone()
-        .unwrap_or_else(|| vec![String::new()])
+        .unwrap_or_else(|| vec![String::new()]);
+    revisions
         .into_iter()
         .map(|revision| {
+            let status = status.for_revision(&revision);
             // Ignore file if only/ignore rules do (not) apply
             if !test_file_conditions(&comments, config, &revision) {
                 return TestRun {
                     result: TestResult::Ignored,
-                    path: path.into(),
-                    revision,
+                    status,
                 };
             }
-            let (command, errors, stderr) = run_test(path, config, &revision, &comments);
+            let (command, errors, stderr) = run_test(status.path(), config, &revision, &comments);
             let result = if errors.is_empty() {
                 TestResult::Ok
             } else {
@@ -402,11 +406,7 @@ fn parse_and_test_file(path: &Path, config: &Config) -> Vec<TestRun> {
                     stderr,
                 }
             };
-            TestRun {
-                result,
-                revision,
-                path: path.into(),
-            }
+            TestRun { result, status }
         })
         .collect()
 }
@@ -731,19 +731,27 @@ fn run_rustfix(
     let fixed_code = (no_run_rustfix.is_none() && config.rustfix)
         .then_some(())
         .and_then(|()| {
-            let input = std::str::from_utf8(stderr).unwrap();
-            let suggestions = rustfix::get_suggestions_from_json(
-                input,
-                &HashSet::new(),
-                if let Mode::Yolo = config.mode {
-                    rustfix::Filter::Everything
-                } else {
-                    rustfix::Filter::MachineApplicableOnly
-                },
-            )
-            .unwrap_or_else(|err| {
-                panic!("could not deserialize diagnostics json for rustfix {err}:{input}")
-            });
+            let suggestions = std::str::from_utf8(stderr)
+                .unwrap()
+                .lines()
+                .flat_map(|line| {
+                    if !line.starts_with('{') {
+                        return vec![];
+                    }
+                    rustfix::get_suggestions_from_json(
+                        line,
+                        &HashSet::new(),
+                        if let Mode::Yolo = config.mode {
+                            rustfix::Filter::Everything
+                        } else {
+                            rustfix::Filter::MachineApplicableOnly
+                        },
+                    )
+                    .unwrap_or_else(|err| {
+                        panic!("could not deserialize diagnostics json for rustfix {err}:{line}")
+                    })
+                })
+                .collect::<Vec<_>>();
             if suggestions.is_empty() {
                 return None;
             }

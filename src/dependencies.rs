@@ -86,6 +86,13 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
             continue
         };
         if let cargo_metadata::Message::CompilerArtifact(artifact) = message {
+            if artifact
+                .filenames
+                .iter()
+                .any(|f| f.ends_with("build-script-build"))
+            {
+                continue;
+            }
             for filename in &artifact.filenames {
                 import_paths.insert(filename.parent().unwrap().into());
             }
