@@ -2,10 +2,12 @@
 
 use bstr::ByteSlice;
 use colored::Colorize;
+use crossbeam_channel::{Sender, TryRecvError};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
 
 use crate::{github_actions, parser::Pattern, rustc_stderr::Message, Error, Errors, TestResult};
 use std::{
+    collections::HashMap,
     fmt::{Debug, Write as _},
     io::Write as _,
     num::NonZeroUsize,
@@ -63,26 +65,86 @@ impl Summary for () {}
 /// A human readable output emitter.
 #[derive(Clone)]
 pub struct Text {
-    all: MultiProgress,
-    progress: Option<ProgressBar>,
+    sender: Sender<Msg>,
+    progress: bool,
+}
+
+#[derive(Debug)]
+enum Msg {
+    Pop(String, Option<String>),
+    Push(String),
+    Inc,
+    IncLength,
+    Finish,
 }
 
 impl Text {
+    fn start_thread() -> Sender<Msg> {
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        std::thread::spawn(move || {
+            let bars = MultiProgress::new();
+            let mut progress = None;
+            let mut threads: HashMap<String, ProgressBar> = HashMap::new();
+            'outer: loop {
+                std::thread::sleep(Duration::from_millis(100));
+                loop {
+                    match receiver.try_recv() {
+                        Ok(val) => match val {
+                            Msg::Pop(msg, new_msg) => {
+                                let spinner = threads.remove(&msg).unwrap();
+                                if let Some(new_msg) = new_msg {
+                                    spinner.finish_with_message(new_msg);
+                                } else {
+                                    spinner.finish_and_clear();
+                                }
+                            }
+                            Msg::Push(msg) => {
+                                let spinner =
+                                    bars.add(ProgressBar::new_spinner().with_message(msg.clone()));
+                                threads.insert(msg, spinner);
+                            }
+                            Msg::IncLength => {
+                                progress
+                                    .get_or_insert_with(|| bars.add(ProgressBar::new(0)))
+                                    .inc_length(1);
+                            }
+                            Msg::Inc => {
+                                progress.as_ref().unwrap().inc(1);
+                            }
+                            Msg::Finish => return,
+                        },
+                        Err(TryRecvError::Disconnected) => break 'outer,
+                        Err(TryRecvError::Empty) => break,
+                    }
+                }
+                for spinner in threads.values() {
+                    spinner.tick()
+                }
+                if let Some(progress) = &progress {
+                    progress.tick()
+                }
+            }
+            assert_eq!(threads.len(), 0);
+            if let Some(progress) = progress {
+                progress.tick();
+                assert!(progress.is_finished());
+            }
+        });
+        sender
+    }
+
     /// Print one line per test that gets run.
     pub fn verbose() -> Self {
         Self {
-            all: MultiProgress::new(),
-            progress: None,
+            sender: Self::start_thread(),
+            progress: false,
         }
     }
     /// Print a progress bar.
     pub fn quiet() -> Self {
-        let all = MultiProgress::new();
-        let progress = ProgressBar::new(0);
-        all.add(progress.clone());
         Self {
-            all,
-            progress: Some(progress),
+            sender: Self::start_thread(),
+            progress: true,
         }
     }
 }
@@ -91,27 +153,24 @@ struct TextTest {
     text: Text,
     path: PathBuf,
     revision: String,
-    spinner: Option<ProgressBar>,
     first: AtomicBool,
 }
 
-fn spinner(path: &Path, revision: &str, all: &MultiProgress) -> ProgressBar {
-    let msg = if revision.is_empty() {
-        path.display().to_string()
-    } else {
-        format!("{} ({revision})", path.display())
-    };
-    let spinner = ProgressBar::new_spinner().with_message(msg);
-    spinner.enable_steady_tick(Duration::from_millis(100));
-    all.add(spinner.clone());
-    spinner
+impl TextTest {
+    fn msg(&self) -> String {
+        if self.revision.is_empty() {
+            self.path.display().to_string()
+        } else {
+            format!("{} ({})", self.path.display(), self.revision)
+        }
+    }
 }
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult) {
-        if let Some(progress) = &self.text.progress {
-            progress.inc(1);
-            self.spinner.as_ref().unwrap().finish_and_clear();
+        if self.text.progress {
+            self.text.sender.send(Msg::Inc).unwrap();
+            self.text.sender.send(Msg::Pop(self.msg(), None)).unwrap();
         } else {
             let result = match result {
                 TestResult::Ok => "ok".green(),
@@ -119,19 +178,12 @@ impl TestStatus for TextTest {
                 TestResult::Ignored => "ignored (in-test comment)".yellow(),
                 TestResult::Filtered => return,
             };
-            let msg = format!(
-                "{}{} ... {result}",
-                self.path.display(),
-                if self.revision.is_empty() {
-                    "".into()
-                } else {
-                    format!(" ({})", self.revision)
-                }
-            );
+            let old_msg = self.msg();
+            let msg = format!("{old_msg} ... {result}");
             if ProgressDrawTarget::stderr().is_hidden() {
                 eprintln!("{msg}");
             } else {
-                self.spinner.as_ref().unwrap().finish_with_message(msg);
+                self.text.sender.send(Msg::Pop(old_msg, Some(msg))).unwrap();
             }
         }
     }
@@ -170,19 +222,18 @@ impl TestStatus for TextTest {
 
     fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
         assert_eq!(self.revision, "");
-        if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) {
-            if let Some(progress) = &self.text.progress {
-                progress.inc_length(1);
-            }
+        if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) && self.text.progress {
+            self.text.sender.send(Msg::IncLength).unwrap();
         }
-        let spinner = spinner(&self.path, &self.revision, &self.text.all);
-        Box::new(Self {
+
+        let text = Self {
             text: self.text.clone(),
             path: self.path.clone(),
             revision: revision.to_owned(),
-            spinner: Some(spinner),
             first: AtomicBool::new(false),
-        })
+        };
+        self.text.sender.send(Msg::Push(text.msg())).unwrap();
+        Box::new(text)
     }
 
     fn revision(&self) -> &str {
@@ -192,12 +243,11 @@ impl TestStatus for TextTest {
 
 impl StatusEmitter for Text {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
-        if let Some(progress) = &self.progress {
-            progress.inc_length(1);
+        if self.progress {
+            self.sender.send(Msg::IncLength).unwrap();
         }
         Box::new(TextTest {
             text: self.clone(),
-            spinner: None,
             path,
             revision: String::new(),
             first: AtomicBool::new(true),
@@ -211,6 +261,10 @@ impl StatusEmitter for Text {
         ignored: usize,
         filtered: usize,
     ) -> Box<dyn Summary> {
+        self.sender.send(Msg::Finish).unwrap();
+        while !self.sender.is_empty() {
+            std::thread::sleep(Duration::from_millis(10));
+        }
         // Print all errors in a single thread to show reliable output
         if failures == 0 {
             eprintln!();
