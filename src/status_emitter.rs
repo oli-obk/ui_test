@@ -7,6 +7,7 @@ use crate::{github_actions, parser::Pattern, rustc_stderr::Message, Error, Error
 use std::{
     fmt::{Debug, Write as _},
     io::Write as _,
+    num::NonZeroUsize,
     path::Path,
     process::Command,
 };
@@ -329,46 +330,61 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             expected,
             bless_command: _,
         } => {
-            let mut err = github_actions::error(
-                if expected.is_empty() {
-                    test_path.to_owned()
-                } else {
-                    output_path.display().to_string()
-                },
-                "actual output differs from expected",
-            );
-            writeln!(err, "```diff").unwrap();
-            let mut seen_diff_line = Some(0);
-            for r in ::diff::lines(expected.to_str().unwrap(), actual.to_str().unwrap()) {
-                if let Some(line) = &mut seen_diff_line {
-                    *line += 1;
-                }
-                let mut seen_diff = || {
-                    if let Some(line) = seen_diff_line.take() {
-                        writeln!(err, "{line} unchanged lines skipped").unwrap();
-                    }
-                };
+            if expected.is_empty() {
+                let mut err = github_actions::error(
+                    test_path,
+                    "test generated output, but there was no output file",
+                );
+                writeln!(err, "you likely need to bless the tests").unwrap();
+                return;
+            }
+
+            let mut line = 1;
+            for r in
+                prettydiff::diff_lines(expected.to_str().unwrap(), actual.to_str().unwrap()).diff()
+            {
+                use prettydiff::basic::DiffOp::*;
                 match r {
-                    ::diff::Result::Both(l, r) => {
-                        if l != r {
-                            seen_diff();
-                            writeln!(err, "-{l}").unwrap();
-                            writeln!(err, "+{r}").unwrap();
-                        } else if seen_diff_line.is_none() {
-                            writeln!(err, " {l}").unwrap()
-                        }
+                    Equal(s) => {
+                        line += s.len();
+                        continue;
                     }
-                    ::diff::Result::Left(l) => {
-                        seen_diff();
-                        writeln!(err, "-{l}").unwrap();
+                    Replace(l, r) => {
+                        assert_eq!(r.len(), l.len());
+                        let mut err = github_actions::error(
+                            output_path.display().to_string(),
+                            "actual output differs from expected",
+                        )
+                        .line(NonZeroUsize::new(line + 1).unwrap());
+                        writeln!(err, "this line was expected to be `{}`", r[0]).unwrap();
+                        line += l.len();
                     }
-                    ::diff::Result::Right(r) => {
-                        seen_diff();
-                        writeln!(err, "+{r}").unwrap();
+                    Remove(l) => {
+                        let mut err = github_actions::error(
+                            output_path.display().to_string(),
+                            "extraneous lines in output",
+                        )
+                        .line(NonZeroUsize::new(line + 1).unwrap());
+                        writeln!(
+                            err,
+                            "remove this line and possibly later ones by blessing the test"
+                        )
+                        .unwrap();
+                        line += l.len();
+                    }
+                    Insert(r) => {
+                        let mut err = github_actions::error(
+                            output_path.display().to_string(),
+                            "missing line in output",
+                        )
+                        .line(NonZeroUsize::new(line + 1).unwrap());
+                        writeln!(err, "bless the test to create a line containing `{}`", r[0])
+                            .unwrap();
+                        // Do not count these lines, they don't exist in the original file and
+                        // would thus mess up the line number.
                     }
                 }
             }
-            writeln!(err, "```").unwrap();
         }
         Error::ErrorsWithoutPattern { path, msgs } => {
             if let Some(path) = path.as_ref() {
@@ -413,7 +429,6 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             );
         }
     }
-    eprintln!();
 }
 
 /// Emits Github Actions Workspace commands to show the failures directly in the github diff view.
