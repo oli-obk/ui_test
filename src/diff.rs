@@ -110,7 +110,7 @@ impl<'a> DiffState<'a> {
                         eprint!("{}", "-".red());
                         for char in &diff {
                             match *char {
-                                Left(l) => eprint!("{}", l.to_string().red()),
+                                Left(l) => eprint!("{}", l.to_string().on_red()),
                                 Right(_) => {}
                                 Both(l, _) => eprint!("{l}"),
                             }
@@ -120,7 +120,7 @@ impl<'a> DiffState<'a> {
                         for char in diff {
                             match char {
                                 Left(_) => {}
-                                Right(r) => eprint!("{}", r.to_string().green()),
+                                Right(r) => eprint!("{}", r.to_string().on_green()),
                                 Both(l, _) => eprint!("{l}"),
                             }
                         }
@@ -130,9 +130,9 @@ impl<'a> DiffState<'a> {
                         eprint!("{}", "~".yellow());
                         for char in diff {
                             match char {
-                                Left(l) => eprint!("{}", l.to_string().red()),
+                                Left(l) => eprint!("{}", l.to_string().on_red()),
                                 Both(l, _) => eprint!("{l}"),
-                                Right(r) => eprint!("{}", r.to_string().green()),
+                                Right(r) => eprint!("{}", r.to_string().on_green()),
                             }
                         }
                         eprintln!();
