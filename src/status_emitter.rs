@@ -12,6 +12,7 @@ use std::{
     panic::RefUnwindSafe,
     path::{Path, PathBuf},
     process::Command,
+    sync::atomic::AtomicBool,
     time::Duration,
 };
 
@@ -86,12 +87,12 @@ impl Text {
     }
 }
 
-#[derive(Clone)]
 struct TextTest {
     text: Text,
     path: PathBuf,
     revision: String,
-    spinner: ProgressBar,
+    spinner: Option<ProgressBar>,
+    first: AtomicBool,
 }
 
 fn spinner(path: &Path, revision: &str, all: &MultiProgress) -> ProgressBar {
@@ -110,7 +111,7 @@ impl TestStatus for TextTest {
     fn done(&self, result: &TestResult) {
         if let Some(progress) = &self.text.progress {
             progress.inc(1);
-            self.spinner.finish_and_clear();
+            self.spinner.as_ref().unwrap().finish_and_clear();
         } else {
             let result = match result {
                 TestResult::Ok => "ok".green(),
@@ -130,7 +131,7 @@ impl TestStatus for TextTest {
             if ProgressDrawTarget::stderr().is_hidden() {
                 eprintln!("{msg}");
             } else {
-                self.spinner.finish_with_message(msg);
+                self.spinner.as_ref().unwrap().finish_with_message(msg);
             }
         }
     }
@@ -169,20 +170,19 @@ impl TestStatus for TextTest {
 
     fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
         assert_eq!(self.revision, "");
-        if revision.is_empty() {
-            Box::new(self.clone())
-        } else {
+        if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) {
             if let Some(progress) = &self.text.progress {
                 progress.inc_length(1);
             }
-            let spinner = spinner(&self.path, &self.revision, &self.text.all);
-            Box::new(Self {
-                text: self.text.clone(),
-                path: self.path.clone(),
-                revision: revision.to_owned(),
-                spinner,
-            })
         }
+        let spinner = spinner(&self.path, &self.revision, &self.text.all);
+        Box::new(Self {
+            text: self.text.clone(),
+            path: self.path.clone(),
+            revision: revision.to_owned(),
+            spinner: Some(spinner),
+            first: AtomicBool::new(false),
+        })
     }
 
     fn revision(&self) -> &str {
@@ -195,12 +195,12 @@ impl StatusEmitter for Text {
         if let Some(progress) = &self.progress {
             progress.inc_length(1);
         }
-        let spinner = spinner(&path, "", &self.all);
         Box::new(TextTest {
             text: self.clone(),
-            spinner,
+            spinner: None,
             path,
             revision: String::new(),
+            first: AtomicBool::new(true),
         })
     }
 
