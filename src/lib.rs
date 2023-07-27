@@ -665,11 +665,7 @@ fn build_aux_files(
             } else {
                 aux_dir.join(aux)
             };
-            if let Err(Errored {
-                command,
-                errors,
-                stderr,
-            }) = build_aux(
+            build_aux(
                 &aux_file,
                 path,
                 config,
@@ -677,8 +673,13 @@ fn build_aux_files(
                 comments,
                 aux,
                 &mut extra_args,
-            ) {
-                return Err(Errored {
+            )
+            .map_err(
+                |Errored {
+                     command,
+                     errors,
+                     stderr,
+                 }| Errored {
                     command,
                     errors: vec![Error::Aux {
                         path: aux_file,
@@ -686,8 +687,8 @@ fn build_aux_files(
                         line,
                     }],
                     stderr,
-                });
-            }
+                },
+            )?;
         }
     }
     Ok(extra_args)
