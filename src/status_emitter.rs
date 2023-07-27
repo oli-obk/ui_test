@@ -5,7 +5,10 @@ use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
 
-use crate::{github_actions, parser::Pattern, rustc_stderr::Message, Error, Errors, TestResult};
+use crate::{
+    github_actions, parser::Pattern, rustc_stderr::Message, Error, Errored, Errors, TestOk,
+    TestResult,
+};
 use std::{
     collections::HashMap,
     fmt::{Debug, Write as _},
@@ -173,10 +176,10 @@ impl TestStatus for TextTest {
             self.text.sender.send(Msg::Pop(self.msg(), None)).unwrap();
         } else {
             let result = match result {
-                TestResult::Ok => "ok".green(),
-                TestResult::Errored { .. } => "FAILED".red().bold(),
-                TestResult::Ignored => "ignored (in-test comment)".yellow(),
-                TestResult::Filtered => return,
+                Ok(TestOk::Ok) => "ok".green(),
+                Err(Errored { .. }) => "FAILED".red().bold(),
+                Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
+                Ok(TestOk::Filtered) => return,
             };
             let old_msg = self.msg();
             let msg = format!("{old_msg} ... {result}");

@@ -183,18 +183,18 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     Ok(result)
 }
 
-#[allow(clippy::large_enum_variant)]
-/// The possible results a single test can have.
-pub enum TestResult {
+/// The possible non-failure results a single test can have.
+pub enum TestOk {
     /// The test passed
     Ok,
     /// The test was ignored due to a rule (`//@only-*` or `//@ignore-*`)
     Ignored,
     /// The test was filtered with the `file_filter` argument.
     Filtered,
-    /// The test failed.
-    Errored(Errored),
 }
+
+/// The possible results a single test can have.
+pub type TestResult = Result<TestOk, Errored>;
 
 /// Information about a test failure.
 pub struct Errored {
@@ -268,7 +268,7 @@ pub fn run_tests_generic(
                     Ok(res) => res,
                     Err(err) => {
                         finished_files_sender.send(TestRun {
-                            result: TestResult::Errored(Errored {
+                            result: Err(Errored {
                                 command: Command::new("<unknown>"),
                                 errors: vec![Error::Bug(
                                     *Box::<dyn std::any::Any + Send + 'static>::downcast::<String>(
@@ -305,10 +305,10 @@ pub fn run_tests_generic(
 
     for run in results {
         match run.result {
-            TestResult::Ok => succeeded += 1,
-            TestResult::Ignored => ignored += 1,
-            TestResult::Filtered => filtered += 1,
-            TestResult::Errored(errored) => failures.push((run.status, errored)),
+            Ok(TestOk::Ok) => succeeded += 1,
+            Ok(TestOk::Ignored) => ignored += 1,
+            Ok(TestOk::Filtered) => filtered += 1,
+            Err(errored) => failures.push((run.status, errored)),
         }
     }
 
@@ -375,7 +375,7 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun>
         Ok(comments) => comments,
         Err((stderr, errors)) => {
             return vec![TestRun {
-                result: TestResult::Errored(Errored {
+                result: Err(Errored {
                     command: Command::new("parse comments"),
                     errors,
                     stderr,
@@ -396,15 +396,15 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun>
             // Ignore file if only/ignore rules do (not) apply
             if !test_file_conditions(&comments, config, &revision) {
                 return TestRun {
-                    result: TestResult::Ignored,
+                    result: Ok(TestOk::Ignored),
                     status,
                 };
             }
             let (command, errors, stderr) = run_test(status.path(), config, &revision, &comments);
             let result = if errors.is_empty() {
-                TestResult::Ok
+                Ok(TestOk::Ok)
             } else {
-                TestResult::Errored(Errored {
+                Err(Errored {
                     command,
                     errors,
                     stderr,
