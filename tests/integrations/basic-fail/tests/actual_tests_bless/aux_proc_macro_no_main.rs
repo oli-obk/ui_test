@@ -1,4 +1,4 @@
-//@aux-build:the_proc_macro.rs:proc-macro
+//@aux-build:the_proc_macro.rs
 //! Test that our automatic --crate-type detection (changing this crate to `lib`)
 //! does not change the aux build to `lib`
 

@@ -232,21 +232,12 @@ tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/auxiliary/the_proc_macro.rs" "--edition" "2021" "--crate-type" "lib" "--emit=link"
+command: "parse comments"
 
-Aux build from tests/actual_tests_bless/aux_proc_macro_misuse.rs:1 failed
-compilation of aux build failed failed with exit status: 1
-
+Could not parse comment in tests/actual_tests_bless/aux_proc_macro_misuse.rs:1 because
+proc macros are now auto-detected, you can remove the `:proc-macro` after the file name
 
 full stderr:
-error: the `#[proc_macro]` attribute is only usable with crates of the `proc-macro` crate type
- --> tests/actual_tests_bless/auxiliary/the_proc_macro.rs:7:1
-  |
-7 | #[proc_macro]
-  | ^^^^^^^^^^^^^
-
-error: aborting due to previous error
-
 
 
 

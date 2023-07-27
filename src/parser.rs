@@ -108,7 +108,7 @@ pub(crate) struct Revisioned {
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: OptWithLine<Level>,
-    pub aux_builds: Vec<WithLine<(PathBuf, String)>>,
+    pub aux_builds: Vec<WithLine<PathBuf>>,
     pub edition: OptWithLine<String>,
     /// Overwrites the mode from `Config`.
     pub mode: OptWithLine<Mode>,
@@ -490,9 +490,15 @@ impl CommentParser<&mut Revisioned> {
                 this.needs_asm_support = true;
             }
             "aux-build" => (this, args){
-                let (name, kind) = args.split_once(':').unwrap_or((args, "lib"));
+                let name = match args.split_once(':') {
+                    Some((name, _)) => {
+                        this.error("proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
+                        name
+                    },
+                    None => args,
+                };
                 let line = this.line;
-                this.aux_builds.push(WithLine::new((name.into(), kind.into()), line));
+                this.aux_builds.push(WithLine::new(name.into(), line));
             }
             "edition" => (this, args){
                 let line = this.line;
