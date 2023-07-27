@@ -1,4 +1,4 @@
-//@aux-build:derive_proc_macro.rs:proc-macro
+//@aux-build:derive_proc_macro.rs
 
 #[macro_use]
 extern crate derive_proc_macro;

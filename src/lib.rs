@@ -158,10 +158,7 @@ pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
     // * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
     // This avoids having to spam `fn main() {}` in almost every test.
     let file_contents = std::fs::read(path).unwrap();
-    if file_contents.find(b"#[proc_macro]").is_some()
-        || file_contents.find(b"#[proc_macro_attribute]").is_some()
-        || file_contents.find(b"#[proc_macro_derive]").is_some()
-    {
+    if file_contents.find(b"#[proc_macro").is_some() {
         config.program.args.push("--crate-type=proc-macro".into())
     } else if file_contents.find(b"#[test]").is_some() {
         config.program.args.push("--test".into());
@@ -459,7 +456,6 @@ fn build_aux(
     config: &Config,
     revision: &str,
     comments: &Comments,
-    kind: &str,
     aux: &Path,
     extra_args: &mut Vec<String>,
 ) -> std::result::Result<(), (Command, Vec<Error>, Vec<u8>)> {
@@ -497,6 +493,8 @@ fn build_aux(
         }
     });
 
+    let mut config = default_per_file_config(&config, aux_file).unwrap();
+
     // Put aux builds into a separate directory per test so that
     // tests running in parallel but building the same aux build don't conflict.
     // FIXME: put aux builds into the regular build queue.
@@ -517,7 +515,6 @@ fn build_aux(
     // Make sure our dependents also see our dependencies.
     extra_args.extend(current_extra_args);
 
-    aux_cmd.arg("--crate-type").arg(kind);
     aux_cmd.arg("--emit=link");
     let filename = aux.file_stem().unwrap().to_str().unwrap();
     let output = aux_cmd.output().unwrap();
@@ -648,7 +645,7 @@ fn build_aux_files(
     for rev in comments.for_revision(revision) {
         for aux in &rev.aux_builds {
             let line = aux.line();
-            let (aux, kind) = &**aux;
+            let aux = &**aux;
             let aux_file = if aux.starts_with("..") {
                 aux_dir.parent().unwrap().join(aux)
             } else {
@@ -660,7 +657,6 @@ fn build_aux_files(
                 config,
                 revision,
                 comments,
-                kind,
                 aux,
                 &mut extra_args,
             ) {
