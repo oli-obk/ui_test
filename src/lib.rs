@@ -453,15 +453,14 @@ fn build_aux(
     path: &Path,
     config: &Config,
     revision: &str,
-    comments: &Comments,
     aux: &Path,
     extra_args: &mut Vec<String>,
 ) -> std::result::Result<(), Errored> {
     let comments = match parse_comments_in_file(aux_file) {
         Ok(comments) => comments,
-        Err((msg, mut errors)) => {
+        Err((msg, errors)) => {
             return Err(Errored {
-                command: build_command(path, config, revision, comments, &mut errors),
+                command: Command::new("parse comments"),
                 errors,
                 stderr: msg,
             })
@@ -665,16 +664,7 @@ fn build_aux_files(
             } else {
                 aux_dir.join(aux)
             };
-            build_aux(
-                &aux_file,
-                path,
-                config,
-                revision,
-                comments,
-                aux,
-                &mut extra_args,
-            )
-            .map_err(
+            build_aux(&aux_file, path, config, revision, aux, &mut extra_args).map_err(
                 |Errored {
                      command,
                      errors,
