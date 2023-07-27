@@ -193,14 +193,17 @@ pub enum TestResult {
     /// The test was filtered with the `file_filter` argument.
     Filtered,
     /// The test failed.
-    Errored {
-        /// Command that failed
-        command: Command,
-        /// The errors that were encountered.
-        errors: Vec<Error>,
-        /// The full stderr of the test run.
-        stderr: Vec<u8>,
-    },
+    Errored(Errored),
+}
+
+/// Information about a test failure.
+pub struct Errored {
+    /// Command that failed
+    command: Command,
+    /// The errors that were encountered.
+    errors: Vec<Error>,
+    /// The full stderr of the test run.
+    stderr: Vec<u8>,
 }
 
 struct TestRun {
@@ -265,7 +268,7 @@ pub fn run_tests_generic(
                     Ok(res) => res,
                     Err(err) => {
                         finished_files_sender.send(TestRun {
-                            result: TestResult::Errored {
+                            result: TestResult::Errored(Errored {
                                 command: Command::new("<unknown>"),
                                 errors: vec![Error::Bug(
                                     *Box::<dyn std::any::Any + Send + 'static>::downcast::<String>(
@@ -274,7 +277,7 @@ pub fn run_tests_generic(
                                     .unwrap(),
                                 )],
                                 stderr: vec![],
-                            },
+                            }),
                             status,
                         })?;
                         continue;
@@ -305,16 +308,20 @@ pub fn run_tests_generic(
             TestResult::Ok => succeeded += 1,
             TestResult::Ignored => ignored += 1,
             TestResult::Filtered => filtered += 1,
-            TestResult::Errored {
-                command,
-                errors,
-                stderr,
-            } => failures.push((run.status, command, errors, stderr)),
+            TestResult::Errored(errored) => failures.push((run.status, errored)),
         }
     }
 
     let mut failure_emitter = status_emitter.finalize(failures.len(), succeeded, ignored, filtered);
-    for (status, command, errors, stderr) in &failures {
+    for (
+        status,
+        Errored {
+            command,
+            errors,
+            stderr,
+        },
+    ) in &failures
+    {
         let _guard = status.failed_test(command, stderr);
         failure_emitter.test_failure(status, errors);
     }
@@ -368,11 +375,11 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun>
         Ok(comments) => comments,
         Err((stderr, errors)) => {
             return vec![TestRun {
-                result: TestResult::Errored {
+                result: TestResult::Errored(Errored {
                     command: Command::new("parse comments"),
                     errors,
                     stderr,
-                },
+                }),
                 status: status.for_revision(""),
             }]
         }
@@ -397,11 +404,11 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun>
             let result = if errors.is_empty() {
                 TestResult::Ok
             } else {
-                TestResult::Errored {
+                TestResult::Errored(Errored {
                     command,
                     errors,
                     stderr,
-                }
+                })
             };
             TestRun { result, status }
         })
