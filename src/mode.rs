@@ -1,5 +1,4 @@
 use super::Error;
-use super::Errors;
 use crate::parser::Comments;
 use crate::parser::MaybeWithLine;
 use crate::Errored;
@@ -28,22 +27,22 @@ pub enum Mode {
 }
 
 impl Mode {
-    pub(crate) fn ok(self, status: ExitStatus) -> Errors {
+    pub(crate) fn ok(self, status: ExitStatus) -> Result<(), Error> {
         let expected = match self {
             Mode::Run { exit_code } => exit_code,
             Mode::Pass => 0,
             Mode::Panic => 101,
             Mode::Fail { .. } => 1,
-            Mode::Yolo => return vec![],
+            Mode::Yolo => return Ok(()),
         };
         if status.code() == Some(expected) {
-            vec![]
+            Ok(())
         } else {
-            vec![Error::ExitStatus {
+            Err(Error::ExitStatus {
                 mode: self,
                 status,
                 expected,
-            }]
+            })
         }
     }
     pub(crate) fn maybe_override(

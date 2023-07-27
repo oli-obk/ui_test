@@ -548,24 +548,24 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
         .output()
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
     let mode: MaybeWithLine<Mode> = config.mode.maybe_override(comments, revision)?;
-    let status_check = mode.ok(output.status);
-    if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
+
+    if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_ok() {
         return run_test_binary(mode, path, revision, comments, cmd, config);
     }
-    let mut errors = vec![];
-    errors.extend(status_check);
+
     if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic | Mode::Yolo) {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
-        errors.push(Error::Bug(format!(
-            "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
-        )));
         return Err(Errored {
             command: cmd,
-            errors,
+            errors: vec![Error::Bug(format!(
+                "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
+            ))],
             stderr: vec![],
         });
     }
+    let mut errors = vec![];
+    errors.extend(mode.ok(output.status).err());
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
     let rustfixed = run_rustfix(
@@ -688,7 +688,7 @@ fn run_test_binary(
         &output.stderr,
     );
 
-    errors.extend(mode.ok(output.status));
+    errors.extend(mode.ok(output.status).err());
     if errors.is_empty() {
         Ok(TestOk::Ok)
     } else {
