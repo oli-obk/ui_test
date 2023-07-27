@@ -547,9 +547,10 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
     let output = cmd
         .output()
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
-    let (mode, mut errors) = config.mode.maybe_override(comments, revision);
+    let mode: MaybeWithLine<Mode> = config.mode.maybe_override(comments, revision)?;
     let status_check = mode.ok(output.status);
     if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
+        let mut errors = vec![];
         let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
         return if errors.is_empty() {
             Ok(TestOk::Ok)
@@ -561,6 +562,7 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
             })
         };
     }
+    let mut errors = vec![];
     errors.extend(status_check);
     if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic | Mode::Yolo) {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -593,7 +595,7 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
         &mut errors,
         &output.stdout,
         diagnostics,
-    );
+    )?;
     if let Some((mut rustfix, rustfix_path)) = rustfixed {
         // picking the crate name from the file name is problematic when `.revision_name` is inserted
         rustfix.arg("--crate-name").arg(
@@ -709,9 +711,8 @@ fn run_rustfix(
     extra_args: Vec<String>,
     errors: &mut Vec<Error>,
 ) -> Result<Option<(Command, PathBuf)>, Errored> {
-    let (no_run_rustfix, error) =
-        comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix);
-    errors.extend(error);
+    let no_run_rustfix =
+        comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)?;
 
     let fixed_code = (no_run_rustfix.is_none() && config.rustfix)
         .then_some(())
@@ -833,7 +834,7 @@ fn check_test_result(
     errors: &mut Errors,
     stdout: &[u8],
     diagnostics: Diagnostics,
-) -> Vec<u8> {
+) -> Result<Vec<u8>, Errored> {
     check_test_output(
         path,
         errors,
@@ -852,8 +853,8 @@ fn check_test_result(
         config,
         revision,
         comments,
-    );
-    diagnostics.rendered
+    )?;
+    Ok(diagnostics.rendered)
 }
 
 fn check_test_output(
@@ -897,7 +898,7 @@ fn check_annotations(
     config: &Config,
     revision: &str,
     comments: &Comments,
-) {
+) -> Result<(), Errored> {
     let error_patterns = comments
         .for_revision(revision)
         .flat_map(|r| r.error_in_other_files.iter());
@@ -951,12 +952,12 @@ fn check_annotations(
         errors.push(Error::PatternNotFound(pattern.clone()));
     }
 
-    let (required_annotation_level, error) = comments.find_one_for_revision(
+    let required_annotation_level = comments.find_one_for_revision(
         revision,
         "`require_annotations_for_level` annotations",
         |r| r.require_annotations_for_level,
-    );
-    errors.extend(error);
+    )?;
+
     let required_annotation_level =
         required_annotation_level.map_or(*lowest_annotation_level, |l| *l);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
@@ -964,8 +965,7 @@ fn check_annotations(
         msgs
     };
 
-    let (mode, error) = config.mode.maybe_override(comments, revision);
-    errors.extend(error);
+    let mode = config.mode.maybe_override(comments, revision)?;
 
     if !matches!(config.mode, Mode::Yolo) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
@@ -998,6 +998,7 @@ fn check_annotations(
         ) => errors.push(Error::NoPatternsFound),
         _ => {}
     }
+    Ok(())
 }
 
 fn check_output(
