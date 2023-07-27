@@ -177,9 +177,8 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
-    let mut errors = vec![];
-    let result = build_command(path, &config, "", &comments, &mut errors);
-    assert!(errors.is_empty(), "{errors:#?}");
+    let result = build_command(path, &config, "", &comments).unwrap();
+
     Ok(result)
 }
 
@@ -197,6 +196,7 @@ pub enum TestOk {
 pub type TestResult = Result<TestOk, Errored>;
 
 /// Information about a test failure.
+#[derive(Debug)]
 pub struct Errored {
     /// Command that failed
     command: Command,
@@ -422,8 +422,7 @@ fn build_command(
     config: &Config,
     revision: &str,
     comments: &Comments,
-    errors: &mut Vec<Error>,
-) -> Command {
+) -> Result<Command, Errored> {
     let mut cmd = config.program.build(&config.out_dir);
     cmd.arg(path);
     if !revision.is_empty() {
@@ -435,8 +434,8 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let (edition, error) = comments.edition(revision, config);
-    errors.extend(error);
+    let edition = comments.edition(revision, config)?;
+
     if let Some(edition) = edition {
         cmd.arg("--edition").arg(&*edition);
     }
@@ -448,7 +447,7 @@ fn build_command(
             .map(|(k, v)| (k, v)),
     );
 
-    cmd
+    Ok(cmd)
 }
 
 fn build_aux(
@@ -491,17 +490,7 @@ fn build_aux(
     // FIXME: put aux builds into the regular build queue.
     config.out_dir = config.out_dir.join(path.with_extension(""));
 
-    let mut errors = vec![];
-
-    let mut aux_cmd = build_command(aux_file, &config, revision, &comments, &mut errors);
-
-    if !errors.is_empty() {
-        return Err(Errored {
-            command: aux_cmd,
-            errors,
-            stderr: vec![],
-        });
-    }
+    let mut aux_cmd = build_command(aux_file, &config, revision, &comments)?;
 
     let current_extra_args =
         build_aux_files(aux_file, aux_file.parent().unwrap(), &comments, "", &config)?;
@@ -552,16 +541,13 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
         config,
     )?;
 
-    let mut errors = vec![];
-
-    let mut cmd = build_command(path, config, revision, comments, &mut errors);
+    let mut cmd = build_command(path, config, revision, comments)?;
     cmd.args(&extra_args);
 
     let output = cmd
         .output()
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
-    let (mode, error) = config.mode.maybe_override(comments, revision);
-    errors.extend(error);
+    let (mode, mut errors) = config.mode.maybe_override(comments, revision);
     let status_check = mode.ok(output.status);
     if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
         let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
@@ -598,7 +584,7 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
         config,
         extra_args,
         &mut errors,
-    );
+    )?;
     let stderr = check_test_result(
         path,
         config,
@@ -722,7 +708,7 @@ fn run_rustfix(
     config: &Config,
     extra_args: Vec<String>,
     errors: &mut Vec<Error>,
-) -> Option<(Command, PathBuf)> {
+) -> Result<Option<(Command, PathBuf)>, Errored> {
     let (no_run_rustfix, error) =
         comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix);
     errors.extend(error);
@@ -768,8 +754,7 @@ fn run_rustfix(
             Some(fixed_code)
         });
 
-    let (edition, error) = comments.edition(revision, config);
-    errors.extend(error);
+    let edition = comments.edition(revision, config)?;
     let edition = edition
         .map(|mwl| {
             let line = mwl.line().unwrap_or(NonZeroUsize::MAX);
@@ -825,10 +810,11 @@ fn run_rustfix(
     );
 
     run.then(|| {
-        let mut cmd = build_command(&path, config, revision, &rustfix_comments, errors);
+        let mut cmd = build_command(&path, config, revision, &rustfix_comments)?;
         cmd.args(extra_args);
-        (cmd, path)
+        Ok((cmd, path))
     })
+    .transpose()
 }
 
 fn revised(revision: &str, extension: &str) -> String {

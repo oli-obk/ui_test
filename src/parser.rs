@@ -2,12 +2,13 @@ use std::{
     collections::HashMap,
     num::NonZeroUsize,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error, Errors, Mode};
+use crate::{rustc_stderr::Level, Error, Errored, Errors, Mode};
 
 use color_eyre::eyre::{Context, Result};
 
@@ -71,14 +72,22 @@ impl Comments {
         &self,
         revision: &str,
         config: &crate::Config,
-    ) -> (Option<MaybeWithLine<String>>, Errors) {
+    ) -> Result<Option<MaybeWithLine<String>>, Errored> {
         let (edition, errors) =
             self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone());
         let edition = edition
             .into_inner()
             .map(MaybeWithLine::from)
             .or(config.edition.clone().map(MaybeWithLine::new_config));
-        (edition, errors)
+        if errors.is_empty() {
+            Ok(edition)
+        } else {
+            Err(Errored {
+                command: Command::new("<checking edition annotations of test>"),
+                errors,
+                stderr: vec![],
+            })
+        }
     }
 }
 
