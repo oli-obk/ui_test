@@ -400,16 +400,7 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun>
                     status,
                 };
             }
-            let (command, errors, stderr) = run_test(status.path(), config, &revision, &comments);
-            let result = if errors.is_empty() {
-                Ok(TestOk::Ok)
-            } else {
-                Err(Errored {
-                    command,
-                    errors,
-                    stderr,
-                })
-            };
+            let result = run_test(status.path(), config, &revision, &comments);
             TestRun { result, status }
         })
         .collect()
@@ -465,15 +456,15 @@ fn build_aux(
     comments: &Comments,
     aux: &Path,
     extra_args: &mut Vec<String>,
-) -> std::result::Result<(), (Command, Vec<Error>, Vec<u8>)> {
+) -> std::result::Result<(), Errored> {
     let comments = match parse_comments_in_file(aux_file) {
         Ok(comments) => comments,
         Err((msg, mut errors)) => {
-            return Err((
-                build_command(path, config, revision, comments, &mut errors),
+            return Err(Errored {
+                command: build_command(path, config, revision, comments, &mut errors),
                 errors,
-                msg,
-            ))
+                stderr: msg,
+            })
         }
     };
     assert_eq!(comments.revisions, None);
@@ -512,7 +503,11 @@ fn build_aux(
     let mut aux_cmd = build_command(aux_file, &config, revision, &comments, &mut errors);
 
     if !errors.is_empty() {
-        return Err((aux_cmd, errors, vec![]));
+        return Err(Errored {
+            command: aux_cmd,
+            errors,
+            stderr: vec![],
+        });
     }
 
     let current_extra_args =
@@ -530,11 +525,11 @@ fn build_aux(
             kind: "compilation of aux build failed".to_string(),
             status: output.status,
         };
-        return Err((
-            aux_cmd,
-            vec![error],
-            rustc_stderr::process(path, &output.stderr).rendered,
-        ));
+        return Err(Errored {
+            command: aux_cmd,
+            errors: vec![error],
+            stderr: rustc_stderr::process(path, &output.stderr).rendered,
+        });
     }
 
     // Now run the command again to fetch the output filenames
@@ -555,22 +550,14 @@ fn build_aux(
     Ok(())
 }
 
-fn run_test(
-    path: &Path,
-    config: &Config,
-    revision: &str,
-    comments: &Comments,
-) -> (Command, Errors, Vec<u8>) {
-    let extra_args = match build_aux_files(
+fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -> TestResult {
+    let extra_args = build_aux_files(
         path,
         &path.parent().unwrap().join("auxiliary"),
         comments,
         revision,
         config,
-    ) {
-        Ok(value) => value,
-        Err(value) => return value,
-    };
+    )?;
 
     let mut errors = vec![];
 
@@ -585,7 +572,15 @@ fn run_test(
     let status_check = mode.ok(output.status);
     if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
         let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
-        return (cmd, errors, vec![]);
+        return if errors.is_empty() {
+            Ok(TestOk::Ok)
+        } else {
+            Err(Errored {
+                command: cmd,
+                errors,
+                stderr: vec![],
+            })
+        };
     }
     errors.extend(status_check);
     if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic | Mode::Yolo) {
@@ -594,7 +589,11 @@ fn run_test(
         errors.push(Error::Bug(format!(
             "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
         )));
-        return (cmd, errors, vec![]);
+        return Err(Errored {
+            command: cmd,
+            errors,
+            stderr: vec![],
+        });
     }
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
@@ -631,14 +630,22 @@ fn run_test(
                 kind: "rustfix".into(),
                 status: output.status,
             });
-            return (
-                rustfix,
+            return Err(Errored {
+                command: rustfix,
                 errors,
-                rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
-            );
+                stderr: rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
+            });
         }
     }
-    (cmd, errors, stderr)
+    if errors.is_empty() {
+        Ok(TestOk::Ok)
+    } else {
+        Err(Errored {
+            command: cmd,
+            errors,
+            stderr,
+        })
+    }
 }
 
 fn build_aux_files(
@@ -647,7 +654,7 @@ fn build_aux_files(
     comments: &Comments,
     revision: &str,
     config: &Config,
-) -> Result<Vec<String>, (Command, Vec<Error>, Vec<u8>)> {
+) -> Result<Vec<String>, Errored> {
     let mut extra_args = vec![];
     for rev in comments.for_revision(revision) {
         for aux in &rev.aux_builds {
@@ -658,7 +665,11 @@ fn build_aux_files(
             } else {
                 aux_dir.join(aux)
             };
-            if let Err((command, errors, msg)) = build_aux(
+            if let Err(Errored {
+                command,
+                errors,
+                stderr,
+            }) = build_aux(
                 &aux_file,
                 path,
                 config,
@@ -667,15 +678,15 @@ fn build_aux_files(
                 aux,
                 &mut extra_args,
             ) {
-                return Err((
+                return Err(Errored {
                     command,
-                    vec![Error::Aux {
+                    errors: vec![Error::Aux {
                         path: aux_file,
                         errors,
                         line,
                     }],
-                    msg,
-                ));
+                    stderr,
+                });
             }
         }
     }
