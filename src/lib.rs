@@ -550,17 +550,7 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
     let mode: MaybeWithLine<Mode> = config.mode.maybe_override(comments, revision)?;
     let status_check = mode.ok(output.status);
     if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_empty() {
-        let mut errors = vec![];
-        let cmd = run_test_binary(mode, path, revision, comments, cmd, config, &mut errors);
-        return if errors.is_empty() {
-            Ok(TestOk::Ok)
-        } else {
-            Err(Errored {
-                command: cmd,
-                errors,
-                stderr: vec![],
-            })
-        };
+        return run_test_binary(mode, path, revision, comments, cmd, config);
     }
     let mut errors = vec![];
     errors.extend(status_check);
@@ -673,8 +663,7 @@ fn run_test_binary(
     comments: &Comments,
     mut cmd: Command,
     config: &Config,
-    errors: &mut Vec<Error>,
-) -> Command {
+) -> TestResult {
     cmd.arg("--print").arg("file-names");
     let output = cmd.output().unwrap();
     assert!(output.status.success());
@@ -687,9 +676,11 @@ fn run_test_binary(
     let mut exe = Command::new(exe);
     let output = exe.output().unwrap();
 
+    let mut errors = vec![];
+
     check_test_output(
         path,
-        errors,
+        &mut errors,
         revision,
         config,
         comments,
@@ -698,8 +689,15 @@ fn run_test_binary(
     );
 
     errors.extend(mode.ok(output.status));
-
-    exe
+    if errors.is_empty() {
+        Ok(TestOk::Ok)
+    } else {
+        Err(Errored {
+            command: exe,
+            errors,
+            stderr: vec![],
+        })
+    }
 }
 
 fn run_rustfix(
