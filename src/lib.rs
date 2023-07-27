@@ -265,7 +265,14 @@ pub fn run_tests_generic(
                 };
                 let result = match std::panic::catch_unwind(|| parse_and_test_file(&status, config))
                 {
-                    Ok(res) => res,
+                    Ok(Ok(res)) => res,
+                    Ok(Err(err)) => {
+                        finished_files_sender.send(TestRun {
+                            result: Err(err),
+                            status,
+                        })?;
+                        continue;
+                    }
                     Err(err) => {
                         finished_files_sender.send(TestRun {
                             result: Err(Errored {
@@ -370,26 +377,14 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
     })
 }
 
-fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun> {
-    let comments = match parse_comments_in_file(status.path()) {
-        Ok(comments) => comments,
-        Err((stderr, errors)) => {
-            return vec![TestRun {
-                result: Err(Errored {
-                    command: Command::new("parse comments"),
-                    errors,
-                    stderr,
-                }),
-                status: status.for_revision(""),
-            }]
-        }
-    };
+fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Result<Vec<TestRun>, Errored> {
+    let comments = parse_comments_in_file(status.path())?;
     // Run the test for all revisions
     let revisions = comments
         .revisions
         .clone()
         .unwrap_or_else(|| vec![String::new()]);
-    revisions
+    Ok(revisions
         .into_iter()
         .map(|revision| {
             let status = status.for_revision(&revision);
@@ -403,14 +398,22 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Vec<TestRun>
             let result = run_test(status.path(), config, &revision, &comments);
             TestRun { result, status }
         })
-        .collect()
+        .collect())
 }
 
-fn parse_comments_in_file(path: &Path) -> Result<Comments, (Vec<u8>, Vec<Error>)> {
+fn parse_comments_in_file(path: &Path) -> Result<Comments, Errored> {
     match Comments::parse_file(path) {
         Ok(Ok(comments)) => Ok(comments),
-        Ok(Err(errors)) => Err((vec![], errors)),
-        Err(err) => Err((format!("{err:?}").into(), vec![])),
+        Ok(Err(errors)) => Err(Errored {
+            command: Command::new("parse comments"),
+            errors,
+            stderr: vec![],
+        }),
+        Err(err) => Err(Errored {
+            command: Command::new("parse comments"),
+            errors: vec![],
+            stderr: format!("{err:?}").into(),
+        }),
     }
 }
 
@@ -456,16 +459,7 @@ fn build_aux(
     aux: &Path,
     extra_args: &mut Vec<String>,
 ) -> std::result::Result<(), Errored> {
-    let comments = match parse_comments_in_file(aux_file) {
-        Ok(comments) => comments,
-        Err((msg, errors)) => {
-            return Err(Errored {
-                command: Command::new("parse comments"),
-                errors,
-                stderr: msg,
-            })
-        }
-    };
+    let comments = parse_comments_in_file(aux_file)?;
     assert_eq!(comments.revisions, None);
 
     let mut config = config.clone();
