@@ -577,15 +577,14 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
         &output.stdout,
         diagnostics,
     )?;
-    let rustfixed = run_rustfix(
-        &output.stderr,
-        path,
-        comments,
-        revision,
-        config,
-        extra_args,
-        &mut errors,
-    )?;
+    if !errors.is_empty() {
+        return Err(Errored {
+            command: cmd,
+            errors,
+            stderr,
+        });
+    }
+    let rustfixed = run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
     if let Some((mut rustfix, rustfix_path)) = rustfixed {
         // picking the crate name from the file name is problematic when `.revision_name` is inserted
         rustfix.arg("--crate-name").arg(
@@ -597,26 +596,17 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
         );
         let output = rustfix.output().unwrap();
         if !output.status.success() {
-            errors.push(Error::Command {
-                kind: "rustfix".into(),
-                status: output.status,
-            });
             return Err(Errored {
                 command: rustfix,
-                errors,
+                errors: vec![Error::Command {
+                    kind: "rustfix".into(),
+                    status: output.status,
+                }],
                 stderr: rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
             });
         }
     }
-    if errors.is_empty() {
-        Ok(TestOk::Ok)
-    } else {
-        Err(Errored {
-            command: cmd,
-            errors,
-            stderr,
-        })
-    }
+    Ok(TestOk::Ok)
 }
 
 fn build_aux_files(
@@ -707,7 +697,6 @@ fn run_rustfix(
     revision: &str,
     config: &Config,
     extra_args: Vec<String>,
-    errors: &mut Vec<Error>,
 ) -> Result<Option<(Command, PathBuf)>, Errored> {
     let no_run_rustfix =
         comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)?;
@@ -737,21 +726,20 @@ fn run_rustfix(
                 })
                 .collect::<Vec<_>>();
             if suggestions.is_empty() {
-                return None;
+                None
+            } else {
+                Some(rustfix::apply_suggestions(
+                    &std::fs::read_to_string(path).unwrap(),
+                    &suggestions,
+                ))
             }
-
-            let fixed_code = match rustfix::apply_suggestions(
-                &std::fs::read_to_string(path).unwrap(),
-                &suggestions,
-            ) {
-                Ok(fixed_code) => fixed_code,
-                Err(e) => {
-                    errors.push(Error::Rustfix(e));
-                    return None;
-                }
-            };
-            Some(fixed_code)
-        });
+        })
+        .transpose()
+        .map_err(|err| Errored {
+            command: Command::new(format!("rustfix {}", path.display())),
+            errors: vec![Error::Rustfix(err)],
+            stderr: stderr.into(),
+        })?;
 
     let edition = comments.edition(revision, config)?;
     let edition = edition
@@ -795,18 +783,26 @@ fn run_rustfix(
     };
 
     let run = fixed_code.is_some();
+    let mut errors = vec![];
     let path = check_output(
         // Always check for `.fixed` files, even if there were reasons not to run rustfix.
         // We don't want to leave around stray `.fixed` files
         fixed_code.unwrap_or_default().as_bytes(),
         path,
-        errors,
+        &mut errors,
         revised(revision, "fixed"),
         &Filter::default(),
         config,
         &rustfix_comments,
         revision,
     );
+    if !errors.is_empty() {
+        return Err(Errored {
+            command: Command::new(format!("checking {}", path.display())),
+            errors,
+            stderr: vec![],
+        });
+    }
 
     run.then(|| {
         let mut cmd = build_command(&path, config, revision, &rustfix_comments)?;
