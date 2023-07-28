@@ -2,12 +2,13 @@ use std::{
     collections::HashMap,
     num::NonZeroUsize,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error, Errors, Mode};
+use crate::{rustc_stderr::Level, Error, Errored, Mode};
 
 use color_eyre::eyre::{Context, Result};
 
@@ -38,7 +39,7 @@ impl Comments {
         revision: &'a str,
         kind: &str,
         f: impl Fn(&'a Revisioned) -> OptWithLine<T>,
-    ) -> (OptWithLine<T>, Errors) {
+    ) -> Result<OptWithLine<T>, Errored> {
         let mut result = None;
         let mut errors = vec![];
         for rev in self.for_revision(revision) {
@@ -53,7 +54,15 @@ impl Comments {
                 }
             }
         }
-        (result.into(), errors)
+        if errors.is_empty() {
+            Ok(result.into())
+        } else {
+            Err(Errored {
+                command: Command::new(format!("<finding flags for revision `{revision}`>")),
+                errors,
+                stderr: vec![],
+            })
+        }
     }
 
     /// Returns an iterator over all revisioned comments that match the revision.
@@ -71,14 +80,14 @@ impl Comments {
         &self,
         revision: &str,
         config: &crate::Config,
-    ) -> (Option<MaybeWithLine<String>>, Errors) {
-        let (edition, errors) =
-            self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone());
+    ) -> Result<Option<MaybeWithLine<String>>, Errored> {
+        let edition =
+            self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
         let edition = edition
             .into_inner()
             .map(MaybeWithLine::from)
             .or(config.edition.clone().map(MaybeWithLine::new_config));
-        (edition, errors)
+        Ok(edition)
     }
 }
 

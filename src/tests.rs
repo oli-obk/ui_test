@@ -42,7 +42,8 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
         [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern { path, .. }]
             if path.as_ref().is_some_and(|p| p.line().get() == 5) && pattern.line().get() == 5 => {}
@@ -78,7 +79,8 @@ fn main() {
             &config,
             "",
             &comments,
-        );
+        )
+        .unwrap();
         match &errors[..] {
             [] => {}
             _ => panic!("{:#?}", errors),
@@ -103,7 +105,8 @@ fn main() {
             &config,
             "",
             &comments,
-        );
+        )
+        .unwrap();
         match &errors[..] {
             [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern { path, .. }]
                 if path.as_ref().is_some_and(|p| p.line().get() == 4)
@@ -132,7 +135,8 @@ fn main() {
             &config,
             "",
             &comments,
-        );
+        )
+        .unwrap();
         match &errors[..] {
             // Note no `ErrorsWithoutPattern`, because there are no `//~NOTE` in the test file, so we ignore them
             [Error::PatternNotFound(pattern)] if pattern.line().get() == 5 => {}
@@ -171,7 +175,8 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
         [Error::PatternNotFound(pattern)] if pattern.line().get() == 6 => {}
         _ => panic!("{:#?}", errors),
@@ -211,7 +216,8 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
         [Error::ErrorsWithoutPattern { path, .. }]
             if path.as_ref().is_some_and(|p| p.line().get() == 5) => {}
@@ -261,7 +267,8 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
         [Error::ErrorsWithoutPattern { path, msgs, .. }]
             if path.as_ref().is_some_and(|p| p.line().get() == 5) =>
@@ -320,7 +327,8 @@ fn main() {
         &config,
         "",
         &comments,
-    );
+    )
+    .unwrap();
     match &errors[..] {
         [] => {}
         _ => panic!("{:#?}", errors),

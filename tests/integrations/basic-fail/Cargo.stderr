@@ -5,18 +5,11 @@ tests/actual_tests/executable_compile_err.rs ... FAILED
 tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
+tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
-
-actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern.fixed` to the actual output
---- tests/actual_tests/bad_pattern.fixed
-+++ <stderr output>
--this is just a test file showing that
--stray .fixed files are detected and blessed away
-
 
 substring `miesmätsched types` not found in stderr output
 expected because of pattern here: tests/actual_tests/bad_pattern.rs:5
@@ -167,6 +160,21 @@ For more information about this error, try `rustc --explain E0308`.
 
 
 
+tests/actual_tests/foomp2.rs FAILED:
+command: "$CMD"
+
+actual output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.fixed` to the actual output
+--- tests/actual_tests/foomp2.fixed
++++ <stderr output>
+-this is just a test file showing that
+-stray .fixed files are detected and blessed away
+
+
+full stderr:
+
+
+
 tests/actual_tests/pattern_too_many_arrow.rs FAILED:
 command: "parse comments"
 
@@ -183,9 +191,10 @@ FAILURES:
     tests/actual_tests/exit_code_fail.rs
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
+    tests/actual_tests/foomp2.rs
     tests/actual_tests/pattern_too_many_arrow.rs
 
-test result: FAIL. 7 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 8 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
@@ -601,6 +610,8 @@ tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
 thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp.rs" "--edition" "2021": No such file or directory', $DIR/src/lib.rs
 tests/actual_tests/foomp.rs ... FAILED
+thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp2.rs" "--edition" "2021": No such file or directory', $DIR/src/lib.rs
+tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
@@ -658,6 +669,15 @@ full stderr:
 
 
 
+tests/actual_tests/foomp2.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/foomp2.rs" "--edition" "2021": No such file or directory
+
+full stderr:
+
+
+
 tests/actual_tests/pattern_too_many_arrow.rs FAILED:
 command: "parse comments"
 
@@ -674,9 +694,10 @@ FAILURES:
     tests/actual_tests/exit_code_fail.rs
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
+    tests/actual_tests/foomp2.rs
     tests/actual_tests/pattern_too_many_arrow.rs
 
-test result: FAIL. 7 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 8 tests failed, 0 tests passed, 0 ignored, 0 filtered out
 Error: tests failed
 
 Location:
