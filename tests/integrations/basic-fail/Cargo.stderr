@@ -10,6 +10,12 @@ tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 tests/actual_tests/bad_pattern.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
+substring `miesmätsched types` not found in stderr output
+expected because of pattern here: tests/actual_tests/bad_pattern.rs:5
+
+There were 1 unmatched diagnostics at tests/actual_tests/bad_pattern.rs:4
+    Error: mismatched types
+
 actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern.fixed` to the actual output
 --- tests/actual_tests/bad_pattern.fixed
@@ -17,12 +23,6 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ba
 -this is just a test file showing that
 -stray .fixed files are detected and blessed away
 
-
-substring `miesmätsched types` not found in stderr output
-expected because of pattern here: tests/actual_tests/bad_pattern.rs:5
-
-There were 1 unmatched diagnostics at tests/actual_tests/bad_pattern.rs:4
-    Error: mismatched types
 
 full stderr:
 error[E0308]: mismatched types

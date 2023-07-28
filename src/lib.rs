@@ -568,15 +568,6 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
     errors.extend(mode.ok(output.status).err());
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
-    let rustfixed = run_rustfix(
-        &output.stderr,
-        path,
-        comments,
-        revision,
-        config,
-        extra_args,
-        &mut errors,
-    )?;
     let stderr = check_test_result(
         path,
         config,
@@ -585,6 +576,15 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
         &mut errors,
         &output.stdout,
         diagnostics,
+    )?;
+    let rustfixed = run_rustfix(
+        &output.stderr,
+        path,
+        comments,
+        revision,
+        config,
+        extra_args,
+        &mut errors,
     )?;
     if let Some((mut rustfix, rustfix_path)) = rustfixed {
         // picking the crate name from the file name is problematic when `.revision_name` is inserted
