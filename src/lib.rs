@@ -568,25 +568,18 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
     errors.extend(mode.ok(output.status).err());
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
-    let stderr = check_test_result(
+    check_test_result(
+        cmd,
         path,
         config,
         revision,
         comments,
-        &mut errors,
+        errors,
         &output.stdout,
         diagnostics,
     )?;
-    if errors.is_empty() {
-        run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
-        Ok(TestOk::Ok)
-    } else {
-        Err(Errored {
-            command: cmd,
-            errors,
-            stderr,
-        })
-    }
+    run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
+    Ok(TestOk::Ok)
 }
 
 fn build_aux_files(
@@ -822,17 +815,18 @@ fn revised(revision: &str, extension: &str) -> String {
 }
 
 fn check_test_result(
+    command: Command,
     path: &Path,
     config: &Config,
     revision: &str,
     comments: &Comments,
-    errors: &mut Errors,
+    mut errors: Errors,
     stdout: &[u8],
     diagnostics: Diagnostics,
-) -> Result<Vec<u8>, Errored> {
+) -> Result<(), Errored> {
     check_test_output(
         path,
-        errors,
+        &mut errors,
         revision,
         config,
         comments,
@@ -844,12 +838,20 @@ fn check_test_result(
         diagnostics.messages,
         diagnostics.messages_from_unknown_file_or_line,
         path,
-        errors,
+        &mut errors,
         config,
         revision,
         comments,
     )?;
-    Ok(diagnostics.rendered)
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(Errored {
+            command,
+            errors,
+            stderr: diagnostics.rendered,
+        })
+    }
 }
 
 fn check_test_output(
