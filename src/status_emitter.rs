@@ -47,6 +47,9 @@ pub trait TestStatus: Send + Sync + RefUnwindSafe {
     /// gets invoked afterwards.
     fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a>;
 
+    /// Change the status of the test while it is running to supply some kind of progress
+    fn update_status(&self, msg: String);
+
     /// A test has finished, handle the result immediately.
     fn done(&self, _result: &TestResult) {}
 
@@ -79,6 +82,7 @@ enum Msg {
     Inc,
     IncLength,
     Finish,
+    Status(String, String),
 }
 
 impl Text {
@@ -100,6 +104,12 @@ impl Text {
                                 } else {
                                     spinner.finish_and_clear();
                                 }
+                            }
+                            Msg::Status(msg, status) => {
+                                threads
+                                    .get_mut(&msg)
+                                    .unwrap()
+                                    .set_message(format!("{msg} {status}"));
                             }
                             Msg::Push(msg) => {
                                 let spinner =
@@ -189,6 +199,10 @@ impl TestStatus for TextTest {
                 self.text.sender.send(Msg::Pop(old_msg, Some(msg))).unwrap();
             }
         }
+    }
+
+    fn update_status(&self, msg: String) {
+        self.text.sender.send(Msg::Status(self.msg(), msg)).unwrap();
     }
 
     fn failed_test<'a>(&self, cmd: &Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
@@ -605,6 +619,8 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
     fn revision(&self) -> &str {
         &self.revision
     }
+
+    fn update_status(&self, _msg: String) {}
 }
 
 impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
@@ -708,6 +724,11 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
             self.1.for_revision(revision),
         ))
     }
+
+    fn update_status(&self, msg: String) {
+        self.0.update_status(msg.clone());
+        self.1.update_status(msg)
+    }
 }
 
 impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
@@ -751,6 +772,10 @@ impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
 
     fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
         (**self).failed_test(cmd, stderr)
+    }
+
+    fn update_status(&self, msg: String) {
+        (**self).update_status(msg)
     }
 }
 
