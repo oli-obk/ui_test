@@ -17,13 +17,13 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
 use regex::bytes::{Captures, Regex};
-use rustc_stderr::{Diagnostics, Level, Message};
+use rustc_stderr::{Level, Message};
 use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output};
 use std::thread;
 
 use crate::parser::{Comments, Condition};
@@ -564,20 +564,7 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
             stderr: vec![],
         });
     }
-    let mut errors = vec![];
-    errors.extend(mode.ok(output.status).err());
-    // Always remove annotation comments from stderr.
-    let diagnostics = rustc_stderr::process(path, &output.stderr);
-    check_test_result(
-        cmd,
-        path,
-        config,
-        revision,
-        comments,
-        errors,
-        &output.stdout,
-        diagnostics,
-    )?;
+    check_test_result(cmd, *mode, path, config, revision, comments, &output)?;
     run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
     Ok(TestOk::Ok)
 }
@@ -816,21 +803,24 @@ fn revised(revision: &str, extension: &str) -> String {
 
 fn check_test_result(
     command: Command,
+    mode: Mode,
     path: &Path,
     config: &Config,
     revision: &str,
     comments: &Comments,
-    mut errors: Errors,
-    stdout: &[u8],
-    diagnostics: Diagnostics,
+    output: &Output,
 ) -> Result<(), Errored> {
+    let mut errors = vec![];
+    errors.extend(mode.ok(output.status).err());
+    // Always remove annotation comments from stderr.
+    let diagnostics = rustc_stderr::process(path, &output.stderr);
     check_test_output(
         path,
         &mut errors,
         revision,
         config,
         comments,
-        stdout,
+        &output.stdout,
         &diagnostics.rendered,
     );
     // Check error annotations in the source against output
