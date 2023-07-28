@@ -549,20 +549,24 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
     let mode: MaybeWithLine<Mode> = config.mode.maybe_override(comments, revision)?;
 
-    if matches!(*mode, Mode::Run { .. }) && Mode::Pass.ok(output.status).is_ok() {
-        return run_test_binary(mode, path, revision, comments, cmd, config);
-    }
-
-    if output.status.code() == Some(101) && !matches!(config.mode, Mode::Panic | Mode::Yolo) {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        return Err(Errored {
-            command: cmd,
-            errors: vec![Error::Bug(format!(
-                "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
-            ))],
-            stderr: vec![],
-        });
+    match *mode {
+        Mode::Run { .. } if Mode::Pass.ok(output.status).is_ok() => {
+            return run_test_binary(mode, path, revision, comments, cmd, config)
+        }
+        Mode::Panic | Mode::Yolo => {}
+        Mode::Run { .. } | Mode::Pass | Mode::Fail { .. } => {
+            if output.status.code() == Some(101) {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                return Err(Errored {
+                    command: cmd,
+                    errors: vec![Error::Bug(format!(
+                        "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
+                    ))],
+                    stderr: vec![],
+                });
+            }
+        }
     }
     check_test_result(cmd, *mode, path, config, revision, comments, &output)?;
     run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
