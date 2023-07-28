@@ -577,15 +577,16 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
         &output.stdout,
         diagnostics,
     )?;
-    if !errors.is_empty() {
-        return Err(Errored {
+    if errors.is_empty() {
+        run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
+        Ok(TestOk::Ok)
+    } else {
+        Err(Errored {
             command: cmd,
             errors,
             stderr,
-        });
+        })
     }
-    run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
-    Ok(TestOk::Ok)
 }
 
 fn build_aux_files(
