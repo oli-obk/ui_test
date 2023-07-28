@@ -41,11 +41,14 @@ pub trait StatusEmitter: Sync {
 /// Information about a specific test run.
 pub trait TestStatus: Send + Sync + RefUnwindSafe {
     /// Create a copy of this test for a new revision.
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus>;
+    fn for_revision(&self, revision: String) -> Box<dyn TestStatus>;
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
     /// gets invoked afterwards.
     fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a>;
+
+    /// Change the status of the test while it is running to supply some kind of progress
+    fn update_status(&self, msg: String);
 
     /// A test has finished, handle the result immediately.
     fn done(&self, _result: &TestResult) {}
@@ -79,6 +82,7 @@ enum Msg {
     Inc,
     IncLength,
     Finish,
+    Status(String, String),
 }
 
 impl Text {
@@ -100,6 +104,12 @@ impl Text {
                                 } else {
                                     spinner.finish_and_clear();
                                 }
+                            }
+                            Msg::Status(msg, status) => {
+                                threads
+                                    .get_mut(&msg)
+                                    .unwrap()
+                                    .set_message(format!("{msg} {status}"));
                             }
                             Msg::Push(msg) => {
                                 let spinner =
@@ -191,6 +201,10 @@ impl TestStatus for TextTest {
         }
     }
 
+    fn update_status(&self, msg: String) {
+        self.text.sender.send(Msg::Status(self.msg(), msg)).unwrap();
+    }
+
     fn failed_test<'a>(&self, cmd: &Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
         eprintln!();
         let path = self.path.display().to_string();
@@ -223,7 +237,7 @@ impl TestStatus for TextTest {
         &self.path
     }
 
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+    fn for_revision(&self, revision: String) -> Box<dyn TestStatus> {
         assert_eq!(self.revision, "");
         if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) && self.text.progress {
             self.text.sender.send(Msg::IncLength).unwrap();
@@ -232,7 +246,7 @@ impl TestStatus for TextTest {
         let text = Self {
             text: self.text.clone(),
             path: self.path.clone(),
-            revision: revision.to_owned(),
+            revision,
             first: AtomicBool::new(false),
         };
         self.text.sender.send(Msg::Push(text.msg())).unwrap();
@@ -582,11 +596,11 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
         &self.path
     }
 
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+    fn for_revision(&self, revision: String) -> Box<dyn TestStatus> {
         assert_eq!(self.revision, "");
         Box::new(Self {
             path: self.path.clone(),
-            revision: revision.to_owned(),
+            revision,
         })
     }
 
@@ -605,6 +619,8 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
     fn revision(&self) -> &str {
         &self.revision
     }
+
+    fn update_status(&self, _msg: String) {}
 }
 
 impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
@@ -702,8 +718,16 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
         rev
     }
 
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
-        Box::new((self.0.for_revision(revision), self.1.for_revision(revision)))
+    fn for_revision(&self, revision: String) -> Box<dyn TestStatus> {
+        Box::new((
+            self.0.for_revision(revision.clone()),
+            self.1.for_revision(revision),
+        ))
+    }
+
+    fn update_status(&self, msg: String) {
+        self.0.update_status(msg.clone());
+        self.1.update_status(msg)
     }
 }
 
@@ -742,12 +766,16 @@ impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
         (**self).revision()
     }
 
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+    fn for_revision(&self, revision: String) -> Box<dyn TestStatus> {
         (**self).for_revision(revision)
     }
 
     fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
         (**self).failed_test(cmd, stderr)
+    }
+
+    fn update_status(&self, msg: String) {
+        (**self).update_status(msg)
     }
 }
 

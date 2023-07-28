@@ -16,6 +16,7 @@ use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
+use read_helper::ReadHelper;
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Level, Message};
 use status_emitter::{StatusEmitter, TestStatus};
@@ -23,8 +24,9 @@ use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Command, ExitStatus, Stdio};
 use std::thread;
+use std::time::Duration;
 
 use crate::parser::{Comments, Condition};
 
@@ -36,6 +38,7 @@ mod error;
 pub mod github_actions;
 mod mode;
 mod parser;
+mod read_helper;
 mod rustc_stderr;
 pub mod status_emitter;
 #[cfg(test)]
@@ -387,15 +390,15 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Result<Vec<T
     Ok(revisions
         .into_iter()
         .map(|revision| {
-            let status = status.for_revision(&revision);
+            let status = status.for_revision(revision);
             // Ignore file if only/ignore rules do (not) apply
-            if !test_file_conditions(&comments, config, &revision) {
+            if !status.test_file_conditions(&comments, config) {
                 return TestRun {
                     result: Ok(TestOk::Ignored),
                     status,
                 };
             }
-            let result = run_test(status.path(), config, &revision, &comments);
+            let result = status.run_test(config, &comments);
             TestRun { result, status }
         })
         .collect())
@@ -532,45 +535,87 @@ fn build_aux(
     Ok(())
 }
 
-fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -> TestResult {
-    let extra_args = build_aux_files(
-        path,
-        &path.parent().unwrap().join("auxiliary"),
-        comments,
-        revision,
-        config,
-    )?;
+impl dyn TestStatus {
+    fn run_test(&self, config: &Config, comments: &Comments) -> TestResult {
+        let path = self.path();
+        let revision = self.revision();
+        let extra_args = build_aux_files(
+            path,
+            &path.parent().unwrap().join("auxiliary"),
+            comments,
+            revision,
+            config,
+        )?;
 
-    let mut cmd = build_command(path, config, revision, comments)?;
-    cmd.args(&extra_args);
+        let mut cmd = build_command(path, config, revision, comments)?;
+        cmd.args(&extra_args);
 
-    let output = cmd
-        .output()
-        .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
-    let mode = config.mode.maybe_override(comments, revision)?;
+        let (status, stderr, stdout) = self.run_command(&mut cmd);
 
-    match *mode {
-        Mode::Run { .. } if Mode::Pass.ok(output.status).is_ok() => {
-            return run_test_binary(mode, path, revision, comments, cmd, config)
-        }
-        Mode::Panic | Mode::Yolo => {}
-        Mode::Run { .. } | Mode::Pass | Mode::Fail { .. } => {
-            if output.status.code() == Some(101) {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                return Err(Errored {
-                    command: cmd,
-                    errors: vec![Error::Bug(format!(
-                        "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
-                    ))],
-                    stderr: vec![],
-                });
+        let mode = config.mode.maybe_override(comments, revision)?;
+
+        match *mode {
+            Mode::Run { .. } if Mode::Pass.ok(status).is_ok() => {
+                return run_test_binary(mode, path, revision, comments, cmd, config)
+            }
+            Mode::Panic | Mode::Yolo => {}
+            Mode::Run { .. } | Mode::Pass | Mode::Fail { .. } => {
+                if status.code() == Some(101) {
+                    let stderr = String::from_utf8_lossy(&stderr);
+                    let stdout = String::from_utf8_lossy(&stdout);
+                    return Err(Errored {
+                        command: cmd,
+                        errors: vec![Error::Bug(format!(
+                            "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
+                        ))],
+                        stderr: vec![],
+                    });
+                }
             }
         }
+        check_test_result(
+            cmd, *mode, path, config, revision, comments, status, stdout, &stderr,
+        )?;
+        run_rustfix(&stderr, path, comments, revision, config, extra_args)?;
+        Ok(TestOk::Ok)
     }
-    check_test_result(cmd, *mode, path, config, revision, comments, &output)?;
-    run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
-    Ok(TestOk::Ok)
+
+    /// Run a command, and if it takes more than 100ms, start appending the last stderr/stdout
+    /// line to the current status spinner.
+    fn run_command(&self, cmd: &mut Command) -> (ExitStatus, Vec<u8>, Vec<u8>) {
+        let mut child = cmd
+            .stderr(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stdin(Stdio::null())
+            .spawn()
+            .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
+
+        let mut stdout = ReadHelper::from(child.stdout.take().unwrap());
+        let mut stderr = ReadHelper::from(child.stderr.take().unwrap());
+
+        let start = std::time::Instant::now();
+        let status = loop {
+            if let Some(exit) = child.try_wait().unwrap() {
+                break exit;
+            }
+            if start.elapsed() < Duration::from_millis(100) {
+                std::thread::sleep(Duration::from_millis(5));
+                continue;
+            }
+
+            let status = stderr.last_line();
+            if status.is_empty() {
+                let status = stdout.last_line();
+                if !status.is_empty() {
+                    self.update_status(status.to_str_lossy().to_string())
+                }
+            } else {
+                self.update_status(status.to_str_lossy().to_string())
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        };
+        (status, stderr.read_to_end(), stdout.read_to_end())
+    }
 }
 
 fn build_aux_files(
@@ -812,19 +857,21 @@ fn check_test_result(
     config: &Config,
     revision: &str,
     comments: &Comments,
-    output: &Output,
+    status: ExitStatus,
+    stdout: Vec<u8>,
+    stderr: &[u8],
 ) -> Result<(), Errored> {
     let mut errors = vec![];
-    errors.extend(mode.ok(output.status).err());
+    errors.extend(mode.ok(status).err());
     // Always remove annotation comments from stderr.
-    let diagnostics = rustc_stderr::process(path, &output.stderr);
+    let diagnostics = rustc_stderr::process(path, stderr);
     check_test_output(
         path,
         &mut errors,
         revision,
         config,
         comments,
-        &output.stdout,
+        &stdout,
         &diagnostics.rendered,
     );
     // Check error annotations in the source against output
@@ -1055,25 +1102,28 @@ fn test_condition(condition: &Condition, config: &Config) -> bool {
     }
 }
 
-/// Returns whether according to the in-file conditions, this file should be run.
-fn test_file_conditions(comments: &Comments, config: &Config, revision: &str) -> bool {
-    if comments
-        .for_revision(revision)
-        .flat_map(|r| r.ignore.iter())
-        .any(|c| test_condition(c, config))
-    {
-        return false;
+impl dyn TestStatus {
+    /// Returns whether according to the in-file conditions, this file should be run.
+    fn test_file_conditions(&self, comments: &Comments, config: &Config) -> bool {
+        let revision = self.revision();
+        if comments
+            .for_revision(revision)
+            .flat_map(|r| r.ignore.iter())
+            .any(|c| test_condition(c, config))
+        {
+            return false;
+        }
+        if comments
+            .for_revision(revision)
+            .any(|r| r.needs_asm_support && !config.has_asm_support())
+        {
+            return false;
+        }
+        comments
+            .for_revision(revision)
+            .flat_map(|r| r.only.iter())
+            .all(|c| test_condition(c, config))
     }
-    if comments
-        .for_revision(revision)
-        .any(|r| r.needs_asm_support && !config.has_asm_support())
-    {
-        return false;
-    }
-    comments
-        .for_revision(revision)
-        .flat_map(|r| r.only.iter())
-        .all(|c| test_condition(c, config))
 }
 
 // Taken 1:1 from compiletest-rs
