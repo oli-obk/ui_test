@@ -547,7 +547,7 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
     let output = cmd
         .output()
         .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
-    let mode: MaybeWithLine<Mode> = config.mode.maybe_override(comments, revision)?;
+    let mode = config.mode.maybe_override(comments, revision)?;
 
     match *mode {
         Mode::Run { .. } if Mode::Pass.ok(output.status).is_ok() => {
