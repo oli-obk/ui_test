@@ -584,28 +584,7 @@ fn run_test(path: &Path, config: &Config, revision: &str, comments: &Comments) -
             stderr,
         });
     }
-    let rustfixed = run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
-    if let Some((mut rustfix, rustfix_path)) = rustfixed {
-        // picking the crate name from the file name is problematic when `.revision_name` is inserted
-        rustfix.arg("--crate-name").arg(
-            path.file_stem()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .replace('-', "_"),
-        );
-        let output = rustfix.output().unwrap();
-        if !output.status.success() {
-            return Err(Errored {
-                command: rustfix,
-                errors: vec![Error::Command {
-                    kind: "rustfix".into(),
-                    status: output.status,
-                }],
-                stderr: rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
-            });
-        }
-    }
+    run_rustfix(&output.stderr, path, comments, revision, config, extra_args)?;
     Ok(TestOk::Ok)
 }
 
@@ -697,7 +676,7 @@ fn run_rustfix(
     revision: &str,
     config: &Config,
     extra_args: Vec<String>,
-) -> Result<Option<(Command, PathBuf)>, Errored> {
+) -> Result<(), Errored> {
     let no_run_rustfix =
         comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)?;
 
@@ -784,7 +763,7 @@ fn run_rustfix(
 
     let run = fixed_code.is_some();
     let mut errors = vec![];
-    let path = check_output(
+    let rustfix_path = check_output(
         // Always check for `.fixed` files, even if there were reasons not to run rustfix.
         // We don't want to leave around stray `.fixed` files
         fixed_code.unwrap_or_default().as_bytes(),
@@ -804,12 +783,33 @@ fn run_rustfix(
         });
     }
 
-    run.then(|| {
-        let mut cmd = build_command(&path, config, revision, &rustfix_comments)?;
-        cmd.args(extra_args);
-        Ok((cmd, path))
-    })
-    .transpose()
+    if !run {
+        return Ok(());
+    }
+
+    let mut cmd = build_command(&rustfix_path, config, revision, &rustfix_comments)?;
+    cmd.args(extra_args);
+    // picking the crate name from the file name is problematic when `.revision_name` is inserted
+    cmd.arg("--crate-name").arg(
+        path.file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .replace('-', "_"),
+    );
+    let output = cmd.output().unwrap();
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(Errored {
+            command: cmd,
+            errors: vec![Error::Command {
+                kind: "rustfix".into(),
+                status: output.status,
+            }],
+            stderr: rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
+        })
+    }
 }
 
 fn revised(revision: &str, extension: &str) -> String {
