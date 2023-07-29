@@ -31,7 +31,7 @@ impl<T: Read> ReadHelper<T> {
         self.buf
             .lines()
             .rev()
-            .find(|line| line.is_empty() || line.chars().all(|c| c.is_whitespace()))
+            .find(|line| !line.is_empty() && line.chars().any(|c| !c.is_whitespace()))
             .unwrap_or(&[])
     }
     pub fn read_to_end(mut self) -> Vec<u8> {
