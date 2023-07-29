@@ -291,18 +291,15 @@ impl CommentParser<Comments> {
                             ),
                             line: self.line,
                         })
-                    } else {
-                        if self.commands.keys().any(|command| {
-                            length_limited_distance(command, rest.to_str().unwrap())
-                                < command.len() / 3
-                        }) {
-                            self.error(
-                                "a compiletest-rs style comment was detected.\n\
+                    } else if self.commands.keys().any(|command| {
+                        length_limited_distance(command, rest.to_str().unwrap()) < command.len() / 3
+                    }) {
+                        self.error(
+                            "a compiletest-rs style comment was detected.\n\
                                 Please use text that could not also be interpreted as a command,\n\
                                 and prefix all actual commands with `//@`",
-                            );
-                            break;
-                        }
+                        );
+                        break;
                     }
                 }
             }
