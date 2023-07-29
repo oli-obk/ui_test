@@ -292,16 +292,16 @@ impl CommentParser<Comments> {
                             line: self.line,
                         })
                     } else {
-                        if self
-                            .commands
-                            .keys()
-                            .any(|command| rest.starts_with(command.as_bytes()))
-                        {
+                        if self.commands.keys().any(|command| {
+                            length_limited_distance(command, rest.to_str().unwrap())
+                                < command.len() / 3
+                        }) {
                             self.error(
                                 "a compiletest-rs style comment was detected.\n\
                                 Please use text that could not also be interpreted as a command,\n\
                                 and prefix all actual commands with `//@`",
                             );
+                            break;
                         }
                     }
                 }
@@ -573,12 +573,26 @@ impl CommentParser<&mut Revisioned> {
             let best_match = self
                 .commands
                 .keys()
-                .min_by_key(|key| distance::damerau_levenshtein(key, command))
+                .min_by_key(|key| length_limited_distance(key, command))
                 .unwrap();
             self.error(format!(
                 "`{command}` is not a command known to `ui_test`, did you mean `{best_match}`?"
             ));
         }
+    }
+}
+
+fn length_limited_distance(possible_match: &str, user_command: &str) -> usize {
+    let dist = distance::damerau_levenshtein(
+        possible_match,
+        user_command
+            .get(..possible_match.len())
+            .unwrap_or(user_command),
+    );
+    if dist > possible_match.len() / 3 {
+        usize::MAX
+    } else {
+        dist
     }
 }
 
