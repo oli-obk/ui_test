@@ -3,4 +3,5 @@
 //  aux-build:asasdflk.rs
 // @aux-build:asldkfjasldfj.rs
 //  @aux-build:asldkjf.rs
+//aux-build-cake
 fn main() {}
