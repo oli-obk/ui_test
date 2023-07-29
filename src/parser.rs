@@ -292,21 +292,17 @@ impl CommentParser<Comments> {
                             line: self.line,
                         })
                     } else {
-                        let mut parser = Self {
-                            line: NonZeroUsize::MAX,
-                            errors: vec![],
-                            comments: Comments::default(),
-                            commands: std::mem::take(&mut self.commands),
-                        };
-                        parser.parse_command(rest.to_str()?);
-                        if parser.errors.is_empty() {
+                        if self
+                            .commands
+                            .keys()
+                            .any(|command| rest.starts_with(command.as_bytes()))
+                        {
                             self.error(
                                 "a compiletest-rs style comment was detected.\n\
                                 Please use text that could not also be interpreted as a command,\n\
                                 and prefix all actual commands with `//@`",
                             );
                         }
-                        self.commands = parser.commands;
                     }
                 }
             }
