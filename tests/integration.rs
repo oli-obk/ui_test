@@ -109,7 +109,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                     // multiple [[test]]s exist. If there's only one test, it returns
                     // 1 on failure.
                     Mode::Panic => fail,
-                    Mode::Run { .. } | Mode::Yolo | Mode::Fail { .. } => unreachable!(),
+                    Mode::Run { .. } | Mode::Yolo { .. } | Mode::Fail { .. } => unreachable!(),
                 }
                 && default_filter_by_arg(path, args)
         },

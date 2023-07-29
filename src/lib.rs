@@ -558,7 +558,7 @@ impl dyn TestStatus {
             Mode::Run { .. } if Mode::Pass.ok(status).is_ok() => {
                 return run_test_binary(mode, path, revision, comments, cmd, config)
             }
-            Mode::Panic | Mode::Yolo => {}
+            Mode::Panic | Mode::Yolo { .. } => {}
             Mode::Run { .. } | Mode::Pass | Mode::Fail { .. } => {
                 if status.code() == Some(101) {
                     let stderr = String::from_utf8_lossy(&stderr);
@@ -576,7 +576,7 @@ impl dyn TestStatus {
         check_test_result(
             cmd, *mode, path, config, revision, comments, status, stdout, &stderr,
         )?;
-        run_rustfix(&stderr, path, comments, revision, config, extra_args)?;
+        run_rustfix(&stderr, path, comments, revision, config, *mode, extra_args)?;
         Ok(TestOk::Ok)
     }
 
@@ -700,12 +700,18 @@ fn run_rustfix(
     comments: &Comments,
     revision: &str,
     config: &Config,
+    mode: Mode,
     extra_args: Vec<String>,
 ) -> Result<(), Errored> {
     let no_run_rustfix =
         comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)?;
 
-    let fixed_code = (no_run_rustfix.is_none() && config.rustfix)
+    let global_rustfix = match mode {
+        Mode::Pass | Mode::Run { .. } | Mode::Panic => false,
+        Mode::Fail { rustfix, .. } | Mode::Yolo { rustfix } => rustfix,
+    };
+
+    let fixed_code = (no_run_rustfix.is_none() && global_rustfix)
         .then_some(())
         .and_then(|()| {
             let suggestions = std::str::from_utf8(stderr)
@@ -718,7 +724,7 @@ fn run_rustfix(
                     rustfix::get_suggestions_from_json(
                         line,
                         &HashSet::new(),
-                        if let Mode::Yolo = config.mode {
+                        if let Mode::Yolo { .. } = config.mode {
                             rustfix::Filter::Everything
                         } else {
                             rustfix::Filter::MachineApplicableOnly
@@ -1000,7 +1006,7 @@ fn check_annotations(
 
     let mode = config.mode.maybe_override(comments, revision)?;
 
-    if !matches!(config.mode, Mode::Yolo) {
+    if !matches!(config.mode, Mode::Yolo { .. }) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
         if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
@@ -1026,6 +1032,7 @@ fn check_annotations(
         (
             Mode::Fail {
                 require_patterns: true,
+                ..
             },
             false,
         ) => errors.push(Error::NoPatternsFound),

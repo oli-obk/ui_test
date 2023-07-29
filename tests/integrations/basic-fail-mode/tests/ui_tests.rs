@@ -6,6 +6,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
         mode: Mode::Fail {
             require_patterns: true,
+            rustfix: true,
         },
         ..Config::rustc("tests/actual_tests")
     };

@@ -58,7 +58,7 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
     let set_locking = |cmd: &mut Command| match (&config.output_conflict_handling, &config.mode) {
-        (_, Mode::Yolo) => {}
+        (_, Mode::Yolo { .. }) => {}
         (OutputConflictHandling::Error(_), _) => {
             cmd.arg("--locked");
         }
