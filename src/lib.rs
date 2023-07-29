@@ -590,7 +590,7 @@ impl dyn TestStatus {
             .spawn()
             .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
 
-        let mut stdout = ReadHelper::from(child.stdout.take().unwrap());
+        let stdout = ReadHelper::from(child.stdout.take().unwrap());
         let mut stderr = ReadHelper::from(child.stderr.take().unwrap());
 
         let start = std::time::Instant::now();
@@ -604,12 +604,7 @@ impl dyn TestStatus {
             }
 
             let status = stderr.last_line();
-            if status.is_empty() {
-                let status = stdout.last_line();
-                if !status.is_empty() {
-                    self.update_status(status.to_str_lossy().to_string())
-                }
-            } else {
+            if !status.is_empty() {
                 self.update_status(status.to_str_lossy().to_string())
             }
             std::thread::sleep(Duration::from_millis(100));
