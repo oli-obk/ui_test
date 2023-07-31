@@ -539,6 +539,7 @@ impl dyn TestStatus {
     fn run_test(&self, config: &Config, comments: &Comments) -> TestResult {
         let path = self.path();
         let revision = self.revision();
+        // FIXME: block test runs until their aux files are built and share aux builds between tests.
         let extra_args = build_aux_files(
             path,
             &path.parent().unwrap().join("auxiliary"),
