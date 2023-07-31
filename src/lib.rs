@@ -120,11 +120,13 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.
 pub fn run_tests(config: Config) -> Result<()> {
-    eprintln!("   Compiler: {}", config.program.display());
+    let args = Args::parse();
+    if !args.quiet {
+        eprintln!("   Compiler: {}", config.program.display());
+    }
 
     let name = config.root_dir.display().to_string();
 
-    let args = Args::parse();
     let text = if args.quiet {
         status_emitter::Text::quiet()
     } else {
@@ -228,7 +230,7 @@ pub fn run_tests_generic(
 ) -> Result<()> {
     config.fill_host_and_target()?;
 
-    let build_manager = BuildManager::default();
+    let build_manager = BuildManager::new(&status_emitter);
 
     let mut results = vec![];
 
@@ -386,7 +388,7 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
 }
 
 fn parse_and_test_file(
-    build_manager: &BuildManager,
+    build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
     config: &Config,
 ) -> Result<Vec<TestRun>, Errored> {
@@ -465,7 +467,7 @@ fn build_command(
 fn build_aux(
     aux_file: &Path,
     config: &Config,
-    build_manager: &BuildManager,
+    build_manager: &BuildManager<'_>,
 ) -> std::result::Result<Vec<OsString>, Errored> {
     let comments = parse_comments_in_file(aux_file)?;
     assert_eq!(
@@ -568,7 +570,7 @@ fn build_aux(
 impl dyn TestStatus {
     fn run_test(
         &self,
-        build_manager: &BuildManager,
+        build_manager: &BuildManager<'_>,
         config: &Config,
         comments: &Comments,
     ) -> TestResult {
@@ -659,7 +661,7 @@ fn build_aux_files(
     comments: &Comments,
     revision: &str,
     config: &Config,
-    build_manager: &BuildManager,
+    build_manager: &BuildManager<'_>,
 ) -> Result<Vec<OsString>, Errored> {
     let mut extra_args = vec![];
     for rev in comments.for_revision(revision) {

@@ -22,7 +22,7 @@ use std::{
 };
 
 /// A generic way to handle the output of this crate.
-pub trait StatusEmitter: Sync {
+pub trait StatusEmitter: Sync + RefUnwindSafe {
     /// Invoked the moment we know a test will later be run.
     /// Useful for progress bars and such.
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus>;
@@ -98,7 +98,9 @@ impl Text {
                     match receiver.try_recv() {
                         Ok(val) => match val {
                             Msg::Pop(msg, new_msg) => {
-                                let spinner = threads.remove(&msg).unwrap();
+                                let spinner = threads
+                                    .remove(&msg)
+                                    .unwrap_or_else(|| panic!("`{msg}` not found"));
                                 if let Some(new_msg) = new_msg {
                                     spinner.finish_with_message(new_msg);
                                 } else {

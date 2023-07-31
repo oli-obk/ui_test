@@ -1,4 +1,7 @@
+Building dependencies ... ok
+Building aux file $DIR/$DIR/tests/actual_tests/auxiliary/derive_proc_macro.rs ... ok
 tests/actual_tests/aux_derive.rs ... ok
+Building aux file $DIR/$DIR/tests/actual_tests/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests/aux_proc_macro.rs ... ok
 tests/actual_tests/executable.rs ... ok
 tests/actual_tests/foomp-rustfix.rs ... ok
