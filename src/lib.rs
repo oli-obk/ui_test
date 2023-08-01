@@ -23,6 +23,7 @@ use rustc_stderr::{Level, Message};
 use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
+use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
@@ -467,7 +468,7 @@ fn build_aux(
     config: &Config,
     revision: &str,
     aux: &Path,
-) -> std::result::Result<Vec<String>, Errored> {
+) -> std::result::Result<Vec<OsString>, Errored> {
     let comments = parse_comments_in_file(aux_file)?;
     assert_eq!(comments.revisions, None);
 
@@ -532,10 +533,13 @@ fn build_aux(
         let crate_name = filename.replace('-', "_");
         let path = config.out_dir.join(file);
         extra_args.push("--extern".into());
-        extra_args.push(format!("{crate_name}={}", path.display()));
+        let mut cname = OsString::from(&crate_name);
+        cname.push("=");
+        cname.push(path);
+        extra_args.push(cname);
         // Help cargo find the crates added with `--extern`.
         extra_args.push("-L".into());
-        extra_args.push(config.out_dir.display().to_string());
+        extra_args.push(config.out_dir.as_os_str().to_os_string());
     }
     Ok(extra_args)
 }
@@ -635,7 +639,7 @@ fn build_aux_files(
     comments: &Comments,
     revision: &str,
     config: &Config,
-) -> Result<Vec<String>, Errored> {
+) -> Result<Vec<OsString>, Errored> {
     let mut extra_args = vec![];
     for rev in comments.for_revision(revision) {
         for aux in &rev.aux_builds {
@@ -717,7 +721,7 @@ fn run_rustfix(
     revision: &str,
     config: &Config,
     mode: Mode,
-    extra_args: Vec<String>,
+    extra_args: Vec<OsString>,
 ) -> Result<(), Errored> {
     let no_run_rustfix =
         comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)?;
