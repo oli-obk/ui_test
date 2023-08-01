@@ -69,7 +69,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.stderr_filter("   [0-9]: .*", "");
     config.stderr_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
-    config.stderr_filter("/target/[^/]+/tests", "/target/$$TMP/tests");
+    config.stderr_filter("/target/.tmp[^/ \"]+", "/target/$$TMP");
     // Normalize proc macro filenames on windows to their linux repr
     config.stderr_filter("/([^/\\.]+)\\.dll", "/lib$1.so");
     // Normalize proc macro filenames on mac to their linux repr

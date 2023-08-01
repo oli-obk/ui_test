@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, OnceLock, RwLock},
 };
 
-use crate::{Config, Errored, Mode, OutputConflictHandling};
+use crate::{build_aux, Config, Errored, Mode, OutputConflictHandling};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -199,12 +199,12 @@ pub enum Build {
     /// Build the dependencies.
     Dependencies,
     /// Build an aux-build.
-    #[allow(dead_code)]
-    Aux(PathBuf),
+    Aux { aux_file: PathBuf, aux: PathBuf },
 }
 
 #[derive(Default)]
 pub struct BuildManager {
+    #[allow(clippy::type_complexity)]
     cache: RwLock<HashMap<Build, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
 }
 
@@ -243,7 +243,7 @@ impl BuildManager {
         drop(lock);
 
         let mut err = None;
-        once.get_or_init(|| match what {
+        once.get_or_init(|| match &what {
             Build::Dependencies => match config.build_dependencies() {
                 Ok(args) => Ok(args),
                 Err(e) => {
@@ -255,7 +255,13 @@ impl BuildManager {
                     Err(())
                 }
             },
-            Build::Aux(_) => todo!(),
+            Build::Aux { aux_file, aux } => match build_aux(aux_file, config, aux, self) {
+                Ok(args) => Ok(args.iter().map(Into::into).collect()),
+                Err(e) => {
+                    err = Some(e);
+                    Err(())
+                }
+            },
         })
         .clone()
         .map_err(|()| {

@@ -464,13 +464,15 @@ fn build_command(
 
 fn build_aux(
     aux_file: &Path,
-    path: &Path,
     config: &Config,
-    revision: &str,
     aux: &Path,
+    build_manager: &BuildManager,
 ) -> std::result::Result<Vec<OsString>, Errored> {
     let comments = parse_comments_in_file(aux_file)?;
-    assert_eq!(comments.revisions, None);
+    assert_eq!(
+        comments.revisions, None,
+        "aux builds cannot specify revisions"
+    );
 
     let mut config = config.clone();
 
@@ -494,17 +496,17 @@ fn build_aux(
         }
     });
 
-    let mut config = default_per_file_config(&config, aux_file).unwrap();
+    let config = default_per_file_config(&config, aux_file).unwrap();
 
-    // Put aux builds into a separate directory per test so that
-    // tests running in parallel but building the same aux build don't conflict.
-    // FIXME: put aux builds into the regular build queue.
-    config.out_dir = config.out_dir.join(path.with_extension(""));
+    let mut aux_cmd = build_command(aux_file, &config, "", &comments)?;
 
-    let mut aux_cmd = build_command(aux_file, &config, revision, &comments)?;
-
-    let mut extra_args =
-        build_aux_files(aux_file, aux_file.parent().unwrap(), &comments, "", &config)?;
+    let mut extra_args = build_aux_files(
+        aux_file.parent().unwrap(),
+        &comments,
+        "",
+        &config,
+        build_manager,
+    )?;
     // Make sure we see our dependencies
     aux_cmd.args(extra_args.iter());
 
@@ -519,7 +521,7 @@ fn build_aux(
         return Err(Errored {
             command: aux_cmd,
             errors: vec![error],
-            stderr: rustc_stderr::process(path, &output.stderr).rendered,
+            stderr: rustc_stderr::process(aux_file, &output.stderr).rendered,
         });
     }
 
@@ -558,13 +560,13 @@ impl dyn TestStatus {
 
         let path = self.path();
         let revision = self.revision();
-        // FIXME: block test runs until their aux files are built and share aux builds between tests.
+
         let extra_args = build_aux_files(
-            path,
             &path.parent().unwrap().join("auxiliary"),
             comments,
             revision,
             config,
+            build_manager,
         )?;
 
         let mut cmd = build_command(path, config, revision, comments)?;
@@ -634,11 +636,11 @@ impl dyn TestStatus {
 }
 
 fn build_aux_files(
-    path: &Path,
     aux_dir: &Path,
     comments: &Comments,
     revision: &str,
     config: &Config,
+    build_manager: &BuildManager,
 ) -> Result<Vec<OsString>, Errored> {
     let mut extra_args = vec![];
     for rev in comments.for_revision(revision) {
@@ -650,21 +652,31 @@ fn build_aux_files(
             } else {
                 aux_dir.join(aux)
             };
-            extra_args.extend(build_aux(&aux_file, path, config, revision, aux).map_err(
-                |Errored {
-                     command,
-                     errors,
-                     stderr,
-                 }| Errored {
-                    command,
-                    errors: vec![Error::Aux {
-                        path: aux_file,
-                        errors,
-                        line,
-                    }],
-                    stderr,
-                },
-            )?);
+            extra_args.extend(
+                build_manager
+                    .build(
+                        Build::Aux {
+                            aux_file: aux_file.clone(),
+                            aux: aux.clone(),
+                        },
+                        config,
+                    )
+                    .map_err(
+                        |Errored {
+                             command,
+                             errors,
+                             stderr,
+                         }| Errored {
+                            command,
+                            errors: vec![Error::Aux {
+                                path: aux_file,
+                                errors,
+                                line,
+                            }],
+                            stderr,
+                        },
+                    )?,
+            );
         }
     }
     Ok(extra_args)

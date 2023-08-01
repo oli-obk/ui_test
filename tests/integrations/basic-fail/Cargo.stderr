@@ -251,7 +251,7 @@ full stderr:
 
 
 tests/actual_tests_bless/aux_proc_macro_no_main.rs FAILED:
-command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/aux_proc_macro_no_main/libthe_proc_macro.so" "-L" "$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/aux_proc_macro_no_main"
+command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/$DIR/../../../target/$TMP/libthe_proc_macro.so" "-L" "$DIR/$DIR/../../../target/$TMP"
 
 There were 1 unmatched diagnostics at tests/actual_tests_bless/aux_proc_macro_no_main.rs:7
     Error: expected one of `!` or `::`, found `<eof>`
