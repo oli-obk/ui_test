@@ -547,13 +547,7 @@ impl dyn TestStatus {
         config: &Config,
         comments: &Comments,
     ) -> TestResult {
-        let extra_args = build_manager
-            .build(Build::Dependencies, config)
-            .map_err(|err| Errored {
-                command: Command::new("building dependencies"),
-                errors: vec![],
-                stderr: format!("{err:?}").into_bytes(),
-            })?;
+        let extra_args = build_manager.build(Build::Dependencies, config)?;
         let mut config = config.clone();
         config.program.args.extend(extra_args);
         let config = &config;

@@ -1,6 +1,6 @@
 use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
 use cargo_platform::Cfg;
-use color_eyre::eyre::{bail, eyre, Result};
+use color_eyre::eyre::{bail, Result};
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     ffi::OsString,
@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, OnceLock, RwLock},
 };
 
-use crate::{Config, Mode, OutputConflictHandling};
+use crate::{Config, Errored, Mode, OutputConflictHandling};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -213,20 +213,24 @@ impl BuildManager {
     /// that need to be passed in order to build the dependencies.
     /// The error is only reported once, all follow up invocations of the same build will
     /// have a generic error about a previous build failing.
-    pub fn build(&self, what: Build, config: &Config) -> Result<Vec<OsString>> {
+    pub fn build(&self, what: Build, config: &Config) -> Result<Vec<OsString>, Errored> {
         // Fast path without much contention.
         if let Some(res) = self.cache.read().unwrap().get(&what).and_then(|o| o.get()) {
-            return res
-                .clone()
-                .map_err(|()| eyre!("previous build for {what:?} failed"));
+            return res.clone().map_err(|()| Errored {
+                command: Command::new(format!("{what:?}")),
+                errors: vec![],
+                stderr: b"previous build failed".to_vec(),
+            });
         }
         let mut lock = self.cache.write().unwrap();
         let once = match lock.entry(what.clone()) {
             Entry::Occupied(entry) => {
                 if let Some(res) = entry.get().get() {
-                    return res
-                        .clone()
-                        .map_err(|()| eyre!("previous build for {what:?} failed"));
+                    return res.clone().map_err(|()| Errored {
+                        command: Command::new(format!("{what:?}")),
+                        errors: vec![],
+                        stderr: b"previous build failed".to_vec(),
+                    });
                 }
                 entry.get().clone()
             }
@@ -243,13 +247,23 @@ impl BuildManager {
             Build::Dependencies => match config.build_dependencies() {
                 Ok(args) => Ok(args),
                 Err(e) => {
-                    err = Some(e);
+                    err = Some(Errored {
+                        command: Command::new(format!("{what:?}")),
+                        errors: vec![],
+                        stderr: format!("{e:?}").into_bytes(),
+                    });
                     Err(())
                 }
             },
             Build::Aux(_) => todo!(),
         })
         .clone()
-        .map_err(|()| err.unwrap_or_else(|| eyre!("previous build for {what:?} failed")))
+        .map_err(|()| {
+            err.unwrap_or_else(|| Errored {
+                command: Command::new(format!("{what:?}")),
+                errors: vec![],
+                stderr: b"previous build failed".to_vec(),
+            })
+        })
     }
 }
