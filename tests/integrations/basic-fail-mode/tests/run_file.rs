@@ -25,6 +25,7 @@ fn run_file() -> Result<()> {
 #[test]
 fn fail_run_file() {
     let mut config = Config::rustc(PathBuf::new());
+    config.host = Some(String::new());
     config.program = CommandBuilder::cmd("invalid_alsdkfjalsdfjalskdfj");
 
     let _ = ui_test::test_command(

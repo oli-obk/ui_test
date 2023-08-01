@@ -41,13 +41,12 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
 }
 
 /// Compiles dependencies and returns the crate names and corresponding rmeta files.
-pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
+pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
     let manifest_path = match &config.dependencies_crate_manifest_path {
         Some(path) => path.to_owned(),
         None => return Ok(Default::default()),
     };
     let manifest_path = &manifest_path;
-    config.fill_host_and_target()?;
     eprintln!("   Building test dependencies...");
     let mut build = config.dependency_builder.build(&config.out_dir);
     build.arg(manifest_path);

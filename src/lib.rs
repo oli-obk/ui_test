@@ -176,6 +176,7 @@ pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
 /// Create a command for running a single file, with the settings from the `config` argument.
 /// Ignores various settings from `Config` that relate to finding test files.
 pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
+    config.fill_host_and_target()?;
     config.build_dependencies_and_link_them()?;
 
     let comments =
