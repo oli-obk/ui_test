@@ -1,11 +1,13 @@
 use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
 use cargo_platform::Cfg;
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{bail, eyre, Result};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet},
+    ffi::OsString,
     path::PathBuf,
     process::Command,
     str::FromStr,
+    sync::{Arc, OnceLock, RwLock},
 };
 
 use crate::{Config, Mode, OutputConflictHandling};
@@ -190,4 +192,64 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
     }
 
     bail!("no json found in cargo-metadata output")
+}
+
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
+pub enum Build {
+    /// Build the dependencies.
+    Dependencies,
+    /// Build an aux-build.
+    #[allow(dead_code)]
+    Aux(PathBuf),
+}
+
+#[derive(Default)]
+pub struct BuildManager {
+    cache: RwLock<HashMap<Build, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
+}
+
+impl BuildManager {
+    /// This function will block until the build is done and then return the arguments
+    /// that need to be passed in order to build the dependencies.
+    /// The error is only reported once, all follow up invocations of the same build will
+    /// have a generic error about a previous build failing.
+    pub fn build(&self, what: Build, config: &Config) -> Result<Vec<OsString>> {
+        // Fast path without much contention.
+        if let Some(res) = self.cache.read().unwrap().get(&what).and_then(|o| o.get()) {
+            return res
+                .clone()
+                .map_err(|()| eyre!("previous build for {what:?} failed"));
+        }
+        let mut lock = self.cache.write().unwrap();
+        let once = match lock.entry(what.clone()) {
+            Entry::Occupied(entry) => {
+                if let Some(res) = entry.get().get() {
+                    return res
+                        .clone()
+                        .map_err(|()| eyre!("previous build for {what:?} failed"));
+                }
+                entry.get().clone()
+            }
+            Entry::Vacant(entry) => {
+                let once = Arc::new(OnceLock::new());
+                entry.insert(once.clone());
+                once
+            }
+        };
+        drop(lock);
+
+        let mut err = None;
+        once.get_or_init(|| match what {
+            Build::Dependencies => match config.build_dependencies() {
+                Ok(args) => Ok(args),
+                Err(e) => {
+                    err = Some(e);
+                    Err(())
+                }
+            },
+            Build::Aux(_) => todo!(),
+        })
+        .clone()
+        .map_err(|()| err.unwrap_or_else(|| eyre!("previous build for {what:?} failed")))
+    }
 }

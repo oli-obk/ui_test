@@ -14,6 +14,7 @@ use clap::Parser;
 pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
+use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
 use read_helper::ReadHelper;
@@ -177,11 +178,12 @@ pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
 /// Ignores various settings from `Config` that relate to finding test files.
 pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
-    config.build_dependencies_and_link_them()?;
+    let extra_args = config.build_dependencies()?;
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
-    let result = build_command(path, &config, "", &comments).unwrap();
+    let mut result = build_command(path, &config, "", &comments).unwrap();
+    result.args(extra_args);
 
     Ok(result)
 }
@@ -225,7 +227,7 @@ pub fn run_tests_generic(
 ) -> Result<()> {
     config.fill_host_and_target()?;
 
-    config.build_dependencies_and_link_them()?;
+    let build_manager = BuildManager::default();
 
     let mut results = vec![];
 
@@ -267,8 +269,9 @@ pub fn run_tests_generic(
                         &maybe_config
                     }
                 };
-                let result = match std::panic::catch_unwind(|| parse_and_test_file(&status, config))
-                {
+                let result = match std::panic::catch_unwind(|| {
+                    parse_and_test_file(&build_manager, &status, config)
+                }) {
                     Ok(Ok(res)) => res,
                     Ok(Err(err)) => {
                         finished_files_sender.send(TestRun {
@@ -381,7 +384,11 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
     })
 }
 
-fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Result<Vec<TestRun>, Errored> {
+fn parse_and_test_file(
+    build_manager: &BuildManager,
+    status: &dyn TestStatus,
+    config: &Config,
+) -> Result<Vec<TestRun>, Errored> {
     let comments = parse_comments_in_file(status.path())?;
     // Run the test for all revisions
     let revisions = comments
@@ -399,7 +406,7 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Result<Vec<T
                     status,
                 };
             }
-            let result = status.run_test(config, &comments);
+            let result = status.run_test(build_manager, config, &comments);
             TestRun { result, status }
         })
         .collect())
@@ -537,7 +544,23 @@ fn build_aux(
 }
 
 impl dyn TestStatus {
-    fn run_test(&self, config: &Config, comments: &Comments) -> TestResult {
+    fn run_test(
+        &self,
+        build_manager: &BuildManager,
+        config: &Config,
+        comments: &Comments,
+    ) -> TestResult {
+        let extra_args = build_manager
+            .build(Build::Dependencies, config)
+            .map_err(|err| Errored {
+                command: Command::new("building dependencies"),
+                errors: vec![],
+                stderr: format!("{err:?}").into_bytes(),
+            })?;
+        let mut config = config.clone();
+        config.program.args.extend(extra_args);
+        let config = &config;
+
         let path = self.path();
         let revision = self.revision();
         // FIXME: block test runs until their aux files are built and share aux builds between tests.

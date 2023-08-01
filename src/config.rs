@@ -140,24 +140,25 @@ impl Config {
             .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
     }
 
-    /// Compile dependencies and make sure `Config::program` contains the right flags
+    /// Compile dependencies and return the right flags
     /// to find the dependencies.
-    pub fn build_dependencies_and_link_them(&mut self) -> Result<()> {
+    pub fn build_dependencies(&self) -> Result<Vec<OsString>> {
         let dependencies = build_dependencies(self)?;
+        let mut args = vec![];
         for (name, artifacts) in dependencies.dependencies {
             for dependency in artifacts {
-                self.program.args.push("--extern".into());
+                args.push("--extern".into());
                 let mut dep = OsString::from(&name);
                 dep.push("=");
                 dep.push(dependency);
-                self.program.args.push(dep);
+                args.push(dep);
             }
         }
         for import_path in dependencies.import_paths {
-            self.program.args.push("-L".into());
-            self.program.args.push(import_path.into());
+            args.push("-L".into());
+            args.push(import_path.into());
         }
-        Ok(())
+        Ok(args)
     }
 
     /// Make sure we have the host and target triples.

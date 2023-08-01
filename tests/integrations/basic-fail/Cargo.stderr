@@ -203,8 +203,8 @@ error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/debug/ui_tests-HASH` (exit status: 1)
-   Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
+   Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
@@ -251,7 +251,7 @@ full stderr:
 
 
 tests/actual_tests_bless/aux_proc_macro_no_main.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/aux_proc_macro_no_main/libthe_proc_macro.so" "-L" "$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/aux_proc_macro_no_main"
+command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/aux_proc_macro_no_main/libthe_proc_macro.so" "-L" "$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/aux_proc_macro_no_main"
 
 There were 1 unmatched diagnostics at tests/actual_tests_bless/aux_proc_macro_no_main.rs:7
     Error: expected one of `!` or `::`, found `<eof>`
@@ -315,7 +315,7 @@ full stderr:
 
 
 tests/actual_tests_bless/no_main.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
 
 fail test got exit status: 0, but expected 1
 
@@ -326,7 +326,7 @@ full stderr:
 
 
 tests/actual_tests_bless/no_main_manual.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main_manual.rs" "--crate-type=bin" "--edition" "2021"
+command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main_manual.rs" "--crate-type=bin" "--edition" "2021"
 
 There were 1 unmatched diagnostics that occurred outside the testfile and had no pattern
     Error: cannot mix `bin` crate type with others
@@ -352,7 +352,7 @@ For more information about this error, try `rustc --explain E0601`.
 
 
 tests/actual_tests_bless/no_test.rs FAILED:
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--test" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--test" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
 
 fail test got exit status: 0, but expected 1
 
