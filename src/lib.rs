@@ -467,8 +467,7 @@ fn build_aux(
     config: &Config,
     revision: &str,
     aux: &Path,
-    extra_args: &mut Vec<String>,
-) -> std::result::Result<(), Errored> {
+) -> std::result::Result<Vec<String>, Errored> {
     let comments = parse_comments_in_file(aux_file)?;
     assert_eq!(comments.revisions, None);
 
@@ -503,12 +502,10 @@ fn build_aux(
 
     let mut aux_cmd = build_command(aux_file, &config, revision, &comments)?;
 
-    let current_extra_args =
+    let mut extra_args =
         build_aux_files(aux_file, aux_file.parent().unwrap(), &comments, "", &config)?;
     // Make sure we see our dependencies
-    aux_cmd.args(current_extra_args.iter());
-    // Make sure our dependents also see our dependencies.
-    extra_args.extend(current_extra_args);
+    aux_cmd.args(extra_args.iter());
 
     aux_cmd.arg("--emit=link");
     let filename = aux.file_stem().unwrap().to_str().unwrap();
@@ -540,7 +537,7 @@ fn build_aux(
         extra_args.push("-L".into());
         extra_args.push(config.out_dir.display().to_string());
     }
-    Ok(())
+    Ok(extra_args)
 }
 
 impl dyn TestStatus {
@@ -655,7 +652,7 @@ fn build_aux_files(
             } else {
                 aux_dir.join(aux)
             };
-            build_aux(&aux_file, path, config, revision, aux, &mut extra_args).map_err(
+            extra_args.extend(build_aux(&aux_file, path, config, revision, aux).map_err(
                 |Errored {
                      command,
                      errors,
@@ -669,7 +666,7 @@ fn build_aux_files(
                     }],
                     stderr,
                 },
-            )?;
+            )?);
         }
     }
     Ok(extra_args)
