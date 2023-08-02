@@ -84,7 +84,7 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
     let mut artifacts = HashMap::new();
     for line in artifact_output.lines() {
         let Ok(message) = serde_json::from_str::<cargo_metadata::Message>(line) else {
-            continue
+            continue;
         };
         if let cargo_metadata::Message::CompilerArtifact(artifact) = message {
             if artifact
