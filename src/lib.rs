@@ -495,7 +495,19 @@ fn build_aux(
         }
     });
 
-    let config = default_per_file_config(&config, aux_file).unwrap();
+    let mut config = default_per_file_config(&config, aux_file).unwrap();
+    let mut components = aux_file.parent().unwrap().components();
+
+    // Put aux builds into a separate directory per path so that multiple aux files
+    // from different directories (but with the same file name) don't collide.
+    for c in config.out_dir.components() {
+        let c2 = components.next();
+        if Some(c) != c2 {
+            config.out_dir.extend(c2);
+            config.out_dir.extend(components);
+            break;
+        }
+    }
 
     let mut aux_cmd = build_command(aux_file, &config, "", &comments)?;
 
