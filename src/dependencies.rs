@@ -199,7 +199,7 @@ pub enum Build {
     /// Build the dependencies.
     Dependencies,
     /// Build an aux-build.
-    Aux { aux_file: PathBuf, aux: PathBuf },
+    Aux { aux_file: PathBuf },
 }
 
 #[derive(Default)]
@@ -255,7 +255,7 @@ impl BuildManager {
                     Err(())
                 }
             },
-            Build::Aux { aux_file, aux } => match build_aux(aux_file, config, aux, self) {
+            Build::Aux { aux_file } => match build_aux(aux_file, config, self) {
                 Ok(args) => Ok(args.iter().map(Into::into).collect()),
                 Err(e) => {
                     err = Some(e);

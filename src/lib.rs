@@ -465,7 +465,6 @@ fn build_command(
 fn build_aux(
     aux_file: &Path,
     config: &Config,
-    aux: &Path,
     build_manager: &BuildManager,
 ) -> std::result::Result<Vec<OsString>, Errored> {
     let comments = parse_comments_in_file(aux_file)?;
@@ -511,7 +510,7 @@ fn build_aux(
     aux_cmd.args(extra_args.iter());
 
     aux_cmd.arg("--emit=link");
-    let filename = aux.file_stem().unwrap().to_str().unwrap();
+    let filename = aux_file.file_stem().unwrap().to_str().unwrap();
     let output = aux_cmd.output().unwrap();
     if !output.status.success() {
         let error = Error::Command {
@@ -657,7 +656,6 @@ fn build_aux_files(
                     .build(
                         Build::Aux {
                             aux_file: aux_file.clone(),
-                            aux: aux.clone(),
                         },
                         config,
                     )
