@@ -79,6 +79,9 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
     config.stderr_filter("program not found", "No such file or directory");
     config.stderr_filter(" \\(os error [0-9]+\\)", "");
+    // We emit this message on a thread, so it can sometimes happen that it
+    // appears earlier or later than the regular test messages.
+    config.stderr_filter("   Building test dependencies...\n", "");
 
     let text = if args.quiet {
         ui_test::status_emitter::Text::quiet()

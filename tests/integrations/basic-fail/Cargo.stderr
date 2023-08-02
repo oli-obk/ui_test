@@ -1,4 +1,3 @@
-   Building test dependencies...
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED
 tests/actual_tests/executable_compile_err.rs ... FAILED
@@ -204,7 +203,6 @@ error: test failed, to rerun pass `--test ui_tests`
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/debug/ui_tests-HASH` (exit status: 1)
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
-   Building test dependencies...
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
@@ -553,7 +551,6 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision2.rs
 
 test result: FAIL. 18 tests failed, 14 tests passed, 3 ignored, 0 filtered out
-   Building test dependencies...
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok

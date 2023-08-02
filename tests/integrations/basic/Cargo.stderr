@@ -1,4 +1,3 @@
-   Building test dependencies...
 tests/actual_tests/aux_derive.rs ... ok
 tests/actual_tests/aux_proc_macro.rs ... ok
 tests/actual_tests/executable.rs ... ok
