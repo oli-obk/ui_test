@@ -54,7 +54,9 @@ fn row(row: DiffOp<&str>) {
 fn print_line_diff(l: &str, r: &str) {
     let diff = diff_words(l, r);
     let diff = diff.diff();
-    if has_both_insertions_and_deletions(&diff) {
+    if has_both_insertions_and_deletions(&diff)
+        || !colored::control::SHOULD_COLORIZE.should_colorize()
+    {
         // The line both adds and removes chars, print both lines, but highlight their differences instead of
         // drawing the entire line in red/green.
         eprint!("{}", "-".red());

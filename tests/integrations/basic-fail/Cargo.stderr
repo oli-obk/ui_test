@@ -127,10 +127,12 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 +  |     arguments to this function are incorrect
    |
  note: function defined here
-~ --> $DIR/$DIR/src/lib.rs:LL:CC
+- --> $DIR/tests/integrations/basic/src/lib.rs:LL:CC
++ --> $DIR/$DIR/src/lib.rs:LL:CC
    |
  1 | pub fn add(left: usize, right: usize) -> usize {
-~  |        ^^^ some expected text that isn't in the actual message░
+-  |        ^^^ some expected text that isn't in the actual message░
++  |        ^^^
  
 -error: aborting doo to previous error
 +error: aborting due to previous error
