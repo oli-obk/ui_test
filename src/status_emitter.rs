@@ -101,6 +101,9 @@ impl Text {
                                 let spinner = threads
                                     .remove(&msg)
                                     .unwrap_or_else(|| panic!("`{msg}` not found"));
+                                spinner.set_style(
+                                    ProgressStyle::with_template("{prefix} {msg}").unwrap(),
+                                );
                                 if let Some(new_msg) = new_msg {
                                     spinner.finish_with_message(new_msg);
                                 } else {
@@ -114,7 +117,7 @@ impl Text {
                                 let spinner =
                                     bars.add(ProgressBar::new_spinner().with_prefix(msg.clone()));
                                 spinner.set_style(
-                                    ProgressStyle::with_template("{prefix} {spinner}{msg}")
+                                    ProgressStyle::with_template("{prefix} {spinner} {msg}")
                                         .unwrap(),
                                 );
                                 threads.insert(msg, spinner);
