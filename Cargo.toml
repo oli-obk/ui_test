@@ -32,7 +32,7 @@ prettydiff = { version = "0.6.4", default_features = false }
 [dependencies.regex]
 version = "1.5.5"
 default-features = false
-features = ["perf", "std", "unicode-gencat"]
+features = ["unicode-gencat"]
 
 [dependencies.color-eyre]
 version = "0.6.1"
