@@ -105,6 +105,9 @@ impl Text {
                                     ProgressStyle::with_template("{prefix} {msg}").unwrap(),
                                 );
                                 if let Some(new_msg) = new_msg {
+                                    bars.remove(&spinner);
+                                    let spinner = bars.insert(0, spinner);
+                                    spinner.tick();
                                     spinner.finish_with_message(new_msg);
                                 } else {
                                     spinner.finish_and_clear();
