@@ -69,14 +69,14 @@ impl Match {
             Match::PathBackslash => {
                 lazy_static! {
                     static ref PATH_RE: Regex = Regex::new(
-                        r#"(?x)
+                        r"(?x)
                         (?:
                             # Match paths to files with extensions that don't include spaces
                             \\(?:[\pL\pN.\-_']+[/\\])*[\pL\pN.\-_']+\.\pL+
                         |
                             # Allow spaces in absolute paths
                             [A-Z]:\\(?:[\pL\pN.\-_'\ ]+[/\\])+
-                        )"#,
+                        )",
                     )
                     .unwrap();
                 }
@@ -93,7 +93,7 @@ impl From<&'_ Path> for Match {
     fn from(v: &Path) -> Self {
         let mut v = v.display().to_string();
         // Normalize away windows canonicalized paths.
-        if v.starts_with(r#"\\?\"#) {
+        if v.starts_with(r"\\?\") {
             v.drain(0..4);
         }
         let mut v = v.into_bytes();
