@@ -406,6 +406,18 @@ fn parse_and_test_file(
                 };
             }
 
+            let extra_args = match build_manager.build(Build::Dependencies, &config) {
+                Ok(extra_args) => extra_args,
+                Err(err) => {
+                    return TestRun {
+                        result: Err(err),
+                        status,
+                    }
+                }
+            };
+            let mut config = config.clone();
+            config.program.args.extend(extra_args);
+
             let result = status.run_test(build_manager, &config, &comments);
             TestRun { result, status }
         })
@@ -553,11 +565,6 @@ impl dyn TestStatus {
         config: &Config,
         comments: &Comments,
     ) -> TestResult {
-        let extra_args = build_manager.build(Build::Dependencies, config)?;
-        let mut config = config.clone();
-        config.program.args.extend(extra_args);
-        let config = &config;
-
         let path = self.path();
         let revision = self.revision();
 
