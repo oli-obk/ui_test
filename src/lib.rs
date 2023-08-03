@@ -132,7 +132,8 @@ pub fn run_tests(config: Config) -> Result<()> {
     };
 
     run_tests_generic(
-        config,
+        vec![config],
+        std::thread::available_parallelism().unwrap(),
         args,
         default_file_filter,
         default_per_file_config,
@@ -142,7 +143,7 @@ pub fn run_tests(config: Config) -> Result<()> {
 
 /// The filter used by `run_tests` to only run on `.rs` files
 /// and those specified in the command line args.
-pub fn default_file_filter(path: &Path, args: &Args) -> bool {
+pub fn default_file_filter(path: &Path, args: &Args, _config: &Config) -> bool {
     path.extension().is_some_and(|ext| ext == "rs") && default_filter_by_arg(path, args)
 }
 
@@ -156,13 +157,11 @@ pub fn default_filter_by_arg(path: &Path, args: &Args) -> bool {
 }
 
 /// The default per-file config used by `run_tests`.
-pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
-    let mut config = config.clone();
+pub fn default_per_file_config(config: &mut Config, file_contents: &[u8]) {
     // Heuristic:
     // * if the file contains `#[test]`, automatically pass `--cfg test`.
     // * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
     // This avoids having to spam `fn main() {}` in almost every test.
-    let file_contents = std::fs::read(path).unwrap();
     if file_contents.find(b"#[proc_macro").is_some() {
         config.program.args.push("--crate-type=proc-macro".into())
     } else if file_contents.find(b"#[test]").is_some() {
@@ -172,7 +171,6 @@ pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
     {
         config.program.args.push("--crate-type=lib".into());
     }
-    Some(config)
 }
 
 /// Create a command for running a single file, with the settings from the `config` argument.
@@ -220,24 +218,29 @@ struct TestRun {
 
 /// A version of `run_tests` that allows more fine-grained control over running tests.
 pub fn run_tests_generic(
-    mut config: Config,
+    mut configs: Vec<Config>,
+    num_threads: NonZeroUsize,
     args: Args,
-    file_filter: impl Fn(&Path, &Args) -> bool + Sync,
-    per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
+    file_filter: impl Fn(&Path, &Args, &Config) -> bool + Sync,
+    per_file_config: impl Fn(&mut Config, &[u8]) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
-    config.fill_host_and_target()?;
+    for config in &mut configs {
+        config.fill_host_and_target()?;
+    }
 
     let build_manager = BuildManager::new(&status_emitter);
 
     let mut results = vec![];
 
     run_and_collect(
-        config.num_test_threads.get(),
+        num_threads,
         |submit| {
             let mut todo = VecDeque::new();
-            todo.push_back(config.root_dir.clone());
-            while let Some(path) = todo.pop_front() {
+            for config in configs {
+                todo.push_back((config.root_dir.clone(), config));
+            }
+            while let Some((path, config)) = todo.pop_front() {
                 if path.is_dir() {
                     if path.file_name().unwrap() == "auxiliary" {
                         continue;
@@ -250,28 +253,22 @@ pub fn run_tests_generic(
                         .unwrap();
                     entries.sort_by_key(|e| e.file_name());
                     for entry in entries {
-                        todo.push_back(entry.path());
+                        todo.push_back((entry.path(), config.clone()));
                     }
-                } else if file_filter(&path, &args) {
+                } else if file_filter(&path, &args, &config) {
                     let status = status_emitter.register_test(path);
                     // Forward .rs files to the test workers.
-                    submit.send(status).unwrap();
+                    submit.send((status, config)).unwrap();
                 }
             }
         },
         |receive, finished_files_sender| -> Result<()> {
-            for status in receive {
+            for (status, mut config) in receive {
                 let path = status.path();
-                let maybe_config;
-                let config = match per_file_config(&config, path) {
-                    None => &config,
-                    Some(config) => {
-                        maybe_config = config;
-                        &maybe_config
-                    }
-                };
+                let file_contents = std::fs::read(path).unwrap();
+                per_file_config(&mut config, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
-                    parse_and_test_file(&build_manager, &status, config)
+                    parse_and_test_file(&build_manager, &status, &config, file_contents)
                 }) {
                     Ok(Ok(res)) => res,
                     Ok(Err(err)) => {
@@ -351,7 +348,7 @@ pub fn run_tests_generic(
 /// A generic multithreaded runner that has a thread for producing work,
 /// a thread for collecting work, and `num_threads` threads for doing the work.
 pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
-    num_threads: usize,
+    num_threads: NonZeroUsize,
     submitter: impl FnOnce(Sender<SUBMISSION>) + Send,
     runner: impl Sync + Fn(&Receiver<SUBMISSION>, Sender<RESULT>) -> Result<()>,
     collector: impl FnOnce(Receiver<RESULT>) + Send,
@@ -373,7 +370,7 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
         let mut threads = vec![];
 
         // Create N worker threads that receive files to test.
-        for _ in 0..num_threads {
+        for _ in 0..num_threads.get() {
             let finished_files_sender = finished_files_sender.clone();
             threads.push(s.spawn(|| runner(&receive, finished_files_sender)));
         }
@@ -389,8 +386,9 @@ fn parse_and_test_file(
     build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
     config: &Config,
+    file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
-    let comments = parse_comments_in_file(status.path())?;
+    let comments = parse_comments(&file_contents)?;
     // Run the test for all revisions
     let revisions = comments
         .revisions
@@ -413,18 +411,13 @@ fn parse_and_test_file(
         .collect())
 }
 
-fn parse_comments_in_file(path: &Path) -> Result<Comments, Errored> {
-    match Comments::parse_file(path) {
-        Ok(Ok(comments)) => Ok(comments),
-        Ok(Err(errors)) => Err(Errored {
+fn parse_comments(file_contents: &[u8]) -> Result<Comments, Errored> {
+    match Comments::parse(file_contents) {
+        Ok(comments) => Ok(comments),
+        Err(errors) => Err(Errored {
             command: Command::new("parse comments"),
             errors,
             stderr: vec![],
-        }),
-        Err(err) => Err(Errored {
-            command: Command::new("parse comments"),
-            errors: vec![],
-            stderr: format!("{err:?}").into(),
         }),
     }
 }
@@ -467,7 +460,8 @@ fn build_aux(
     config: &Config,
     build_manager: &BuildManager<'_>,
 ) -> std::result::Result<Vec<OsString>, Errored> {
-    let comments = parse_comments_in_file(aux_file)?;
+    let file_contents = std::fs::read(aux_file).unwrap();
+    let comments = parse_comments(&file_contents)?;
     assert_eq!(
         comments.revisions, None,
         "aux builds cannot specify revisions"
@@ -495,7 +489,7 @@ fn build_aux(
         }
     });
 
-    let mut config = default_per_file_config(&config, aux_file).unwrap();
+    default_per_file_config(&mut config, &file_contents);
 
     // Put aux builds into a separate directory per path so that multiple aux files
     // from different directories (but with the same file name) don't collide.
@@ -615,7 +609,12 @@ impl dyn TestStatus {
             .stdout(Stdio::piped())
             .stdin(Stdio::null())
             .spawn()
-            .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
+            .unwrap_or_else(|err| {
+                panic!(
+                    "could not spawn `{:?}` as a process: {err}",
+                    cmd.get_program()
+                )
+            });
 
         let stdout = ReadHelper::from(child.stdout.take().unwrap());
         let mut stderr = ReadHelper::from(child.stderr.take().unwrap());

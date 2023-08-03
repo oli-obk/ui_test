@@ -1,4 +1,3 @@
-use std::num::NonZeroUsize;
 use ui_test::*;
 
 fn main() -> ui_test::color_eyre::Result<()> {
@@ -19,8 +18,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
 
         let mut config = Config {
             dependencies_crate_manifest_path: Some("Cargo.toml".into()),
-            // Make sure our tests are ordered for reliable output.
-            num_test_threads: NonZeroUsize::new(1).unwrap(),
             mode,
             ..Config::rustc(root_dir)
         };
@@ -39,7 +36,8 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
         config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
         let result = run_tests_generic(
-            config,
+            vec![config],
+            std::num::NonZeroUsize::new(1).unwrap(),
             Args::test(),
             default_file_filter,
             default_per_file_config,

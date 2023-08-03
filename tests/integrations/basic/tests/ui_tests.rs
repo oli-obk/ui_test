@@ -1,11 +1,9 @@
-use std::num::NonZeroUsize;
 use ui_test::*;
 
 fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
     let mut config = Config {
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
-        num_test_threads: NonZeroUsize::new(1).unwrap(),
         ..Config::rustc("tests/actual_tests")
     };
     if std::env::var_os("BLESS").is_some() {
@@ -23,7 +21,8 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.path_stderr_filter(tmp_dir, "$TMP");
 
     run_tests_generic(
-        config,
+        vec![config],
+        std::num::NonZeroUsize::new(1).unwrap(),
         Args::test(),
         default_file_filter,
         default_per_file_config,
