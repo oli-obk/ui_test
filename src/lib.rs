@@ -156,13 +156,12 @@ pub fn default_filter_by_arg(path: &Path, args: &Args) -> bool {
 }
 
 /// The default per-file config used by `run_tests`.
-pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
+pub fn default_per_file_config(config: &Config, file_contents: &[u8]) -> Option<Config> {
     let mut config = config.clone();
     // Heuristic:
     // * if the file contains `#[test]`, automatically pass `--cfg test`.
     // * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
     // This avoids having to spam `fn main() {}` in almost every test.
-    let file_contents = std::fs::read(path).unwrap();
     if file_contents.find(b"#[proc_macro").is_some() {
         config.program.args.push("--crate-type=proc-macro".into())
     } else if file_contents.find(b"#[test]").is_some() {
@@ -223,7 +222,7 @@ pub fn run_tests_generic(
     mut config: Config,
     args: Args,
     file_filter: impl Fn(&Path, &Args) -> bool + Sync,
-    per_file_config: impl Fn(&Config, &Path) -> Option<Config> + Sync,
+    per_file_config: impl Fn(&Config, &[u8]) -> Option<Config> + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
     config.fill_host_and_target()?;
@@ -262,8 +261,9 @@ pub fn run_tests_generic(
         |receive, finished_files_sender| -> Result<()> {
             for status in receive {
                 let path = status.path();
+                let file_contents = std::fs::read(path).unwrap();
                 let maybe_config;
-                let config = match per_file_config(&config, path) {
+                let config = match per_file_config(&config, &file_contents) {
                     None => &config,
                     Some(config) => {
                         maybe_config = config;
@@ -271,7 +271,7 @@ pub fn run_tests_generic(
                     }
                 };
                 let result = match std::panic::catch_unwind(|| {
-                    parse_and_test_file(&build_manager, &status, config)
+                    parse_and_test_file(&build_manager, &status, config, file_contents)
                 }) {
                     Ok(Ok(res)) => res,
                     Ok(Err(err)) => {
@@ -389,8 +389,9 @@ fn parse_and_test_file(
     build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
     config: &Config,
+    file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
-    let comments = parse_comments_in_file(status.path())?;
+    let comments = parse_comments(&file_contents)?;
     // Run the test for all revisions
     let revisions = comments
         .revisions
@@ -413,18 +414,13 @@ fn parse_and_test_file(
         .collect())
 }
 
-fn parse_comments_in_file(path: &Path) -> Result<Comments, Errored> {
-    match Comments::parse_file(path) {
-        Ok(Ok(comments)) => Ok(comments),
-        Ok(Err(errors)) => Err(Errored {
+fn parse_comments(file_contents: &[u8]) -> Result<Comments, Errored> {
+    match Comments::parse(file_contents) {
+        Ok(comments) => Ok(comments),
+        Err(errors) => Err(Errored {
             command: Command::new("parse comments"),
             errors,
             stderr: vec![],
-        }),
-        Err(err) => Err(Errored {
-            command: Command::new("parse comments"),
-            errors: vec![],
-            stderr: format!("{err:?}").into(),
         }),
     }
 }
@@ -467,7 +463,8 @@ fn build_aux(
     config: &Config,
     build_manager: &BuildManager<'_>,
 ) -> std::result::Result<Vec<OsString>, Errored> {
-    let comments = parse_comments_in_file(aux_file)?;
+    let file_contents = std::fs::read(aux_file).unwrap();
+    let comments = parse_comments(&file_contents)?;
     assert_eq!(
         comments.revisions, None,
         "aux builds cannot specify revisions"
@@ -495,7 +492,7 @@ fn build_aux(
         }
     });
 
-    let mut config = default_per_file_config(&config, aux_file).unwrap();
+    let mut config = default_per_file_config(&config, &file_contents).unwrap();
 
     // Put aux builds into a separate directory per path so that multiple aux files
     // from different directories (but with the same file name) don't collide.
