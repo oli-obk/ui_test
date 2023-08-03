@@ -663,7 +663,9 @@ fn build_aux_files(
                 build_manager
                     .build(
                         Build::Aux {
-                            aux_file: aux_file.canonicalize().unwrap(),
+                            aux_file: config
+                                .strip_path_prefix(&aux_file.canonicalize().unwrap())
+                                .collect(),
                         },
                         config,
                     )

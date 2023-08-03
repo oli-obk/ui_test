@@ -207,14 +207,14 @@ Caused by:
   process didn't exit successfully: `$DIR/target/ui/debug/ui_tests-HASH` (exit status: 1)
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 Building dependencies ... ok
-Building aux file $DIR/$DIR/tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
+Building aux file tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
 tests/actual_tests_bless/failing_executable.rs ... FAILED
-Building aux file $DIR/$DIR/tests/actual_tests_bless/auxiliary/foomp.rs ... ok
+Building aux file tests/actual_tests_bless/auxiliary/foomp.rs ... ok
 tests/actual_tests_bless/foomp_aux.rs ... ok
-Building aux file $DIR/$DIR/tests/actual_tests_bless/auxiliary/nested.rs ... ok
+Building aux file tests/actual_tests_bless/auxiliary/nested.rs ... ok
 tests/actual_tests_bless/nested_aux.rs ... ok
 tests/actual_tests_bless/no_main.rs ... FAILED
 tests/actual_tests_bless/no_main_manual.rs ... FAILED
