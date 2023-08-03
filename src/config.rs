@@ -6,7 +6,7 @@ use color_eyre::eyre::Result;
 use std::{
     ffi::OsString,
     num::NonZeroUsize,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf, Prefix},
 };
 
 mod args;
@@ -195,6 +195,30 @@ impl Config {
         ASM_SUPPORTED_ARCHS
             .iter()
             .any(|arch| self.target.as_ref().unwrap().contains(arch))
+    }
+
+    /// Remove the common prefix of this path and the `root_dir`.
+    pub(crate) fn strip_path_prefix<'a>(
+        &self,
+        path: &'a Path,
+    ) -> impl Iterator<Item = Component<'a>> {
+        let mut components = path.components();
+        for c in self.out_dir.components() {
+            let deverbatimize = |c| match c {
+                Component::Prefix(prefix) => Err(match prefix.kind() {
+                    Prefix::VerbatimUNC(a, b) => Prefix::UNC(a, b),
+                    Prefix::VerbatimDisk(d) => Prefix::Disk(d),
+                    other => other,
+                }),
+                c => Ok(c),
+            };
+            let c2 = components.next();
+            if Some(deverbatimize(c)) == c2.map(deverbatimize) {
+                continue;
+            }
+            return c2.into_iter().chain(components);
+        }
+        None.into_iter().chain(components)
     }
 }
 
