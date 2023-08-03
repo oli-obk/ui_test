@@ -25,7 +25,6 @@ rustfix = "0.6.1"
 cargo-platform = "0.1.2"
 comma = "1.0.0"
 distance = "0.4.0"
-clap = { version = "4.3.11", features = ["derive"] }
 anyhow = "1.0.6"
 indicatif = "0.17.6"
 prettydiff = "0.6.4"

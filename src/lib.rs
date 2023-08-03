@@ -9,8 +9,6 @@
 //! A crate to run the Rust compiler (or other binaries) and test their command line output.
 
 use bstr::ByteSlice;
-pub use clap;
-use clap::Parser;
 pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -120,7 +118,7 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.
 pub fn run_tests(config: Config) -> Result<()> {
-    let args = Args::parse();
+    let args = Args::test();
     if !args.quiet {
         eprintln!("   Compiler: {}", config.program.display());
     }

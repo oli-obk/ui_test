@@ -20,7 +20,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
 
     run_tests_generic(
         config,
-        Args::default(),
+        Args::test(),
         default_file_filter,
         default_per_file_config,
         // Avoid github actions, as these would end up showing up in `Cargo.stderr`

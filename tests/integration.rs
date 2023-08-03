@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use clap::Parser;
 use colored::Colorize;
 use ui_test::color_eyre::Result;
 use ui_test::*;
@@ -22,7 +21,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         mode,
         ..Config::cargo(root_dir.clone())
     };
-    let args = Args::parse();
+    let args = Args::test();
 
     if !args.check {
         config.output_conflict_handling = OutputConflictHandling::Bless;
