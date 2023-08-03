@@ -156,8 +156,7 @@ pub fn default_filter_by_arg(path: &Path, args: &Args) -> bool {
 }
 
 /// The default per-file config used by `run_tests`.
-pub fn default_per_file_config(config: &Config, file_contents: &[u8]) -> Option<Config> {
-    let mut config = config.clone();
+pub fn default_per_file_config(config: &mut Config, file_contents: &[u8]) {
     // Heuristic:
     // * if the file contains `#[test]`, automatically pass `--cfg test`.
     // * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
@@ -171,7 +170,6 @@ pub fn default_per_file_config(config: &Config, file_contents: &[u8]) -> Option<
     {
         config.program.args.push("--crate-type=lib".into());
     }
-    Some(config)
 }
 
 /// Create a command for running a single file, with the settings from the `config` argument.
@@ -222,7 +220,7 @@ pub fn run_tests_generic(
     mut config: Config,
     args: Args,
     file_filter: impl Fn(&Path, &Args) -> bool + Sync,
-    per_file_config: impl Fn(&Config, &[u8]) -> Option<Config> + Sync,
+    per_file_config: impl Fn(&mut Config, &[u8]) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
     config.fill_host_and_target()?;
@@ -262,16 +260,10 @@ pub fn run_tests_generic(
             for status in receive {
                 let path = status.path();
                 let file_contents = std::fs::read(path).unwrap();
-                let maybe_config;
-                let config = match per_file_config(&config, &file_contents) {
-                    None => &config,
-                    Some(config) => {
-                        maybe_config = config;
-                        &maybe_config
-                    }
-                };
+                let mut config = config.clone();
+                per_file_config(&mut config, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
-                    parse_and_test_file(&build_manager, &status, config, file_contents)
+                    parse_and_test_file(&build_manager, &status, &config, file_contents)
                 }) {
                     Ok(Ok(res)) => res,
                     Ok(Err(err)) => {
@@ -492,7 +484,7 @@ fn build_aux(
         }
     });
 
-    let mut config = default_per_file_config(&config, &file_contents).unwrap();
+    default_per_file_config(&mut config, &file_contents);
 
     // Put aux builds into a separate directory per path so that multiple aux files
     // from different directories (but with the same file name) don't collide.

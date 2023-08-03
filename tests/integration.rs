@@ -112,7 +112,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                 }
                 && default_filter_by_arg(path, args)
         },
-        |_, _| None,
+        |_, _| {},
         (
             text,
             ui_test::status_emitter::Gha::<true> {
