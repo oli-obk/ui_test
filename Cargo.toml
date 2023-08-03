@@ -27,7 +27,7 @@ comma = "1.0.0"
 distance = "0.4.0"
 anyhow = "1.0.6"
 indicatif = "0.17.6"
-prettydiff = "0.6.4"
+prettydiff = { version = "0.6.4", default_features = false }
 
 [dependencies.regex]
 version = "1.5.5"

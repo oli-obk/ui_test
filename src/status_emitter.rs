@@ -101,7 +101,13 @@ impl Text {
                                 let spinner = threads
                                     .remove(&msg)
                                     .unwrap_or_else(|| panic!("`{msg}` not found"));
+                                spinner.set_style(
+                                    ProgressStyle::with_template("{prefix} {msg}").unwrap(),
+                                );
                                 if let Some(new_msg) = new_msg {
+                                    bars.remove(&spinner);
+                                    let spinner = bars.insert(0, spinner);
+                                    spinner.tick();
                                     spinner.finish_with_message(new_msg);
                                 } else {
                                     spinner.finish_and_clear();
@@ -114,7 +120,7 @@ impl Text {
                                 let spinner =
                                     bars.add(ProgressBar::new_spinner().with_prefix(msg.clone()));
                                 spinner.set_style(
-                                    ProgressStyle::with_template("{prefix} {spinner}{msg}")
+                                    ProgressStyle::with_template("{prefix} {spinner} {msg}")
                                         .unwrap(),
                                 );
                                 threads.insert(msg, spinner);
@@ -285,6 +291,11 @@ impl StatusEmitter for Text {
         self.sender.send(Msg::Finish).unwrap();
         while !self.sender.is_empty() {
             std::thread::sleep(Duration::from_millis(10));
+        }
+        if !ProgressDrawTarget::stderr().is_hidden() {
+            // The progress bars do not have a trailing newline, so let's
+            // add it here.
+            eprintln!();
         }
         // Print all errors in a single thread to show reliable output
         if failures == 0 {
