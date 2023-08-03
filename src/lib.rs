@@ -268,7 +268,7 @@ pub fn run_tests_generic(
                 let file_contents = std::fs::read(path).unwrap();
                 per_file_config(&mut config, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
-                    parse_and_test_file(&build_manager, &status, &config, file_contents)
+                    parse_and_test_file(&build_manager, &status, config, file_contents)
                 }) {
                     Ok(Ok(res)) => res,
                     Ok(Err(err)) => {
@@ -385,7 +385,7 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
 fn parse_and_test_file(
     build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
-    config: &Config,
+    config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = parse_comments(&file_contents)?;
@@ -399,13 +399,14 @@ fn parse_and_test_file(
         .map(|revision| {
             let status = status.for_revision(revision);
             // Ignore file if only/ignore rules do (not) apply
-            if !status.test_file_conditions(&comments, config) {
+            if !status.test_file_conditions(&comments, &config) {
                 return TestRun {
                     result: Ok(TestOk::Ignored),
                     status,
                 };
             }
-            let result = status.run_test(build_manager, config, &comments);
+
+            let result = status.run_test(build_manager, &config, &comments);
             TestRun { result, status }
         })
         .collect())
