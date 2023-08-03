@@ -609,7 +609,12 @@ impl dyn TestStatus {
             .stdout(Stdio::piped())
             .stdin(Stdio::null())
             .spawn()
-            .unwrap_or_else(|err| panic!("could not execute {cmd:?}: {err}"));
+            .unwrap_or_else(|err| {
+                panic!(
+                    "could not spawn `{:?}` as a process: {err}",
+                    cmd.get_program()
+                )
+            });
 
         let stdout = ReadHelper::from(child.stdout.take().unwrap());
         let mut stderr = ReadHelper::from(child.stderr.take().unwrap());
