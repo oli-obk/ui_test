@@ -262,7 +262,7 @@ impl<'a> BuildManager<'a> {
             let build = self
                 .status_emitter
                 .register_test(what.description().into())
-                .for_revision(String::new());
+                .for_revision("");
             let res = match &what {
                 Build::Dependencies => match config.build_dependencies() {
                     Ok(args) => Ok(args),

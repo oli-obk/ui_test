@@ -389,11 +389,9 @@ fn parse_and_test_file(
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = parse_comments(&file_contents)?;
+    const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
-    let revisions = comments
-        .revisions
-        .clone()
-        .unwrap_or_else(|| vec![String::new()]);
+    let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
     Ok(revisions
         .into_iter()
         .map(|revision| {
