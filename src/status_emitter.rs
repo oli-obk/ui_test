@@ -288,13 +288,17 @@ impl StatusEmitter for Text {
         // Print all errors in a single thread to show reliable output
         if failures == 0 {
             eprintln!();
-            eprintln!(
-                "test result: {}. {} tests passed, {} ignored, {} filtered out",
-                "ok".green(),
-                succeeded.to_string().green(),
-                ignored.to_string().yellow(),
-                filtered.to_string().yellow(),
-            );
+            eprint!("test result: {}.", "ok".green());
+            if succeeded > 0 {
+                eprint!(" {} passed;", succeeded.to_string().green());
+            }
+            if ignored > 0 {
+                eprint!(" {} ignored;", ignored.to_string().yellow());
+            }
+            if filtered > 0 {
+                eprint!(" {} filtered out;", filtered.to_string().yellow());
+            }
+            eprintln!();
             eprintln!();
             Box::new(())
         } else {
@@ -330,14 +334,19 @@ impl StatusEmitter for Text {
                         eprintln!("{line}");
                     }
                     eprintln!();
-                    eprintln!(
-                        "test result: {}. {} tests failed, {} tests passed, {} ignored, {} filtered out",
-                        "FAIL".red(),
-                        self.failures.len().to_string().red().bold(),
-                        self.succeeded.to_string().green(),
-                        self.ignored.to_string().yellow(),
-                        self.filtered.to_string().yellow(),
-                    );
+                    eprint!("test result: {}.", "FAIL".red());
+                    eprint!(" {} failed;", self.failures.len().to_string().green());
+                    if self.succeeded > 0 {
+                        eprint!(" {} passed;", self.succeeded.to_string().green());
+                    }
+                    if self.ignored > 0 {
+                        eprint!(" {} ignored;", self.ignored.to_string().yellow());
+                    }
+                    if self.filtered > 0 {
+                        eprint!(" {} filtered out;", self.filtered.to_string().yellow());
+                    }
+                    eprintln!();
+                    eprintln!();
                 }
             }
             Box::new(Summarizer {
