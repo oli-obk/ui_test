@@ -1,6 +1,6 @@
 [package]
 name = "ui_test"
-version = "0.12.1"
+version = "0.13.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A test framework for testing rustc diagnostics output"
@@ -27,7 +27,7 @@ comma = "1.0.0"
 distance = "0.4.0"
 clap = { version = "4.3.11", features = ["derive"] }
 anyhow = "1.0.6"
-indicatif = "0.17.5"
+indicatif = "0.17.6"
 prettydiff = "0.6.4"
 
 [dependencies.regex]
