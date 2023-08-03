@@ -385,13 +385,14 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
 fn parse_and_test_file(
     build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
-    config: Config,
+    mut config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = parse_comments(&file_contents)?;
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
+    let mut built_deps = false;
     Ok(revisions
         .into_iter()
         .map(|revision| {
@@ -404,17 +405,18 @@ fn parse_and_test_file(
                 };
             }
 
-            let extra_args = match build_manager.build(Build::Dependencies, &config) {
-                Ok(extra_args) => extra_args,
-                Err(err) => {
-                    return TestRun {
-                        result: Err(err),
-                        status,
+            if !built_deps {
+                match build_manager.build(Build::Dependencies, &config) {
+                    Ok(extra_args) => config.program.args.extend(extra_args),
+                    Err(err) => {
+                        return TestRun {
+                            result: Err(err),
+                            status,
+                        }
                     }
                 }
-            };
-            let mut config = config.clone();
-            config.program.args.extend(extra_args);
+                built_deps = true;
+            }
 
             let result = status.run_test(build_manager, &config, &comments);
             TestRun { result, status }
