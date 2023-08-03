@@ -25,7 +25,7 @@ use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::num::NonZeroUsize;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf, Prefix};
 use std::process::{Command, ExitStatus, Stdio};
 use std::thread;
 use std::time::Duration;
@@ -501,8 +501,16 @@ fn build_aux(
     // Put aux builds into a separate directory per path so that multiple aux files
     // from different directories (but with the same file name) don't collide.
     for c in config.out_dir.components() {
+        let deverbatimize = |c| match c {
+            Component::Prefix(prefix) => Err(match prefix.kind() {
+                Prefix::VerbatimUNC(a, b) => Prefix::UNC(a, b),
+                Prefix::VerbatimDisk(d) => Prefix::Disk(d),
+                other => other,
+            }),
+            c => Ok(c),
+        };
         let c2 = components.next();
-        if Some(c) != c2 {
+        if Some(deverbatimize(c)) != c2.map(deverbatimize) {
             config.out_dir.extend(c2);
             config.out_dir.extend(components);
             break;

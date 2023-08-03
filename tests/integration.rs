@@ -72,7 +72,6 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("/target/.tmp[^/ \"]+", "/target/$$TMP");
     // Normalize proc macro filenames on windows to their linux repr
     config.stderr_filter("/([^/\\.]+)\\.dll", "/lib$1.so");
-    config.stderr_filter(r"\\\?\\", "");
     // Normalize proc macro filenames on mac to their linux repr
     config.stderr_filter("/([^/\\.]+)\\.dylib", "/$1.so");
     config.stderr_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");

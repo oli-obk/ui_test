@@ -65,6 +65,8 @@ impl Config {
                 (Match::PathBackslash, b"/"),
                 #[cfg(windows)]
                 (Match::Exact(vec![b'\r']), b""),
+                #[cfg(windows)]
+                (Match::Exact(br"\\?\".to_vec()), b""),
             ],
             stdout_filters: vec![
                 #[cfg(windows)]
