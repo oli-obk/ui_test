@@ -113,7 +113,14 @@ fn print_line_diff(l: &str, r: &str) {
                         eprint!("{}", r.to_string().on_green())
                     }
                 }
-                Replace(..) => unreachable!(),
+                Replace(l, r) => {
+                    for l in l {
+                        eprint!("{}", l.to_string().on_red())
+                    }
+                    for r in r {
+                        eprint!("{}", r.to_string().on_green())
+                    }
+                }
             }
         }
         eprintln!();
