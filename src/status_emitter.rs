@@ -521,7 +521,6 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                         continue;
                     }
                     Replace(l, r) => {
-                        assert_eq!(r.len(), l.len());
                         let mut err = github_actions::error(
                             output_path.display().to_string(),
                             "actual output differs from expected",
