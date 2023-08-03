@@ -132,7 +132,8 @@ pub fn run_tests(config: Config) -> Result<()> {
     };
 
     run_tests_generic(
-        config,
+        vec![config],
+        std::thread::available_parallelism().unwrap(),
         args,
         default_file_filter,
         default_per_file_config,
@@ -142,7 +143,7 @@ pub fn run_tests(config: Config) -> Result<()> {
 
 /// The filter used by `run_tests` to only run on `.rs` files
 /// and those specified in the command line args.
-pub fn default_file_filter(path: &Path, args: &Args) -> bool {
+pub fn default_file_filter(path: &Path, args: &Args, _config: &Config) -> bool {
     path.extension().is_some_and(|ext| ext == "rs") && default_filter_by_arg(path, args)
 }
 
@@ -217,24 +218,29 @@ struct TestRun {
 
 /// A version of `run_tests` that allows more fine-grained control over running tests.
 pub fn run_tests_generic(
-    mut config: Config,
+    mut configs: Vec<Config>,
+    num_threads: NonZeroUsize,
     args: Args,
-    file_filter: impl Fn(&Path, &Args) -> bool + Sync,
+    file_filter: impl Fn(&Path, &Args, &Config) -> bool + Sync,
     per_file_config: impl Fn(&mut Config, &[u8]) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
-    config.fill_host_and_target()?;
+    for config in &mut configs {
+        config.fill_host_and_target()?;
+    }
 
     let build_manager = BuildManager::new(&status_emitter);
 
     let mut results = vec![];
 
     run_and_collect(
-        config.num_test_threads.get(),
+        num_threads,
         |submit| {
             let mut todo = VecDeque::new();
-            todo.push_back(config.root_dir.clone());
-            while let Some(path) = todo.pop_front() {
+            for config in configs {
+                todo.push_back((config.root_dir.clone(), config));
+            }
+            while let Some((path, config)) = todo.pop_front() {
                 if path.is_dir() {
                     if path.file_name().unwrap() == "auxiliary" {
                         continue;
@@ -247,20 +253,19 @@ pub fn run_tests_generic(
                         .unwrap();
                     entries.sort_by_key(|e| e.file_name());
                     for entry in entries {
-                        todo.push_back(entry.path());
+                        todo.push_back((entry.path(), config.clone()));
                     }
-                } else if file_filter(&path, &args) {
+                } else if file_filter(&path, &args, &config) {
                     let status = status_emitter.register_test(path);
                     // Forward .rs files to the test workers.
-                    submit.send(status).unwrap();
+                    submit.send((status, config)).unwrap();
                 }
             }
         },
         |receive, finished_files_sender| -> Result<()> {
-            for status in receive {
+            for (status, mut config) in receive {
                 let path = status.path();
                 let file_contents = std::fs::read(path).unwrap();
-                let mut config = config.clone();
                 per_file_config(&mut config, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
                     parse_and_test_file(&build_manager, &status, &config, file_contents)
@@ -343,7 +348,7 @@ pub fn run_tests_generic(
 /// A generic multithreaded runner that has a thread for producing work,
 /// a thread for collecting work, and `num_threads` threads for doing the work.
 pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
-    num_threads: usize,
+    num_threads: NonZeroUsize,
     submitter: impl FnOnce(Sender<SUBMISSION>) + Send,
     runner: impl Sync + Fn(&Receiver<SUBMISSION>, Sender<RESULT>) -> Result<()>,
     collector: impl FnOnce(Receiver<RESULT>) + Send,
@@ -365,7 +370,7 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
         let mut threads = vec![];
 
         // Create N worker threads that receive files to test.
-        for _ in 0..num_threads {
+        for _ in 0..num_threads.get() {
             let finished_files_sender = finished_files_sender.clone();
             threads.push(s.spawn(|| runner(&receive, finished_files_sender)));
         }

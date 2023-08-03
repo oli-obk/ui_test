@@ -5,7 +5,6 @@ pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
     ffi::OsString,
-    num::NonZeroUsize,
     path::{Component, Path, PathBuf, Prefix},
 };
 
@@ -45,8 +44,6 @@ pub struct Config {
     /// The command to run can be changed from `cargo` to any custom command to build the
     /// dependencies in `dependencies_crate_manifest_path`
     pub dependency_builder: CommandBuilder,
-    /// How many threads to use for running tests. Defaults to number of cores
-    pub num_test_threads: NonZeroUsize,
     /// Where to dump files like the binaries compiled from tests.
     /// Defaults to `target/ui` in the current directory.
     pub out_dir: PathBuf,
@@ -88,7 +85,6 @@ impl Config {
             )),
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
-            num_test_threads: std::thread::available_parallelism().unwrap(),
             out_dir: std::env::var_os("CARGO_TARGET_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"))

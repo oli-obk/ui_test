@@ -1,4 +1,3 @@
-use std::num::NonZeroUsize;
 use ui_test::*;
 
 fn main() -> ui_test::color_eyre::Result<()> {
@@ -9,8 +8,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
         output_conflict_handling: OutputConflictHandling::Error(
             "DO NOT BLESS. These are meant to fail".into(),
         ),
-        // Make sure our tests are ordered for reliable output.
-        num_test_threads: NonZeroUsize::new(1).unwrap(),
         ..Config::rustc("tests/actual_tests")
     };
 
@@ -26,7 +23,8 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
 
     run_tests_generic(
-        config,
+        vec![config],
+        std::num::NonZeroUsize::new(1).unwrap(),
         Args::test(),
         default_file_filter,
         default_per_file_config,

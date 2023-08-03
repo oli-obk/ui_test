@@ -19,7 +19,8 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
 
     run_tests_generic(
-        config,
+        vec![config],
+        std::num::NonZeroUsize::new(1).unwrap(),
         Args::test(),
         default_file_filter,
         default_per_file_config,

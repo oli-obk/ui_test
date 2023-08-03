@@ -1,24 +1,12 @@
 use std::path::Path;
 
-use colored::Colorize;
 use ui_test::color_eyre::Result;
 use ui_test::*;
 
 fn main() -> Result<()> {
-    run("integrations", Mode::Pass)?;
-    run("integrations", Mode::Panic)?;
-
-    eprintln!("integration tests done");
-
-    Ok(())
-}
-
-fn run(name: &str, mode: Mode) -> Result<()> {
-    eprintln!("\n{} `{name}` tests in mode {mode}", "Running".green());
     let path = Path::new(file!()).parent().unwrap();
-    let root_dir = path.join(name);
+    let root_dir = path.join("integrations");
     let mut config = Config {
-        mode,
         ..Config::cargo(root_dir.clone())
     };
     let args = Args::test();
@@ -85,9 +73,19 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     };
 
     run_tests_generic(
-        config,
+        vec![
+            Config {
+                mode: Mode::Pass,
+                ..config.clone()
+            },
+            Config {
+                mode: Mode::Panic,
+                ..config
+            },
+        ],
+        std::thread::available_parallelism().unwrap(),
         args,
-        |path, args| {
+        |path, args, config| {
             let fail = path
                 .parent()
                 .unwrap()
@@ -102,7 +100,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
             }
             path.ends_with("Cargo.toml")
                 && path.parent().unwrap().parent().unwrap() == root_dir
-                && match mode {
+                && match config.mode {
                     Mode::Pass => !fail,
                     // This is weird, but `cargo test` returns 101 instead of 1 when
                     // multiple [[test]]s exist. If there's only one test, it returns
@@ -116,7 +114,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
         (
             text,
             ui_test::status_emitter::Gha::<true> {
-                name: format!("{mode:?}"),
+                name: "integration tests".into(),
             },
         ),
     )
