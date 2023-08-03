@@ -632,7 +632,7 @@ impl dyn TestStatus {
             if let Some(exit) = child.try_wait().unwrap() {
                 break exit;
             }
-            if start.elapsed() < Duration::from_millis(1000) {
+            if start.elapsed() < Duration::from_secs(10) {
                 std::thread::sleep(Duration::from_millis(5));
                 continue;
             }
