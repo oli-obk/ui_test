@@ -286,6 +286,11 @@ impl StatusEmitter for Text {
         while !self.sender.is_empty() {
             std::thread::sleep(Duration::from_millis(10));
         }
+        if !ProgressDrawTarget::stderr().is_hidden() {
+            // The progress bars do not have a trailing newline, so let's
+            // add it here.
+            eprintln!();
+        }
         // Print all errors in a single thread to show reliable output
         if failures == 0 {
             eprintln!();
