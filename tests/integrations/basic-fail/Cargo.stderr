@@ -196,7 +196,8 @@ FAILURES:
     tests/actual_tests/foomp2.rs
     tests/actual_tests/pattern_too_many_arrow.rs
 
-test result: FAIL. 8 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 8 failed;
+
 Error: tests failed
 
 Location:
@@ -557,7 +558,8 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
 
-test result: FAIL. 18 tests failed, 14 tests passed, 3 ignored, 0 filtered out
+test result: FAIL. 18 failed; 14 passed; 3 ignored;
+
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
@@ -584,7 +586,8 @@ For more information about this error, try `rustc --explain E0601`.
 FAILURES:
     tests/actual_tests_bless_yolo/revisions_bad.rs (revision bar)
 
-test result: FAIL. 1 tests failed, 2 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 1 failed; 2 passed;
+
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
@@ -703,7 +706,8 @@ FAILURES:
     tests/actual_tests/foomp2.rs
     tests/actual_tests/pattern_too_many_arrow.rs
 
-test result: FAIL. 8 tests failed, 0 tests passed, 0 ignored, 0 filtered out
+test result: FAIL. 8 failed;
+
 Error: tests failed
 
 Location:

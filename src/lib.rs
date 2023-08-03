@@ -120,7 +120,7 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 pub fn run_tests(config: Config) -> Result<()> {
     let args = Args::test();
     if !args.quiet {
-        eprintln!("   Compiler: {}", config.program.display());
+        eprintln!("Compiler: {}", config.program.display());
     }
 
     let name = config.root_dir.display().to_string();
