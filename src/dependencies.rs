@@ -10,7 +10,9 @@ use std::{
     sync::{Arc, OnceLock, RwLock},
 };
 
-use crate::{build_aux, Config, Errored, Mode, OutputConflictHandling};
+use crate::{
+    build_aux, status_emitter::StatusEmitter, Config, Errored, Mode, OutputConflictHandling,
+};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -49,7 +51,6 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
         None => return Ok(Default::default()),
     };
     let manifest_path = &manifest_path;
-    eprintln!("   Building test dependencies...");
     let mut build = config.dependency_builder.build(&config.out_dir);
     build.arg(manifest_path);
 
@@ -201,14 +202,28 @@ pub enum Build {
     /// Build an aux-build.
     Aux { aux_file: PathBuf },
 }
-
-#[derive(Default)]
-pub struct BuildManager {
-    #[allow(clippy::type_complexity)]
-    cache: RwLock<HashMap<Build, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
+impl Build {
+    fn description(&self) -> String {
+        match self {
+            Build::Dependencies => "Building dependencies".into(),
+            Build::Aux { aux_file } => format!("Building aux file {}", aux_file.display()),
+        }
+    }
 }
 
-impl BuildManager {
+pub struct BuildManager<'a> {
+    #[allow(clippy::type_complexity)]
+    cache: RwLock<HashMap<Build, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
+    status_emitter: &'a dyn StatusEmitter,
+}
+
+impl<'a> BuildManager<'a> {
+    pub fn new(status_emitter: &'a dyn StatusEmitter) -> Self {
+        Self {
+            cache: Default::default(),
+            status_emitter,
+        }
+    }
     /// This function will block until the build is done and then return the arguments
     /// that need to be passed in order to build the dependencies.
     /// The error is only reported once, all follow up invocations of the same build will
@@ -243,30 +258,46 @@ impl BuildManager {
         drop(lock);
 
         let mut err = None;
-        once.get_or_init(|| match &what {
-            Build::Dependencies => match config.build_dependencies() {
-                Ok(args) => Ok(args),
-                Err(e) => {
-                    err = Some(Errored {
-                        command: Command::new(format!("{what:?}")),
+        once.get_or_init(|| {
+            let build = self
+                .status_emitter
+                .register_test(what.description().into())
+                .for_revision(String::new());
+            let res = match &what {
+                Build::Dependencies => match config.build_dependencies() {
+                    Ok(args) => Ok(args),
+                    Err(e) => {
+                        err = Some(Errored {
+                            command: Command::new(format!("{what:?}")),
+                            errors: vec![],
+                            stderr: format!("{e:?}").into_bytes(),
+                        });
+                        Err(())
+                    }
+                },
+                Build::Aux { aux_file } => match build_aux(aux_file, config, self) {
+                    Ok(args) => Ok(args.iter().map(Into::into).collect()),
+                    Err(e) => {
+                        err = Some(e);
+                        Err(())
+                    }
+                },
+            };
+            build.done(
+                &res.as_ref()
+                    .map(|_| crate::TestOk::Ok)
+                    .map_err(|()| Errored {
+                        command: Command::new(what.description()),
                         errors: vec![],
-                        stderr: format!("{e:?}").into_bytes(),
-                    });
-                    Err(())
-                }
-            },
-            Build::Aux { aux_file } => match build_aux(aux_file, config, self) {
-                Ok(args) => Ok(args.iter().map(Into::into).collect()),
-                Err(e) => {
-                    err = Some(e);
-                    Err(())
-                }
-            },
+                        stderr: vec![],
+                    }),
+            );
+            res
         })
         .clone()
         .map_err(|()| {
             err.unwrap_or_else(|| Errored {
-                command: Command::new(format!("{what:?}")),
+                command: Command::new(what.description()),
                 errors: vec![],
                 stderr: b"previous build failed".to_vec(),
             })

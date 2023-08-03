@@ -25,7 +25,7 @@ use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::num::NonZeroUsize;
-use std::path::{Component, Path, PathBuf, Prefix};
+use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::thread;
 use std::time::Duration;
@@ -69,14 +69,14 @@ impl Match {
             Match::PathBackslash => {
                 lazy_static! {
                     static ref PATH_RE: Regex = Regex::new(
-                        r#"(?x)
+                        r"(?x)
                         (?:
                             # Match paths to files with extensions that don't include spaces
                             \\(?:[\pL\pN.\-_']+[/\\])*[\pL\pN.\-_']+\.\pL+
                         |
                             # Allow spaces in absolute paths
                             [A-Z]:\\(?:[\pL\pN.\-_'\ ]+[/\\])+
-                        )"#,
+                        )",
                     )
                     .unwrap();
                 }
@@ -93,7 +93,7 @@ impl From<&'_ Path> for Match {
     fn from(v: &Path) -> Self {
         let mut v = v.display().to_string();
         // Normalize away windows canonicalized paths.
-        if v.starts_with(r#"\\?\"#) {
+        if v.starts_with(r"\\?\") {
             v.drain(0..4);
         }
         let mut v = v.into_bytes();
@@ -120,11 +120,13 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.
 pub fn run_tests(config: Config) -> Result<()> {
-    eprintln!("   Compiler: {}", config.program.display());
+    let args = Args::parse();
+    if !args.quiet {
+        eprintln!("   Compiler: {}", config.program.display());
+    }
 
     let name = config.root_dir.display().to_string();
 
-    let args = Args::parse();
     let text = if args.quiet {
         status_emitter::Text::quiet()
     } else {
@@ -228,7 +230,7 @@ pub fn run_tests_generic(
 ) -> Result<()> {
     config.fill_host_and_target()?;
 
-    let build_manager = BuildManager::default();
+    let build_manager = BuildManager::new(&status_emitter);
 
     let mut results = vec![];
 
@@ -386,7 +388,7 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
 }
 
 fn parse_and_test_file(
-    build_manager: &BuildManager,
+    build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
     config: &Config,
 ) -> Result<Vec<TestRun>, Errored> {
@@ -465,7 +467,7 @@ fn build_command(
 fn build_aux(
     aux_file: &Path,
     config: &Config,
-    build_manager: &BuildManager,
+    build_manager: &BuildManager<'_>,
 ) -> std::result::Result<Vec<OsString>, Errored> {
     let comments = parse_comments_in_file(aux_file)?;
     assert_eq!(
@@ -496,26 +498,12 @@ fn build_aux(
     });
 
     let mut config = default_per_file_config(&config, aux_file).unwrap();
-    let mut components = aux_file.parent().unwrap().components();
 
     // Put aux builds into a separate directory per path so that multiple aux files
     // from different directories (but with the same file name) don't collide.
-    for c in config.out_dir.components() {
-        let deverbatimize = |c| match c {
-            Component::Prefix(prefix) => Err(match prefix.kind() {
-                Prefix::VerbatimUNC(a, b) => Prefix::UNC(a, b),
-                Prefix::VerbatimDisk(d) => Prefix::Disk(d),
-                other => other,
-            }),
-            c => Ok(c),
-        };
-        let c2 = components.next();
-        if Some(deverbatimize(c)) != c2.map(deverbatimize) {
-            config.out_dir.extend(c2);
-            config.out_dir.extend(components);
-            break;
-        }
-    }
+    let relative = config.strip_path_prefix(aux_file.parent().unwrap());
+
+    config.out_dir.extend(relative);
 
     let mut aux_cmd = build_command(aux_file, &config, "", &comments)?;
 
@@ -568,7 +556,7 @@ fn build_aux(
 impl dyn TestStatus {
     fn run_test(
         &self,
-        build_manager: &BuildManager,
+        build_manager: &BuildManager<'_>,
         config: &Config,
         comments: &Comments,
     ) -> TestResult {
@@ -639,7 +627,7 @@ impl dyn TestStatus {
             if let Some(exit) = child.try_wait().unwrap() {
                 break exit;
             }
-            if start.elapsed() < Duration::from_millis(100) {
+            if start.elapsed() < Duration::from_millis(1000) {
                 std::thread::sleep(Duration::from_millis(5));
                 continue;
             }
@@ -659,7 +647,7 @@ fn build_aux_files(
     comments: &Comments,
     revision: &str,
     config: &Config,
-    build_manager: &BuildManager,
+    build_manager: &BuildManager<'_>,
 ) -> Result<Vec<OsString>, Errored> {
     let mut extra_args = vec![];
     for rev in comments.for_revision(revision) {
@@ -675,7 +663,9 @@ fn build_aux_files(
                 build_manager
                     .build(
                         Build::Aux {
-                            aux_file: aux_file.canonicalize().unwrap(),
+                            aux_file: config
+                                .strip_path_prefix(&aux_file.canonicalize().unwrap())
+                                .collect(),
                         },
                         config,
                     )

@@ -28,7 +28,7 @@ fn skip(skipped_lines: &[&str]) {
     }
 }
 
-fn row(row: DiffOp<&str>) {
+fn row(row: DiffOp<'_, &str>) {
     match row {
         Remove(l) => {
             for l in l {

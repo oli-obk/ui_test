@@ -1,3 +1,4 @@
+Building dependencies ... ok
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED
 tests/actual_tests/executable_compile_err.rs ... FAILED
@@ -205,11 +206,15 @@ error: test failed, to rerun pass `--test ui_tests`
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/debug/ui_tests-HASH` (exit status: 1)
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
+Building dependencies ... ok
+Building aux file tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
 tests/actual_tests_bless/failing_executable.rs ... FAILED
+Building aux file tests/actual_tests_bless/auxiliary/foomp.rs ... ok
 tests/actual_tests_bless/foomp_aux.rs ... ok
+Building aux file tests/actual_tests_bless/auxiliary/nested.rs ... ok
 tests/actual_tests_bless/nested_aux.rs ... ok
 tests/actual_tests_bless/no_main.rs ... FAILED
 tests/actual_tests_bless/no_main_manual.rs ... FAILED
@@ -553,6 +558,7 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision2.rs
 
 test result: FAIL. 18 tests failed, 14 tests passed, 3 ignored, 0 filtered out
+Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
@@ -597,6 +603,7 @@ error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/debug/ui_tests_invalid_program-HASH` (exit status: 1)
+Building dependencies ... ok
 thread '<unnamed>' panicked at 'could not execute "invalid_foobarlaksdfalsdfj" "tests/actual_tests/bad_pattern.rs" "--edition" "2021": No such file or directory', $DIR/src/lib.rs
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 tests/actual_tests/bad_pattern.rs ... FAILED
