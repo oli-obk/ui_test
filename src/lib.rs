@@ -406,6 +406,7 @@ fn parse_and_test_file(
             }
 
             if !built_deps {
+                status.update_status("waiting for dependencies to finish building".into());
                 match build_manager.build(Build::Dependencies, &config) {
                     Ok(extra_args) => config.program.args.extend(extra_args),
                     Err(err) => {
@@ -415,6 +416,7 @@ fn parse_and_test_file(
                         }
                     }
                 }
+                status.update_status(String::new());
                 built_deps = true;
             }
 
