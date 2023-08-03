@@ -31,9 +31,6 @@ pub struct Config {
     pub root_dir: PathBuf,
     /// The mode in which to run the tests.
     pub mode: Mode,
-    /// Run [`rustfix`] on tests that produce machine applicable (or any
-    /// with [`Mode::Yolo`]) suggestions
-    pub rustfix: bool,
     /// The binary to actually execute.
     pub program: CommandBuilder,
     /// The command to run to obtain the cfgs that the output is supposed to
@@ -68,6 +65,8 @@ impl Config {
                 (Match::PathBackslash, b"/"),
                 #[cfg(windows)]
                 (Match::Exact(vec![b'\r']), b""),
+                #[cfg(windows)]
+                (Match::Exact(br"\\?\".to_vec()), b""),
             ],
             stdout_filters: vec![
                 #[cfg(windows)]
@@ -76,8 +75,8 @@ impl Config {
             root_dir: root_dir.into(),
             mode: Mode::Fail {
                 require_patterns: true,
+                rustfix: true,
             },
-            rustfix: true,
             program: CommandBuilder::rustc(),
             cfgs: CommandBuilder::cfgs(),
             output_conflict_handling: OutputConflictHandling::Error(format!(
@@ -104,7 +103,10 @@ impl Config {
         Self {
             program: CommandBuilder::cargo(),
             edition: None,
-            rustfix: false,
+            mode: Mode::Fail {
+                require_patterns: true,
+                rustfix: false,
+            },
             ..Self::rustc(root_dir)
         }
     }
@@ -140,24 +142,25 @@ impl Config {
             .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
     }
 
-    /// Compile dependencies and make sure `Config::program` contains the right flags
+    /// Compile dependencies and return the right flags
     /// to find the dependencies.
-    pub fn build_dependencies_and_link_them(&mut self) -> Result<()> {
+    pub fn build_dependencies(&self) -> Result<Vec<OsString>> {
         let dependencies = build_dependencies(self)?;
+        let mut args = vec![];
         for (name, artifacts) in dependencies.dependencies {
             for dependency in artifacts {
-                self.program.args.push("--extern".into());
+                args.push("--extern".into());
                 let mut dep = OsString::from(&name);
                 dep.push("=");
                 dep.push(dependency);
-                self.program.args.push(dep);
+                args.push(dep);
             }
         }
         for import_path in dependencies.import_paths {
-            self.program.args.push("-L".into());
-            self.program.args.push(import_path.into());
+            args.push("-L".into());
+            args.push(import_path.into());
         }
-        Ok(())
+        Ok(args)
     }
 
     /// Make sure we have the host and target triples.

@@ -2,13 +2,15 @@ use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
 use cargo_platform::Cfg;
 use color_eyre::eyre::{bail, Result};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet},
+    ffi::OsString,
     path::PathBuf,
     process::Command,
     str::FromStr,
+    sync::{Arc, OnceLock, RwLock},
 };
 
-use crate::{Config, Mode, OutputConflictHandling};
+use crate::{build_aux, Config, Errored, Mode, OutputConflictHandling};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -41,13 +43,12 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
 }
 
 /// Compiles dependencies and returns the crate names and corresponding rmeta files.
-pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
+pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
     let manifest_path = match &config.dependencies_crate_manifest_path {
         Some(path) => path.to_owned(),
         None => return Ok(Default::default()),
     };
     let manifest_path = &manifest_path;
-    config.fill_host_and_target()?;
     eprintln!("   Building test dependencies...");
     let mut build = config.dependency_builder.build(&config.out_dir);
     build.arg(manifest_path);
@@ -58,7 +59,7 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
     let set_locking = |cmd: &mut Command| match (&config.output_conflict_handling, &config.mode) {
-        (_, Mode::Yolo) => {}
+        (_, Mode::Yolo { .. }) => {}
         (OutputConflictHandling::Error(_), _) => {
             cmd.arg("--locked");
         }
@@ -83,7 +84,7 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
     let mut artifacts = HashMap::new();
     for line in artifact_output.lines() {
         let Ok(message) = serde_json::from_str::<cargo_metadata::Message>(line) else {
-            continue
+            continue;
         };
         if let cargo_metadata::Message::CompilerArtifact(artifact) = message {
             if artifact
@@ -191,4 +192,84 @@ pub fn build_dependencies(config: &mut Config) -> Result<Dependencies> {
     }
 
     bail!("no json found in cargo-metadata output")
+}
+
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
+pub enum Build {
+    /// Build the dependencies.
+    Dependencies,
+    /// Build an aux-build.
+    Aux { aux_file: PathBuf },
+}
+
+#[derive(Default)]
+pub struct BuildManager {
+    #[allow(clippy::type_complexity)]
+    cache: RwLock<HashMap<Build, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
+}
+
+impl BuildManager {
+    /// This function will block until the build is done and then return the arguments
+    /// that need to be passed in order to build the dependencies.
+    /// The error is only reported once, all follow up invocations of the same build will
+    /// have a generic error about a previous build failing.
+    pub fn build(&self, what: Build, config: &Config) -> Result<Vec<OsString>, Errored> {
+        // Fast path without much contention.
+        if let Some(res) = self.cache.read().unwrap().get(&what).and_then(|o| o.get()) {
+            return res.clone().map_err(|()| Errored {
+                command: Command::new(format!("{what:?}")),
+                errors: vec![],
+                stderr: b"previous build failed".to_vec(),
+            });
+        }
+        let mut lock = self.cache.write().unwrap();
+        let once = match lock.entry(what.clone()) {
+            Entry::Occupied(entry) => {
+                if let Some(res) = entry.get().get() {
+                    return res.clone().map_err(|()| Errored {
+                        command: Command::new(format!("{what:?}")),
+                        errors: vec![],
+                        stderr: b"previous build failed".to_vec(),
+                    });
+                }
+                entry.get().clone()
+            }
+            Entry::Vacant(entry) => {
+                let once = Arc::new(OnceLock::new());
+                entry.insert(once.clone());
+                once
+            }
+        };
+        drop(lock);
+
+        let mut err = None;
+        once.get_or_init(|| match &what {
+            Build::Dependencies => match config.build_dependencies() {
+                Ok(args) => Ok(args),
+                Err(e) => {
+                    err = Some(Errored {
+                        command: Command::new(format!("{what:?}")),
+                        errors: vec![],
+                        stderr: format!("{e:?}").into_bytes(),
+                    });
+                    Err(())
+                }
+            },
+            Build::Aux { aux_file } => match build_aux(aux_file, config, self) {
+                Ok(args) => Ok(args.iter().map(Into::into).collect()),
+                Err(e) => {
+                    err = Some(e);
+                    Err(())
+                }
+            },
+        })
+        .clone()
+        .map_err(|()| {
+            err.unwrap_or_else(|| Errored {
+                command: Command::new(format!("{what:?}")),
+                errors: vec![],
+                stderr: b"previous build failed".to_vec(),
+            })
+        })
+    }
 }

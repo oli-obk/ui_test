@@ -60,6 +60,7 @@ fn non_utf8() -> Result<()> {
     let mut config = Config::rustc(PathBuf::new());
     config.program = CommandBuilder::cmd("cat");
     config.edition = None;
+    config.host = Some(String::new());
 
     let mut result = ui_test::test_command(config, &path)?;
     ensure!(result.output()?.status.success(), "");

@@ -69,7 +69,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.stderr_filter("   [0-9]: .*", "");
     config.stderr_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
-    config.stderr_filter("/target/[^/]+/tests", "/target/$$TMP/tests");
+    config.stderr_filter("/target/.tmp[^/ \"]+", "/target/$$TMP");
     // Normalize proc macro filenames on windows to their linux repr
     config.stderr_filter("/([^/\\.]+)\\.dll", "/lib$1.so");
     // Normalize proc macro filenames on mac to their linux repr
@@ -78,6 +78,9 @@ fn run(name: &str, mode: Mode) -> Result<()> {
     config.stderr_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
     config.stderr_filter("program not found", "No such file or directory");
     config.stderr_filter(" \\(os error [0-9]+\\)", "");
+    // We emit this message on a thread, so it can sometimes happen that it
+    // appears earlier or later than the regular test messages.
+    config.stderr_filter("   Building test dependencies...\n", "");
 
     let text = if args.quiet {
         ui_test::status_emitter::Text::quiet()
@@ -109,7 +112,7 @@ fn run(name: &str, mode: Mode) -> Result<()> {
                     // multiple [[test]]s exist. If there's only one test, it returns
                     // 1 on failure.
                     Mode::Panic => fail,
-                    Mode::Run { .. } | Mode::Yolo | Mode::Fail { .. } => unreachable!(),
+                    Mode::Run { .. } | Mode::Yolo { .. } | Mode::Fail { .. } => unreachable!(),
                 }
                 && default_filter_by_arg(path, args)
         },

@@ -5,13 +5,14 @@ fn main() -> ui_test::color_eyre::Result<()> {
     for mode in [
         Mode::Fail {
             require_patterns: true,
+            rustfix: true,
         },
-        Mode::Yolo,
+        Mode::Yolo { rustfix: true },
     ] {
         let path = "../../../target";
 
         let root_dir = match mode {
-            Mode::Yolo => "tests/actual_tests_bless_yolo",
+            Mode::Yolo { .. } => "tests/actual_tests_bless_yolo",
             Mode::Fail { .. } => "tests/actual_tests_bless",
             _ => unreachable!(),
         };
@@ -46,7 +47,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
             status_emitter::Text::verbose(),
         );
         match (&result, mode) {
-            (Ok(_), Mode::Yolo) => {}
+            (Ok(_), Mode::Yolo { .. }) => {}
             (Err(_), Mode::Fail { .. }) => {}
             _ => panic!("invalid mode/result combo: {mode}: {result:?}"),
         }

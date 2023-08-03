@@ -14,6 +14,7 @@ use clap::Parser;
 pub use color_eyre;
 use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
+use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
 use read_helper::ReadHelper;
@@ -22,8 +23,9 @@ use rustc_stderr::{Level, Message};
 use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
+use std::ffi::OsString;
 use std::num::NonZeroUsize;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf, Prefix};
 use std::process::{Command, ExitStatus, Stdio};
 use std::thread;
 use std::time::Duration;
@@ -176,11 +178,13 @@ pub fn default_per_file_config(config: &Config, path: &Path) -> Option<Config> {
 /// Create a command for running a single file, with the settings from the `config` argument.
 /// Ignores various settings from `Config` that relate to finding test files.
 pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
-    config.build_dependencies_and_link_them()?;
+    config.fill_host_and_target()?;
+    let extra_args = config.build_dependencies()?;
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
-    let result = build_command(path, &config, "", &comments).unwrap();
+    let mut result = build_command(path, &config, "", &comments).unwrap();
+    result.args(extra_args);
 
     Ok(result)
 }
@@ -224,7 +228,7 @@ pub fn run_tests_generic(
 ) -> Result<()> {
     config.fill_host_and_target()?;
 
-    config.build_dependencies_and_link_them()?;
+    let build_manager = BuildManager::default();
 
     let mut results = vec![];
 
@@ -266,8 +270,9 @@ pub fn run_tests_generic(
                         &maybe_config
                     }
                 };
-                let result = match std::panic::catch_unwind(|| parse_and_test_file(&status, config))
-                {
+                let result = match std::panic::catch_unwind(|| {
+                    parse_and_test_file(&build_manager, &status, config)
+                }) {
                     Ok(Ok(res)) => res,
                     Ok(Err(err)) => {
                         finished_files_sender.send(TestRun {
@@ -380,7 +385,11 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
     })
 }
 
-fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Result<Vec<TestRun>, Errored> {
+fn parse_and_test_file(
+    build_manager: &BuildManager,
+    status: &dyn TestStatus,
+    config: &Config,
+) -> Result<Vec<TestRun>, Errored> {
     let comments = parse_comments_in_file(status.path())?;
     // Run the test for all revisions
     let revisions = comments
@@ -398,7 +407,7 @@ fn parse_and_test_file(status: &dyn TestStatus, config: &Config) -> Result<Vec<T
                     status,
                 };
             }
-            let result = status.run_test(config, &comments);
+            let result = status.run_test(build_manager, config, &comments);
             TestRun { result, status }
         })
         .collect())
@@ -455,14 +464,14 @@ fn build_command(
 
 fn build_aux(
     aux_file: &Path,
-    path: &Path,
     config: &Config,
-    revision: &str,
-    aux: &Path,
-    extra_args: &mut Vec<String>,
-) -> std::result::Result<(), Errored> {
+    build_manager: &BuildManager,
+) -> std::result::Result<Vec<OsString>, Errored> {
     let comments = parse_comments_in_file(aux_file)?;
-    assert_eq!(comments.revisions, None);
+    assert_eq!(
+        comments.revisions, None,
+        "aux builds cannot specify revisions"
+    );
 
     let mut config = config.clone();
 
@@ -487,23 +496,41 @@ fn build_aux(
     });
 
     let mut config = default_per_file_config(&config, aux_file).unwrap();
+    let mut components = aux_file.parent().unwrap().components();
 
-    // Put aux builds into a separate directory per test so that
-    // tests running in parallel but building the same aux build don't conflict.
-    // FIXME: put aux builds into the regular build queue.
-    config.out_dir = config.out_dir.join(path.with_extension(""));
+    // Put aux builds into a separate directory per path so that multiple aux files
+    // from different directories (but with the same file name) don't collide.
+    for c in config.out_dir.components() {
+        let deverbatimize = |c| match c {
+            Component::Prefix(prefix) => Err(match prefix.kind() {
+                Prefix::VerbatimUNC(a, b) => Prefix::UNC(a, b),
+                Prefix::VerbatimDisk(d) => Prefix::Disk(d),
+                other => other,
+            }),
+            c => Ok(c),
+        };
+        let c2 = components.next();
+        if Some(deverbatimize(c)) != c2.map(deverbatimize) {
+            config.out_dir.extend(c2);
+            config.out_dir.extend(components);
+            break;
+        }
+    }
 
-    let mut aux_cmd = build_command(aux_file, &config, revision, &comments)?;
+    let mut aux_cmd = build_command(aux_file, &config, "", &comments)?;
 
-    let current_extra_args =
-        build_aux_files(aux_file, aux_file.parent().unwrap(), &comments, "", &config)?;
+    let mut extra_args = build_aux_files(
+        aux_file.parent().unwrap(),
+        &comments,
+        "",
+        &config,
+        build_manager,
+    )?;
     // Make sure we see our dependencies
-    aux_cmd.args(current_extra_args.iter());
-    // Make sure our dependents also see our dependencies.
-    extra_args.extend(current_extra_args);
+    aux_cmd.args(extra_args.iter());
 
     aux_cmd.arg("--emit=link");
-    let filename = aux.file_stem().unwrap().to_str().unwrap();
+    let filename = aux_file.file_stem().unwrap().to_str().unwrap();
     let output = aux_cmd.output().unwrap();
     if !output.status.success() {
         let error = Error::Command {
@@ -513,7 +540,7 @@ fn build_aux(
         return Err(Errored {
             command: aux_cmd,
             errors: vec![error],
-            stderr: rustc_stderr::process(path, &output.stderr).rendered,
+            stderr: rustc_stderr::process(aux_file, &output.stderr).rendered,
         });
     }
 
@@ -527,24 +554,38 @@ fn build_aux(
         let crate_name = filename.replace('-', "_");
         let path = config.out_dir.join(file);
         extra_args.push("--extern".into());
-        extra_args.push(format!("{crate_name}={}", path.display()));
+        let mut cname = OsString::from(&crate_name);
+        cname.push("=");
+        cname.push(path);
+        extra_args.push(cname);
         // Help cargo find the crates added with `--extern`.
         extra_args.push("-L".into());
-        extra_args.push(config.out_dir.display().to_string());
+        extra_args.push(config.out_dir.as_os_str().to_os_string());
     }
-    Ok(())
+    Ok(extra_args)
 }
 
 impl dyn TestStatus {
-    fn run_test(&self, config: &Config, comments: &Comments) -> TestResult {
+    fn run_test(
+        &self,
+        build_manager: &BuildManager,
+        config: &Config,
+        comments: &Comments,
+    ) -> TestResult {
+        let extra_args = build_manager.build(Build::Dependencies, config)?;
+        let mut config = config.clone();
+        config.program.args.extend(extra_args);
+        let config = &config;
+
         let path = self.path();
         let revision = self.revision();
+
         let extra_args = build_aux_files(
-            path,
             &path.parent().unwrap().join("auxiliary"),
             comments,
             revision,
             config,
+            build_manager,
         )?;
 
         let mut cmd = build_command(path, config, revision, comments)?;
@@ -558,7 +599,7 @@ impl dyn TestStatus {
             Mode::Run { .. } if Mode::Pass.ok(status).is_ok() => {
                 return run_test_binary(mode, path, revision, comments, cmd, config)
             }
-            Mode::Panic | Mode::Yolo => {}
+            Mode::Panic | Mode::Yolo { .. } => {}
             Mode::Run { .. } | Mode::Pass | Mode::Fail { .. } => {
                 if status.code() == Some(101) {
                     let stderr = String::from_utf8_lossy(&stderr);
@@ -576,7 +617,7 @@ impl dyn TestStatus {
         check_test_result(
             cmd, *mode, path, config, revision, comments, status, stdout, &stderr,
         )?;
-        run_rustfix(&stderr, path, comments, revision, config, extra_args)?;
+        run_rustfix(&stderr, path, comments, revision, config, *mode, extra_args)?;
         Ok(TestOk::Ok)
     }
 
@@ -614,12 +655,12 @@ impl dyn TestStatus {
 }
 
 fn build_aux_files(
-    path: &Path,
     aux_dir: &Path,
     comments: &Comments,
     revision: &str,
     config: &Config,
-) -> Result<Vec<String>, Errored> {
+    build_manager: &BuildManager,
+) -> Result<Vec<OsString>, Errored> {
     let mut extra_args = vec![];
     for rev in comments.for_revision(revision) {
         for aux in &rev.aux_builds {
@@ -630,21 +671,30 @@ fn build_aux_files(
             } else {
                 aux_dir.join(aux)
             };
-            build_aux(&aux_file, path, config, revision, aux, &mut extra_args).map_err(
-                |Errored {
-                     command,
-                     errors,
-                     stderr,
-                 }| Errored {
-                    command,
-                    errors: vec![Error::Aux {
-                        path: aux_file,
-                        errors,
-                        line,
-                    }],
-                    stderr,
-                },
-            )?;
+            extra_args.extend(
+                build_manager
+                    .build(
+                        Build::Aux {
+                            aux_file: aux_file.canonicalize().unwrap(),
+                        },
+                        config,
+                    )
+                    .map_err(
+                        |Errored {
+                             command,
+                             errors,
+                             stderr,
+                         }| Errored {
+                            command,
+                            errors: vec![Error::Aux {
+                                path: aux_file,
+                                errors,
+                                line,
+                            }],
+                            stderr,
+                        },
+                    )?,
+            );
         }
     }
     Ok(extra_args)
@@ -700,12 +750,18 @@ fn run_rustfix(
     comments: &Comments,
     revision: &str,
     config: &Config,
-    extra_args: Vec<String>,
+    mode: Mode,
+    extra_args: Vec<OsString>,
 ) -> Result<(), Errored> {
     let no_run_rustfix =
         comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)?;
 
-    let fixed_code = (no_run_rustfix.is_none() && config.rustfix)
+    let global_rustfix = match mode {
+        Mode::Pass | Mode::Run { .. } | Mode::Panic => false,
+        Mode::Fail { rustfix, .. } | Mode::Yolo { rustfix } => rustfix,
+    };
+
+    let fixed_code = (no_run_rustfix.is_none() && global_rustfix)
         .then_some(())
         .and_then(|()| {
             let suggestions = std::str::from_utf8(stderr)
@@ -718,7 +774,7 @@ fn run_rustfix(
                     rustfix::get_suggestions_from_json(
                         line,
                         &HashSet::new(),
-                        if let Mode::Yolo = config.mode {
+                        if let Mode::Yolo { .. } = config.mode {
                             rustfix::Filter::Everything
                         } else {
                             rustfix::Filter::MachineApplicableOnly
@@ -1000,7 +1056,7 @@ fn check_annotations(
 
     let mode = config.mode.maybe_override(comments, revision)?;
 
-    if !matches!(config.mode, Mode::Yolo) {
+    if !matches!(config.mode, Mode::Yolo { .. }) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
         if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
@@ -1026,6 +1082,7 @@ fn check_annotations(
         (
             Mode::Fail {
                 require_patterns: true,
+                ..
             },
             false,
         ) => errors.push(Error::NoPatternsFound),

@@ -195,6 +195,7 @@ impl TestStatus for TextTest {
             let msg = format!("{old_msg} ... {result}");
             if ProgressDrawTarget::stderr().is_hidden() {
                 eprintln!("{msg}");
+                std::io::stderr().flush().unwrap();
             } else {
                 self.text.sender.send(Msg::Pop(old_msg, Some(msg))).unwrap();
             }
