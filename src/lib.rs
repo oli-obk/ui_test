@@ -394,7 +394,7 @@ fn parse_and_test_file(
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
     let mut built_deps = false;
     Ok(revisions
-        .into_iter()
+        .iter()
         .map(|revision| {
             let status = status.for_revision(revision);
             // Ignore file if only/ignore rules do (not) apply
