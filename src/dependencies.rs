@@ -1,6 +1,6 @@
 use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
 use cargo_platform::Cfg;
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{bail, eyre, Result};
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     ffi::OsString,
@@ -100,10 +100,10 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
             }
             let package_id = artifact.package_id;
             if artifacts
-                .insert(package_id.clone(), artifact.filenames)
+                .insert(package_id.clone(), Ok(artifact.filenames))
                 .is_some()
             {
-                bail!("`ui_test` does not support crates that appear as both build-dependencies and core dependencies: {package_id}")
+                artifacts.insert(package_id.clone(), Err(()));
             }
         }
     }
@@ -171,7 +171,8 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
                 let id = &package.id;
                 // Return the name chosen in `Cargo.toml` and the path to the corresponding artifact
                 match artifacts.remove(id) {
-                    Some(artifacts) => Some((name.replace('-', "_"), artifacts)),
+                    Some(Ok(artifacts)) => Some(Ok((name.replace('-', "_"), artifacts))),
+                    Some(Err(())) => Some(Err(eyre!("`ui_test` does not support crates that appear as both build-dependencies and core dependencies: {id}"))),
                     None => {
                         if name == root.name {
                             // If there are no artifacts, this is the root crate and it is being built as a binary/test
@@ -184,7 +185,7 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
                     }
                 }
             })
-            .collect();
+            .collect::<Result<Vec<_>>>()?;
         let import_paths = import_paths.into_iter().collect();
         return Ok(Dependencies {
             dependencies,
@@ -262,7 +263,7 @@ impl<'a> BuildManager<'a> {
             let build = self
                 .status_emitter
                 .register_test(what.description().into())
-                .for_revision(String::new());
+                .for_revision("");
             let res = match &what {
                 Build::Dependencies => match config.build_dependencies() {
                     Ok(args) => Ok(args),

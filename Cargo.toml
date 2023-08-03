@@ -1,6 +1,6 @@
 [package]
 name = "ui_test"
-version = "0.14.0"
+version = "0.14.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A test framework for testing rustc diagnostics output"
@@ -32,7 +32,7 @@ prettydiff = { version = "0.6.4", default_features = false }
 [dependencies.regex]
 version = "1.5.5"
 default-features = false
-features = ["perf", "std", "unicode-gencat"]
+features = ["unicode-gencat"]
 
 [dependencies.color-eyre]
 version = "0.6.1"

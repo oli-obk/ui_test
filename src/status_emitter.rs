@@ -41,7 +41,7 @@ pub trait StatusEmitter: Sync + RefUnwindSafe {
 /// Information about a specific test run.
 pub trait TestStatus: Send + Sync + RefUnwindSafe {
     /// Create a copy of this test for a new revision.
-    fn for_revision(&self, revision: String) -> Box<dyn TestStatus>;
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus>;
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
     /// gets invoked afterwards.
@@ -98,9 +98,9 @@ impl Text {
                     match receiver.try_recv() {
                         Ok(val) => match val {
                             Msg::Pop(msg, new_msg) => {
-                                let spinner = threads
-                                    .remove(&msg)
-                                    .unwrap_or_else(|| panic!("`{msg}` not found"));
+                                let spinner = threads.remove(&msg).unwrap_or_else(|| {
+                                    panic!("`{msg}` not found in {:#?}", threads.keys())
+                                });
                                 spinner.set_style(
                                     ProgressStyle::with_template("{prefix} {msg}").unwrap(),
                                 );
@@ -247,7 +247,7 @@ impl TestStatus for TextTest {
         &self.path
     }
 
-    fn for_revision(&self, revision: String) -> Box<dyn TestStatus> {
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
         assert_eq!(self.revision, "");
         if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) && self.text.progress {
             self.text.sender.send(Msg::IncLength).unwrap();
@@ -256,7 +256,7 @@ impl TestStatus for TextTest {
         let text = Self {
             text: self.text.clone(),
             path: self.path.clone(),
-            revision,
+            revision: revision.to_owned(),
             first: AtomicBool::new(false),
         };
         self.text.sender.send(Msg::Push(text.msg())).unwrap();
@@ -521,7 +521,6 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                         continue;
                     }
                     Replace(l, r) => {
-                        assert_eq!(r.len(), l.len());
                         let mut err = github_actions::error(
                             output_path.display().to_string(),
                             "actual output differs from expected",
@@ -620,11 +619,11 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
         &self.path
     }
 
-    fn for_revision(&self, revision: String) -> Box<dyn TestStatus> {
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
         assert_eq!(self.revision, "");
         Box::new(Self {
             path: self.path.clone(),
-            revision,
+            revision: revision.to_owned(),
         })
     }
 
@@ -742,11 +741,8 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
         rev
     }
 
-    fn for_revision(&self, revision: String) -> Box<dyn TestStatus> {
-        Box::new((
-            self.0.for_revision(revision.clone()),
-            self.1.for_revision(revision),
-        ))
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+        Box::new((self.0.for_revision(revision), self.1.for_revision(revision)))
     }
 
     fn update_status(&self, msg: String) {
@@ -790,7 +786,7 @@ impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
         (**self).revision()
     }
 
-    fn for_revision(&self, revision: String) -> Box<dyn TestStatus> {
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
         (**self).for_revision(revision)
     }
 
