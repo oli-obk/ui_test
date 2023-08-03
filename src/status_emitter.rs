@@ -3,7 +3,7 @@
 use bstr::ByteSlice;
 use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
-use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 
 use crate::{
     github_actions, parser::Pattern, rustc_stderr::Message, Error, Errored, Errors, TestOk,
@@ -108,14 +108,15 @@ impl Text {
                                 }
                             }
                             Msg::Status(msg, status) => {
-                                threads
-                                    .get_mut(&msg)
-                                    .unwrap()
-                                    .set_message(format!("{msg} {status}"));
+                                threads.get_mut(&msg).unwrap().set_message(status);
                             }
                             Msg::Push(msg) => {
                                 let spinner =
-                                    bars.add(ProgressBar::new_spinner().with_message(msg.clone()));
+                                    bars.add(ProgressBar::new_spinner().with_prefix(msg.clone()));
+                                spinner.set_style(
+                                    ProgressStyle::with_template("{prefix} {spinner}{msg}")
+                                        .unwrap(),
+                                );
                                 threads.insert(msg, spinner);
                             }
                             Msg::IncLength => {
@@ -194,9 +195,9 @@ impl TestStatus for TextTest {
                 Ok(TestOk::Filtered) => return,
             };
             let old_msg = self.msg();
-            let msg = format!("{old_msg} ... {result}");
+            let msg = format!("... {result}");
             if ProgressDrawTarget::stderr().is_hidden() {
-                eprintln!("{msg}");
+                eprintln!("{old_msg} {msg}");
                 std::io::stderr().flush().unwrap();
             } else {
                 self.text.sender.send(Msg::Pop(old_msg, Some(msg))).unwrap();
