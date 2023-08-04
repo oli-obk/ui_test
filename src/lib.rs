@@ -249,11 +249,11 @@ pub fn run_tests_generic(
                     // We want it sorted, to have some control over scheduling of slow tests.
                     let mut entries = std::fs::read_dir(path)
                         .unwrap()
-                        .collect::<Result<Vec<_>, _>>()
-                        .unwrap();
-                    entries.sort_by_key(|e| e.file_name());
+                        .map(|e| e.unwrap().path())
+                        .collect::<Vec<_>>();
+                    entries.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
                     for entry in entries {
-                        todo.push_back((entry.path(), config.clone()));
+                        todo.push_back((entry, config.clone()));
                     }
                 } else if file_filter(&path, &args, &config) {
                     let status = status_emitter.register_test(path);
