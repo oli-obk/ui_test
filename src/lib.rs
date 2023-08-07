@@ -25,8 +25,8 @@ use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
-use std::thread;
 use std::time::Duration;
+use std::{io, thread};
 
 use crate::parser::{Comments, Condition};
 
@@ -249,11 +249,11 @@ pub fn run_tests_generic(
                     // We want it sorted, to have some control over scheduling of slow tests.
                     let mut entries = std::fs::read_dir(path)
                         .unwrap()
-                        .collect::<Result<Vec<_>, _>>()
-                        .unwrap();
-                    entries.sort_by_key(|e| e.file_name());
+                        .map(|e| e.unwrap().path())
+                        .collect::<Vec<_>>();
+                    entries.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
                     for entry in entries {
-                        todo.push_back((entry.path(), config.clone()));
+                        todo.push_back((entry, config.clone()));
                     }
                 } else if file_filter(&path, &args, &config) {
                     let status = status_emitter.register_test(path);
@@ -614,17 +614,16 @@ impl dyn TestStatus {
     /// Run a command, and if it takes more than 100ms, start appending the last stderr/stdout
     /// line to the current status spinner.
     fn run_command(&self, cmd: &mut Command) -> (ExitStatus, Vec<u8>, Vec<u8>) {
-        let mut child = cmd
+        let cmd = cmd
             .stderr(Stdio::piped())
             .stdout(Stdio::piped())
-            .stdin(Stdio::null())
-            .spawn()
-            .unwrap_or_else(|err| {
-                panic!(
-                    "could not spawn `{:?}` as a process: {err}",
-                    cmd.get_program()
-                )
-            });
+            .stdin(Stdio::null());
+        let mut child = retry_with_backoff(|| cmd.spawn()).unwrap_or_else(|err| {
+            panic!(
+                "could not spawn `{:?}` as a process: {err}",
+                cmd.get_program()
+            )
+        });
 
         let stdout = ReadHelper::from(child.stdout.take().unwrap());
         let mut stderr = ReadHelper::from(child.stderr.take().unwrap());
@@ -647,6 +646,21 @@ impl dyn TestStatus {
         };
         (status, stderr.read_to_end(), stdout.read_to_end())
     }
+}
+
+fn retry_with_backoff<T>(mut f: impl FnMut() -> io::Result<T>) -> io::Result<T> {
+    let mut res = f();
+    for i in 0..10 {
+        if let Err(err) = &res {
+            if io::ErrorKind::WouldBlock == err.kind() || i < 5 {
+                std::thread::sleep(Duration::from_millis(100 * i + 10));
+                res = f();
+                continue;
+            }
+        }
+        return res;
+    }
+    res
 }
 
 fn build_aux_files(
