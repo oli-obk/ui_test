@@ -25,8 +25,8 @@ use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
-use std::thread;
 use std::time::Duration;
+use std::{io, thread};
 
 use crate::parser::{Comments, Condition};
 
@@ -614,17 +614,16 @@ impl dyn TestStatus {
     /// Run a command, and if it takes more than 100ms, start appending the last stderr/stdout
     /// line to the current status spinner.
     fn run_command(&self, cmd: &mut Command) -> (ExitStatus, Vec<u8>, Vec<u8>) {
-        let mut child = cmd
+        let cmd = cmd
             .stderr(Stdio::piped())
             .stdout(Stdio::piped())
-            .stdin(Stdio::null())
-            .spawn()
-            .unwrap_or_else(|err| {
-                panic!(
-                    "could not spawn `{:?}` as a process: {err}",
-                    cmd.get_program()
-                )
-            });
+            .stdin(Stdio::null());
+        let mut child = retry_with_backoff(|| cmd.spawn()).unwrap_or_else(|err| {
+            panic!(
+                "could not spawn `{:?}` as a process: {err}",
+                cmd.get_program()
+            )
+        });
 
         let stdout = ReadHelper::from(child.stdout.take().unwrap());
         let mut stderr = ReadHelper::from(child.stderr.take().unwrap());
@@ -647,6 +646,21 @@ impl dyn TestStatus {
         };
         (status, stderr.read_to_end(), stdout.read_to_end())
     }
+}
+
+fn retry_with_backoff<T>(mut f: impl FnMut() -> io::Result<T>) -> io::Result<T> {
+    let mut res = f();
+    for i in 0..10 {
+        if let Err(err) = &res {
+            if io::ErrorKind::WouldBlock == err.kind() || i < 5 {
+                std::thread::sleep(Duration::from_millis(100 * i + 10));
+                res = f();
+                continue;
+            }
+        }
+        return res;
+    }
+    res
 }
 
 fn build_aux_files(
