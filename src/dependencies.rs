@@ -95,15 +95,23 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
             {
                 continue;
             }
+            // Check that we only collect rmeta and rlib crates, not build script crates
+            if artifact
+                .filenames
+                .iter()
+                .any(|f| !matches!(f.extension(), Some("rlib" | "rmeta")))
+            {
+                continue;
+            }
             for filename in &artifact.filenames {
                 import_paths.insert(filename.parent().unwrap().into());
             }
             let package_id = artifact.package_id;
-            if artifacts
-                .insert(package_id.clone(), Ok(artifact.filenames))
-                .is_some()
-            {
-                artifacts.insert(package_id.clone(), Err(()));
+            if let Some(prev) = artifacts.insert(package_id.clone(), Ok(artifact.filenames)) {
+                artifacts.insert(
+                    package_id.clone(),
+                    Err(format!("{prev:#?} vs {:#?}", artifacts[&package_id])),
+                );
             }
         }
     }
@@ -172,7 +180,7 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
                 // Return the name chosen in `Cargo.toml` and the path to the corresponding artifact
                 match artifacts.remove(id) {
                     Some(Ok(artifacts)) => Some(Ok((name.replace('-', "_"), artifacts))),
-                    Some(Err(())) => Some(Err(eyre!("`ui_test` does not support crates that appear as both build-dependencies and core dependencies: {id}"))),
+                    Some(Err(what)) => Some(Err(eyre!("`ui_test` does not support crates that appear as both build-dependencies and core dependencies: {id}: {what}"))),
                     None => {
                         if name == root.name {
                             // If there are no artifacts, this is the root crate and it is being built as a binary/test
