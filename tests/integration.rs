@@ -110,7 +110,7 @@ fn main() -> Result<()> {
                 }
                 && default_filter_by_arg(path, args)
         },
-        |_, _| {},
+        |_, _, _| {},
         (
             text,
             ui_test::status_emitter::Gha::<true> {

@@ -157,7 +157,7 @@ pub fn default_filter_by_arg(path: &Path, args: &Args) -> bool {
 }
 
 /// The default per-file config used by `run_tests`.
-pub fn default_per_file_config(config: &mut Config, file_contents: &[u8]) {
+pub fn default_per_file_config(config: &mut Config, _path: &Path, file_contents: &[u8]) {
     // Heuristic:
     // * if the file contains `#[test]`, automatically pass `--cfg test`.
     // * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
@@ -222,7 +222,7 @@ pub fn run_tests_generic(
     num_threads: NonZeroUsize,
     args: Args,
     file_filter: impl Fn(&Path, &Args, &Config) -> bool + Sync,
-    per_file_config: impl Fn(&mut Config, &[u8]) + Sync,
+    per_file_config: impl Fn(&mut Config, &Path, &[u8]) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
     for config in &mut configs {
@@ -266,7 +266,7 @@ pub fn run_tests_generic(
             for (status, mut config) in receive {
                 let path = status.path();
                 let file_contents = std::fs::read(path).unwrap();
-                per_file_config(&mut config, &file_contents);
+                per_file_config(&mut config, path, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
                     parse_and_test_file(&build_manager, &status, config, file_contents)
                 }) {
@@ -504,7 +504,7 @@ fn build_aux(
         }
     });
 
-    default_per_file_config(&mut config, &file_contents);
+    default_per_file_config(&mut config, aux_file, &file_contents);
 
     // Put aux builds into a separate directory per path so that multiple aux files
     // from different directories (but with the same file name) don't collide.
