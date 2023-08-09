@@ -503,7 +503,7 @@ fn create_error(s: impl AsRef<str>, lines: &[(&[&str], NonZeroUsize)], file: &Pa
                     .map(|label| SourceAnnotation {
                         range: (0, source[line.get() - 1].len() - 1),
                         label,
-                        annotation_type: AnnotationType::Note,
+                        annotation_type: AnnotationType::Error,
                     })
                     .collect(),
                 fold: false,

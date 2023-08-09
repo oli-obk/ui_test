@@ -21,7 +21,7 @@ error: There were 1 unmatched diagnostics
  --> tests/actual_tests/bad_pattern.rs:4:1
   |
 4 |     add("42", 3);
-  | ----------------- note: Error: mismatched types
+  | ^^^^^^^^^^^^^^^^^ Error: mismatched types
   |
 
 full stderr:
@@ -85,7 +85,7 @@ error: There were 1 unmatched diagnostics
  --> tests/actual_tests/executable_compile_err.rs:4:1
   |
 4 | 
-  |  note: Error: this file contains an unclosed delimiter
+  |  Error: this file contains an unclosed delimiter
   |
 
 full stderr:
@@ -283,7 +283,7 @@ error: There were 1 unmatched diagnostics
  --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:1
   |
 7 | thing!(cake);
-  | ------------- note: Error: expected one of `!` or `::`, found `<eof>`
+  | ^^^^^^^^^^^^^ Error: expected one of `!` or `::`, found `<eof>`
   |
 
 no error patterns found in fail test
@@ -380,7 +380,7 @@ error: There were 1 unmatched diagnostics
  --> tests/actual_tests_bless/no_main_manual.rs:3:1
   |
 3 | pub fn foo() {}
-  | --------------- note: Error: `main` function not found in crate `no_main_manual`
+  | ^^^^^^^^^^^^^^^ Error: `main` function not found in crate `no_main_manual`
   |
 
 no error patterns found in fail test
@@ -472,14 +472,14 @@ error: substring ``main` function not found in crate `revisions_bad`` not found 
  --> tests/actual_tests_bless/revisions_bad.rs:4:1
   |
 4 | //@[bar] error-in-other-file: `main` function not found in crate `revisions_bad`
-  | -------------------------------------------------------------------------------- note: expected because of this pattern
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
 error: There were 1 unmatched diagnostics
   --> tests/actual_tests_bless/revisions_bad.rs:10:1
    |
 10 | }
-   | - note: Error: `main` function not found in crate `revisions_bad`
+   | ^ Error: `main` function not found in crate `revisions_bad`
    |
 
 full stderr:
@@ -638,7 +638,7 @@ error: substring ``main` function not found in crate `revisions_bad`` not found 
  --> tests/actual_tests_bless_yolo/revisions_bad.rs:4:1
   |
 4 | //@[bar] error-in-other-file: `main` function not found in crate `revisions_bad`
-  | -------------------------------------------------------------------------------- note: expected because of this pattern
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
 full stderr:
