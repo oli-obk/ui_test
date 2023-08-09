@@ -118,7 +118,7 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.
 pub fn run_tests(config: Config) -> Result<()> {
-    let args = Args::test();
+    let args = Args::test()?;
     if !args.quiet {
         eprintln!("Compiler: {}", config.program.display());
     }
@@ -133,7 +133,6 @@ pub fn run_tests(config: Config) -> Result<()> {
 
     run_tests_generic(
         vec![config],
-        std::thread::available_parallelism().unwrap(),
         args,
         default_file_filter,
         default_per_file_config,
@@ -219,7 +218,6 @@ struct TestRun {
 /// A version of `run_tests` that allows more fine-grained control over running tests.
 pub fn run_tests_generic(
     mut configs: Vec<Config>,
-    num_threads: NonZeroUsize,
     args: Args,
     file_filter: impl Fn(&Path, &Args, &Config) -> bool + Sync,
     per_file_config: impl Fn(&mut Config, &Path, &[u8]) + Sync,
@@ -234,7 +232,7 @@ pub fn run_tests_generic(
     let mut results = vec![];
 
     run_and_collect(
-        num_threads,
+        args.threads,
         |submit| {
             let mut todo = VecDeque::new();
             for config in configs {

@@ -9,7 +9,7 @@ fn main() -> Result<()> {
     let mut config = Config {
         ..Config::cargo(root_dir.clone())
     };
-    let args = Args::test();
+    let args = Args::test()?;
 
     if !args.check {
         config.output_conflict_handling = OutputConflictHandling::Bless;
@@ -83,7 +83,6 @@ fn main() -> Result<()> {
                 ..config
             },
         ],
-        std::thread::available_parallelism().unwrap(),
         args,
         |path, args, config| {
             let fail = path
