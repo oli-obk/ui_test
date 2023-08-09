@@ -228,10 +228,7 @@ impl Comments {
             parser.line = l;
             match parser.parse_checked_line(&mut fallthrough_to, line) {
                 Ok(()) => {}
-                Err(e) => parser.errors.push(Error::InvalidComment {
-                    msg: format!("Comment is not utf8: {e:?}"),
-                    line: l,
-                }),
+                Err(e) => parser.error(format!("Comment is not utf8: {e:?}")),
             }
         }
         if let Some(revisions) = &parser.comments.revisions {
@@ -282,15 +279,12 @@ impl CommentParser<Comments> {
                 let rest = &line[pos + 2..];
                 for rest in std::iter::once(rest).chain(rest.strip_prefix(b" ")) {
                     if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
-                        self.errors.push(Error::InvalidComment {
-                            msg: format!(
+                        self.error(format!(
                                 "comment looks suspiciously like a test suite command: `{}`\n\
                              All `//@` test suite commands must be at the start of the line.\n\
                              The `//` must be directly followed by `@` or `~`.",
                                 rest.to_str()?,
-                            ),
-                            line: self.line,
-                        })
+                        ));
                     } else {
                         let mut parser = Self {
                             line: NonZeroUsize::MAX,
