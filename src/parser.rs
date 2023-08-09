@@ -15,9 +15,9 @@ use crate::{
 
 use color_eyre::eyre::{Context, Result};
 
-pub(crate) use opt_with_line::*;
+pub(crate) use spanned::*;
 
-mod opt_with_line;
+mod spanned;
 #[cfg(test)]
 mod tests;
 
