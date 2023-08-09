@@ -17,13 +17,6 @@ impl<T> std::ops::Deref for MaybeSpanned<T> {
 }
 
 impl<T> MaybeSpanned<T> {
-    pub fn new(data: T, span: Span) -> Self {
-        Self {
-            data,
-            span: Some(span),
-        }
-    }
-
     /// Values from the `Config` struct don't have lines.
     pub fn new_config(data: T) -> Self {
         Self { data, span: None }

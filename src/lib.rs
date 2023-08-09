@@ -1020,7 +1020,7 @@ fn check_annotations(
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
-    let mut lowest_annotation_level = MaybeSpanned::new_config(Level::Error);
+    let mut lowest_annotation_level = Level::Error;
     for &ErrorMatch {
         ref pattern,
         level,
@@ -1033,14 +1033,8 @@ fn check_annotations(
         // If we found a diagnostic with a level annotation, make sure that all
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
-        if *lowest_annotation_level > level {
-            lowest_annotation_level = MaybeSpanned::new(
-                level,
-                Span {
-                    line_start: line,
-                    ..Span::INVALID
-                },
-            );
+        if lowest_annotation_level > level {
+            lowest_annotation_level = level;
         }
 
         if let Some(msgs) = messages.get_mut(line.get()) {
@@ -1063,7 +1057,7 @@ fn check_annotations(
     )?;
 
     let required_annotation_level =
-        required_annotation_level.map_or(*lowest_annotation_level, |l| *l);
+        required_annotation_level.map_or(lowest_annotation_level, |l| *l);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
         msgs.retain(|msg| msg.level >= required_annotation_level);
         msgs
