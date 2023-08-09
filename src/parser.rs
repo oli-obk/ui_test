@@ -97,6 +97,9 @@ pub(crate) struct Revisioned {
     /// The line in which this revisioned item was first added.
     /// Used for reporting errors on unknown revisions.
     pub line: NonZeroUsize,
+    /// The column in which this revisioned item was first added.
+    /// Used for reporting errors on unknown revisions.
+    pub column: usize,
     /// Don't run this test if any of these filters apply
     pub ignore: Vec<Condition>,
     /// Only run this test if all of these filters apply
@@ -134,6 +137,8 @@ struct CommentParser<T> {
     errors: Vec<Error>,
     /// The line currently being parsed.
     line: NonZeroUsize,
+    /// The column in the current line.
+    column: usize,
     /// The available commands and their parsing logic
     commands: HashMap<&'static str, CommandParserFunc>,
 }
@@ -219,6 +224,7 @@ impl Comments {
             comments: Comments::default(),
             errors: vec![],
             line: NonZeroUsize::MAX,
+            column: 0,
             commands: CommentParser::<_>::commands(),
         };
 
@@ -226,6 +232,7 @@ impl Comments {
         for (l, line) in content.as_ref().lines().enumerate() {
             let l = NonZeroUsize::new(l + 1).unwrap(); // enumerate starts at 0, but line numbers start at 1
             parser.line = l;
+            parser.column = 0;
             match parser.parse_checked_line(&mut fallthrough_to, line) {
                 Ok(()) => {}
                 Err(e) => parser.error(format!("Comment is not utf8: {e:?}")),
@@ -238,6 +245,7 @@ impl Comments {
                         parser.errors.push(Error::InvalidComment {
                             msg: format!("the revision `{rev}` is not known"),
                             line: revisioned.line,
+                            column: revisioned.column,
                         })
                     }
                 }
@@ -248,6 +256,7 @@ impl Comments {
                     parser.errors.push(Error::InvalidComment {
                         msg: "there are no revisions in this test".into(),
                         line: revisioned.line,
+                        column: revisioned.column,
                     })
                 }
             }
@@ -267,15 +276,19 @@ impl CommentParser<Comments> {
         line: &[u8],
     ) -> std::result::Result<(), Utf8Error> {
         if let Some(command) = line.strip_prefix(b"//@") {
+            self.column += 3;
             self.parse_command(command.trim().to_str()?)
-        } else if let Some((_, pattern)) = line.split_once_str("//~") {
+        } else if let Some((prefix, pattern)) = line.split_once_str("//~") {
+            self.column += prefix.len() + 3;
             let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
             self.revisioned(revisions, |this| {
                 this.parse_pattern(pattern, fallthrough_to)
             })
         } else {
             *fallthrough_to = None;
+            let column = self.column;
             for pos in line.find_iter("//") {
+                self.column = column + pos + 2;
                 let rest = &line[pos + 2..];
                 for rest in std::iter::once(rest).chain(rest.strip_prefix(b" ")) {
                     if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
@@ -288,6 +301,7 @@ impl CommentParser<Comments> {
                     } else {
                         let mut parser = Self {
                             line: NonZeroUsize::MAX,
+                            column: 0,
                             errors: vec![],
                             comments: Comments::default(),
                             commands: std::mem::take(&mut self.commands),
@@ -314,6 +328,7 @@ impl<CommentsType> CommentParser<CommentsType> {
         self.errors.push(Error::InvalidComment {
             msg: s.into(),
             line: self.line,
+            column: self.column,
         });
     }
 
@@ -334,11 +349,11 @@ impl CommentParser<Comments> {
         let (revisions, command) = self.parse_revisions(command);
 
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
-        let (command, args) = match command
+        let (command, col, args) = match command
             .char_indices()
             .find_map(|(i, c)| (!c.is_alphanumeric() && c != '-' && c != '_').then_some(i))
         {
-            None => (command, ""),
+            None => (command, self.column, ""),
             Some(i) => {
                 let (command, args) = command.split_at(i);
                 let mut args = args.chars();
@@ -350,11 +365,14 @@ impl CommentParser<Comments> {
                     next == ':',
                     "test command must be followed by `:` (or end the line)",
                 );
-                (command, args.as_str().trim())
+                let col = self.column;
+                self.column += i + 1;
+                (command, col, args.as_str().trim())
             }
         };
 
         if command == "revisions" {
+            self.column = col;
             self.check(
                 revisions.is_empty(),
                 "revisions cannot be declared under a revision",
@@ -363,7 +381,7 @@ impl CommentParser<Comments> {
             self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
             return;
         }
-        self.revisioned(revisions, |this| this.parse_command(command, args));
+        self.revisioned(revisions, |this| this.parse_command(command, col, args));
     }
 
     fn revisioned(
@@ -372,15 +390,18 @@ impl CommentParser<Comments> {
         f: impl FnOnce(&mut CommentParser<&mut Revisioned>),
     ) {
         let line = self.line;
+        let column = self.column;
         let mut this = CommentParser {
             errors: std::mem::take(&mut self.errors),
             commands: std::mem::take(&mut self.commands),
             line,
+            column,
             comments: self
                 .revisioned
                 .entry(revisions)
                 .or_insert_with(|| Revisioned {
                     line,
+                    column,
                     ignore: Default::default(),
                     only: Default::default(),
                     stderr_per_bitwidth: Default::default(),
@@ -495,6 +516,7 @@ impl CommentParser<&mut Revisioned> {
             "aux-build" => (this, args){
                 let name = match args.split_once(':') {
                     Some((name, _)) => {
+                        this.column += name.len();
                         this.error("proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
                         name
                     },
@@ -552,16 +574,18 @@ impl CommentParser<&mut Revisioned> {
         commands
     }
 
-    fn parse_command(&mut self, command: &str, args: &str) {
+    fn parse_command(&mut self, command: &str, column: usize, args: &str) {
         if let Some(command) = self.commands.get(command) {
             command(self, args);
         } else if let Some(s) = command.strip_prefix("ignore-") {
+            self.column += "ignore-".len();
             // args are ignored (can be used as comment)
             match Condition::parse(s) {
                 Ok(cond) => self.ignore.push(cond),
                 Err(msg) => self.error(msg),
             }
         } else if let Some(s) = command.strip_prefix("only-") {
+            self.column += "only-".len();
             // args are ignored (can be used as comment)
             match Condition::parse(s) {
                 Ok(cond) => self.only.push(cond),
@@ -573,6 +597,7 @@ impl CommentParser<&mut Revisioned> {
                 .keys()
                 .min_by_key(|key| distance::damerau_levenshtein(key, command))
                 .unwrap();
+            self.column = column;
             self.error(format!(
                 "`{command}` is not a command known to `ui_test`, did you mean `{best_match}`?"
             ));

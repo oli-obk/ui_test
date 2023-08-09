@@ -43,7 +43,7 @@ fn main() {
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 1);
     match &errors[0] {
-        Error::InvalidComment { msg, line } if line.get() == 5 => {
+        Error::InvalidComment { msg, line, .. } if line.get() == 5 => {
             assert_eq!(msg, "unknown level `encountered`")
         }
         _ => unreachable!(),
@@ -93,13 +93,13 @@ use std::mem;
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 2);
     match &errors[0] {
-        Error::InvalidComment { msg, line } if line.get() == 2 => {
+        Error::InvalidComment { msg, line, .. } if line.get() == 2 => {
             assert!(msg.contains("must be followed by `:`"))
         }
         _ => unreachable!(),
     }
     match &errors[1] {
-        Error::InvalidComment { msg, line } if line.get() == 2 => {
+        Error::InvalidComment { msg, line, .. } if line.get() == 2 => {
             assert_eq!(msg, "`error-patttern` is not a command known to `ui_test`, did you mean `error-pattern`?");
         }
         _ => unreachable!(),
@@ -117,7 +117,7 @@ use std::mem;
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 1);
     match &errors[0] {
-        Error::InvalidComment { msg, line } if line.get() == 2 => {
+        Error::InvalidComment { msg, line, .. } if line.get() == 2 => {
             assert!(msg.contains("must be followed by `:`"))
         }
         _ => unreachable!(),
