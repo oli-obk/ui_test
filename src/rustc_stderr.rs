@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    num::NonZeroUsize,
+    path::{Path, PathBuf},
+};
 
 use bstr::ByteSlice;
 use regex::Regex;
@@ -48,10 +51,10 @@ struct Span {
 
 #[derive(serde::Deserialize, Debug, Copy, Clone)]
 pub(crate) struct LineCol {
-    pub line_start: usize,
+    pub line_start: NonZeroUsize,
     pub column_start: usize,
     #[allow(dead_code)]
-    pub line_end: usize,
+    pub line_end: NonZeroUsize,
     pub column_end: usize,
 }
 
@@ -102,10 +105,10 @@ impl RustcMessage {
             line_col: line,
         };
         if let Some(line) = line {
-            if messages.len() <= line.line_start {
-                messages.resize_with(line.line_start + 1, Vec::new);
+            if messages.len() <= line.line_start.get() {
+                messages.resize_with(line.line_start.get() + 1, Vec::new);
             }
-            messages[line.line_start].push(msg);
+            messages[line.line_start.get()].push(msg);
         // All other messages go into the general bin, unless they are specifically of the
         // "aborting due to X previous errors" variety, as we never want to match those. They
         // only count the number of errors and provide no useful information about the tests.

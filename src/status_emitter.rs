@@ -468,9 +468,9 @@ fn print_error(error: &Error, path: &Path) {
                 &[(
                     "",
                     Some(LineCol {
-                        line_start: line.get(),
+                        line_start: *line,
                         column_start: *column + 1,
-                        line_end: line.get(),
+                        line_end: *line,
                         column_end: *column + 1,
                     }),
                 )],
@@ -539,7 +539,7 @@ fn create_error(
                         .iter()
                         .map(|(label, lc)| SourceAnnotation {
                             range: lc.map_or((0, source.len() - 1), |lc| {
-                                assert_eq!(lc.line_start, line.get());
+                                assert_eq!(lc.line_start, *line);
                                 if lc.line_end > lc.line_start {
                                     (lc.column_start - 1, source.len() - 1)
                                 } else if lc.column_start == lc.column_end {
