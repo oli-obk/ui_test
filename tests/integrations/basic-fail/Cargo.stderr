@@ -105,8 +105,11 @@ full stderr:
 tests/actual_tests/filters.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests/filters.rs:1 because
-`x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
+error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
+ --> tests/actual_tests/filters.rs
+  |
+1 | //@only-x86_64
+  |
 
 full stderr:
 
@@ -180,8 +183,11 @@ full stderr:
 tests/actual_tests/pattern_too_many_arrow.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests/pattern_too_many_arrow.rs:3 because
-//~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
+error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
+ --> tests/actual_tests/pattern_too_many_arrow.rs
+  |
+3 |     //~^^^^^^^ ERROR: mismatched types
+  |
 
 full stderr:
 
@@ -249,8 +255,11 @@ tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests_bless/aux_proc_macro_misuse.rs:1 because
-proc macros are now auto-detected, you can remove the `:proc-macro` after the file name
+error: proc macros are now auto-detected, you can remove the `:proc-macro` after the file name
+ --> tests/actual_tests_bless/aux_proc_macro_misuse.rs
+  |
+1 | //@aux-build:the_proc_macro.rs:proc-macro
+  |
 
 full stderr:
 
@@ -279,11 +288,17 @@ error: aborting due to previous error
 tests/actual_tests_bless/compile_flags_quotes.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests_bless/compile_flags_quotes.rs:1 because
-`compile-flag` is not a command known to `ui_test`, did you mean `compile-flags`?
+error: `compile-flag` is not a command known to `ui_test`, did you mean `compile-flags`?
+ --> tests/actual_tests_bless/compile_flags_quotes.rs
+  |
+1 | //@compile-flag: cake
+  |
 
-Could not parse comment in tests/actual_tests_bless/compile_flags_quotes.rs:3 because
-`-Z "cheese is good` contains an unclosed quotation mark
+error: `-Z "cheese is good` contains an unclosed quotation mark
+ --> tests/actual_tests_bless/compile_flags_quotes.rs
+  |
+3 | //@compile-flags: -Z "cheese is good
+  |
 
 full stderr:
 
@@ -292,20 +307,29 @@ full stderr:
 tests/actual_tests_bless/compiletest-rs-command.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:1 because
-a compiletest-rs style comment was detected.
+error: a compiletest-rs style comment was detected.
 Please use text that could not also be interpreted as a command,
 and prefix all actual commands with `//@`
+ --> tests/actual_tests_bless/compiletest-rs-command.rs
+  |
+1 | //aux-build:foomp.rs
+  |
 
-Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:2 because
-a compiletest-rs style comment was detected.
+error: a compiletest-rs style comment was detected.
 Please use text that could not also be interpreted as a command,
 and prefix all actual commands with `//@`
+ --> tests/actual_tests_bless/compiletest-rs-command.rs
+  |
+2 | // aux-build:asf.rs
+  |
 
-Could not parse comment in tests/actual_tests_bless/compiletest-rs-command.rs:4 because
-comment looks suspiciously like a test suite command: `@aux-build:asldkfjasldfj.rs`
+error: comment looks suspiciously like a test suite command: `@aux-build:asldkfjasldfj.rs`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
+ --> tests/actual_tests_bless/compiletest-rs-command.rs
+  |
+4 | // @aux-build:asldkfjasldfj.rs
+  |
 
 full stderr:
 
@@ -371,15 +395,21 @@ full stderr:
 tests/actual_tests_bless/non_top_level_configs.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests_bless/non_top_level_configs.rs:1 because
-comment looks suspiciously like a test suite command: `@check-pass`
+error: comment looks suspiciously like a test suite command: `@check-pass`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
+ --> tests/actual_tests_bless/non_top_level_configs.rs
+  |
+1 | ////@check-pass
+  |
 
-Could not parse comment in tests/actual_tests_bless/non_top_level_configs.rs:4 because
-comment looks suspiciously like a test suite command: `@ignore-target-cheesecake`
+error: comment looks suspiciously like a test suite command: `@ignore-target-cheesecake`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
+ --> tests/actual_tests_bless/non_top_level_configs.rs
+  |
+4 |     //@ignore-target-cheesecake
+  |
 
 full stderr:
 
@@ -388,8 +418,11 @@ full stderr:
 tests/actual_tests_bless/revised_revision.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests_bless/revised_revision.rs:2 because
-revisions cannot be declared under a revision
+error: revisions cannot be declared under a revision
+ --> tests/actual_tests_bless/revised_revision.rs
+  |
+2 | //@[foo] revisions: foo bar
+  |
 
 full stderr:
 
@@ -522,8 +555,11 @@ For more information about this error, try `rustc --explain E0382`.
 tests/actual_tests_bless/unknown_revision.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests_bless/unknown_revision.rs:3 because
-there are no revisions in this test
+error: there are no revisions in this test
+ --> tests/actual_tests_bless/unknown_revision.rs
+  |
+3 |     //~[cake, lie] ERROR: kawoom
+  |
 
 full stderr:
 
@@ -532,8 +568,11 @@ full stderr:
 tests/actual_tests_bless/unknown_revision2.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests_bless/unknown_revision2.rs:5 because
-the revision `cake` is not known
+error: the revision `cake` is not known
+ --> tests/actual_tests_bless/unknown_revision2.rs
+  |
+5 |     //~[cake, lie] ERROR: kawoom
+  |
 
 full stderr:
 
@@ -662,8 +701,11 @@ full stderr:
 tests/actual_tests/filters.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests/filters.rs:1 because
-`x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
+error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
+ --> tests/actual_tests/filters.rs
+  |
+1 | //@only-x86_64
+  |
 
 full stderr:
 
@@ -690,8 +732,11 @@ full stderr:
 tests/actual_tests/pattern_too_many_arrow.rs FAILED:
 command: "parse comments"
 
-Could not parse comment in tests/actual_tests/pattern_too_many_arrow.rs:3 because
-//~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
+error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
+ --> tests/actual_tests/pattern_too_many_arrow.rs
+  |
+3 |     //~^^^^^^^ ERROR: mismatched types
+  |
 
 full stderr:
 

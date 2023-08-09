@@ -45,10 +45,7 @@ impl Comments {
         for rev in self.for_revision(revision) {
             if let Some(found) = f(rev).into_inner() {
                 if result.is_some() {
-                    errors.push(Error::InvalidComment {
-                        msg: format!("multiple {kind} found"),
-                        line: found.line(),
-                    });
+                    errors.push(found.line());
                 } else {
                     result = found.into();
                 }
@@ -59,7 +56,10 @@ impl Comments {
         } else {
             Err(Errored {
                 command: Command::new(format!("<finding flags for revision `{revision}`>")),
-                errors,
+                errors: vec![Error::MultipleRevisionsWithResults {
+                    kind: kind.to_string(),
+                    lines: errors,
+                }],
                 stderr: vec![],
             })
         }
@@ -280,10 +280,10 @@ impl CommentParser<Comments> {
                 for rest in std::iter::once(rest).chain(rest.strip_prefix(b" ")) {
                     if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
                         self.error(format!(
-                                "comment looks suspiciously like a test suite command: `{}`\n\
+                            "comment looks suspiciously like a test suite command: `{}`\n\
                              All `//@` test suite commands must be at the start of the line.\n\
                              The `//` must be directly followed by `@` or `~`.",
-                                rest.to_str()?,
+                            rest.to_str()?,
                         ));
                     } else {
                         let mut parser = Self {

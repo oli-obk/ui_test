@@ -49,6 +49,13 @@ pub enum Error {
         /// The line in which it was defined.
         line: NonZeroUsize,
     },
+    /// Conflicting comments
+    MultipleRevisionsWithResults {
+        /// The comment being looked for
+        kind: String,
+        /// The lines where conflicts happened
+        lines: Vec<NonZeroUsize>,
+    },
     /// A subcommand (e.g. rustfix) of a test failed.
     Command {
         /// The name of the subcommand (e.g. "rustfix").

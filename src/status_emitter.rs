@@ -1,5 +1,9 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
+use annotate_snippets::{
+    display_list::DisplayList,
+    snippet::{Annotation, AnnotationType, Slice, Snippet},
+};
 use bstr::ByteSlice;
 use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
@@ -324,7 +328,7 @@ impl StatusEmitter for Text {
             impl Summary for Summarizer {
                 fn test_failure(&mut self, status: &dyn TestStatus, errors: &Errors) {
                     for error in errors {
-                        print_error(error, &status.path().display().to_string());
+                        print_error(error, status.path());
                     }
 
                     self.failures.push(if status.revision().is_empty() {
@@ -371,7 +375,7 @@ impl StatusEmitter for Text {
     }
 }
 
-fn print_error(error: &Error, path: &str) {
+fn print_error(error: &Error, path: &Path) {
     match error {
         Error::ExitStatus {
             mode,
@@ -394,7 +398,7 @@ fn print_error(error: &Error, path: &str) {
             }
             eprintln!(
                 "expected because of pattern here: {}",
-                format!("{path}:{}", pattern.line()).bold()
+                format!("{}:{}", path.display(), pattern.line()).bold()
             );
         }
         Error::NoPatternsFound => {
@@ -440,8 +444,10 @@ fn print_error(error: &Error, path: &str) {
                 }
             }
         }
-        Error::InvalidComment { msg, line } => {
-            eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
+        Error::InvalidComment { msg, line } => create_error(msg, std::iter::once(*line), path),
+        Error::MultipleRevisionsWithResults { kind, lines } => {
+            let title = format!("multiple {kind} found");
+            create_error(title, lines.iter().copied(), path)
         }
         Error::Bug(msg) => {
             eprintln!("A bug in `ui_test` occurred: {msg}");
@@ -451,17 +457,44 @@ fn print_error(error: &Error, path: &str) {
             errors,
             line,
         } => {
-            eprintln!("Aux build from {path}:{line} failed");
+            eprintln!("Aux build from {}:{line} failed", path.display());
             for error in errors {
-                print_error(error, &aux_path.display().to_string());
+                print_error(error, aux_path);
             }
         }
         Error::Rustfix(error) => {
-            eprintln!("failed to apply suggestions for {path} with rustfix: {error}");
+            eprintln!(
+                "failed to apply suggestions for {} with rustfix: {error}",
+                path.display()
+            );
             eprintln!("Add //@no-rustfix to the test file to ignore rustfix suggestions");
         }
     }
     eprintln!();
+}
+
+fn create_error(s: impl AsRef<str>, lines: impl Iterator<Item = NonZeroUsize>, file: &Path) {
+    let source = std::fs::read_to_string(file).unwrap();
+    let source: Vec<_> = source.lines().collect();
+    let file = file.display().to_string();
+    let msg = Snippet {
+        title: Some(Annotation {
+            id: None,
+            annotation_type: AnnotationType::Error,
+            label: Some(s.as_ref()),
+        }),
+        slices: lines
+            .map(|line| Slice {
+                source: source[line.get() - 1],
+                line_start: line.get(),
+                origin: Some(&file),
+                annotations: vec![],
+                fold: false,
+            })
+            .collect(),
+        ..Default::default()
+    };
+    eprintln!("{}", DisplayList::from(msg));
 }
 
 fn gha_error(error: &Error, test_path: &str, revision: &str) {
@@ -580,6 +613,9 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             let mut err =
                 github_actions::error(test_path, format!("Could not parse comment")).line(*line);
             writeln!(err, "{msg}").unwrap();
+        }
+        Error::MultipleRevisionsWithResults { kind, lines } => {
+            github_actions::error(test_path, format!("multiple {kind} found")).line(lines[0]);
         }
         Error::Bug(_) => {}
         Error::Aux {
