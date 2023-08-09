@@ -469,9 +469,9 @@ fn print_error(error: &Error, path: &Path) {
                     "",
                     Some(LineCol {
                         line_start: *line,
-                        column_start: *column + 1,
+                        column_start: *column,
                         line_end: *line,
-                        column_end: *column + 1,
+                        column_end: *column,
                     }),
                 )],
                 *line,
@@ -541,17 +541,17 @@ fn create_error(
                             range: lc.map_or((0, source.len() - 1), |lc| {
                                 assert_eq!(lc.line_start, *line);
                                 if lc.line_end > lc.line_start {
-                                    (lc.column_start - 1, source.len() - 1)
+                                    (lc.column_start.get() - 1, source.len() - 1)
                                 } else if lc.column_start == lc.column_end {
-                                    if lc.column_start - 1 == source.len() {
+                                    if lc.column_start.get() - 1 == source.len() {
                                         // rustc sometimes produces spans pointing *after* the `\n` at the end of the line,
                                         // but we want to render an annotation at the end.
-                                        (lc.column_start - 2, lc.column_start - 1)
+                                        (lc.column_start.get() - 2, lc.column_start.get() - 1)
                                     } else {
-                                        (lc.column_start - 1, lc.column_start)
+                                        (lc.column_start.get() - 1, lc.column_start.get())
                                     }
                                 } else {
-                                    (lc.column_start - 1, lc.column_end - 1)
+                                    (lc.column_start.get() - 1, lc.column_end.get() - 1)
                                 }
                             }),
                             label,

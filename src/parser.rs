@@ -99,7 +99,7 @@ pub(crate) struct Revisioned {
     pub line: NonZeroUsize,
     /// The column in which this revisioned item was first added.
     /// Used for reporting errors on unknown revisions.
-    pub column: usize,
+    pub column: NonZeroUsize,
     /// Don't run this test if any of these filters apply
     pub ignore: Vec<Condition>,
     /// Only run this test if all of these filters apply
@@ -138,9 +138,15 @@ struct CommentParser<T> {
     /// The line currently being parsed.
     line: NonZeroUsize,
     /// The column in the current line.
-    column: usize,
+    column: NonZeroUsize,
     /// The available commands and their parsing logic
     commands: HashMap<&'static str, CommandParserFunc>,
+}
+
+impl<T> CommentParser<T> {
+    pub fn step_column(&mut self, n: usize) {
+        self.column = NonZeroUsize::new(self.column.get() + n).unwrap();
+    }
 }
 
 type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: &str);
@@ -224,7 +230,7 @@ impl Comments {
             comments: Comments::default(),
             errors: vec![],
             line: NonZeroUsize::MAX,
-            column: 0,
+            column: NonZeroUsize::MAX,
             commands: CommentParser::<_>::commands(),
         };
 
@@ -232,7 +238,7 @@ impl Comments {
         for (l, line) in content.as_ref().lines().enumerate() {
             let l = NonZeroUsize::new(l + 1).unwrap(); // enumerate starts at 0, but line numbers start at 1
             parser.line = l;
-            parser.column = 0;
+            parser.column = NonZeroUsize::new(1).unwrap();
             match parser.parse_checked_line(&mut fallthrough_to, line) {
                 Ok(()) => {}
                 Err(e) => parser.error(format!("Comment is not utf8: {e:?}")),
@@ -276,10 +282,10 @@ impl CommentParser<Comments> {
         line: &[u8],
     ) -> std::result::Result<(), Utf8Error> {
         if let Some(command) = line.strip_prefix(b"//@") {
-            self.column += 3;
+            self.step_column(3);
             self.parse_command(command.trim().to_str()?)
         } else if let Some((prefix, pattern)) = line.split_once_str("//~") {
-            self.column += prefix.len() + 3;
+            self.step_column(prefix.len() + 3);
             let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
             self.revisioned(revisions, |this| {
                 this.parse_pattern(pattern, fallthrough_to)
@@ -288,7 +294,8 @@ impl CommentParser<Comments> {
             *fallthrough_to = None;
             let column = self.column;
             for pos in line.find_iter("//") {
-                self.column = column + pos + 2;
+                self.column = column;
+                self.step_column(pos + 2);
                 let rest = &line[pos + 2..];
                 for rest in std::iter::once(rest).chain(rest.strip_prefix(b" ")) {
                     if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
@@ -301,7 +308,7 @@ impl CommentParser<Comments> {
                     } else {
                         let mut parser = Self {
                             line: NonZeroUsize::MAX,
-                            column: 0,
+                            column: NonZeroUsize::MIN,
                             errors: vec![],
                             comments: Comments::default(),
                             commands: std::mem::take(&mut self.commands),
@@ -366,7 +373,7 @@ impl CommentParser<Comments> {
                     "test command must be followed by `:` (or end the line)",
                 );
                 let col = self.column;
-                self.column += i + 1;
+                self.step_column(i + 1);
                 (command, col, args.as_str().trim())
             }
         };
@@ -516,7 +523,7 @@ impl CommentParser<&mut Revisioned> {
             "aux-build" => (this, args){
                 let name = match args.split_once(':') {
                     Some((name, _)) => {
-                        this.column += name.len();
+                        this.step_column(name.len());
                         this.error("proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
                         name
                     },
@@ -574,18 +581,18 @@ impl CommentParser<&mut Revisioned> {
         commands
     }
 
-    fn parse_command(&mut self, command: &str, column: usize, args: &str) {
+    fn parse_command(&mut self, command: &str, column: NonZeroUsize, args: &str) {
         if let Some(command) = self.commands.get(command) {
             command(self, args);
         } else if let Some(s) = command.strip_prefix("ignore-") {
-            self.column += "ignore-".len();
+            self.step_column("ignore-".len());
             // args are ignored (can be used as comment)
             match Condition::parse(s) {
                 Ok(cond) => self.ignore.push(cond),
                 Err(msg) => self.error(msg),
             }
         } else if let Some(s) = command.strip_prefix("only-") {
-            self.column += "only-".len();
+            self.step_column("only-".len());
             // args are ignored (can be used as comment)
             match Condition::parse(s) {
                 Ok(cond) => self.only.push(cond),

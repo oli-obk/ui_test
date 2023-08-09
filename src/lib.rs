@@ -823,7 +823,7 @@ fn run_rustfix(
             vec![],
             Revisioned {
                 line: NonZeroUsize::MAX,
-                column: 0,
+                column: NonZeroUsize::MAX,
                 ignore: vec![],
                 only: vec![],
                 stderr_per_bitwidth: false,

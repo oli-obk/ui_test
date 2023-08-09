@@ -1,10 +1,9 @@
+use bstr::ByteSlice;
+use regex::Regex;
 use std::{
     num::NonZeroUsize,
     path::{Path, PathBuf},
 };
-
-use bstr::ByteSlice;
-use regex::Regex;
 
 #[derive(serde::Deserialize, Debug)]
 struct RustcMessage {
@@ -52,10 +51,10 @@ struct Span {
 #[derive(serde::Deserialize, Debug, Copy, Clone)]
 pub(crate) struct LineCol {
     pub line_start: NonZeroUsize,
-    pub column_start: usize,
+    pub column_start: NonZeroUsize,
     #[allow(dead_code)]
     pub line_end: NonZeroUsize,
-    pub column_end: usize,
+    pub column_end: NonZeroUsize,
 }
 
 impl std::str::FromStr for Level {

@@ -49,7 +49,7 @@ pub enum Error {
         /// The line in which it was defined.
         line: NonZeroUsize,
         /// The column where the error occurred.
-        column: usize,
+        column: NonZeroUsize,
     },
     /// Conflicting comments
     MultipleRevisionsWithResults {
