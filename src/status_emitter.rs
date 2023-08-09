@@ -398,9 +398,8 @@ fn print_error(error: &Error, path: &Path) {
             };
             create_error(
                 msg,
-                std::iter::once(pattern.line()),
+                &[(&["expected because of this pattern"], pattern.line())],
                 path,
-                Some("expected because of this pattern"),
             );
         }
         Error::NoPatternsFound => {
@@ -428,14 +427,15 @@ fn print_error(error: &Error, path: &Path) {
         Error::ErrorsWithoutPattern { path, msgs } => {
             if let Some(path) = path.as_ref() {
                 let line = path.line();
-                let path = path.display();
-                eprintln!(
-                    "There were {} unmatched diagnostics at {path}:{line}",
-                    msgs.len(),
+                let msgs = msgs
+                    .iter()
+                    .map(|msg| format!("{:?}: {}", msg.level, msg.message))
+                    .collect::<Vec<_>>();
+                create_error(
+                    format!("There were {} unmatched diagnostics", msgs.len()),
+                    &[(&msgs.iter().map(AsRef::as_ref).collect::<Vec<_>>(), line)],
+                    path,
                 );
-                for Message { level, message } in msgs {
-                    eprintln!("    {level:?}: {message}")
-                }
             } else {
                 eprintln!(
                     "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
@@ -446,12 +446,17 @@ fn print_error(error: &Error, path: &Path) {
                 }
             }
         }
-        Error::InvalidComment { msg, line } => {
-            create_error(msg, std::iter::once(*line), path, None)
-        }
+        Error::InvalidComment { msg, line } => create_error(msg, &[(&[], *line)], path),
         Error::MultipleRevisionsWithResults { kind, lines } => {
             let title = format!("multiple {kind} found");
-            create_error(title, lines.iter().copied(), path, None)
+            create_error(
+                title,
+                &lines
+                    .iter()
+                    .map(|&line| (&[] as &[_], line))
+                    .collect::<Vec<_>>(),
+                path,
+            )
         }
         Error::Bug(msg) => {
             eprintln!("A bug in `ui_test` occurred: {msg}");
@@ -477,14 +482,9 @@ fn print_error(error: &Error, path: &Path) {
     eprintln!();
 }
 
-fn create_error(
-    s: impl AsRef<str>,
-    lines: impl Iterator<Item = NonZeroUsize>,
-    file: &Path,
-    label: Option<&str>,
-) {
+fn create_error(s: impl AsRef<str>, lines: &[(&[&str], NonZeroUsize)], file: &Path) {
     let source = std::fs::read_to_string(file).unwrap();
-    let source: Vec<_> = source.lines().collect();
+    let source: Vec<_> = source.split_inclusive('\n').collect();
     let file = file.display().to_string();
     let msg = Snippet {
         title: Some(Annotation {
@@ -493,14 +493,15 @@ fn create_error(
             label: Some(s.as_ref()),
         }),
         slices: lines
-            .map(|line| Slice {
+            .iter()
+            .map(|(label, line)| Slice {
                 source: source[line.get() - 1],
                 line_start: line.get(),
                 origin: Some(&file),
                 annotations: label
-                    .into_iter()
+                    .iter()
                     .map(|label| SourceAnnotation {
-                        range: (0, source[line.get() - 1].len().saturating_sub(1)),
+                        range: (0, source[line.get() - 1].len() - 1),
                         label,
                         annotation_type: AnnotationType::Note,
                     })
