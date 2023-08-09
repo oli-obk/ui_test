@@ -14,7 +14,7 @@ use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
+use parser::{ErrorMatch, MaybeSpanned, OptWithLine, Revisioned, Spanned};
 use read_helper::ReadHelper;
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Level, Message, Span};
@@ -710,7 +710,7 @@ fn build_aux_files(
 }
 
 fn run_test_binary(
-    mode: MaybeWithLine<Mode>,
+    mode: MaybeSpanned<Mode>,
     path: &Path,
     revision: &str,
     comments: &Comments,
@@ -814,7 +814,7 @@ fn run_rustfix(
     let edition = edition
         .map(|mwl| {
             let line = mwl.line().unwrap_or(NonZeroUsize::MAX);
-            WithLine::new(mwl.into_inner(), line)
+            Spanned::new(mwl.into_inner(), line)
         })
         .into();
     let rustfix_comments = Comments {
@@ -1020,7 +1020,7 @@ fn check_annotations(
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
-    let mut lowest_annotation_level = MaybeWithLine::new_config(Level::Error);
+    let mut lowest_annotation_level = MaybeSpanned::new_config(Level::Error);
     for &ErrorMatch {
         ref pattern,
         level,
@@ -1034,7 +1034,7 @@ fn check_annotations(
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
         if *lowest_annotation_level > level {
-            lowest_annotation_level = MaybeWithLine::new(level, line);
+            lowest_annotation_level = MaybeSpanned::new(level, line);
         }
 
         if let Some(msgs) = messages.get_mut(line.get()) {
@@ -1079,7 +1079,7 @@ fn check_annotations(
             if !msgs.is_empty() {
                 let line = NonZeroUsize::new(line).expect("line 0 is always empty");
                 errors.push(Error::ErrorsWithoutPattern {
-                    path: Some(WithLine::new(path.to_path_buf(), line)),
+                    path: Some(Spanned::new(path.to_path_buf(), line)),
                     msgs,
                 });
             }

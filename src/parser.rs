@@ -83,13 +83,13 @@ impl Comments {
         &self,
         revision: &str,
         config: &crate::Config,
-    ) -> Result<Option<MaybeWithLine<String>>, Errored> {
+    ) -> Result<Option<MaybeSpanned<String>>, Errored> {
         let edition =
             self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
         let edition = edition
             .into_inner()
-            .map(MaybeWithLine::from)
-            .or(config.edition.clone().map(MaybeWithLine::new_config));
+            .map(MaybeSpanned::from)
+            .or(config.edition.clone().map(MaybeSpanned::new_config));
         Ok(edition)
     }
 }
@@ -115,12 +115,12 @@ pub(crate) struct Revisioned {
     /// Arbitrary patterns to look for in the stderr.
     /// The error must be from another file, as errors from the current file must be
     /// checked via `error_matches`.
-    pub error_in_other_files: Vec<WithLine<Pattern>>,
+    pub error_in_other_files: Vec<Spanned<Pattern>>,
     pub error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: OptWithLine<Level>,
-    pub aux_builds: Vec<WithLine<PathBuf>>,
+    pub aux_builds: Vec<Spanned<PathBuf>>,
     pub edition: OptWithLine<String>,
     /// Overwrites the mode from `Config`.
     pub mode: OptWithLine<Mode>,
@@ -185,7 +185,7 @@ pub enum Pattern {
 
 #[derive(Debug)]
 pub(crate) struct ErrorMatch {
-    pub pattern: WithLine<Pattern>,
+    pub pattern: Spanned<Pattern>,
     pub level: Level,
     /// The line this pattern is expecting to find a message in.
     pub line: NonZeroUsize,
@@ -485,7 +485,7 @@ impl CommentParser<&mut Revisioned> {
             "error-in-other-file" => (this, args){
                 let pat = this.parse_error_pattern(args.trim());
                 let line = this.span.line_start;
-                this.error_in_other_files.push(WithLine::new(pat, line));
+                this.error_in_other_files.push(Spanned::new(pat, line));
             }
             "stderr-per-bitwidth" => (this, _args){
                 // args are ignored (can be used as comment)
@@ -525,7 +525,7 @@ impl CommentParser<&mut Revisioned> {
                     None => args,
                 };
                 let line = this.span.line_start;
-                this.aux_builds.push(WithLine::new(name.into(), line));
+                this.aux_builds.push(Spanned::new(name.into(), line));
             }
             "edition" => (this, args){
                 let line = this.span.line_start;
@@ -753,7 +753,7 @@ impl CommentParser<&mut Revisioned> {
 
         *fallthrough_to = Some(match_line);
 
-        let pattern = WithLine::new(pattern, self.span.line_start);
+        let pattern = Spanned::new(pattern, self.span.line_start);
         self.error_matches.push(ErrorMatch {
             pattern,
             level,

@@ -1,12 +1,12 @@
 use std::num::NonZeroUsize;
 
 #[derive(Default, Debug, Clone, Copy)]
-pub struct MaybeWithLine<T> {
+pub struct MaybeSpanned<T> {
     data: T,
     line: Option<NonZeroUsize>,
 }
 
-impl<T> std::ops::Deref for MaybeWithLine<T> {
+impl<T> std::ops::Deref for MaybeSpanned<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -14,7 +14,7 @@ impl<T> std::ops::Deref for MaybeWithLine<T> {
     }
 }
 
-impl<T> MaybeWithLine<T> {
+impl<T> MaybeSpanned<T> {
     pub fn new(data: T, line: NonZeroUsize) -> Self {
         Self {
             data,
@@ -36,8 +36,8 @@ impl<T> MaybeWithLine<T> {
     }
 }
 
-impl<T> From<WithLine<T>> for MaybeWithLine<T> {
-    fn from(value: WithLine<T>) -> Self {
+impl<T> From<Spanned<T>> for MaybeSpanned<T> {
+    fn from(value: Spanned<T>) -> Self {
         Self {
             data: value.data,
             line: Some(value.line),
@@ -46,12 +46,12 @@ impl<T> From<WithLine<T>> for MaybeWithLine<T> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct WithLine<T> {
+pub struct Spanned<T> {
     data: T,
     line: NonZeroUsize,
 }
 
-impl<T> std::ops::Deref for WithLine<T> {
+impl<T> std::ops::Deref for Spanned<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -59,7 +59,7 @@ impl<T> std::ops::Deref for WithLine<T> {
     }
 }
 
-impl<T> WithLine<T> {
+impl<T> Spanned<T> {
     pub fn new(data: T, line: NonZeroUsize) -> Self {
         Self { data, line }
     }
@@ -68,8 +68,8 @@ impl<T> WithLine<T> {
         self.line
     }
 
-    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> WithLine<U> {
-        WithLine {
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Spanned<U> {
+        Spanned {
             data: f(self.data),
             line: self.line,
         }
@@ -81,24 +81,24 @@ impl<T> WithLine<T> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct OptWithLine<T>(Option<WithLine<T>>);
+pub struct OptWithLine<T>(Option<Spanned<T>>);
 
 impl<T> std::ops::Deref for OptWithLine<T> {
-    type Target = Option<WithLine<T>>;
+    type Target = Option<Spanned<T>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<T> From<Option<WithLine<T>>> for OptWithLine<T> {
-    fn from(value: Option<WithLine<T>>) -> Self {
+impl<T> From<Option<Spanned<T>>> for OptWithLine<T> {
+    fn from(value: Option<Spanned<T>>) -> Self {
         Self(value)
     }
 }
 
-impl<T> From<WithLine<T>> for OptWithLine<T> {
-    fn from(value: WithLine<T>) -> Self {
+impl<T> From<Spanned<T>> for OptWithLine<T> {
+    fn from(value: Spanned<T>) -> Self {
         Self(Some(value))
     }
 }
@@ -111,14 +111,14 @@ impl<T> Default for OptWithLine<T> {
 
 impl<T> OptWithLine<T> {
     pub fn new(data: T, line: NonZeroUsize) -> Self {
-        Self(Some(WithLine::new(data, line)))
+        Self(Some(Spanned::new(data, line)))
     }
 
     /// Tries to set the value if not already set. Returns newly passed
     /// value in case there was already a value there.
     #[must_use]
-    pub fn set(&mut self, data: T, line: NonZeroUsize) -> Option<WithLine<T>> {
-        let new = WithLine::new(data, line);
+    pub fn set(&mut self, data: T, line: NonZeroUsize) -> Option<Spanned<T>> {
+        let new = Spanned::new(data, line);
         if self.0.is_some() {
             Some(new)
         } else {
@@ -128,7 +128,7 @@ impl<T> OptWithLine<T> {
     }
 
     #[must_use]
-    pub fn into_inner(self) -> Option<WithLine<T>> {
+    pub fn into_inner(self) -> Option<Spanned<T>> {
         self.0
     }
 }

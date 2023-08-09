@@ -1,6 +1,6 @@
 use super::Error;
 use crate::parser::Comments;
-use crate::parser::MaybeWithLine;
+use crate::parser::MaybeSpanned;
 use crate::Errored;
 use std::fmt::Display;
 use std::process::ExitStatus;
@@ -54,9 +54,9 @@ impl Mode {
         self,
         comments: &Comments,
         revision: &str,
-    ) -> Result<MaybeWithLine<Self>, Errored> {
+    ) -> Result<MaybeSpanned<Self>, Errored> {
         let mode = comments.find_one_for_revision(revision, "mode changes", |r| r.mode)?;
-        Ok(mode.map_or(MaybeWithLine::new_config(self), Into::into))
+        Ok(mode.map_or(MaybeSpanned::new_config(self), Into::into))
     }
 }
 

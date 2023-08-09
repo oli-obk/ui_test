@@ -1,5 +1,5 @@
 use crate::{
-    parser::{Pattern, WithLine},
+    parser::{Pattern, Spanned},
     rustc_stderr::{Message, Span},
     Mode,
 };
@@ -19,7 +19,7 @@ pub enum Error {
         expected: i32,
     },
     /// A pattern was declared but had no matching error.
-    PatternNotFound(WithLine<Pattern>),
+    PatternNotFound(Spanned<Pattern>),
     /// A ui test checking for failure does not have any failure patterns
     NoPatternsFound,
     /// A ui test checking for success has failure patterns
@@ -40,7 +40,7 @@ pub enum Error {
         /// The main message of the error.
         msgs: Vec<Message>,
         /// File and line information of the error.
-        path: Option<WithLine<PathBuf>>,
+        path: Option<Spanned<PathBuf>>,
     },
     /// A comment failed to parse.
     InvalidComment {
