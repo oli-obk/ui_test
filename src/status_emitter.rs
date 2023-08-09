@@ -12,7 +12,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use crate::{
     github_actions,
     parser::Pattern,
-    rustc_stderr::{LineCol, Message},
+    rustc_stderr::{Message, Span},
     Error, Errored, Errors, TestOk, TestResult,
 };
 use std::{
@@ -502,7 +502,7 @@ fn print_error(error: &Error, path: &Path) {
 
 fn create_error(
     s: impl AsRef<str>,
-    lines: &[(&[(&str, Option<LineCol>)], NonZeroUsize)],
+    lines: &[(&[(&str, Option<Span>)], NonZeroUsize)],
     file: &Path,
 ) {
     let source = std::fs::read_to_string(file).unwrap();

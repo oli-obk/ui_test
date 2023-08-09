@@ -9,7 +9,7 @@ use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
 use crate::{
-    rustc_stderr::{Level, LineCol},
+    rustc_stderr::{Level, Span},
     Error, Errored, Mode,
 };
 
@@ -99,7 +99,7 @@ impl Comments {
 pub(crate) struct Revisioned {
     /// The character range in which this revisioned item was first added.
     /// Used for reporting errors on unknown revisions.
-    pub span: LineCol,
+    pub span: Span,
     /// Don't run this test if any of these filters apply
     pub ignore: Vec<Condition>,
     /// Only run this test if all of these filters apply
@@ -136,7 +136,7 @@ struct CommentParser<T> {
     /// Any errors that ocurred during comment parsing.
     errors: Vec<Error>,
     /// The line and columnn information about the snippet currently being parsed.
-    span: LineCol,
+    span: Span,
     /// The available commands and their parsing logic
     commands: HashMap<&'static str, CommandParserFunc>,
 }
@@ -227,7 +227,7 @@ impl Comments {
         let mut parser = CommentParser {
             comments: Comments::default(),
             errors: vec![],
-            span: LineCol::INVALID,
+            span: Span::INVALID,
             commands: CommentParser::<_>::commands(),
         };
 
@@ -304,9 +304,9 @@ impl CommentParser<Comments> {
                         ));
                     } else {
                         let mut parser = Self {
-                            span: LineCol {
+                            span: Span {
                                 column_start: NonZeroUsize::MIN,
-                                ..LineCol::INVALID
+                                ..Span::INVALID
                             },
                             errors: vec![],
                             comments: Comments::default(),
@@ -576,7 +576,7 @@ impl CommentParser<&mut Revisioned> {
         commands
     }
 
-    fn parse_command(&mut self, command: &str, span: LineCol, args: &str) {
+    fn parse_command(&mut self, command: &str, span: Span, args: &str) {
         if let Some(command) = self.commands.get(command) {
             command(self, args);
         } else if let Some(s) = command.strip_prefix("ignore-") {

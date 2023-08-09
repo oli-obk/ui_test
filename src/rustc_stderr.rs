@@ -8,7 +8,7 @@ use std::{
 #[derive(serde::Deserialize, Debug)]
 struct RustcMessage {
     rendered: Option<String>,
-    spans: Vec<Span>,
+    spans: Vec<RustcSpan>,
     level: String,
     message: String,
     children: Vec<RustcMessage>,
@@ -30,33 +30,33 @@ pub(crate) enum Level {
 pub struct Message {
     pub(crate) level: Level,
     pub(crate) message: String,
-    pub(crate) line_col: Option<LineCol>,
+    pub(crate) line_col: Option<Span>,
 }
 
 /// Information about macro expansion.
 #[derive(serde::Deserialize, Debug)]
 struct Expansion {
-    span: Span,
+    span: RustcSpan,
 }
 
 #[derive(serde::Deserialize, Debug)]
-struct Span {
+struct RustcSpan {
     #[serde(flatten)]
-    line_col: LineCol,
+    line_col: Span,
     file_name: PathBuf,
     is_primary: bool,
     expansion: Option<Box<Expansion>>,
 }
 
 #[derive(serde::Deserialize, Debug, Copy, Clone)]
-pub struct LineCol {
+pub struct Span {
     pub line_start: NonZeroUsize,
     pub column_start: NonZeroUsize,
     pub line_end: NonZeroUsize,
     pub column_end: NonZeroUsize,
 }
 
-impl LineCol {
+impl Span {
     pub const INVALID: Self = Self {
         line_start: NonZeroUsize::MAX,
         column_start: NonZeroUsize::MAX,
@@ -92,7 +92,7 @@ pub(crate) struct Diagnostics {
 }
 
 impl RustcMessage {
-    fn line(&self, file: &Path) -> Option<LineCol> {
+    fn line(&self, file: &Path) -> Option<Span> {
         let span = |primary| self.spans.iter().find_map(|span| span.line(file, primary));
         span(true).or_else(|| span(false))
     }
@@ -103,7 +103,7 @@ impl RustcMessage {
         file: &Path,
         messages: &mut Vec<Vec<Message>>,
         messages_from_unknown_file_or_line: &mut Vec<Message>,
-        line: Option<LineCol>,
+        line: Option<Span>,
     ) {
         let line = self.line(file).or(line);
         let msg = Message {
@@ -130,9 +130,9 @@ impl RustcMessage {
     }
 }
 
-impl Span {
+impl RustcSpan {
     /// Returns the most expanded line number *in the given file*, if possible.
-    fn line(&self, file: &Path, primary: bool) -> Option<LineCol> {
+    fn line(&self, file: &Path, primary: bool) -> Option<Span> {
         if let Some(exp) = &self.expansion {
             if let Some(line) = exp.span.line(file, primary && !self.is_primary) {
                 return Some(line);
