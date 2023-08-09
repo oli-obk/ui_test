@@ -120,7 +120,7 @@ error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host
  --> tests/actual_tests/filters.rs:1:9
   |
 1 | //@only-x86_64
-  |         ^
+  |         ^^^^^^
   |
 
 full stderr:
@@ -199,7 +199,7 @@ error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 li
  --> tests/actual_tests/pattern_too_many_arrow.rs:3:8
   |
 3 |     //~^^^^^^^ ERROR: mismatched types
-  |        ^
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -272,7 +272,7 @@ error: proc macros are now auto-detected, you can remove the `:proc-macro` after
  --> tests/actual_tests_bless/aux_proc_macro_misuse.rs:1:31
   |
 1 | //@aux-build:the_proc_macro.rs:proc-macro
-  |                               ^
+  |                               ^^^^^^^^^^^
   |
 
 full stderr:
@@ -310,14 +310,14 @@ error: `compile-flag` is not a command known to `ui_test`, did you mean `compile
  --> tests/actual_tests_bless/compile_flags_quotes.rs:1:4
   |
 1 | //@compile-flag: cake
-  |    ^
+  |    ^^^^^^^^^^^^^^^^^^
   |
 
 error: `-Z "cheese is good` contains an unclosed quotation mark
  --> tests/actual_tests_bless/compile_flags_quotes.rs:3:18
   |
 3 | //@compile-flags: -Z "cheese is good
-  |                  ^
+  |                  ^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -333,7 +333,7 @@ and prefix all actual commands with `//@`
  --> tests/actual_tests_bless/compiletest-rs-command.rs:1:3
   |
 1 | //aux-build:foomp.rs
-  |   ^
+  |   ^^^^^^^^^^^^^^^^^^
   |
 
 error: a compiletest-rs style comment was detected.
@@ -342,7 +342,7 @@ and prefix all actual commands with `//@`
  --> tests/actual_tests_bless/compiletest-rs-command.rs:2:3
   |
 2 | // aux-build:asf.rs
-  |   ^
+  |   ^^^^^^^^^^^^^^^^^
   |
 
 error: comment looks suspiciously like a test suite command: `@aux-build:asldkfjasldfj.rs`
@@ -351,7 +351,7 @@ The `//` must be directly followed by `@` or `~`.
  --> tests/actual_tests_bless/compiletest-rs-command.rs:4:3
   |
 4 | // @aux-build:asldkfjasldfj.rs
-  |   ^
+  |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -428,7 +428,7 @@ The `//` must be directly followed by `@` or `~`.
  --> tests/actual_tests_bless/non_top_level_configs.rs:1:5
   |
 1 | ////@check-pass
-  |     ^
+  |     ^^^^^^^^^^^
   |
 
 error: comment looks suspiciously like a test suite command: `@ignore-target-cheesecake`
@@ -437,7 +437,7 @@ The `//` must be directly followed by `@` or `~`.
  --> tests/actual_tests_bless/non_top_level_configs.rs:4:7
   |
 4 |     //@ignore-target-cheesecake
-  |       ^
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -451,7 +451,7 @@ error: revisions cannot be declared under a revision
  --> tests/actual_tests_bless/revised_revision.rs:2:4
   |
 2 | //@[foo] revisions: foo bar
-  |    ^
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -597,7 +597,7 @@ error: there are no revisions in this test
  --> tests/actual_tests_bless/unknown_revision.rs:3:8
   |
 3 |     //~[cake, lie] ERROR: kawoom
-  |        ^
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -611,7 +611,7 @@ error: the revision `cake` is not known
  --> tests/actual_tests_bless/unknown_revision2.rs:5:8
   |
 5 |     //~[cake, lie] ERROR: kawoom
-  |        ^
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -749,7 +749,7 @@ error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host
  --> tests/actual_tests/filters.rs:1:9
   |
 1 | //@only-x86_64
-  |         ^
+  |         ^^^^^^
   |
 
 full stderr:
@@ -781,7 +781,7 @@ error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 li
  --> tests/actual_tests/pattern_too_many_arrow.rs:3:8
   |
 3 |     //~^^^^^^^ ERROR: mismatched types
-  |        ^
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:

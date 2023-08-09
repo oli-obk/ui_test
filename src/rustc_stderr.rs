@@ -49,12 +49,20 @@ struct Span {
 }
 
 #[derive(serde::Deserialize, Debug, Copy, Clone)]
-pub(crate) struct LineCol {
+pub struct LineCol {
     pub line_start: NonZeroUsize,
     pub column_start: NonZeroUsize,
-    #[allow(dead_code)]
     pub line_end: NonZeroUsize,
     pub column_end: NonZeroUsize,
+}
+
+impl LineCol {
+    pub const INVALID: Self = Self {
+        line_start: NonZeroUsize::MAX,
+        column_start: NonZeroUsize::MAX,
+        line_end: NonZeroUsize::MAX,
+        column_end: NonZeroUsize::MAX,
+    };
 }
 
 impl std::str::FromStr for Level {

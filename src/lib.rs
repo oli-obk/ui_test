@@ -17,7 +17,7 @@ use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
 use read_helper::ReadHelper;
 use regex::bytes::{Captures, Regex};
-use rustc_stderr::{Level, Message};
+use rustc_stderr::{Level, LineCol, Message};
 use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
@@ -822,8 +822,7 @@ fn run_rustfix(
         revisioned: std::iter::once((
             vec![],
             Revisioned {
-                line: NonZeroUsize::MAX,
-                column: NonZeroUsize::MAX,
+                span: LineCol::INVALID,
                 ignore: vec![],
                 only: vec![],
                 stderr_per_bitwidth: false,

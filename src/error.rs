@@ -1,6 +1,6 @@
 use crate::{
     parser::{Pattern, WithLine},
-    rustc_stderr::Message,
+    rustc_stderr::{LineCol, Message},
     Mode,
 };
 use std::{num::NonZeroUsize, path::PathBuf, process::ExitStatus};
@@ -46,10 +46,8 @@ pub enum Error {
     InvalidComment {
         /// The comment
         msg: String,
-        /// The line in which it was defined.
-        line: NonZeroUsize,
-        /// The column where the error occurred.
-        column: NonZeroUsize,
+        /// The character range in which it was defined.
+        span: LineCol,
     },
     /// Conflicting comments
     MultipleRevisionsWithResults {

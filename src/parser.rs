@@ -8,7 +8,10 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error, Errored, Mode};
+use crate::{
+    rustc_stderr::{Level, LineCol},
+    Error, Errored, Mode,
+};
 
 use color_eyre::eyre::{Context, Result};
 
@@ -94,12 +97,9 @@ impl Comments {
 #[derive(Debug)]
 /// Comments that can be filtered for specific revisions.
 pub(crate) struct Revisioned {
-    /// The line in which this revisioned item was first added.
+    /// The character range in which this revisioned item was first added.
     /// Used for reporting errors on unknown revisions.
-    pub line: NonZeroUsize,
-    /// The column in which this revisioned item was first added.
-    /// Used for reporting errors on unknown revisions.
-    pub column: NonZeroUsize,
+    pub span: LineCol,
     /// Don't run this test if any of these filters apply
     pub ignore: Vec<Condition>,
     /// Only run this test if all of these filters apply
@@ -135,17 +135,15 @@ struct CommentParser<T> {
     comments: T,
     /// Any errors that ocurred during comment parsing.
     errors: Vec<Error>,
-    /// The line currently being parsed.
-    line: NonZeroUsize,
-    /// The column in the current line.
-    column: NonZeroUsize,
+    /// The line and columnn information about the snippet currently being parsed.
+    span: LineCol,
     /// The available commands and their parsing logic
     commands: HashMap<&'static str, CommandParserFunc>,
 }
 
 impl<T> CommentParser<T> {
     pub fn step_column(&mut self, n: usize) {
-        self.column = NonZeroUsize::new(self.column.get() + n).unwrap();
+        self.span.column_start = NonZeroUsize::new(self.span.column_start.get() + n).unwrap();
     }
 }
 
@@ -229,16 +227,17 @@ impl Comments {
         let mut parser = CommentParser {
             comments: Comments::default(),
             errors: vec![],
-            line: NonZeroUsize::MAX,
-            column: NonZeroUsize::MAX,
+            span: LineCol::INVALID,
             commands: CommentParser::<_>::commands(),
         };
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
         for (l, line) in content.as_ref().lines().enumerate() {
             let l = NonZeroUsize::new(l + 1).unwrap(); // enumerate starts at 0, but line numbers start at 1
-            parser.line = l;
-            parser.column = NonZeroUsize::new(1).unwrap();
+            parser.span.line_start = l;
+            parser.span.line_end = l;
+            parser.span.column_start = NonZeroUsize::new(1).unwrap();
+            parser.span.column_end = NonZeroUsize::new(line.len() + 1).unwrap();
             match parser.parse_checked_line(&mut fallthrough_to, line) {
                 Ok(()) => {}
                 Err(e) => parser.error(format!("Comment is not utf8: {e:?}")),
@@ -250,8 +249,7 @@ impl Comments {
                     if !revisions.contains(rev) {
                         parser.errors.push(Error::InvalidComment {
                             msg: format!("the revision `{rev}` is not known"),
-                            line: revisioned.line,
-                            column: revisioned.column,
+                            span: revisioned.span,
                         })
                     }
                 }
@@ -261,8 +259,7 @@ impl Comments {
                 if !key.is_empty() {
                     parser.errors.push(Error::InvalidComment {
                         msg: "there are no revisions in this test".into(),
-                        line: revisioned.line,
-                        column: revisioned.column,
+                        span: revisioned.span,
                     })
                 }
             }
@@ -292,9 +289,9 @@ impl CommentParser<Comments> {
             })
         } else {
             *fallthrough_to = None;
-            let column = self.column;
+            let span = self.span;
             for pos in line.find_iter("//") {
-                self.column = column;
+                self.span = span;
                 self.step_column(pos + 2);
                 let rest = &line[pos + 2..];
                 for rest in std::iter::once(rest).chain(rest.strip_prefix(b" ")) {
@@ -307,8 +304,10 @@ impl CommentParser<Comments> {
                         ));
                     } else {
                         let mut parser = Self {
-                            line: NonZeroUsize::MAX,
-                            column: NonZeroUsize::MIN,
+                            span: LineCol {
+                                column_start: NonZeroUsize::MIN,
+                                ..LineCol::INVALID
+                            },
                             errors: vec![],
                             comments: Comments::default(),
                             commands: std::mem::take(&mut self.commands),
@@ -334,8 +333,7 @@ impl<CommentsType> CommentParser<CommentsType> {
     fn error(&mut self, s: impl Into<String>) {
         self.errors.push(Error::InvalidComment {
             msg: s.into(),
-            line: self.line,
-            column: self.column,
+            span: self.span,
         });
     }
 
@@ -356,11 +354,11 @@ impl CommentParser<Comments> {
         let (revisions, command) = self.parse_revisions(command);
 
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
-        let (command, col, args) = match command
+        let (command, span, args) = match command
             .char_indices()
             .find_map(|(i, c)| (!c.is_alphanumeric() && c != '-' && c != '_').then_some(i))
         {
-            None => (command, self.column, ""),
+            None => (command, self.span, ""),
             Some(i) => {
                 let (command, args) = command.split_at(i);
                 let mut args = args.chars();
@@ -372,14 +370,14 @@ impl CommentParser<Comments> {
                     next == ':',
                     "test command must be followed by `:` (or end the line)",
                 );
-                let col = self.column;
+                let span = self.span;
                 self.step_column(i + 1);
-                (command, col, args.as_str().trim())
+                (command, span, args.as_str().trim())
             }
         };
 
         if command == "revisions" {
-            self.column = col;
+            self.span = span;
             self.check(
                 revisions.is_empty(),
                 "revisions cannot be declared under a revision",
@@ -388,7 +386,7 @@ impl CommentParser<Comments> {
             self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
             return;
         }
-        self.revisioned(revisions, |this| this.parse_command(command, col, args));
+        self.revisioned(revisions, |this| this.parse_command(command, span, args));
     }
 
     fn revisioned(
@@ -396,19 +394,16 @@ impl CommentParser<Comments> {
         revisions: Vec<String>,
         f: impl FnOnce(&mut CommentParser<&mut Revisioned>),
     ) {
-        let line = self.line;
-        let column = self.column;
+        let span = self.span;
         let mut this = CommentParser {
             errors: std::mem::take(&mut self.errors),
             commands: std::mem::take(&mut self.commands),
-            line,
-            column,
+            span,
             comments: self
                 .revisioned
                 .entry(revisions)
                 .or_insert_with(|| Revisioned {
-                    line,
-                    column,
+                    span,
                     ignore: Default::default(),
                     only: Default::default(),
                     stderr_per_bitwidth: Default::default(),
@@ -489,7 +484,7 @@ impl CommentParser<&mut Revisioned> {
             }
             "error-in-other-file" => (this, args){
                 let pat = this.parse_error_pattern(args.trim());
-                let line = this.line;
+                let line = this.span.line_start;
                 this.error_in_other_files.push(WithLine::new(pat, line));
             }
             "stderr-per-bitwidth" => (this, _args){
@@ -505,7 +500,7 @@ impl CommentParser<&mut Revisioned> {
             }
             "no-rustfix" => (this, _args){
                 // args are ignored (can be used as comment)
-                let line = this.line;
+                let line = this.span.line_start;
                 let prev = this.no_rustfix.set((), line);
                 this.check(
                     prev.is_none(),
@@ -529,16 +524,16 @@ impl CommentParser<&mut Revisioned> {
                     },
                     None => args,
                 };
-                let line = this.line;
+                let line = this.span.line_start;
                 this.aux_builds.push(WithLine::new(name.into(), line));
             }
             "edition" => (this, args){
-                let line = this.line;
+                let line = this.span.line_start;
                 let prev = this.edition.set(args.into(), line);
                 this.check(prev.is_none(), "cannot specify `edition` twice");
             }
             "check-pass" => (this, _args){
-                let line = this.line;
+                let line = this.span.line_start;
                 let prev = this.mode.set(Mode::Pass, line);
                 // args are ignored (can be used as comment)
                 this.check(
@@ -551,7 +546,7 @@ impl CommentParser<&mut Revisioned> {
                     this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
-                let line = this.line;
+                let line = this.span.line_start;
                 let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, line);
                 if args.is_empty() {
                     set(0);
@@ -563,7 +558,7 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "require-annotations-for-level" => (this, args){
-                let line = this.line;
+                let line = this.span.line_start;
                 let prev = match args.trim().parse() {
                     Ok(it) =>  this.require_annotations_for_level.set(it, line),
                     Err(msg) => {
@@ -581,7 +576,7 @@ impl CommentParser<&mut Revisioned> {
         commands
     }
 
-    fn parse_command(&mut self, command: &str, column: NonZeroUsize, args: &str) {
+    fn parse_command(&mut self, command: &str, span: LineCol, args: &str) {
         if let Some(command) = self.commands.get(command) {
             command(self, args);
         } else if let Some(s) = command.strip_prefix("ignore-") {
@@ -604,7 +599,7 @@ impl CommentParser<&mut Revisioned> {
                 .keys()
                 .min_by_key(|key| distance::damerau_levenshtein(key, command))
                 .unwrap();
-            self.column = column;
+            self.span = span;
             self.error(format!(
                 "`{command}` is not a command known to `ui_test`, did you mean `{best_match}`?"
             ));
@@ -699,7 +694,8 @@ impl CommentParser<&mut Revisioned> {
             Some('^') => {
                 let offset = pattern.chars().take_while(|&c| c == '^').count();
                 match self
-                    .line
+                    .span
+                    .line_start
                     .get()
                     .checked_sub(offset)
                     .and_then(NonZeroUsize::new)
@@ -711,13 +707,13 @@ impl CommentParser<&mut Revisioned> {
                         self.error(format!(
                             "//~^ pattern is trying to refer to {} lines above, but there are only {} lines above",
                             offset,
-                            self.line.get() - 1
+                            self.span.line_start.get() - 1
                         ));
                         return;
                     }
                 }
             }
-            Some(_) => (self.line, pattern),
+            Some(_) => (self.span.line_start, pattern),
             None => {
                 self.error("no pattern specified");
                 return;
@@ -757,7 +753,7 @@ impl CommentParser<&mut Revisioned> {
 
         *fallthrough_to = Some(match_line);
 
-        let pattern = WithLine::new(pattern, self.line);
+        let pattern = WithLine::new(pattern, self.span.line_start);
         self.error_matches.push(ErrorMatch {
             pattern,
             level,

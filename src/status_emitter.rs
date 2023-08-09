@@ -462,22 +462,9 @@ fn print_error(error: &Error, path: &Path) {
                 }
             }
         }
-        Error::InvalidComment { msg, line, column } => create_error(
-            msg,
-            &[(
-                &[(
-                    "",
-                    Some(LineCol {
-                        line_start: *line,
-                        column_start: *column,
-                        line_end: *line,
-                        column_end: *column,
-                    }),
-                )],
-                *line,
-            )],
-            path,
-        ),
+        Error::InvalidComment { msg, span } => {
+            create_error(msg, &[(&[("", Some(*span))], span.line_start)], path)
+        }
         Error::MultipleRevisionsWithResults { kind, lines } => {
             let title = format!("multiple {kind} found");
             create_error(
@@ -689,9 +676,9 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                 }
             }
         }
-        Error::InvalidComment { msg, line, .. } => {
-            let mut err =
-                github_actions::error(test_path, format!("Could not parse comment")).line(*line);
+        Error::InvalidComment { msg, span } => {
+            let mut err = github_actions::error(test_path, format!("Could not parse comment"))
+                .line(span.line_start);
             writeln!(err, "{msg}").unwrap();
         }
         Error::MultipleRevisionsWithResults { kind, lines } => {
