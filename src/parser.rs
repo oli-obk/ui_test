@@ -234,10 +234,12 @@ impl Comments {
         let mut fallthrough_to = None; // The line that a `|` will refer to.
         for (l, line) in content.as_ref().lines().enumerate() {
             let l = NonZeroUsize::new(l + 1).unwrap(); // enumerate starts at 0, but line numbers start at 1
-            parser.span.line_start = l;
-            parser.span.line_end = l;
-            parser.span.column_start = NonZeroUsize::new(1).unwrap();
-            parser.span.column_end = NonZeroUsize::new(line.len() + 1).unwrap();
+            parser.span = Span {
+                line_start: l,
+                line_end: l,
+                column_start: NonZeroUsize::new(1).unwrap(),
+                column_end: NonZeroUsize::new(line.len() + 1).unwrap(),
+            };
             match parser.parse_checked_line(&mut fallthrough_to, line) {
                 Ok(()) => {}
                 Err(e) => parser.error(format!("Comment is not utf8: {e:?}")),
