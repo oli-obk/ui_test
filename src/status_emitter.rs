@@ -2,7 +2,7 @@
 
 use annotate_snippets::{
     display_list::DisplayList,
-    snippet::{Annotation, AnnotationType, Slice, Snippet},
+    snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 use bstr::ByteSlice;
 use colored::Colorize;
@@ -388,17 +388,19 @@ fn print_error(error: &Error, path: &Path) {
             eprintln!("{kind} failed with {status}");
         }
         Error::PatternNotFound(pattern) => {
-            match &**pattern {
+            let msg = match &**pattern {
                 Pattern::SubString(s) => {
-                    eprintln!("substring `{s}` {} in stderr output", "not found".red())
+                    format!("substring `{s}` {} in stderr output", "not found")
                 }
                 Pattern::Regex(r) => {
-                    eprintln!("`/{r}/` does {} stderr output", "not match".red())
+                    format!("`/{r}/` does {} stderr output", "not match")
                 }
-            }
-            eprintln!(
-                "expected because of pattern here: {}",
-                format!("{}:{}", path.display(), pattern.line()).bold()
+            };
+            create_error(
+                msg,
+                std::iter::once(pattern.line()),
+                path,
+                Some("expected because of this pattern"),
             );
         }
         Error::NoPatternsFound => {
@@ -444,10 +446,12 @@ fn print_error(error: &Error, path: &Path) {
                 }
             }
         }
-        Error::InvalidComment { msg, line } => create_error(msg, std::iter::once(*line), path),
+        Error::InvalidComment { msg, line } => {
+            create_error(msg, std::iter::once(*line), path, None)
+        }
         Error::MultipleRevisionsWithResults { kind, lines } => {
             let title = format!("multiple {kind} found");
-            create_error(title, lines.iter().copied(), path)
+            create_error(title, lines.iter().copied(), path, None)
         }
         Error::Bug(msg) => {
             eprintln!("A bug in `ui_test` occurred: {msg}");
@@ -473,7 +477,12 @@ fn print_error(error: &Error, path: &Path) {
     eprintln!();
 }
 
-fn create_error(s: impl AsRef<str>, lines: impl Iterator<Item = NonZeroUsize>, file: &Path) {
+fn create_error(
+    s: impl AsRef<str>,
+    lines: impl Iterator<Item = NonZeroUsize>,
+    file: &Path,
+    label: Option<&str>,
+) {
     let source = std::fs::read_to_string(file).unwrap();
     let source: Vec<_> = source.lines().collect();
     let file = file.display().to_string();
@@ -488,7 +497,14 @@ fn create_error(s: impl AsRef<str>, lines: impl Iterator<Item = NonZeroUsize>, f
                 source: source[line.get() - 1],
                 line_start: line.get(),
                 origin: Some(&file),
-                annotations: vec![],
+                annotations: label
+                    .into_iter()
+                    .map(|label| SourceAnnotation {
+                        range: (0, source[line.get() - 1].len().saturating_sub(1)),
+                        label,
+                        annotation_type: AnnotationType::Note,
+                    })
+                    .collect(),
                 fold: false,
             })
             .collect(),
