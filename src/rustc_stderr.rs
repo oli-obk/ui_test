@@ -28,6 +28,7 @@ pub(crate) enum Level {
 pub struct Message {
     pub(crate) level: Level,
     pub(crate) message: String,
+    pub(crate) line_col: Option<LineCol>,
 }
 
 /// Information about macro expansion.
@@ -38,10 +39,20 @@ struct Expansion {
 
 #[derive(serde::Deserialize, Debug)]
 struct Span {
-    line_start: usize,
+    #[serde(flatten)]
+    line_col: LineCol,
     file_name: PathBuf,
     is_primary: bool,
     expansion: Option<Box<Expansion>>,
+}
+
+#[derive(serde::Deserialize, Debug, Copy, Clone)]
+pub(crate) struct LineCol {
+    pub line_start: usize,
+    pub column_start: usize,
+    #[allow(dead_code)]
+    pub line_end: usize,
+    pub column_end: usize,
 }
 
 impl std::str::FromStr for Level {
@@ -71,7 +82,7 @@ pub(crate) struct Diagnostics {
 }
 
 impl RustcMessage {
-    fn line(&self, file: &Path) -> Option<usize> {
+    fn line(&self, file: &Path) -> Option<LineCol> {
         let span = |primary| self.spans.iter().find_map(|span| span.line(file, primary));
         span(true).or_else(|| span(false))
     }
@@ -82,18 +93,19 @@ impl RustcMessage {
         file: &Path,
         messages: &mut Vec<Vec<Message>>,
         messages_from_unknown_file_or_line: &mut Vec<Message>,
-        line: Option<usize>,
+        line: Option<LineCol>,
     ) {
         let line = self.line(file).or(line);
         let msg = Message {
             level: self.level.parse().unwrap(),
             message: self.message,
+            line_col: line,
         };
         if let Some(line) = line {
-            if messages.len() <= line {
-                messages.resize_with(line + 1, Vec::new);
+            if messages.len() <= line.line_start {
+                messages.resize_with(line.line_start + 1, Vec::new);
             }
-            messages[line].push(msg);
+            messages[line.line_start].push(msg);
         // All other messages go into the general bin, unless they are specifically of the
         // "aborting due to X previous errors" variety, as we never want to match those. They
         // only count the number of errors and provide no useful information about the tests.
@@ -110,13 +122,13 @@ impl RustcMessage {
 
 impl Span {
     /// Returns the most expanded line number *in the given file*, if possible.
-    fn line(&self, file: &Path, primary: bool) -> Option<usize> {
+    fn line(&self, file: &Path, primary: bool) -> Option<LineCol> {
         if let Some(exp) = &self.expansion {
             if let Some(line) = exp.span.line(file, primary && !self.is_primary) {
                 return Some(line);
             }
         }
-        ((!primary || self.is_primary) && self.file_name == file).then_some(self.line_start)
+        ((!primary || self.is_primary) && self.file_name == file).then_some(self.line_col)
     }
 }
 
@@ -144,7 +156,10 @@ pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
                     );
                 }
                 Err(err) => {
-                    panic!("failed to parse rustc JSON output at line {line_number}: {err}")
+                    panic!(
+                        "failed to parse rustc JSON output at line {line_number}: {err}: {}",
+                        line.to_str_lossy()
+                    )
                 }
             }
         } else {

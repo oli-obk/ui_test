@@ -18,10 +18,10 @@ error: substring `miesmätsched types` not found in stderr output
   |
 
 error: There were 1 unmatched diagnostics
- --> tests/actual_tests/bad_pattern.rs:4:1
+ --> tests/actual_tests/bad_pattern.rs:4:9
   |
 4 |     add("42", 3);
-  | ^^^^^^^^^^^^^^^^^ Error: mismatched types
+  |         ^^^^ Error: mismatched types
   |
 
 full stderr:
@@ -85,7 +85,7 @@ error: There were 1 unmatched diagnostics
  --> tests/actual_tests/executable_compile_err.rs:4:1
   |
 4 | 
-  |  Error: this file contains an unclosed delimiter
+  | ^ Error: this file contains an unclosed delimiter
   |
 
 full stderr:
@@ -280,10 +280,10 @@ tests/actual_tests_bless/aux_proc_macro_no_main.rs FAILED:
 command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/auxiliary"
 
 error: There were 1 unmatched diagnostics
- --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:1
+ --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:8
   |
 7 | thing!(cake);
-  | ^^^^^^^^^^^^^ Error: expected one of `!` or `::`, found `<eof>`
+  |        ^^^^ Error: expected one of `!` or `::`, found `<eof>`
   |
 
 no error patterns found in fail test
@@ -377,10 +377,10 @@ There were 1 unmatched diagnostics that occurred outside the testfile and had no
     Error: cannot mix `bin` crate type with others
 
 error: There were 1 unmatched diagnostics
- --> tests/actual_tests_bless/no_main_manual.rs:3:1
+ --> tests/actual_tests_bless/no_main_manual.rs:3:16
   |
 3 | pub fn foo() {}
-  | ^^^^^^^^^^^^^^^ Error: `main` function not found in crate `no_main_manual`
+  |                ^ Error: `main` function not found in crate `no_main_manual`
   |
 
 no error patterns found in fail test
@@ -476,10 +476,10 @@ error: substring ``main` function not found in crate `revisions_bad`` not found 
   |
 
 error: There were 1 unmatched diagnostics
-  --> tests/actual_tests_bless/revisions_bad.rs:10:1
+  --> tests/actual_tests_bless/revisions_bad.rs:10:2
    |
 10 | }
-   | ^ Error: `main` function not found in crate `revisions_bad`
+   |  ^ Error: `main` function not found in crate `revisions_bad`
    |
 
 full stderr:

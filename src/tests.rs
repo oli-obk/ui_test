@@ -31,6 +31,7 @@ fn main() {
             Message {
                 message:"Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             }
         ]
     ];
@@ -67,6 +68,7 @@ fn main() {
                 Message {
                     message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                     level: Level::Error,
+                    line_col: None,
                 }
             ]
         ];
@@ -93,6 +95,7 @@ fn main() {
                 Message {
                     message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                     level: Level::Error,
+                    line_col: None,
                 }
             ]
         ];
@@ -123,6 +126,7 @@ fn main() {
                 Message {
                     message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                     level: Level::Note,
+                    line_col: None,
                 }
             ]
         ];
@@ -163,6 +167,7 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             }
         ]
     ];
@@ -200,10 +205,12 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             },
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             }
         ]
     ];
@@ -247,14 +254,17 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             },
             Message {
                 message: "kaboom".to_string(),
                 level: Level::Warn,
+                line_col: None,
             },
             Message {
                 message: "cake".to_string(),
                 level: Level::Warn,
+                line_col: None,
             },
         ],
     ];
@@ -277,6 +287,7 @@ fn main() {
                 [Message {
                     message,
                     level: Level::Warn,
+                    line_col: _,
                 }] if message == "kaboom" => {}
                 _ => panic!("{:#?}", msgs),
             }
@@ -307,14 +318,17 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
+                line_col: None,
             },
             Message {
                 message: "kaboom".to_string(),
                 level: Level::Warn,
+                line_col: None,
             },
             Message {
                 message: "cake".to_string(),
                 level: Level::Warn,
+                line_col: None,
             },
         ],
     ];

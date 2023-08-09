@@ -10,8 +10,10 @@ use crossbeam_channel::{Sender, TryRecvError};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 
 use crate::{
-    github_actions, parser::Pattern, rustc_stderr::Message, Error, Errored, Errors, TestOk,
-    TestResult,
+    github_actions,
+    parser::Pattern,
+    rustc_stderr::{LineCol, Message},
+    Error, Errored, Errors, TestOk, TestResult,
 };
 use std::{
     collections::HashMap,
@@ -398,7 +400,10 @@ fn print_error(error: &Error, path: &Path) {
             };
             create_error(
                 msg,
-                &[(&["expected because of this pattern"], pattern.line())],
+                &[(
+                    &[("expected because of this pattern", None)],
+                    pattern.line(),
+                )],
                 path,
             );
         }
@@ -429,11 +434,17 @@ fn print_error(error: &Error, path: &Path) {
                 let line = path.line();
                 let msgs = msgs
                     .iter()
-                    .map(|msg| format!("{:?}: {}", msg.level, msg.message))
+                    .map(|msg| (format!("{:?}: {}", msg.level, msg.message), msg.line_col))
                     .collect::<Vec<_>>();
                 create_error(
                     format!("There were {} unmatched diagnostics", msgs.len()),
-                    &[(&msgs.iter().map(AsRef::as_ref).collect::<Vec<_>>(), line)],
+                    &[(
+                        &msgs
+                            .iter()
+                            .map(|(msg, lc)| (msg.as_ref(), *lc))
+                            .collect::<Vec<_>>(),
+                        line,
+                    )],
                     path,
                 );
             } else {
@@ -441,7 +452,12 @@ fn print_error(error: &Error, path: &Path) {
                     "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
                     msgs.len(),
                 );
-                for Message { level, message } in msgs {
+                for Message {
+                    level,
+                    message,
+                    line_col: _,
+                } in msgs
+                {
                     eprintln!("    {level:?}: {message}")
                 }
             }
@@ -482,7 +498,11 @@ fn print_error(error: &Error, path: &Path) {
     eprintln!();
 }
 
-fn create_error(s: impl AsRef<str>, lines: &[(&[&str], NonZeroUsize)], file: &Path) {
+fn create_error(
+    s: impl AsRef<str>,
+    lines: &[(&[(&str, Option<LineCol>)], NonZeroUsize)],
+    file: &Path,
+) {
     let source = std::fs::read_to_string(file).unwrap();
     let source: Vec<_> = source.split_inclusive('\n').collect();
     let file = file.display().to_string();
@@ -494,19 +514,37 @@ fn create_error(s: impl AsRef<str>, lines: &[(&[&str], NonZeroUsize)], file: &Pa
         }),
         slices: lines
             .iter()
-            .map(|(label, line)| Slice {
-                source: source[line.get() - 1],
-                line_start: line.get(),
-                origin: Some(&file),
-                annotations: label
-                    .iter()
-                    .map(|label| SourceAnnotation {
-                        range: (0, source[line.get() - 1].len() - 1),
-                        label,
-                        annotation_type: AnnotationType::Error,
-                    })
-                    .collect(),
-                fold: false,
+            .map(|(label, line)| {
+                let source = source[line.get() - 1];
+                Slice {
+                    source,
+                    line_start: line.get(),
+                    origin: Some(&file),
+                    annotations: label
+                        .iter()
+                        .map(|(label, lc)| SourceAnnotation {
+                            range: lc.map_or((0, source.len() - 1), |lc| {
+                                assert_eq!(lc.line_start, line.get());
+                                if lc.line_end > lc.line_start {
+                                    (lc.column_start - 1, source.len() - 1)
+                                } else if lc.column_start == lc.column_end {
+                                    if lc.column_start - 1 == source.len() {
+                                        // rustc sometimes produces spans pointing *after* the `\n` at the end of the line,
+                                        // but we want to render an annotation at the end.
+                                        (lc.column_start - 2, lc.column_start - 1)
+                                    } else {
+                                        (lc.column_start - 1, lc.column_start)
+                                    }
+                                } else {
+                                    (lc.column_start - 1, lc.column_end - 1)
+                                }
+                            }),
+                            label,
+                            annotation_type: AnnotationType::Error,
+                        })
+                        .collect(),
+                    fold: false,
+                }
             })
             .collect(),
         ..Default::default()
@@ -613,7 +651,12 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                 let mut err =
                     github_actions::error(&path, format!("Unmatched diagnostics{revision}"))
                         .line(line);
-                for Message { level, message } in msgs {
+                for Message {
+                    level,
+                    message,
+                    line_col: _,
+                } in msgs
+                {
                     writeln!(err, "{level:?}: {message}").unwrap();
                 }
             } else {
@@ -621,7 +664,12 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                     test_path,
                     format!("Unmatched diagnostics outside the testfile{revision}"),
                 );
-                for Message { level, message } in msgs {
+                for Message {
+                    level,
+                    message,
+                    line_col: _,
+                } in msgs
+                {
                     writeln!(err, "{level:?}: {message}").unwrap();
                 }
             }
