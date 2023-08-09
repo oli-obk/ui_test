@@ -484,8 +484,8 @@ impl CommentParser<&mut Revisioned> {
             }
             "error-in-other-file" => (this, args){
                 let pat = this.parse_error_pattern(args.trim());
-                let line = this.span.line_start;
-                this.error_in_other_files.push(Spanned::new(pat, line));
+                let span = this.span;
+                this.error_in_other_files.push(Spanned::new(pat, span));
             }
             "stderr-per-bitwidth" => (this, _args){
                 // args are ignored (can be used as comment)
@@ -500,8 +500,8 @@ impl CommentParser<&mut Revisioned> {
             }
             "no-rustfix" => (this, _args){
                 // args are ignored (can be used as comment)
-                let line = this.span.line_start;
-                let prev = this.no_rustfix.set((), line);
+                let span = this.span;
+                let prev = this.no_rustfix.set((), span);
                 this.check(
                     prev.is_none(),
                     "cannot specify `no-rustfix` twice",
@@ -524,17 +524,17 @@ impl CommentParser<&mut Revisioned> {
                     },
                     None => args,
                 };
-                let line = this.span.line_start;
-                this.aux_builds.push(Spanned::new(name.into(), line));
+                let span = this.span;
+                this.aux_builds.push(Spanned::new(name.into(), span));
             }
             "edition" => (this, args){
-                let line = this.span.line_start;
-                let prev = this.edition.set(args.into(), line);
+                let span = this.span;
+                let prev = this.edition.set(args.into(), span);
                 this.check(prev.is_none(), "cannot specify `edition` twice");
             }
             "check-pass" => (this, _args){
-                let line = this.span.line_start;
-                let prev = this.mode.set(Mode::Pass, line);
+                let span = this.span;
+                let prev = this.mode.set(Mode::Pass, span);
                 // args are ignored (can be used as comment)
                 this.check(
                     prev.is_none(),
@@ -546,8 +546,8 @@ impl CommentParser<&mut Revisioned> {
                     this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
-                let line = this.span.line_start;
-                let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, line);
+                let span = this.span;
+                let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, span);
                 if args.is_empty() {
                     set(0);
                 } else {
@@ -558,9 +558,9 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "require-annotations-for-level" => (this, args){
-                let line = this.span.line_start;
+                let span = this.span;
                 let prev = match args.trim().parse() {
-                    Ok(it) =>  this.require_annotations_for_level.set(it, line),
+                    Ok(it) =>  this.require_annotations_for_level.set(it, span),
                     Err(msg) => {
                         this.error(msg);
                         None
@@ -753,7 +753,7 @@ impl CommentParser<&mut Revisioned> {
 
         *fallthrough_to = Some(match_line);
 
-        let pattern = Spanned::new(pattern, self.span.line_start);
+        let pattern = Spanned::new(pattern, self.span);
         self.error_matches.push(ErrorMatch {
             pattern,
             level,

@@ -813,7 +813,7 @@ fn run_rustfix(
     let edition = comments.edition(revision, config)?;
     let edition = edition
         .map(|mwl| {
-            let line = mwl.line().unwrap_or(NonZeroUsize::MAX);
+            let line = mwl.span().unwrap_or(Span::INVALID);
             Spanned::new(mwl.into_inner(), line)
         })
         .into();
@@ -843,8 +843,8 @@ fn run_rustfix(
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
                 edition,
-                mode: OptWithLine::new(Mode::Pass, NonZeroUsize::MAX),
-                no_rustfix: OptWithLine::new((), NonZeroUsize::MAX),
+                mode: OptWithLine::new(Mode::Pass, Span::INVALID),
+                no_rustfix: OptWithLine::new((), Span::INVALID),
                 needs_asm_support: false,
             },
         ))
@@ -1034,7 +1034,13 @@ fn check_annotations(
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
         if *lowest_annotation_level > level {
-            lowest_annotation_level = MaybeSpanned::new(level, line);
+            lowest_annotation_level = MaybeSpanned::new(
+                level,
+                Span {
+                    line_start: line,
+                    ..Span::INVALID
+                },
+            );
         }
 
         if let Some(msgs) = messages.get_mut(line.get()) {
@@ -1079,7 +1085,13 @@ fn check_annotations(
             if !msgs.is_empty() {
                 let line = NonZeroUsize::new(line).expect("line 0 is always empty");
                 errors.push(Error::ErrorsWithoutPattern {
-                    path: Some(Spanned::new(path.to_path_buf(), line)),
+                    path: Some(Spanned::new(
+                        path.to_path_buf(),
+                        Span {
+                            line_start: line,
+                            ..Span::INVALID
+                        },
+                    )),
                     msgs,
                 });
             }

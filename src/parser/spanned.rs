@@ -1,9 +1,11 @@
 use std::num::NonZeroUsize;
 
+use crate::rustc_stderr::Span;
+
 #[derive(Default, Debug, Clone, Copy)]
 pub struct MaybeSpanned<T> {
     data: T,
-    line: Option<NonZeroUsize>,
+    span: Option<Span>,
 }
 
 impl<T> std::ops::Deref for MaybeSpanned<T> {
@@ -15,20 +17,20 @@ impl<T> std::ops::Deref for MaybeSpanned<T> {
 }
 
 impl<T> MaybeSpanned<T> {
-    pub fn new(data: T, line: NonZeroUsize) -> Self {
+    pub fn new(data: T, span: Span) -> Self {
         Self {
             data,
-            line: Some(line),
+            span: Some(span),
         }
     }
 
     /// Values from the `Config` struct don't have lines.
     pub fn new_config(data: T) -> Self {
-        Self { data, line: None }
+        Self { data, span: None }
     }
 
-    pub fn line(&self) -> Option<NonZeroUsize> {
-        self.line
+    pub fn span(&self) -> Option<Span> {
+        self.span
     }
 
     pub fn into_inner(self) -> T {
@@ -40,7 +42,7 @@ impl<T> From<Spanned<T>> for MaybeSpanned<T> {
     fn from(value: Spanned<T>) -> Self {
         Self {
             data: value.data,
-            line: Some(value.line),
+            span: Some(value.span),
         }
     }
 }
@@ -48,7 +50,7 @@ impl<T> From<Spanned<T>> for MaybeSpanned<T> {
 #[derive(Debug, Clone, Copy)]
 pub struct Spanned<T> {
     data: T,
-    line: NonZeroUsize,
+    span: Span,
 }
 
 impl<T> std::ops::Deref for Spanned<T> {
@@ -60,18 +62,18 @@ impl<T> std::ops::Deref for Spanned<T> {
 }
 
 impl<T> Spanned<T> {
-    pub fn new(data: T, line: NonZeroUsize) -> Self {
-        Self { data, line }
+    pub fn new(data: T, span: Span) -> Self {
+        Self { data, span }
     }
 
     pub fn line(&self) -> NonZeroUsize {
-        self.line
+        self.span.line_start
     }
 
     pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Spanned<U> {
         Spanned {
             data: f(self.data),
-            line: self.line,
+            span: self.span,
         }
     }
 
@@ -110,15 +112,15 @@ impl<T> Default for OptWithLine<T> {
 }
 
 impl<T> OptWithLine<T> {
-    pub fn new(data: T, line: NonZeroUsize) -> Self {
-        Self(Some(Spanned::new(data, line)))
+    pub fn new(data: T, span: Span) -> Self {
+        Self(Some(Spanned::new(data, span)))
     }
 
     /// Tries to set the value if not already set. Returns newly passed
     /// value in case there was already a value there.
     #[must_use]
-    pub fn set(&mut self, data: T, line: NonZeroUsize) -> Option<Spanned<T>> {
-        let new = Spanned::new(data, line);
+    pub fn set(&mut self, data: T, span: Span) -> Option<Spanned<T>> {
+        let new = Spanned::new(data, span);
         if self.0.is_some() {
             Some(new)
         } else {
