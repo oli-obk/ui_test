@@ -147,7 +147,7 @@ impl<T> CommentParser<T> {
     }
 }
 
-type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: Spanned<&str>);
+type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: Spanned<&str>, span: Span);
 
 impl<T> std::ops::Deref for CommentParser<T> {
     type Target = T;
@@ -343,14 +343,14 @@ impl<CommentsType> CommentParser<CommentsType> {
         });
     }
 
-    fn check(&mut self, cond: bool, s: impl Into<String>) {
+    fn check(&mut self, span: Span, cond: bool, s: impl Into<String>) {
         if !cond {
-            self.error(self.span, s);
+            self.error(span, s);
         }
     }
 
-    fn check_some<T>(&mut self, opt: Option<T>, s: impl Into<String>) -> Option<T> {
-        self.check(opt.is_some(), s);
+    fn check_some<T>(&mut self, span: Span, opt: Option<T>, s: impl Into<String>) -> Option<T> {
+        self.check(span, opt.is_some(), s);
         opt
     }
 }
@@ -367,27 +367,32 @@ impl CommentParser<Comments> {
             None => (command, Spanned::new("", command.span().shrink_to_end())),
             Some(i) => {
                 let (command, args) = command.split_at(i);
-                let mut args = args.chars();
                 // Commands are separated from their arguments by ':' or ' '
                 let next = args
+                    .chars()
                     .next()
                     .expect("the `position` above guarantees that there is at least one char");
                 self.check(
+                    args.span().shrink_to_start(),
                     next == ':',
                     "test command must be followed by `:` (or end the line)",
                 );
                 self.step_column(i + 1);
-                (command, Spanned::new(args.as_str().trim(), self.span))
+                (command, args.split_at(next.len_utf8()).1.trim())
             }
         };
 
         if *command == "revisions" {
-            self.span = revisions.span();
             self.check(
+                revisions.span(),
                 revisions.is_empty(),
                 "revisions cannot be declared under a revision",
             );
-            self.check(self.revisions.is_none(), "cannot specify `revisions` twice");
+            self.check(
+                revisions.span(),
+                self.revisions.is_none(),
+                "cannot specify `revisions` twice",
+            );
             self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
             return;
         }
@@ -440,23 +445,24 @@ impl CommentParser<&mut Revisioned> {
     fn commands() -> HashMap<&'static str, CommandParserFunc> {
         let mut commands = HashMap::<_, CommandParserFunc>::new();
         macro_rules! commands {
-            ($($name:expr => ($this:ident, $args:ident)$block:block)*) => {
-                $(commands.insert($name, |$this, $args| {
+            ($($name:expr => ($this:ident, $args:ident, $span:ident)$block:block)*) => {
+                $(commands.insert($name, |$this, $args, $span| {
                     $block
                 });)*
             };
         }
         commands! {
-            "compile-flags" => (this, args){
+            "compile-flags" => (this, args, _span){
                 if let Some(parsed) = comma::parse_command(*args) {
                     this.compile_flags.extend(parsed);
                 } else {
                     this.error(args.span(), format!("`{}` contains an unclosed quotation mark", *args));
                 }
             }
-            "rustc-env" => (this, args){
+            "rustc-env" => (this, args, _span){
                 for env in args.split_whitespace() {
                     if let Some((k, v)) = this.check_some(
+                        args.span(),
                         env.split_once('='),
                         "environment variables must be key/value pairs separated by a `=`",
                     ) {
@@ -464,7 +470,7 @@ impl CommentParser<&mut Revisioned> {
                     }
                 }
             }
-            "normalize-stderr-test" => (this, args){
+            "normalize-stderr-test" => (this, args, _span){
                 let (from, rest) = this.parse_str(args);
 
                 let to = match rest.strip_prefix("->") {
@@ -476,8 +482,8 @@ impl CommentParser<&mut Revisioned> {
                 }.trim_start();
                 let (to, rest) = this.parse_str(to);
 
-                this.span = rest.span();
                 this.check(
+                    rest.span(),
                     rest.is_empty(),
                     "trailing text after pattern replacement",
                 );
@@ -487,43 +493,45 @@ impl CommentParser<&mut Revisioned> {
                         .push((regex, to.as_bytes().to_owned()))
                 }
             }
-            "error-pattern" => (this, _args){
+            "error-pattern" => (this, _args, _span){
                 this.error(this.span, "`error-pattern` has been renamed to `error-in-other-file`");
             }
-            "error-in-other-file" => (this, args){
+            "error-in-other-file" => (this, args, _span){
                 let args = args.trim();
                 let pat = this.parse_error_pattern(args);
                 this.error_in_other_files.push(Spanned::new(pat, args.span()));
             }
-            "stderr-per-bitwidth" => (this, _args){
+            "stderr-per-bitwidth" => (this, _args, span){
                 // args are ignored (can be used as comment)
                 this.check(
+                    span,
                     !this.stderr_per_bitwidth,
                     "cannot specify `stderr-per-bitwidth` twice",
                 );
                 this.stderr_per_bitwidth = true;
             }
-            "run-rustfix" => (this, _args){
-                this.error(this.span, "rustfix is now ran by default when applicable suggestions are found");
+            "run-rustfix" => (this, _args, span){
+                this.error(span, "rustfix is now ran by default when applicable suggestions are found");
             }
-            "no-rustfix" => (this, _args){
+            "no-rustfix" => (this, _args, span){
                 // args are ignored (can be used as comment)
-                let span = this.span;
                 let prev = this.no_rustfix.set((), span);
                 this.check(
+                    span,
                     prev.is_none(),
                     "cannot specify `no-rustfix` twice",
                 );
             }
-            "needs-asm-support" => (this, _args){
+            "needs-asm-support" => (this, _args, span){
                 // args are ignored (can be used as comment)
                 this.check(
+                    span,
                     !this.needs_asm_support,
                     "cannot specify `needs-asm-support` twice",
                 );
                 this.needs_asm_support = true;
             }
-            "aux-build" => (this, args){
+            "aux-build" => (this, args, _span){
                 let name = match args.split_once(":") {
                     Some((name, rest)) => {
                         this.error(rest.span(), "proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
@@ -533,21 +541,22 @@ impl CommentParser<&mut Revisioned> {
                 };
                 this.aux_builds.push(name.map(Into::into));
             }
-            "edition" => (this, args){
+            "edition" => (this, args, span){
                 let prev = this.edition.set((*args).into(), args.span());
-                this.check(prev.is_none(), "cannot specify `edition` twice");
+                this.check(span, prev.is_none(), "cannot specify `edition` twice");
             }
-            "check-pass" => (this, _args){
-                let span = this.span;
+            "check-pass" => (this, _args, span){
                 let prev = this.mode.set(Mode::Pass, span);
                 // args are ignored (can be used as comment)
                 this.check(
+                    span,
                     prev.is_none(),
                     "cannot specify test mode changes twice",
                 );
             }
-            "run" => (this, args){
+            "run" => (this, args, span){
                 this.check(
+                    span,
                     this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
@@ -561,7 +570,7 @@ impl CommentParser<&mut Revisioned> {
                     }
                 }
             }
-            "require-annotations-for-level" => (this, args){
+            "require-annotations-for-level" => (this, args, span){
                 let args = args.trim();
                 let prev = match args.parse() {
                     Ok(it) =>  this.require_annotations_for_level.set(it, args.span()),
@@ -572,6 +581,7 @@ impl CommentParser<&mut Revisioned> {
                 };
 
                 this.check(
+                    span,
                     prev.is_none(),
                     "cannot specify `require-annotations-for-level` twice",
                 );
@@ -581,8 +591,8 @@ impl CommentParser<&mut Revisioned> {
     }
 
     fn parse_command(&mut self, command: Spanned<&str>, args: Spanned<&str>) {
-        if let Some(command) = self.commands.get(*command) {
-            command(self, args);
+        if let Some(command_handler) = self.commands.get(*command) {
+            command_handler(self, args, command.span());
         } else if let Some(s) = command.strip_prefix("ignore-") {
             // args are ignored (can be used as comment)
             match Condition::parse(*s) {
@@ -761,7 +771,7 @@ impl CommentParser<&mut Revisioned> {
 
         let pattern = pattern.trim();
 
-        self.check(!pattern.is_empty(), "no pattern specified");
+        self.check(pattern.span(), !pattern.is_empty(), "no pattern specified");
 
         let pattern = self.parse_error_pattern(pattern);
 

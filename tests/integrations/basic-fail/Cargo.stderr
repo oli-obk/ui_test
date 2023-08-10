@@ -314,10 +314,10 @@ error: `compile-flag` is not a command known to `ui_test`, did you mean `compile
   |
 
 error: `-Z "cheese is good` contains an unclosed quotation mark
- --> tests/actual_tests_bless/compile_flags_quotes.rs:3:18
+ --> tests/actual_tests_bless/compile_flags_quotes.rs:3:19
   |
 3 | //@compile-flags: -Z "cheese is good
-  |                  ^^^^^^^^^^^^^^^^^^^
+  |                   ^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
