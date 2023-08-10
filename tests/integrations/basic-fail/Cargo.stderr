@@ -12,9 +12,10 @@ tests/actual_tests/bad_pattern.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 error: substring `miesmätsched types` not found in stderr output
- --> tests/actual_tests/bad_pattern.rs:5:1
+ --> tests/actual_tests/bad_pattern.rs:5:17
   |
-5 | /     //~^ ERROR: miesmätsched types
+5 |     //~^ ERROR: miesmätsched types
+  |_________________^
   |
 
 error: There were 1 unmatched diagnostics
@@ -480,10 +481,10 @@ tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 error: substring ``main` function not found in crate `revisions_bad`` not found in stderr output
- --> tests/actual_tests_bless/revisions_bad.rs:4:1
+ --> tests/actual_tests_bless/revisions_bad.rs:4:31
   |
 4 | //@[bar] error-in-other-file: `main` function not found in crate `revisions_bad`
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
+  |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
 error: There were 1 unmatched diagnostics
@@ -648,10 +649,10 @@ tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 error: substring ``main` function not found in crate `revisions_bad`` not found in stderr output
- --> tests/actual_tests_bless_yolo/revisions_bad.rs:4:1
+ --> tests/actual_tests_bless_yolo/revisions_bad.rs:4:31
   |
 4 | //@[bar] error-in-other-file: `main` function not found in crate `revisions_bad`
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
+  |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
 full stderr:

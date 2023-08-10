@@ -401,7 +401,7 @@ fn print_error(error: &Error, path: &Path) {
             create_error(
                 msg,
                 &[(
-                    &[("expected because of this pattern", None)],
+                    &[("expected because of this pattern", Some(pattern.span()))],
                     pattern.line(),
                 )],
                 path,
