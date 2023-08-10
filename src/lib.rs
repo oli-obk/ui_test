@@ -235,7 +235,7 @@ pub fn run_tests_generic(
         args.threads,
         |submit| {
             let mut todo = VecDeque::new();
-            for config in configs {
+            for config in &configs {
                 todo.push_back((config.root_dir.clone(), config));
             }
             while let Some((path, config)) = todo.pop_front() {
@@ -251,9 +251,9 @@ pub fn run_tests_generic(
                         .collect::<Vec<_>>();
                     entries.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
                     for entry in entries {
-                        todo.push_back((entry, config.clone()));
+                        todo.push_back((entry, config));
                     }
-                } else if file_filter(&path, &args, &config) {
+                } else if file_filter(&path, &args, config) {
                     let status = status_emitter.register_test(path);
                     // Forward .rs files to the test workers.
                     submit.send((status, config)).unwrap();
@@ -261,9 +261,10 @@ pub fn run_tests_generic(
             }
         },
         |receive, finished_files_sender| -> Result<()> {
-            for (status, mut config) in receive {
+            for (status, config) in receive {
                 let path = status.path();
                 let file_contents = std::fs::read(path).unwrap();
+                let mut config = config.clone();
                 per_file_config(&mut config, path, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
                     parse_and_test_file(&build_manager, &status, config, file_contents)

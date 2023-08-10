@@ -1,7 +1,7 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
 use annotate_snippets::{
-    display_list::DisplayList,
+    display_list::{DisplayList, FormatOptions},
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 use bstr::ByteSlice;
@@ -104,9 +104,11 @@ impl Text {
                     match receiver.try_recv() {
                         Ok(val) => match val {
                             Msg::Pop(msg, new_msg) => {
-                                let spinner = threads.remove(&msg).unwrap_or_else(|| {
-                                    panic!("`{msg}` not found in {:#?}", threads.keys())
-                                });
+                                let Some(spinner) = threads.remove(&msg) else {
+                                    // This can happen when a test was not run at all, because it failed directly during
+                                    // comment parsing.
+                                    continue
+                                };
                                 spinner.set_style(
                                     ProgressStyle::with_template("{prefix} {msg}").unwrap(),
                                 );
@@ -551,7 +553,12 @@ fn create_error(
                 }
             })
             .collect(),
-        ..Default::default()
+        footer: vec![],
+        opt: FormatOptions {
+            color: colored::control::SHOULD_COLORIZE.should_colorize(),
+            anonymized_line_numbers: false,
+            margin: None,
+        },
     };
     eprintln!("{}", DisplayList::from(msg));
 }
