@@ -37,8 +37,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
         let result = run_tests_generic(
             vec![config],
-            std::num::NonZeroUsize::new(1).unwrap(),
-            Args::test(),
+            Args::test()?,
             default_file_filter,
             default_per_file_config,
             // Avoid github actions, as these would end up showing up in `Cargo.stderr`

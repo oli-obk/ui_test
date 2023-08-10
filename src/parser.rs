@@ -8,13 +8,16 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error, Errored, Mode};
+use crate::{
+    rustc_stderr::{Level, Span},
+    Error, Errored, Mode,
+};
 
 use color_eyre::eyre::{Context, Result};
 
-pub(crate) use opt_with_line::*;
+pub(crate) use spanned::*;
 
-mod opt_with_line;
+mod spanned;
 #[cfg(test)]
 mod tests;
 
@@ -45,10 +48,7 @@ impl Comments {
         for rev in self.for_revision(revision) {
             if let Some(found) = f(rev).into_inner() {
                 if result.is_some() {
-                    errors.push(Error::InvalidComment {
-                        msg: format!("multiple {kind} found"),
-                        line: found.line(),
-                    });
+                    errors.push(found.line());
                 } else {
                     result = found.into();
                 }
@@ -59,7 +59,10 @@ impl Comments {
         } else {
             Err(Errored {
                 command: Command::new(format!("<finding flags for revision `{revision}`>")),
-                errors,
+                errors: vec![Error::MultipleRevisionsWithResults {
+                    kind: kind.to_string(),
+                    lines: errors,
+                }],
                 stderr: vec![],
             })
         }
@@ -80,13 +83,13 @@ impl Comments {
         &self,
         revision: &str,
         config: &crate::Config,
-    ) -> Result<Option<MaybeWithLine<String>>, Errored> {
+    ) -> Result<Option<MaybeSpanned<String>>, Errored> {
         let edition =
             self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
         let edition = edition
             .into_inner()
-            .map(MaybeWithLine::from)
-            .or(config.edition.clone().map(MaybeWithLine::new_config));
+            .map(MaybeSpanned::from)
+            .or(config.edition.clone().map(MaybeSpanned::new_config));
         Ok(edition)
     }
 }
@@ -94,9 +97,9 @@ impl Comments {
 #[derive(Debug)]
 /// Comments that can be filtered for specific revisions.
 pub(crate) struct Revisioned {
-    /// The line in which this revisioned item was first added.
+    /// The character range in which this revisioned item was first added.
     /// Used for reporting errors on unknown revisions.
-    pub line: NonZeroUsize,
+    pub span: Span,
     /// Don't run this test if any of these filters apply
     pub ignore: Vec<Condition>,
     /// Only run this test if all of these filters apply
@@ -112,12 +115,12 @@ pub(crate) struct Revisioned {
     /// Arbitrary patterns to look for in the stderr.
     /// The error must be from another file, as errors from the current file must be
     /// checked via `error_matches`.
-    pub error_in_other_files: Vec<WithLine<Pattern>>,
+    pub error_in_other_files: Vec<Spanned<Pattern>>,
     pub error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: OptWithLine<Level>,
-    pub aux_builds: Vec<WithLine<PathBuf>>,
+    pub aux_builds: Vec<Spanned<PathBuf>>,
     pub edition: OptWithLine<String>,
     /// Overwrites the mode from `Config`.
     pub mode: OptWithLine<Mode>,
@@ -132,13 +135,11 @@ struct CommentParser<T> {
     comments: T,
     /// Any errors that ocurred during comment parsing.
     errors: Vec<Error>,
-    /// The line currently being parsed.
-    line: NonZeroUsize,
     /// The available commands and their parsing logic
     commands: HashMap<&'static str, CommandParserFunc>,
 }
 
-type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: &str);
+type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: Spanned<&str>, span: Span);
 
 impl<T> std::ops::Deref for CommentParser<T> {
     type Target = T;
@@ -176,7 +177,7 @@ pub enum Pattern {
 
 #[derive(Debug)]
 pub(crate) struct ErrorMatch {
-    pub pattern: WithLine<Pattern>,
+    pub pattern: Spanned<Pattern>,
     pub level: Level,
     /// The line this pattern is expecting to find a message in.
     pub line: NonZeroUsize,
@@ -218,20 +219,21 @@ impl Comments {
         let mut parser = CommentParser {
             comments: Comments::default(),
             errors: vec![],
-            line: NonZeroUsize::MAX,
             commands: CommentParser::<_>::commands(),
         };
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
         for (l, line) in content.as_ref().lines().enumerate() {
             let l = NonZeroUsize::new(l + 1).unwrap(); // enumerate starts at 0, but line numbers start at 1
-            parser.line = l;
-            match parser.parse_checked_line(&mut fallthrough_to, line) {
+            let span = Span {
+                line_start: l,
+                line_end: l,
+                column_start: NonZeroUsize::new(1).unwrap(),
+                column_end: NonZeroUsize::new(line.chars().count() + 1).unwrap(),
+            };
+            match parser.parse_checked_line(&mut fallthrough_to, Spanned::new(line, span)) {
                 Ok(()) => {}
-                Err(e) => parser.errors.push(Error::InvalidComment {
-                    msg: format!("Comment is not utf8: {e:?}"),
-                    line: l,
-                }),
+                Err(e) => parser.error(span, format!("Comment is not utf8: {e:?}")),
             }
         }
         if let Some(revisions) = &parser.comments.revisions {
@@ -240,7 +242,7 @@ impl Comments {
                     if !revisions.contains(rev) {
                         parser.errors.push(Error::InvalidComment {
                             msg: format!("the revision `{rev}` is not known"),
-                            line: revisioned.line,
+                            span: revisioned.span,
                         })
                     }
                 }
@@ -250,7 +252,7 @@ impl Comments {
                 if !key.is_empty() {
                     parser.errors.push(Error::InvalidComment {
                         msg: "there are no revisions in this test".into(),
-                        line: revisioned.line,
+                        span: revisioned.span,
                     })
                 }
             }
@@ -267,10 +269,10 @@ impl CommentParser<Comments> {
     fn parse_checked_line(
         &mut self,
         fallthrough_to: &mut Option<NonZeroUsize>,
-        line: &[u8],
+        line: Spanned<&[u8]>,
     ) -> std::result::Result<(), Utf8Error> {
         if let Some(command) = line.strip_prefix(b"//@") {
-            self.parse_command(command.trim().to_str()?)
+            self.parse_command(command.to_str()?.trim())
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
             let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
             self.revisioned(revisions, |this| {
@@ -279,28 +281,28 @@ impl CommentParser<Comments> {
         } else {
             *fallthrough_to = None;
             for pos in line.find_iter("//") {
-                let rest = &line[pos + 2..];
-                for rest in std::iter::once(rest).chain(rest.strip_prefix(b" ")) {
+                let (_, rest) = line.to_str()?.split_at(pos + 2);
+                for rest in std::iter::once(rest).chain(rest.strip_prefix(" ")) {
                     if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
-                        self.errors.push(Error::InvalidComment {
-                            msg: format!(
+                        self.error(
+                            rest.span(),
+                            format!(
                                 "comment looks suspiciously like a test suite command: `{}`\n\
                              All `//@` test suite commands must be at the start of the line.\n\
                              The `//` must be directly followed by `@` or `~`.",
-                                rest.to_str()?,
+                                *rest,
                             ),
-                            line: self.line,
-                        })
+                        );
                     } else {
                         let mut parser = Self {
-                            line: NonZeroUsize::MAX,
                             errors: vec![],
                             comments: Comments::default(),
                             commands: std::mem::take(&mut self.commands),
                         };
-                        parser.parse_command(rest.to_str()?);
+                        parser.parse_command(rest);
                         if parser.errors.is_empty() {
                             self.error(
+                                rest.span(),
                                 "a compiletest-rs style comment was detected.\n\
                                 Please use text that could not also be interpreted as a command,\n\
                                 and prefix all actual commands with `//@`",
@@ -316,27 +318,27 @@ impl CommentParser<Comments> {
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
-    fn error(&mut self, s: impl Into<String>) {
+    fn error(&mut self, span: Span, s: impl Into<String>) {
         self.errors.push(Error::InvalidComment {
             msg: s.into(),
-            line: self.line,
+            span,
         });
     }
 
-    fn check(&mut self, cond: bool, s: impl Into<String>) {
+    fn check(&mut self, span: Span, cond: bool, s: impl Into<String>) {
         if !cond {
-            self.error(s);
+            self.error(span, s);
         }
     }
 
-    fn check_some<T>(&mut self, opt: Option<T>, s: impl Into<String>) -> Option<T> {
-        self.check(opt.is_some(), s);
+    fn check_some<T>(&mut self, span: Span, opt: Option<T>, s: impl Into<String>) -> Option<T> {
+        self.check(span, opt.is_some(), s);
         opt
     }
 }
 
 impl CommentParser<Comments> {
-    fn parse_command(&mut self, command: &str) {
+    fn parse_command(&mut self, command: Spanned<&str>) {
         let (revisions, command) = self.parse_revisions(command);
 
         // Commands are letters or dashes, grab everything until the first character that is neither of those.
@@ -344,28 +346,34 @@ impl CommentParser<Comments> {
             .char_indices()
             .find_map(|(i, c)| (!c.is_alphanumeric() && c != '-' && c != '_').then_some(i))
         {
-            None => (command, ""),
+            None => (command, Spanned::new("", command.span().shrink_to_end())),
             Some(i) => {
                 let (command, args) = command.split_at(i);
-                let mut args = args.chars();
                 // Commands are separated from their arguments by ':' or ' '
                 let next = args
+                    .chars()
                     .next()
                     .expect("the `position` above guarantees that there is at least one char");
                 self.check(
+                    args.span().shrink_to_start(),
                     next == ':',
                     "test command must be followed by `:` (or end the line)",
                 );
-                (command, args.as_str().trim())
+                (command, args.split_at(next.len_utf8()).1.trim())
             }
         };
 
-        if command == "revisions" {
+        if *command == "revisions" {
             self.check(
+                revisions.span(),
                 revisions.is_empty(),
                 "revisions cannot be declared under a revision",
             );
-            self.check(self.revisions.is_none(), "cannot specify `revisions` twice");
+            self.check(
+                revisions.span(),
+                self.revisions.is_none(),
+                "cannot specify `revisions` twice",
+            );
             self.revisions = Some(args.split_whitespace().map(|s| s.to_string()).collect());
             return;
         }
@@ -374,19 +382,19 @@ impl CommentParser<Comments> {
 
     fn revisioned(
         &mut self,
-        revisions: Vec<String>,
+        revisions: Spanned<Vec<String>>,
         f: impl FnOnce(&mut CommentParser<&mut Revisioned>),
     ) {
-        let line = self.line;
+        let span = revisions.span();
+        let revisions = revisions.into_inner();
         let mut this = CommentParser {
             errors: std::mem::take(&mut self.errors),
             commands: std::mem::take(&mut self.commands),
-            line,
             comments: self
                 .revisioned
                 .entry(revisions)
                 .or_insert_with(|| Revisioned {
-                    line,
+                    span,
                     ignore: Default::default(),
                     only: Default::default(),
                     stderr_per_bitwidth: Default::default(),
@@ -416,23 +424,24 @@ impl CommentParser<&mut Revisioned> {
     fn commands() -> HashMap<&'static str, CommandParserFunc> {
         let mut commands = HashMap::<_, CommandParserFunc>::new();
         macro_rules! commands {
-            ($($name:expr => ($this:ident, $args:ident)$block:block)*) => {
-                $(commands.insert($name, |$this, $args| {
+            ($($name:expr => ($this:ident, $args:ident, $span:ident)$block:block)*) => {
+                $(commands.insert($name, |$this, $args, $span| {
                     $block
                 });)*
             };
         }
         commands! {
-            "compile-flags" => (this, args){
-                if let Some(parsed) = comma::parse_command(args) {
+            "compile-flags" => (this, args, _span){
+                if let Some(parsed) = comma::parse_command(*args) {
                     this.compile_flags.extend(parsed);
                 } else {
-                    this.error(format!("`{args}` contains an unclosed quotation mark"));
+                    this.error(args.span(), format!("`{}` contains an unclosed quotation mark", *args));
                 }
             }
-            "rustc-env" => (this, args){
+            "rustc-env" => (this, args, _span){
                 for env in args.split_whitespace() {
                     if let Some((k, v)) = this.check_some(
+                        args.span(),
                         env.split_once('='),
                         "environment variables must be key/value pairs separated by a `=`",
                     ) {
@@ -440,21 +449,22 @@ impl CommentParser<&mut Revisioned> {
                     }
                 }
             }
-            "normalize-stderr-test" => (this, args){
+            "normalize-stderr-test" => (this, args, _span){
                 let (from, rest) = this.parse_str(args);
 
                 let to = match rest.strip_prefix("->") {
                     Some(v) => v,
                     None => {
-                        this.error("normalize-stderr-test needs a pattern and replacement separated by `->`");
+                        this.error(rest.span(), "normalize-stderr-test needs a pattern and replacement separated by `->`");
                         return;
                     },
                 }.trim_start();
                 let (to, rest) = this.parse_str(to);
 
                 this.check(
+                    rest.span(),
                     rest.is_empty(),
-                    format!("trailing text after pattern replacement: {rest}"),
+                    "trailing text after pattern replacement",
                 );
 
                 if let Some(regex) = this.parse_regex(from) {
@@ -462,94 +472,95 @@ impl CommentParser<&mut Revisioned> {
                         .push((regex, to.as_bytes().to_owned()))
                 }
             }
-            "error-pattern" => (this, _args){
-                this.error("`error-pattern` has been renamed to `error-in-other-file`");
+            "error-pattern" => (this, _args, span){
+                this.error(span, "`error-pattern` has been renamed to `error-in-other-file`");
             }
-            "error-in-other-file" => (this, args){
-                let pat = this.parse_error_pattern(args.trim());
-                let line = this.line;
-                this.error_in_other_files.push(WithLine::new(pat, line));
+            "error-in-other-file" => (this, args, _span){
+                let args = args.trim();
+                let pat = this.parse_error_pattern(args);
+                this.error_in_other_files.push(pat);
             }
-            "stderr-per-bitwidth" => (this, _args){
+            "stderr-per-bitwidth" => (this, _args, span){
                 // args are ignored (can be used as comment)
                 this.check(
+                    span,
                     !this.stderr_per_bitwidth,
                     "cannot specify `stderr-per-bitwidth` twice",
                 );
                 this.stderr_per_bitwidth = true;
             }
-            "run-rustfix" => (this, _args){
-                this.error("rustfix is now ran by default when applicable suggestions are found");
+            "run-rustfix" => (this, _args, span){
+                this.error(span, "rustfix is now ran by default when applicable suggestions are found");
             }
-            "no-rustfix" => (this, _args){
+            "no-rustfix" => (this, _args, span){
                 // args are ignored (can be used as comment)
-                let line = this.line;
-                let prev = this.no_rustfix.set((), line);
+                let prev = this.no_rustfix.set((), span);
                 this.check(
+                    span,
                     prev.is_none(),
                     "cannot specify `no-rustfix` twice",
                 );
             }
-            "needs-asm-support" => (this, _args){
+            "needs-asm-support" => (this, _args, span){
                 // args are ignored (can be used as comment)
                 this.check(
+                    span,
                     !this.needs_asm_support,
                     "cannot specify `needs-asm-support` twice",
                 );
                 this.needs_asm_support = true;
             }
-            "aux-build" => (this, args){
-                let name = match args.split_once(':') {
-                    Some((name, _)) => {
-                        this.error("proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
+            "aux-build" => (this, args, _span){
+                let name = match args.split_once(":") {
+                    Some((name, rest)) => {
+                        this.error(rest.span(), "proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
                         name
                     },
                     None => args,
                 };
-                let line = this.line;
-                this.aux_builds.push(WithLine::new(name.into(), line));
+                this.aux_builds.push(name.map(Into::into));
             }
-            "edition" => (this, args){
-                let line = this.line;
-                let prev = this.edition.set(args.into(), line);
-                this.check(prev.is_none(), "cannot specify `edition` twice");
+            "edition" => (this, args, span){
+                let prev = this.edition.set((*args).into(), args.span());
+                this.check(span, prev.is_none(), "cannot specify `edition` twice");
             }
-            "check-pass" => (this, _args){
-                let line = this.line;
-                let prev = this.mode.set(Mode::Pass, line);
+            "check-pass" => (this, _args, span){
+                let prev = this.mode.set(Mode::Pass, span);
                 // args are ignored (can be used as comment)
                 this.check(
+                    span,
                     prev.is_none(),
                     "cannot specify test mode changes twice",
                 );
             }
-            "run" => (this, args){
+            "run" => (this, args, span){
                 this.check(
+                    span,
                     this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
-                let line = this.line;
-                let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, line);
+                let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, args.span());
                 if args.is_empty() {
                     set(0);
                 } else {
                     match args.parse() {
                         Ok(exit_code) => {set(exit_code);},
-                        Err(err) => this.error(err.to_string()),
+                        Err(err) => this.error(args.span(), err.to_string()),
                     }
                 }
             }
-            "require-annotations-for-level" => (this, args){
-                let line = this.line;
-                let prev = match args.trim().parse() {
-                    Ok(it) =>  this.require_annotations_for_level.set(it, line),
+            "require-annotations-for-level" => (this, args, span){
+                let args = args.trim();
+                let prev = match args.parse() {
+                    Ok(it) =>  this.require_annotations_for_level.set(it, args.span()),
                     Err(msg) => {
-                        this.error(msg);
+                        this.error(args.span(), msg);
                         None
                     },
                 };
 
                 this.check(
+                    span,
                     prev.is_none(),
                     "cannot specify `require-annotations-for-level` twice",
                 );
@@ -558,40 +569,44 @@ impl CommentParser<&mut Revisioned> {
         commands
     }
 
-    fn parse_command(&mut self, command: &str, args: &str) {
-        if let Some(command) = self.commands.get(command) {
-            command(self, args);
+    fn parse_command(&mut self, command: Spanned<&str>, args: Spanned<&str>) {
+        if let Some(command_handler) = self.commands.get(*command) {
+            command_handler(self, args, command.span());
         } else if let Some(s) = command.strip_prefix("ignore-") {
             // args are ignored (can be used as comment)
-            match Condition::parse(s) {
+            match Condition::parse(*s) {
                 Ok(cond) => self.ignore.push(cond),
-                Err(msg) => self.error(msg),
+                Err(msg) => self.error(s.span(), msg),
             }
         } else if let Some(s) = command.strip_prefix("only-") {
             // args are ignored (can be used as comment)
-            match Condition::parse(s) {
+            match Condition::parse(*s) {
                 Ok(cond) => self.only.push(cond),
-                Err(msg) => self.error(msg),
+                Err(msg) => self.error(s.span(), msg),
             }
         } else {
             let best_match = self
                 .commands
                 .keys()
-                .min_by_key(|key| distance::damerau_levenshtein(key, command))
+                .min_by_key(|key| distance::damerau_levenshtein(key, *command))
                 .unwrap();
-            self.error(format!(
-                "`{command}` is not a command known to `ui_test`, did you mean `{best_match}`?"
-            ));
+            self.error(
+                command.span(),
+                format!(
+                    "`{}` is not a command known to `ui_test`, did you mean `{best_match}`?",
+                    *command
+                ),
+            );
         }
     }
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
-    fn parse_regex(&mut self, regex: &str) -> Option<Regex> {
-        match Regex::new(regex) {
+    fn parse_regex(&mut self, regex: Spanned<&str>) -> Option<Regex> {
+        match Regex::new(*regex) {
             Ok(regex) => Some(regex),
             Err(err) => {
-                self.error(format!("invalid regex: {err:?}"));
+                self.error(regex.span(), format!("invalid regex: {err:?}"));
                 None
             }
         }
@@ -600,100 +615,110 @@ impl<CommentsType> CommentParser<CommentsType> {
     /// Parses a string literal. `s` has to start with `"`; everything until the next `"` is
     /// returned in the first component. `\` can be used to escape arbitrary character.
     /// Second return component is the rest of the string with leading whitespace removed.
-    fn parse_str<'a>(&mut self, s: &'a str) -> (&'a str, &'a str) {
-        let mut chars = s.char_indices();
-        match chars.next() {
-            Some((_, '"')) => {
-                let s = chars.as_str();
+    fn parse_str<'a>(&mut self, s: Spanned<&'a str>) -> (Spanned<&'a str>, Spanned<&'a str>) {
+        match s.strip_prefix("\"") {
+            Some(s) => {
                 let mut escaped = false;
-                for (i, c) in chars {
+                for (i, c) in s.char_indices() {
                     if escaped {
                         // Accept any character as literal after a `\`.
                         escaped = false;
                     } else if c == '"' {
-                        return (&s[..(i - 1)], s[i..].trim_start());
+                        let (a, b) = s.split_at(i);
+                        let b = b.split_at(1).1;
+                        return (a, b.trim_start());
                     } else {
                         escaped = c == '\\';
                     }
                 }
-                self.error(format!("no closing quotes found for {s}"));
-                (s, "")
-            }
-            Some((_, c)) => {
-                self.error(format!("expected `\"`, got `{c}`"));
-                (s, "")
+                self.error(s.span(), format!("no closing quotes found for {}", *s));
+                (s, Spanned::new("", s.span()))
             }
             None => {
-                self.error("expected quoted string, but found end of line");
-                (s, "")
+                if s.is_empty() {
+                    self.error(s.span(), "expected quoted string, but found end of line")
+                } else {
+                    self.error(
+                        s.span(),
+                        format!("expected `\"`, got `{}`", s.chars().next().unwrap()),
+                    )
+                }
+                (s, Spanned::new("", s.span()))
             }
         }
     }
 
     // parse something like \[[a-z]+(,[a-z]+)*\]
-    fn parse_revisions<'a>(&mut self, pattern: &'a str) -> (Vec<String>, &'a str) {
-        match pattern.chars().next() {
-            Some('[') => {
+    fn parse_revisions<'a>(
+        &mut self,
+        pattern: Spanned<&'a str>,
+    ) -> (Spanned<Vec<String>>, Spanned<&'a str>) {
+        match pattern.strip_prefix("[") {
+            Some(s) => {
                 // revisions
-                let s = &pattern[1..];
                 let end = s.char_indices().find_map(|(i, c)| match c {
                     ']' => Some(i),
                     _ => None,
                 });
                 let Some(end) = end else {
-                    self.error("`[` without corresponding `]`");
-                    return (vec![], pattern);
+                    self.error(s.span(), "`[` without corresponding `]`");
+                    return (Spanned::new(vec![], pattern.span().shrink_to_start()), pattern);
                 };
                 let (revision, pattern) = s.split_at(end);
+                let revisions = revision.split(',').map(|s| s.trim().to_string()).collect();
                 (
-                    revision.split(',').map(|s| s.trim().to_string()).collect(),
+                    Spanned::new(revisions, revision.span()),
                     // 1.. because `split_at` includes the separator
-                    pattern[1..].trim_start(),
+                    pattern.split_at(1).1.trim_start(),
                 )
             }
-            _ => (vec![], pattern),
+            _ => (
+                Spanned::new(vec![], pattern.span().shrink_to_start()),
+                pattern,
+            ),
         }
     }
 }
 
 impl CommentParser<&mut Revisioned> {
     // parse something like (\[[a-z]+(,[a-z]+)*\])?(?P<offset>\||[\^]+)? *(?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*)
-    fn parse_pattern(&mut self, pattern: &str, fallthrough_to: &mut Option<NonZeroUsize>) {
+    fn parse_pattern(&mut self, pattern: Spanned<&str>, fallthrough_to: &mut Option<NonZeroUsize>) {
         let (match_line, pattern) = match pattern.chars().next() {
             Some('|') => (
                 match fallthrough_to {
                     Some(fallthrough) => *fallthrough,
                     None => {
-                        self.error("`//~|` pattern without preceding line");
+                        self.error(pattern.span(), "`//~|` pattern without preceding line");
                         return;
                     }
                 },
-                &pattern[1..],
+                pattern.split_at(1).1,
             ),
             Some('^') => {
                 let offset = pattern.chars().take_while(|&c| c == '^').count();
-                match self
-                    .line
+                match pattern
+                    .span()
+                    .line_start
                     .get()
                     .checked_sub(offset)
                     .and_then(NonZeroUsize::new)
                 {
                     // lines are one-indexed, so a target line of 0 is invalid, but also
                     // prevented via `NonZeroUsize`
-                    Some(match_line) => (match_line, &pattern[offset..]),
+                    Some(match_line) => (match_line, pattern.split_at(offset).1),
                     _ => {
-                        self.error(format!(
+                        self.error(pattern.span(), format!(
                             "//~^ pattern is trying to refer to {} lines above, but there are only {} lines above",
                             offset,
-                            self.line.get() - 1
+                            pattern.line().get() - 1,
                         ));
                         return;
                     }
                 }
             }
-            Some(_) => (self.line, pattern),
+            Some(_) => (pattern.span().line_start, pattern),
             None => {
-                self.error("no pattern specified");
+                self.error(pattern.span(), "no pattern specified");
                 return;
             }
         };
@@ -702,36 +727,35 @@ impl CommentParser<&mut Revisioned> {
         let offset = match pattern.chars().position(|c| !c.is_ascii_alphabetic()) {
             Some(offset) => offset,
             None => {
-                self.error("pattern without level");
+                self.error(pattern.span(), "pattern without level");
                 return;
             }
         };
 
-        let level = match pattern[..offset].parse() {
+        let (level, pattern) = pattern.split_at(offset);
+        let level = match (*level).parse() {
             Ok(level) => level,
             Err(msg) => {
-                self.error(msg);
+                self.error(level.span(), msg);
                 return;
             }
         };
-        let pattern = &pattern[offset..];
-        let pattern = match pattern.strip_prefix(':') {
+        let pattern = match pattern.strip_prefix(":") {
             Some(offset) => offset,
             None => {
-                self.error("no `:` after level found");
+                self.error(pattern.span(), "no `:` after level found");
                 return;
             }
         };
 
         let pattern = pattern.trim();
 
-        self.check(!pattern.is_empty(), "no pattern specified");
+        self.check(pattern.span(), !pattern.is_empty(), "no pattern specified");
 
         let pattern = self.parse_error_pattern(pattern);
 
         *fallthrough_to = Some(match_line);
 
-        let pattern = WithLine::new(pattern, self.line);
         self.error_matches.push(ErrorMatch {
             pattern,
             level,
@@ -750,22 +774,23 @@ impl Pattern {
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
-    fn parse_error_pattern(&mut self, pattern: &str) -> Pattern {
-        if let Some(regex) = pattern.strip_prefix('/') {
-            match regex.strip_suffix('/') {
+    fn parse_error_pattern(&mut self, pattern: Spanned<&str>) -> Spanned<Pattern> {
+        if let Some(regex) = pattern.strip_prefix("/") {
+            match regex.strip_suffix("/") {
                 Some(regex) => match self.parse_regex(regex) {
-                    Some(regex) => Pattern::Regex(regex),
-                    None => Pattern::SubString(pattern.to_string()),
+                    Some(r) => Spanned::new(Pattern::Regex(r), regex.span()),
+                    None => Spanned::new(Pattern::SubString(pattern.to_string()), regex.span()),
                 },
                 None => {
                     self.error(
+                        regex.span(),
                         "expected regex pattern due to leading `/`, but found no closing `/`",
                     );
-                    Pattern::SubString(pattern.to_string())
+                    Spanned::new(Pattern::SubString(pattern.to_string()), regex.span())
                 }
             }
         } else {
-            Pattern::SubString(pattern.to_string())
+            Spanned::new(Pattern::SubString(pattern.to_string()), pattern.span())
         }
     }
 }

@@ -14,10 +14,10 @@ use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, MaybeWithLine, OptWithLine, Revisioned, WithLine};
+use parser::{ErrorMatch, MaybeSpanned, OptWithLine, Revisioned, Spanned};
 use read_helper::ReadHelper;
 use regex::bytes::{Captures, Regex};
-use rustc_stderr::{Level, Message};
+use rustc_stderr::{Level, Message, Span};
 use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
@@ -118,7 +118,7 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.
 pub fn run_tests(config: Config) -> Result<()> {
-    let args = Args::test();
+    let args = Args::test()?;
     if !args.quiet {
         eprintln!("Compiler: {}", config.program.display());
     }
@@ -133,7 +133,6 @@ pub fn run_tests(config: Config) -> Result<()> {
 
     run_tests_generic(
         vec![config],
-        std::thread::available_parallelism().unwrap(),
         args,
         default_file_filter,
         default_per_file_config,
@@ -219,7 +218,6 @@ struct TestRun {
 /// A version of `run_tests` that allows more fine-grained control over running tests.
 pub fn run_tests_generic(
     mut configs: Vec<Config>,
-    num_threads: NonZeroUsize,
     args: Args,
     file_filter: impl Fn(&Path, &Args, &Config) -> bool + Sync,
     per_file_config: impl Fn(&mut Config, &Path, &[u8]) + Sync,
@@ -234,7 +232,7 @@ pub fn run_tests_generic(
     let mut results = vec![];
 
     run_and_collect(
-        num_threads,
+        args.threads,
         |submit| {
             let mut todo = VecDeque::new();
             for config in configs {
@@ -712,7 +710,7 @@ fn build_aux_files(
 }
 
 fn run_test_binary(
-    mode: MaybeWithLine<Mode>,
+    mode: MaybeSpanned<Mode>,
     path: &Path,
     revision: &str,
     comments: &Comments,
@@ -815,8 +813,8 @@ fn run_rustfix(
     let edition = comments.edition(revision, config)?;
     let edition = edition
         .map(|mwl| {
-            let line = mwl.line().unwrap_or(NonZeroUsize::MAX);
-            WithLine::new(mwl.into_inner(), line)
+            let line = mwl.span().unwrap_or(Span::INVALID);
+            Spanned::new(mwl.into_inner(), line)
         })
         .into();
     let rustfix_comments = Comments {
@@ -824,7 +822,7 @@ fn run_rustfix(
         revisioned: std::iter::once((
             vec![],
             Revisioned {
-                line: NonZeroUsize::MAX,
+                span: Span::INVALID,
                 ignore: vec![],
                 only: vec![],
                 stderr_per_bitwidth: false,
@@ -845,8 +843,8 @@ fn run_rustfix(
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
                 edition,
-                mode: OptWithLine::new(Mode::Pass, NonZeroUsize::MAX),
-                no_rustfix: OptWithLine::new((), NonZeroUsize::MAX),
+                mode: OptWithLine::new(Mode::Pass, Span::INVALID),
+                no_rustfix: OptWithLine::new((), Span::INVALID),
                 needs_asm_support: false,
             },
         ))
@@ -1022,7 +1020,7 @@ fn check_annotations(
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
-    let mut lowest_annotation_level = MaybeWithLine::new_config(Level::Error);
+    let mut lowest_annotation_level = Level::Error;
     for &ErrorMatch {
         ref pattern,
         level,
@@ -1035,8 +1033,8 @@ fn check_annotations(
         // If we found a diagnostic with a level annotation, make sure that all
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
-        if *lowest_annotation_level > level {
-            lowest_annotation_level = MaybeWithLine::new(level, line);
+        if lowest_annotation_level > level {
+            lowest_annotation_level = level;
         }
 
         if let Some(msgs) = messages.get_mut(line.get()) {
@@ -1059,7 +1057,7 @@ fn check_annotations(
     )?;
 
     let required_annotation_level =
-        required_annotation_level.map_or(*lowest_annotation_level, |l| *l);
+        required_annotation_level.map_or(lowest_annotation_level, |l| *l);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
         msgs.retain(|msg| msg.level >= required_annotation_level);
         msgs
@@ -1081,7 +1079,13 @@ fn check_annotations(
             if !msgs.is_empty() {
                 let line = NonZeroUsize::new(line).expect("line 0 is always empty");
                 errors.push(Error::ErrorsWithoutPattern {
-                    path: Some(WithLine::new(path.to_path_buf(), line)),
+                    path: Some(Spanned::new(
+                        path.to_path_buf(),
+                        Span {
+                            line_start: line,
+                            ..Span::INVALID
+                        },
+                    )),
                     msgs,
                 });
             }

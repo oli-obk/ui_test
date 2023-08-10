@@ -1,13 +1,19 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
+use annotate_snippets::{
+    display_list::DisplayList,
+    snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
+};
 use bstr::ByteSlice;
 use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 
 use crate::{
-    github_actions, parser::Pattern, rustc_stderr::Message, Error, Errored, Errors, TestOk,
-    TestResult,
+    github_actions,
+    parser::Pattern,
+    rustc_stderr::{Message, Span},
+    Error, Errored, Errors, TestOk, TestResult,
 };
 use std::{
     collections::HashMap,
@@ -324,7 +330,7 @@ impl StatusEmitter for Text {
             impl Summary for Summarizer {
                 fn test_failure(&mut self, status: &dyn TestStatus, errors: &Errors) {
                     for error in errors {
-                        print_error(error, &status.path().display().to_string());
+                        print_error(error, status.path());
                     }
 
                     self.failures.push(if status.revision().is_empty() {
@@ -371,7 +377,7 @@ impl StatusEmitter for Text {
     }
 }
 
-fn print_error(error: &Error, path: &str) {
+fn print_error(error: &Error, path: &Path) {
     match error {
         Error::ExitStatus {
             mode,
@@ -384,17 +390,21 @@ fn print_error(error: &Error, path: &str) {
             eprintln!("{kind} failed with {status}");
         }
         Error::PatternNotFound(pattern) => {
-            match &**pattern {
+            let msg = match &**pattern {
                 Pattern::SubString(s) => {
-                    eprintln!("substring `{s}` {} in stderr output", "not found".red())
+                    format!("substring `{s}` {} in stderr output", "not found")
                 }
                 Pattern::Regex(r) => {
-                    eprintln!("`/{r}/` does {} stderr output", "not match".red())
+                    format!("`/{r}/` does {} stderr output", "not match")
                 }
-            }
-            eprintln!(
-                "expected because of pattern here: {}",
-                format!("{path}:{}", pattern.line()).bold()
+            };
+            create_error(
+                msg,
+                &[(
+                    &[("expected because of this pattern", Some(pattern.span()))],
+                    pattern.line(),
+                )],
+                path,
             );
         }
         Error::NoPatternsFound => {
@@ -422,26 +432,49 @@ fn print_error(error: &Error, path: &str) {
         Error::ErrorsWithoutPattern { path, msgs } => {
             if let Some(path) = path.as_ref() {
                 let line = path.line();
-                let path = path.display();
-                eprintln!(
-                    "There were {} unmatched diagnostics at {path}:{line}",
-                    msgs.len(),
+                let msgs = msgs
+                    .iter()
+                    .map(|msg| (format!("{:?}: {}", msg.level, msg.message), msg.line_col))
+                    .collect::<Vec<_>>();
+                create_error(
+                    format!("There were {} unmatched diagnostics", msgs.len()),
+                    &[(
+                        &msgs
+                            .iter()
+                            .map(|(msg, lc)| (msg.as_ref(), *lc))
+                            .collect::<Vec<_>>(),
+                        line,
+                    )],
+                    path,
                 );
-                for Message { level, message } in msgs {
-                    eprintln!("    {level:?}: {message}")
-                }
             } else {
                 eprintln!(
                     "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
                     msgs.len(),
                 );
-                for Message { level, message } in msgs {
+                for Message {
+                    level,
+                    message,
+                    line_col: _,
+                } in msgs
+                {
                     eprintln!("    {level:?}: {message}")
                 }
             }
         }
-        Error::InvalidComment { msg, line } => {
-            eprintln!("Could not parse comment in {path}:{line} because\n{msg}",)
+        Error::InvalidComment { msg, span } => {
+            create_error(msg, &[(&[("", Some(*span))], span.line_start)], path)
+        }
+        Error::MultipleRevisionsWithResults { kind, lines } => {
+            let title = format!("multiple {kind} found");
+            create_error(
+                title,
+                &lines
+                    .iter()
+                    .map(|&line| (&[] as &[_], line))
+                    .collect::<Vec<_>>(),
+                path,
+            )
         }
         Error::Bug(msg) => {
             eprintln!("A bug in `ui_test` occurred: {msg}");
@@ -451,17 +484,76 @@ fn print_error(error: &Error, path: &str) {
             errors,
             line,
         } => {
-            eprintln!("Aux build from {path}:{line} failed");
+            eprintln!("Aux build from {}:{line} failed", path.display());
             for error in errors {
-                print_error(error, &aux_path.display().to_string());
+                print_error(error, aux_path);
             }
         }
         Error::Rustfix(error) => {
-            eprintln!("failed to apply suggestions for {path} with rustfix: {error}");
+            eprintln!(
+                "failed to apply suggestions for {} with rustfix: {error}",
+                path.display()
+            );
             eprintln!("Add //@no-rustfix to the test file to ignore rustfix suggestions");
         }
     }
     eprintln!();
+}
+
+#[allow(clippy::type_complexity)]
+fn create_error(
+    s: impl AsRef<str>,
+    lines: &[(&[(&str, Option<Span>)], NonZeroUsize)],
+    file: &Path,
+) {
+    let source = std::fs::read_to_string(file).unwrap();
+    let source: Vec<_> = source.split_inclusive('\n').collect();
+    let file = file.display().to_string();
+    let msg = Snippet {
+        title: Some(Annotation {
+            id: None,
+            annotation_type: AnnotationType::Error,
+            label: Some(s.as_ref()),
+        }),
+        slices: lines
+            .iter()
+            .map(|(label, line)| {
+                let source = source[line.get() - 1];
+                let len = source.chars().count();
+                Slice {
+                    source,
+                    line_start: line.get(),
+                    origin: Some(&file),
+                    annotations: label
+                        .iter()
+                        .map(|(label, lc)| SourceAnnotation {
+                            range: lc.map_or((0, len - 1), |lc| {
+                                assert_eq!(lc.line_start, *line);
+                                if lc.line_end > lc.line_start {
+                                    (lc.column_start.get() - 1, len - 1)
+                                } else if lc.column_start == lc.column_end {
+                                    if lc.column_start.get() - 1 == len {
+                                        // rustc sometimes produces spans pointing *after* the `\n` at the end of the line,
+                                        // but we want to render an annotation at the end.
+                                        (lc.column_start.get() - 2, lc.column_start.get() - 1)
+                                    } else {
+                                        (lc.column_start.get() - 1, lc.column_start.get())
+                                    }
+                                } else {
+                                    (lc.column_start.get() - 1, lc.column_end.get() - 1)
+                                }
+                            }),
+                            label,
+                            annotation_type: AnnotationType::Error,
+                        })
+                        .collect(),
+                    fold: false,
+                }
+            })
+            .collect(),
+        ..Default::default()
+    };
+    eprintln!("{}", DisplayList::from(msg));
 }
 
 fn gha_error(error: &Error, test_path: &str, revision: &str) {
@@ -563,7 +655,12 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                 let mut err =
                     github_actions::error(&path, format!("Unmatched diagnostics{revision}"))
                         .line(line);
-                for Message { level, message } in msgs {
+                for Message {
+                    level,
+                    message,
+                    line_col: _,
+                } in msgs
+                {
                     writeln!(err, "{level:?}: {message}").unwrap();
                 }
             } else {
@@ -571,15 +668,23 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                     test_path,
                     format!("Unmatched diagnostics outside the testfile{revision}"),
                 );
-                for Message { level, message } in msgs {
+                for Message {
+                    level,
+                    message,
+                    line_col: _,
+                } in msgs
+                {
                     writeln!(err, "{level:?}: {message}").unwrap();
                 }
             }
         }
-        Error::InvalidComment { msg, line } => {
-            let mut err =
-                github_actions::error(test_path, format!("Could not parse comment")).line(*line);
+        Error::InvalidComment { msg, span } => {
+            let mut err = github_actions::error(test_path, format!("Could not parse comment"))
+                .line(span.line_start);
             writeln!(err, "{msg}").unwrap();
+        }
+        Error::MultipleRevisionsWithResults { kind, lines } => {
+            github_actions::error(test_path, format!("multiple {kind} found")).line(lines[0]);
         }
         Error::Bug(_) => {}
         Error::Aux {

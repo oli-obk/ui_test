@@ -1,6 +1,6 @@
 use crate::{
-    parser::{Pattern, WithLine},
-    rustc_stderr::Message,
+    parser::{Pattern, Spanned},
+    rustc_stderr::{Message, Span},
     Mode,
 };
 use std::{num::NonZeroUsize, path::PathBuf, process::ExitStatus};
@@ -19,7 +19,7 @@ pub enum Error {
         expected: i32,
     },
     /// A pattern was declared but had no matching error.
-    PatternNotFound(WithLine<Pattern>),
+    PatternNotFound(Spanned<Pattern>),
     /// A ui test checking for failure does not have any failure patterns
     NoPatternsFound,
     /// A ui test checking for success has failure patterns
@@ -40,14 +40,21 @@ pub enum Error {
         /// The main message of the error.
         msgs: Vec<Message>,
         /// File and line information of the error.
-        path: Option<WithLine<PathBuf>>,
+        path: Option<Spanned<PathBuf>>,
     },
     /// A comment failed to parse.
     InvalidComment {
         /// The comment
         msg: String,
-        /// The line in which it was defined.
-        line: NonZeroUsize,
+        /// The character range in which it was defined.
+        span: Span,
+    },
+    /// Conflicting comments
+    MultipleRevisionsWithResults {
+        /// The comment being looked for
+        kind: String,
+        /// The lines where conflicts happened
+        lines: Vec<NonZeroUsize>,
     },
     /// A subcommand (e.g. rustfix) of a test failed.
     Command {

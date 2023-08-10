@@ -9,7 +9,7 @@ fn main() -> Result<()> {
     let mut config = Config {
         ..Config::cargo(root_dir.clone())
     };
-    let args = Args::test();
+    let args = Args::test()?;
 
     if !args.check {
         config.output_conflict_handling = OutputConflictHandling::Bless;
@@ -44,14 +44,14 @@ fn main() -> Result<()> {
     config.stderr_filter("exit code", "exit status");
     // The order of the `/deps` directory flag is flaky
     config.stderr_filter("/deps", "");
-    config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
+    config.path_stderr_filter(std::path::Path::new(path), "$DIR");
     config.stderr_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
     // Windows backslashes are sometimes escaped.
     // Insert the replacement filter at the start to make sure the filter for single backslashes
     // runs afterwards.
     config
         .stderr_filters
-        .insert(0, (Match::Exact(b"\\\\".iter().copied().collect()), b"\\"));
+        .insert(0, (Match::Exact(b"\\\\".to_vec()), b"\\"));
     config.stderr_filter("\\.exe", b"");
     config.stderr_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.stderr_filter("   [0-9]: .*", "");
@@ -83,7 +83,6 @@ fn main() -> Result<()> {
                 ..config
             },
         ],
-        std::thread::available_parallelism().unwrap(),
         args,
         |path, args, config| {
             let fail = path
