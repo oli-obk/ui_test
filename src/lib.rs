@@ -15,7 +15,6 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeSpanned, OptWithLine, Revisioned, Spanned};
-use read_helper::ReadHelper;
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Level, Message, Span};
 use status_emitter::{StatusEmitter, TestStatus};
@@ -24,9 +23,8 @@ use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus, Stdio};
-use std::time::Duration;
-use std::{io, thread};
+use std::process::{Command, ExitStatus};
+use std::thread;
 
 use crate::parser::{Comments, Condition};
 
@@ -38,7 +36,6 @@ mod error;
 pub mod github_actions;
 mod mode;
 mod parser;
-mod read_helper;
 mod rustc_stderr;
 pub mod status_emitter;
 #[cfg(test)]
@@ -613,53 +610,15 @@ impl dyn TestStatus {
     /// Run a command, and if it takes more than 100ms, start appending the last stderr/stdout
     /// line to the current status spinner.
     fn run_command(&self, cmd: &mut Command) -> (ExitStatus, Vec<u8>, Vec<u8>) {
-        let cmd = cmd
-            .stderr(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stdin(Stdio::null());
-        let mut child = retry_with_backoff(|| cmd.spawn()).unwrap_or_else(|err| {
+        let output = cmd.output().unwrap_or_else(|err| {
             panic!(
                 "could not spawn `{:?}` as a process: {err}",
                 cmd.get_program()
             )
         });
 
-        let stdout = ReadHelper::from(child.stdout.take().unwrap());
-        let mut stderr = ReadHelper::from(child.stderr.take().unwrap());
-
-        let start = std::time::Instant::now();
-        let status = loop {
-            if let Some(exit) = child.try_wait().unwrap() {
-                break exit;
-            }
-            if start.elapsed() < Duration::from_secs(10) {
-                std::thread::sleep(Duration::from_millis(5));
-                continue;
-            }
-
-            let status = stderr.last_line();
-            if !status.is_empty() {
-                self.update_status(status.to_str_lossy().to_string())
-            }
-            std::thread::sleep(Duration::from_millis(100));
-        };
-        (status, stderr.read_to_end(), stdout.read_to_end())
+        (output.status, output.stderr, output.stdout)
     }
-}
-
-fn retry_with_backoff<T>(mut f: impl FnMut() -> io::Result<T>) -> io::Result<T> {
-    let mut res = f();
-    for i in 0..10 {
-        if let Err(err) = &res {
-            if io::ErrorKind::WouldBlock == err.kind() || i < 5 {
-                std::thread::sleep(Duration::from_millis(100 * i + 10));
-                res = f();
-                continue;
-            }
-        }
-        return res;
-    }
-    res
 }
 
 fn build_aux_files(
