@@ -348,10 +348,10 @@ and prefix all actual commands with `//@`
 error: comment looks suspiciously like a test suite command: `@aux-build:asldkfjasldfj.rs`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
- --> tests/actual_tests_bless/compiletest-rs-command.rs:4:1
+ --> tests/actual_tests_bless/compiletest-rs-command.rs:4:4
   |
 4 | // @aux-build:asldkfjasldfj.rs
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -425,19 +425,19 @@ command: "parse comments"
 error: comment looks suspiciously like a test suite command: `@check-pass`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
- --> tests/actual_tests_bless/non_top_level_configs.rs:1:1
+ --> tests/actual_tests_bless/non_top_level_configs.rs:1:5
   |
 1 | ////@check-pass
-  | ^^^^^^^^^^^^^^^
+  |     ^^^^^^^^^^^
   |
 
 error: comment looks suspiciously like a test suite command: `@ignore-target-cheesecake`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
- --> tests/actual_tests_bless/non_top_level_configs.rs:4:1
+ --> tests/actual_tests_bless/non_top_level_configs.rs:4:7
   |
 4 |     //@ignore-target-cheesecake
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -594,10 +594,10 @@ tests/actual_tests_bless/unknown_revision.rs FAILED:
 command: "parse comments"
 
 error: there are no revisions in this test
- --> tests/actual_tests_bless/unknown_revision.rs:3:8
+ --> tests/actual_tests_bless/unknown_revision.rs:3:9
   |
 3 |     //~[cake, lie] ERROR: kawoom
-  |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |         ^^^^^^^^^
   |
 
 full stderr:
@@ -608,10 +608,10 @@ tests/actual_tests_bless/unknown_revision2.rs FAILED:
 command: "parse comments"
 
 error: the revision `cake` is not known
- --> tests/actual_tests_bless/unknown_revision2.rs:5:8
+ --> tests/actual_tests_bless/unknown_revision2.rs:5:9
   |
 5 |     //~[cake, lie] ERROR: kawoom
-  |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |         ^^^^^^^^^
   |
 
 full stderr:
