@@ -272,7 +272,7 @@ impl CommentParser<Comments> {
         line: Spanned<&[u8]>,
     ) -> std::result::Result<(), Utf8Error> {
         if let Some(command) = line.strip_prefix(b"//@") {
-            self.parse_command(command.trim().to_str()?)
+            self.parse_command(command.to_str()?.trim())
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
             let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
             self.revisioned(revisions, |this| {

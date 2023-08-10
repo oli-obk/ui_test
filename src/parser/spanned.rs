@@ -167,17 +167,6 @@ impl<'a> Spanned<&'a [u8]> {
         ))
     }
 
-    pub fn trim(&self) -> Self {
-        let data = self.data.trim_start();
-        let mut span = self.span;
-        span.column_start =
-            NonZeroUsize::new(span.column_start.get() + self.data.len() - data.len()).unwrap();
-        let data2 = data.trim_end();
-        span.column_end =
-            NonZeroUsize::new(span.column_end.get() - (self.data.len() - data.len())).unwrap();
-        Self { data: data2, span }
-    }
-
     pub fn to_str(self) -> Result<Spanned<&'a str>, Utf8Error> {
         Ok(Spanned {
             data: self.data.to_str()?,
