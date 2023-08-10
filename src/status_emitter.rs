@@ -1,7 +1,7 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
 use annotate_snippets::{
-    display_list::DisplayList,
+    display_list::{DisplayList, FormatOptions},
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 use bstr::ByteSlice;
@@ -553,7 +553,12 @@ fn create_error(
                 }
             })
             .collect(),
-        ..Default::default()
+        footer: vec![],
+        opt: FormatOptions {
+            color: colored::control::SHOULD_COLORIZE.should_colorize(),
+            anonymized_line_numbers: false,
+            margin: None,
+        },
     };
     eprintln!("{}", DisplayList::from(msg));
 }
