@@ -104,9 +104,11 @@ impl Text {
                     match receiver.try_recv() {
                         Ok(val) => match val {
                             Msg::Pop(msg, new_msg) => {
-                                let spinner = threads.remove(&msg).unwrap_or_else(|| {
-                                    panic!("`{msg}` not found in {:#?}", threads.keys())
-                                });
+                                let Some(spinner) = threads.remove(&msg) else {
+                                    // This can happen when a test was not run at all, because it failed directly during
+                                    // comment parsing.
+                                    continue
+                                };
                                 spinner.set_style(
                                     ProgressStyle::with_template("{prefix} {msg}").unwrap(),
                                 );
