@@ -1,5 +1,7 @@
 use std::num::NonZeroUsize;
 
+use bstr::{ByteSlice, Utf8Error};
+
 use crate::rustc_stderr::Span;
 
 #[derive(Default, Debug, Clone, Copy)]
@@ -54,6 +56,94 @@ impl<T> std::ops::Deref for Spanned<T> {
     }
 }
 
+impl<'a> Spanned<&'a str> {
+    pub fn strip_prefix(&self, prefix: &str) -> Option<Self> {
+        let data = self.data.strip_prefix(prefix)?;
+        let mut span = self.span;
+        span.column_start = NonZeroUsize::new(span.column_start.get() + prefix.len()).unwrap();
+        Some(Self { span, data })
+    }
+
+    pub fn trim_start(&self) -> Self {
+        let data = self.data.trim_start();
+        let mut span = self.span;
+        span.column_start =
+            NonZeroUsize::new(span.column_start.get() + self.data.len() - data.len()).unwrap();
+        Self { data, span }
+    }
+
+    pub fn split_at(&self, i: usize) -> (Self, Self) {
+        let (a, b) = self.data.split_at(i);
+        (
+            Self {
+                data: a,
+                span: Span {
+                    column_end: NonZeroUsize::new(self.span.column_start.get() + a.len()).unwrap(),
+                    ..self.span
+                },
+            },
+            Self {
+                data: b,
+                span: Span {
+                    column_start: NonZeroUsize::new(self.span.column_start.get() + a.len())
+                        .unwrap(),
+                    ..self.span
+                },
+            },
+        )
+    }
+}
+
+impl<'a> Spanned<&'a [u8]> {
+    pub fn strip_prefix(&self, prefix: &[u8]) -> Option<Self> {
+        let data = self.data.strip_prefix(prefix)?;
+        let mut span = self.span;
+        span.column_start = NonZeroUsize::new(span.column_start.get() + prefix.len()).unwrap();
+        Some(Self { span, data })
+    }
+
+    pub fn split_once_str(&self, splitter: &str) -> Option<(Self, Self)> {
+        let (a, b) = self.data.split_once_str(splitter)?;
+        Some((
+            Self {
+                data: a,
+                span: Span {
+                    column_end: NonZeroUsize::new(self.span.column_start.get() + a.len()).unwrap(),
+                    ..self.span
+                },
+            },
+            Self {
+                data: b,
+                span: Span {
+                    column_start: NonZeroUsize::new(
+                        self.span.column_start.get() + a.len() + splitter.len(),
+                    )
+                    .unwrap(),
+                    ..self.span
+                },
+            },
+        ))
+    }
+
+    pub fn trim(&self) -> Self {
+        let data = self.data.trim_start();
+        let mut span = self.span;
+        span.column_start =
+            NonZeroUsize::new(span.column_start.get() + self.data.len() - data.len()).unwrap();
+        let data2 = data.trim_end();
+        span.column_end =
+            NonZeroUsize::new(span.column_end.get() - (self.data.len() - data.len())).unwrap();
+        Self { data: data2, span }
+    }
+
+    pub fn to_str(self) -> Result<Spanned<&'a str>, Utf8Error> {
+        Ok(Spanned {
+            data: self.data.to_str()?,
+            span: self.span,
+        })
+    }
+}
+
 impl<T> Spanned<T> {
     pub fn new(data: T, span: Span) -> Self {
         Self { data, span }
@@ -72,6 +162,10 @@ impl<T> Spanned<T> {
 
     pub fn into_inner(self) -> T {
         self.data
+    }
+
+    pub fn span(&self) -> Span {
+        self.span
     }
 }
 

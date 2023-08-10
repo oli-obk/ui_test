@@ -63,6 +63,22 @@ impl Span {
         line_end: NonZeroUsize::MAX,
         column_end: NonZeroUsize::MAX,
     };
+
+    pub fn shrink_to_end(self) -> Span {
+        Self {
+            line_start: self.line_end,
+            column_start: self.column_end,
+            ..self
+        }
+    }
+
+    pub fn shrink_to_start(self) -> Span {
+        Self {
+            line_end: self.line_start,
+            column_end: self.column_start,
+            ..self
+        }
+    }
 }
 
 impl std::str::FromStr for Level {

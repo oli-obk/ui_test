@@ -310,7 +310,7 @@ error: `compile-flag` is not a command known to `ui_test`, did you mean `compile
  --> tests/actual_tests_bless/compile_flags_quotes.rs:1:4
   |
 1 | //@compile-flag: cake
-  |    ^^^^^^^^^^^^^^^^^^
+  |    ^^^^^^^^^^^^
   |
 
 error: `-Z "cheese is good` contains an unclosed quotation mark
@@ -448,10 +448,10 @@ tests/actual_tests_bless/revised_revision.rs FAILED:
 command: "parse comments"
 
 error: revisions cannot be declared under a revision
- --> tests/actual_tests_bless/revised_revision.rs:2:4
+ --> tests/actual_tests_bless/revised_revision.rs:2:5
   |
 2 | //@[foo] revisions: foo bar
-  |    ^^^^^^^^^^^^^^^^^^^^^^^^
+  |     ^^^
   |
 
 full stderr:
