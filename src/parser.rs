@@ -229,7 +229,7 @@ impl Comments {
                 line_start: l,
                 line_end: l,
                 column_start: NonZeroUsize::new(1).unwrap(),
-                column_end: NonZeroUsize::new(line.len() + 1).unwrap(),
+                column_end: NonZeroUsize::new(line.chars().count() + 1).unwrap(),
             };
             match parser.parse_checked_line(&mut fallthrough_to, Spanned::new(line, span)) {
                 Ok(()) => {}

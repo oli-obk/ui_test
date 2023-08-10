@@ -60,30 +60,36 @@ impl<'a> Spanned<&'a str> {
     pub fn strip_prefix(&self, prefix: &str) -> Option<Self> {
         let data = self.data.strip_prefix(prefix)?;
         let mut span = self.span;
-        span.column_start = NonZeroUsize::new(span.column_start.get() + prefix.len()).unwrap();
+        span.column_start =
+            NonZeroUsize::new(span.column_start.get() + prefix.chars().count()).unwrap();
         Some(Self { span, data })
     }
 
     pub fn strip_suffix(&self, suffix: &str) -> Option<Self> {
         let data = self.data.strip_suffix(suffix)?;
         let mut span = self.span;
-        span.column_end = NonZeroUsize::new(span.column_end.get() - suffix.len()).unwrap();
+        span.column_end =
+            NonZeroUsize::new(span.column_end.get() - suffix.chars().count()).unwrap();
         Some(Self { span, data })
     }
 
     pub fn trim_start(&self) -> Self {
         let data = self.data.trim_start();
         let mut span = self.span;
-        span.column_start =
-            NonZeroUsize::new(span.column_start.get() + self.data.len() - data.len()).unwrap();
+        span.column_start = NonZeroUsize::new(
+            span.column_start.get() + self.data.chars().count() - data.chars().count(),
+        )
+        .unwrap();
         Self { data, span }
     }
 
     pub fn trim_end(&self) -> Self {
         let data = self.data.trim_end();
         let mut span = self.span;
-        span.column_end =
-            NonZeroUsize::new(span.column_end.get() - (self.data.len() - data.len())).unwrap();
+        span.column_end = NonZeroUsize::new(
+            span.column_end.get() - (self.data.chars().count() - data.chars().count()),
+        )
+        .unwrap();
         Self { data, span }
     }
 
@@ -97,15 +103,18 @@ impl<'a> Spanned<&'a str> {
             Self {
                 data: a,
                 span: Span {
-                    column_end: NonZeroUsize::new(self.span.column_start.get() + a.len()).unwrap(),
+                    column_end: NonZeroUsize::new(self.span.column_start.get() + a.chars().count())
+                        .unwrap(),
                     ..self.span
                 },
             },
             Self {
                 data: b,
                 span: Span {
-                    column_start: NonZeroUsize::new(self.span.column_start.get() + a.len())
-                        .unwrap(),
+                    column_start: NonZeroUsize::new(
+                        self.span.column_start.get() + a.chars().count(),
+                    )
+                    .unwrap(),
                     ..self.span
                 },
             },
@@ -118,7 +127,8 @@ impl<'a> Spanned<&'a str> {
             Self {
                 data: a,
                 span: Span {
-                    column_end: NonZeroUsize::new(self.span.column_start.get() + a.len()).unwrap(),
+                    column_end: NonZeroUsize::new(self.span.column_start.get() + a.chars().count())
+                        .unwrap(),
                     ..self.span
                 },
             },
@@ -126,7 +136,7 @@ impl<'a> Spanned<&'a str> {
                 data: b,
                 span: Span {
                     column_start: NonZeroUsize::new(
-                        self.span.column_start.get() + a.len() + splitter.len(),
+                        self.span.column_start.get() + a.chars().count() + splitter.chars().count(),
                     )
                     .unwrap(),
                     ..self.span

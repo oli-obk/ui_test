@@ -15,7 +15,7 @@ error: substring `miesmätsched types` not found in stderr output
  --> tests/actual_tests/bad_pattern.rs:5:17
   |
 5 |     //~^ ERROR: miesmätsched types
-  |_________________^
+  |                 ^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
 error: There were 1 unmatched diagnostics

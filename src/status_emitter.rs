@@ -519,6 +519,7 @@ fn create_error(
             .iter()
             .map(|(label, line)| {
                 let source = source[line.get() - 1];
+                let len = source.chars().count();
                 Slice {
                     source,
                     line_start: line.get(),
@@ -526,12 +527,12 @@ fn create_error(
                     annotations: label
                         .iter()
                         .map(|(label, lc)| SourceAnnotation {
-                            range: lc.map_or((0, source.len() - 1), |lc| {
+                            range: lc.map_or((0, len - 1), |lc| {
                                 assert_eq!(lc.line_start, *line);
                                 if lc.line_end > lc.line_start {
-                                    (lc.column_start.get() - 1, source.len() - 1)
+                                    (lc.column_start.get() - 1, len - 1)
                                 } else if lc.column_start == lc.column_end {
-                                    if lc.column_start.get() - 1 == source.len() {
+                                    if lc.column_start.get() - 1 == len {
                                         // rustc sometimes produces spans pointing *after* the `\n` at the end of the line,
                                         // but we want to render an annotation at the end.
                                         (lc.column_start.get() - 2, lc.column_start.get() - 1)
