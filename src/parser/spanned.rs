@@ -64,12 +64,31 @@ impl<'a> Spanned<&'a str> {
         Some(Self { span, data })
     }
 
+    pub fn strip_suffix(&self, suffix: &str) -> Option<Self> {
+        let data = self.data.strip_suffix(suffix)?;
+        let mut span = self.span;
+        span.column_end = NonZeroUsize::new(span.column_end.get() - suffix.len()).unwrap();
+        Some(Self { span, data })
+    }
+
     pub fn trim_start(&self) -> Self {
         let data = self.data.trim_start();
         let mut span = self.span;
         span.column_start =
             NonZeroUsize::new(span.column_start.get() + self.data.len() - data.len()).unwrap();
         Self { data, span }
+    }
+
+    pub fn trim_end(&self) -> Self {
+        let data = self.data.trim_end();
+        let mut span = self.span;
+        span.column_end =
+            NonZeroUsize::new(span.column_end.get() - (self.data.len() - data.len())).unwrap();
+        Self { data, span }
+    }
+
+    pub fn trim(&self) -> Self {
+        self.trim_start().trim_end()
     }
 
     pub fn split_at(&self, i: usize) -> (Self, Self) {
@@ -91,6 +110,29 @@ impl<'a> Spanned<&'a str> {
                 },
             },
         )
+    }
+
+    pub fn split_once(&self, splitter: &str) -> Option<(Self, Self)> {
+        let (a, b) = self.data.split_once(splitter)?;
+        Some((
+            Self {
+                data: a,
+                span: Span {
+                    column_end: NonZeroUsize::new(self.span.column_start.get() + a.len()).unwrap(),
+                    ..self.span
+                },
+            },
+            Self {
+                data: b,
+                span: Span {
+                    column_start: NonZeroUsize::new(
+                        self.span.column_start.get() + a.len() + splitter.len(),
+                    )
+                    .unwrap(),
+                    ..self.span
+                },
+            },
+        ))
     }
 }
 

@@ -269,10 +269,10 @@ tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
 command: "parse comments"
 
 error: proc macros are now auto-detected, you can remove the `:proc-macro` after the file name
- --> tests/actual_tests_bless/aux_proc_macro_misuse.rs:1:31
+ --> tests/actual_tests_bless/aux_proc_macro_misuse.rs:1:32
   |
 1 | //@aux-build:the_proc_macro.rs:proc-macro
-  |                               ^^^^^^^^^^^
+  |                                ^^^^^^^^^^
   |
 
 full stderr:
@@ -339,19 +339,19 @@ and prefix all actual commands with `//@`
 error: a compiletest-rs style comment was detected.
 Please use text that could not also be interpreted as a command,
 and prefix all actual commands with `//@`
- --> tests/actual_tests_bless/compiletest-rs-command.rs:2:3
+ --> tests/actual_tests_bless/compiletest-rs-command.rs:2:4
   |
 2 | // aux-build:asf.rs
-  |   ^^^^^^^^^^^^^^^^^
+  |    ^^^^^^^^^^^^^^^^
   |
 
 error: comment looks suspiciously like a test suite command: `@aux-build:asldkfjasldfj.rs`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
- --> tests/actual_tests_bless/compiletest-rs-command.rs:4:3
+ --> tests/actual_tests_bless/compiletest-rs-command.rs:4:1
   |
 4 | // @aux-build:asldkfjasldfj.rs
-  |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:
@@ -425,19 +425,19 @@ command: "parse comments"
 error: comment looks suspiciously like a test suite command: `@check-pass`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
- --> tests/actual_tests_bless/non_top_level_configs.rs:1:5
+ --> tests/actual_tests_bless/non_top_level_configs.rs:1:1
   |
 1 | ////@check-pass
-  |     ^^^^^^^^^^^
+  | ^^^^^^^^^^^^^^^
   |
 
 error: comment looks suspiciously like a test suite command: `@ignore-target-cheesecake`
 All `//@` test suite commands must be at the start of the line.
 The `//` must be directly followed by `@` or `~`.
- --> tests/actual_tests_bless/non_top_level_configs.rs:4:7
+ --> tests/actual_tests_bless/non_top_level_configs.rs:4:1
   |
 4 |     //@ignore-target-cheesecake
-  |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 
 full stderr:

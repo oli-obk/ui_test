@@ -147,7 +147,7 @@ impl<T> CommentParser<T> {
     }
 }
 
-type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: &str);
+type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: Spanned<&str>);
 
 impl<T> std::ops::Deref for CommentParser<T> {
     type Target = T;
@@ -242,7 +242,7 @@ impl Comments {
             };
             match parser.parse_checked_line(&mut fallthrough_to, Spanned::new(line, parser.span)) {
                 Ok(()) => {}
-                Err(e) => parser.error(format!("Comment is not utf8: {e:?}")),
+                Err(e) => parser.error(parser.span, format!("Comment is not utf8: {e:?}")),
             }
         }
         if let Some(revisions) = &parser.comments.revisions {
@@ -295,15 +295,18 @@ impl CommentParser<Comments> {
             for pos in line.find_iter("//") {
                 self.span = span;
                 self.step_column(pos + 2);
-                let rest = &line[pos + 2..];
-                for rest in std::iter::once(rest).chain(rest.strip_prefix(b" ")) {
+                let (_, rest) = line.to_str()?.split_at(pos + 2);
+                for rest in std::iter::once(rest).chain(rest.strip_prefix(" ")) {
                     if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
-                        self.error(format!(
-                            "comment looks suspiciously like a test suite command: `{}`\n\
+                        self.error(
+                            span,
+                            format!(
+                                "comment looks suspiciously like a test suite command: `{}`\n\
                              All `//@` test suite commands must be at the start of the line.\n\
                              The `//` must be directly followed by `@` or `~`.",
-                            rest.to_str()?,
-                        ));
+                                *rest,
+                            ),
+                        );
                     } else {
                         let mut parser = Self {
                             span: Span {
@@ -314,15 +317,10 @@ impl CommentParser<Comments> {
                             comments: Comments::default(),
                             commands: std::mem::take(&mut self.commands),
                         };
-                        parser.parse_command(Spanned::new(
-                            rest.to_str()?,
-                            Span {
-                                column_start: NonZeroUsize::MIN,
-                                ..Span::INVALID
-                            },
-                        ));
+                        parser.parse_command(rest);
                         if parser.errors.is_empty() {
                             self.error(
+                                rest.span(),
                                 "a compiletest-rs style comment was detected.\n\
                                 Please use text that could not also be interpreted as a command,\n\
                                 and prefix all actual commands with `//@`",
@@ -338,16 +336,16 @@ impl CommentParser<Comments> {
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
-    fn error(&mut self, s: impl Into<String>) {
+    fn error(&mut self, span: Span, s: impl Into<String>) {
         self.errors.push(Error::InvalidComment {
             msg: s.into(),
-            span: self.span,
+            span,
         });
     }
 
     fn check(&mut self, cond: bool, s: impl Into<String>) {
         if !cond {
-            self.error(s);
+            self.error(self.span, s);
         }
     }
 
@@ -450,10 +448,10 @@ impl CommentParser<&mut Revisioned> {
         }
         commands! {
             "compile-flags" => (this, args){
-                if let Some(parsed) = comma::parse_command(args) {
+                if let Some(parsed) = comma::parse_command(*args) {
                     this.compile_flags.extend(parsed);
                 } else {
-                    this.error(format!("`{args}` contains an unclosed quotation mark"));
+                    this.error(args.span(), format!("`{}` contains an unclosed quotation mark", *args));
                 }
             }
             "rustc-env" => (this, args){
@@ -472,15 +470,16 @@ impl CommentParser<&mut Revisioned> {
                 let to = match rest.strip_prefix("->") {
                     Some(v) => v,
                     None => {
-                        this.error("normalize-stderr-test needs a pattern and replacement separated by `->`");
+                        this.error(rest.span(), "normalize-stderr-test needs a pattern and replacement separated by `->`");
                         return;
                     },
                 }.trim_start();
                 let (to, rest) = this.parse_str(to);
 
+                this.span = rest.span();
                 this.check(
                     rest.is_empty(),
-                    format!("trailing text after pattern replacement: {rest}"),
+                    "trailing text after pattern replacement",
                 );
 
                 if let Some(regex) = this.parse_regex(from) {
@@ -489,12 +488,12 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "error-pattern" => (this, _args){
-                this.error("`error-pattern` has been renamed to `error-in-other-file`");
+                this.error(this.span, "`error-pattern` has been renamed to `error-in-other-file`");
             }
             "error-in-other-file" => (this, args){
-                let pat = this.parse_error_pattern(args.trim());
-                let span = this.span;
-                this.error_in_other_files.push(Spanned::new(pat, span));
+                let args = args.trim();
+                let pat = this.parse_error_pattern(args);
+                this.error_in_other_files.push(Spanned::new(pat, args.span()));
             }
             "stderr-per-bitwidth" => (this, _args){
                 // args are ignored (can be used as comment)
@@ -505,7 +504,7 @@ impl CommentParser<&mut Revisioned> {
                 this.stderr_per_bitwidth = true;
             }
             "run-rustfix" => (this, _args){
-                this.error("rustfix is now ran by default when applicable suggestions are found");
+                this.error(this.span, "rustfix is now ran by default when applicable suggestions are found");
             }
             "no-rustfix" => (this, _args){
                 // args are ignored (can be used as comment)
@@ -525,20 +524,17 @@ impl CommentParser<&mut Revisioned> {
                 this.needs_asm_support = true;
             }
             "aux-build" => (this, args){
-                let name = match args.split_once(':') {
-                    Some((name, _)) => {
-                        this.step_column(name.len());
-                        this.error("proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
+                let name = match args.split_once(":") {
+                    Some((name, rest)) => {
+                        this.error(rest.span(), "proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
                         name
                     },
                     None => args,
                 };
-                let span = this.span;
-                this.aux_builds.push(Spanned::new(name.into(), span));
+                this.aux_builds.push(name.map(Into::into));
             }
             "edition" => (this, args){
-                let span = this.span;
-                let prev = this.edition.set(args.into(), span);
+                let prev = this.edition.set((*args).into(), args.span());
                 this.check(prev.is_none(), "cannot specify `edition` twice");
             }
             "check-pass" => (this, _args){
@@ -555,23 +551,22 @@ impl CommentParser<&mut Revisioned> {
                     this.mode.is_none(),
                     "cannot specify test mode changes twice",
                 );
-                let span = this.span;
-                let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, span);
+                let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, args.span());
                 if args.is_empty() {
                     set(0);
                 } else {
                     match args.parse() {
                         Ok(exit_code) => {set(exit_code);},
-                        Err(err) => this.error(err.to_string()),
+                        Err(err) => this.error(args.span(), err.to_string()),
                     }
                 }
             }
             "require-annotations-for-level" => (this, args){
-                let span = this.span;
-                let prev = match args.trim().parse() {
-                    Ok(it) =>  this.require_annotations_for_level.set(it, span),
+                let args = args.trim();
+                let prev = match args.parse() {
+                    Ok(it) =>  this.require_annotations_for_level.set(it, args.span()),
                     Err(msg) => {
-                        this.error(msg);
+                        this.error(args.span(), msg);
                         None
                     },
                 };
@@ -587,21 +582,18 @@ impl CommentParser<&mut Revisioned> {
 
     fn parse_command(&mut self, command: Spanned<&str>, args: Spanned<&str>) {
         if let Some(command) = self.commands.get(*command) {
-            self.span = args.span();
-            command(self, *args);
+            command(self, args);
         } else if let Some(s) = command.strip_prefix("ignore-") {
-            self.span = s.span();
             // args are ignored (can be used as comment)
             match Condition::parse(*s) {
                 Ok(cond) => self.ignore.push(cond),
-                Err(msg) => self.error(msg),
+                Err(msg) => self.error(s.span(), msg),
             }
         } else if let Some(s) = command.strip_prefix("only-") {
-            self.span = s.span();
             // args are ignored (can be used as comment)
             match Condition::parse(*s) {
                 Ok(cond) => self.only.push(cond),
-                Err(msg) => self.error(msg),
+                Err(msg) => self.error(s.span(), msg),
             }
         } else {
             let best_match = self
@@ -609,21 +601,23 @@ impl CommentParser<&mut Revisioned> {
                 .keys()
                 .min_by_key(|key| distance::damerau_levenshtein(key, *command))
                 .unwrap();
-            self.span = command.span();
-            self.error(format!(
-                "`{}` is not a command known to `ui_test`, did you mean `{best_match}`?",
-                *command
-            ));
+            self.error(
+                command.span(),
+                format!(
+                    "`{}` is not a command known to `ui_test`, did you mean `{best_match}`?",
+                    *command
+                ),
+            );
         }
     }
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
-    fn parse_regex(&mut self, regex: &str) -> Option<Regex> {
-        match Regex::new(regex) {
+    fn parse_regex(&mut self, regex: Spanned<&str>) -> Option<Regex> {
+        match Regex::new(*regex) {
             Ok(regex) => Some(regex),
             Err(err) => {
-                self.error(format!("invalid regex: {err:?}"));
+                self.error(regex.span(), format!("invalid regex: {err:?}"));
                 None
             }
         }
@@ -632,32 +626,35 @@ impl<CommentsType> CommentParser<CommentsType> {
     /// Parses a string literal. `s` has to start with `"`; everything until the next `"` is
     /// returned in the first component. `\` can be used to escape arbitrary character.
     /// Second return component is the rest of the string with leading whitespace removed.
-    fn parse_str<'a>(&mut self, s: &'a str) -> (&'a str, &'a str) {
-        let mut chars = s.char_indices();
-        match chars.next() {
-            Some((_, '"')) => {
-                let s = chars.as_str();
+    fn parse_str<'a>(&mut self, s: Spanned<&'a str>) -> (Spanned<&'a str>, Spanned<&'a str>) {
+        match s.strip_prefix("\"") {
+            Some(s) => {
                 let mut escaped = false;
-                for (i, c) in chars {
+                for (i, c) in s.char_indices() {
                     if escaped {
                         // Accept any character as literal after a `\`.
                         escaped = false;
                     } else if c == '"' {
-                        return (&s[..(i - 1)], s[i..].trim_start());
+                        let (a, b) = s.split_at(i);
+                        let b = b.split_at(1).1;
+                        return (a, b.trim_start());
                     } else {
                         escaped = c == '\\';
                     }
                 }
-                self.error(format!("no closing quotes found for {s}"));
-                (s, "")
-            }
-            Some((_, c)) => {
-                self.error(format!("expected `\"`, got `{c}`"));
-                (s, "")
+                self.error(s.span(), format!("no closing quotes found for {}", *s));
+                (s, Spanned::new("", s.span()))
             }
             None => {
-                self.error("expected quoted string, but found end of line");
-                (s, "")
+                if s.is_empty() {
+                    self.error(s.span(), "expected quoted string, but found end of line")
+                } else {
+                    self.error(
+                        s.span(),
+                        format!("expected `\"`, got `{}`", s.chars().next().unwrap()),
+                    )
+                }
+                (s, Spanned::new("", s.span()))
             }
         }
     }
@@ -675,7 +672,7 @@ impl<CommentsType> CommentParser<CommentsType> {
                     _ => None,
                 });
                 let Some(end) = end else {
-                    self.error("`[` without corresponding `]`");
+                    self.error(s.span(), "`[` without corresponding `]`");
                     return (Spanned::new(vec![], pattern.span().shrink_to_start()), pattern);
                 };
                 let (revision, pattern) = s.split_at(end);
@@ -702,11 +699,11 @@ impl CommentParser<&mut Revisioned> {
                 match fallthrough_to {
                     Some(fallthrough) => *fallthrough,
                     None => {
-                        self.error("`//~|` pattern without preceding line");
+                        self.error(pattern.span(), "`//~|` pattern without preceding line");
                         return;
                     }
                 },
-                &pattern[1..],
+                pattern.split_at(1).1,
             ),
             Some('^') => {
                 let offset = pattern.chars().take_while(|&c| c == '^').count();
@@ -719,9 +716,9 @@ impl CommentParser<&mut Revisioned> {
                 {
                     // lines are one-indexed, so a target line of 0 is invalid, but also
                     // prevented via `NonZeroUsize`
-                    Some(match_line) => (match_line, &pattern[offset..]),
+                    Some(match_line) => (match_line, pattern.split_at(offset).1),
                     _ => {
-                        self.error(format!(
+                        self.error(pattern.span(), format!(
                             "//~^ pattern is trying to refer to {} lines above, but there are only {} lines above",
                             offset,
                             self.span.line_start.get() - 1
@@ -730,9 +727,9 @@ impl CommentParser<&mut Revisioned> {
                     }
                 }
             }
-            Some(_) => (self.span.line_start, *pattern),
+            Some(_) => (self.span.line_start, pattern),
             None => {
-                self.error("no pattern specified");
+                self.error(pattern.span(), "no pattern specified");
                 return;
             }
         };
@@ -741,23 +738,23 @@ impl CommentParser<&mut Revisioned> {
         let offset = match pattern.chars().position(|c| !c.is_ascii_alphabetic()) {
             Some(offset) => offset,
             None => {
-                self.error("pattern without level");
+                self.error(pattern.span(), "pattern without level");
                 return;
             }
         };
 
-        let level = match pattern[..offset].parse() {
+        let (level, pattern) = pattern.split_at(offset);
+        let level = match (*level).parse() {
             Ok(level) => level,
             Err(msg) => {
-                self.error(msg);
+                self.error(level.span(), msg);
                 return;
             }
         };
-        let pattern = &pattern[offset..];
-        let pattern = match pattern.strip_prefix(':') {
+        let pattern = match pattern.strip_prefix(":") {
             Some(offset) => offset,
             None => {
-                self.error("no `:` after level found");
+                self.error(pattern.span(), "no `:` after level found");
                 return;
             }
         };
@@ -789,15 +786,16 @@ impl Pattern {
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
-    fn parse_error_pattern(&mut self, pattern: &str) -> Pattern {
-        if let Some(regex) = pattern.strip_prefix('/') {
-            match regex.strip_suffix('/') {
+    fn parse_error_pattern(&mut self, pattern: Spanned<&str>) -> Pattern {
+        if let Some(regex) = pattern.strip_prefix("/") {
+            match regex.strip_suffix("/") {
                 Some(regex) => match self.parse_regex(regex) {
                     Some(regex) => Pattern::Regex(regex),
                     None => Pattern::SubString(pattern.to_string()),
                 },
                 None => {
                     self.error(
+                        regex.span(),
                         "expected regex pattern due to leading `/`, but found no closing `/`",
                     );
                     Pattern::SubString(pattern.to_string())
