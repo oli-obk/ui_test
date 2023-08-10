@@ -3,6 +3,7 @@
 
 use crate::{
     build_manager::{Build, BuildManager},
+    core::run_command,
     custom_flags::Flag,
     default_per_file_config, display,
     per_test_config::{Comments, TestConfig},
@@ -122,7 +123,7 @@ impl Build for AuxBuilder {
 
         aux_cmd.arg("--emit=link");
         let filename = self.aux_file.file_stem().unwrap().to_str().unwrap();
-        let output = aux_cmd.output().unwrap();
+        let output = run_command(&mut aux_cmd)?;
         if !output.status.success() {
             let error = Error::Command {
                 kind: "compilation of aux build failed".to_string(),
@@ -138,7 +139,7 @@ impl Build for AuxBuilder {
 
         // Now run the command again to fetch the output filenames
         aux_cmd.arg("--print").arg("file-names");
-        let output = aux_cmd.output().unwrap();
+        let output = run_command(&mut aux_cmd)?;
 
         if build_manager.aborted() {
             return Err(Errored::aborted());
