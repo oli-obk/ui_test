@@ -500,6 +500,7 @@ fn print_error(error: &Error, path: &Path) {
     eprintln!();
 }
 
+#[allow(clippy::type_complexity)]
 fn create_error(
     s: impl AsRef<str>,
     lines: &[(&[(&str, Option<Span>)], NonZeroUsize)],
