@@ -250,7 +250,12 @@ pub fn run_tests_generic(
                     for entry in entries {
                         todo.push_back((entry, config));
                     }
-                } else if file_filter(&path, &args, config) {
+                } else if !args
+                    .skip
+                    .iter()
+                    .any(|skip| path.display().to_string().contains(skip))
+                    && file_filter(&path, &args, config)
+                {
                     let status = status_emitter.register_test(path);
                     // Forward .rs files to the test workers.
                     submit.send((status, config)).unwrap();
