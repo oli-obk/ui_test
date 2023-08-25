@@ -4,9 +4,9 @@ fn main() -> ui_test::color_eyre::Result<()> {
     for mode in [
         Mode::Fail {
             require_patterns: true,
-            rustfix: true,
+            rustfix: RustfixMode::MachineApplicable,
         },
-        Mode::Yolo { rustfix: true },
+        Mode::Yolo { rustfix: RustfixMode::Everything },
     ] {
         let path = "../../../target";
 

@@ -107,7 +107,7 @@ impl Text {
                                 let Some(spinner) = threads.remove(&msg) else {
                                     // This can happen when a test was not run at all, because it failed directly during
                                     // comment parsing.
-                                    continue
+                                    continue;
                                 };
                                 spinner.set_style(
                                     ProgressStyle::with_template("{prefix} {msg}").unwrap(),

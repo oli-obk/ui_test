@@ -1,6 +1,6 @@
 use regex::bytes::Regex;
 
-use crate::{dependencies::build_dependencies, CommandBuilder, Filter, Match, Mode};
+use crate::{dependencies::build_dependencies, CommandBuilder, Filter, Match, Mode, RustfixMode};
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
@@ -72,7 +72,7 @@ impl Config {
             root_dir: root_dir.into(),
             mode: Mode::Fail {
                 require_patterns: true,
-                rustfix: true,
+                rustfix: RustfixMode::MachineApplicable,
             },
             program: CommandBuilder::rustc(),
             cfgs: CommandBuilder::cfgs(),
@@ -101,7 +101,7 @@ impl Config {
             edition: None,
             mode: Mode::Fail {
                 require_patterns: true,
-                rustfix: false,
+                rustfix: RustfixMode::Disabled,
             },
             ..Self::rustc(root_dir)
         }

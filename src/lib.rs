@@ -731,11 +731,11 @@ fn run_rustfix(
         comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)?;
 
     let global_rustfix = match mode {
-        Mode::Pass | Mode::Run { .. } | Mode::Panic => false,
+        Mode::Pass | Mode::Run { .. } | Mode::Panic => RustfixMode::Disabled,
         Mode::Fail { rustfix, .. } | Mode::Yolo { rustfix } => rustfix,
     };
 
-    let fixed_code = (no_run_rustfix.is_none() && global_rustfix)
+    let fixed_code = (no_run_rustfix.is_none() && global_rustfix.enabled())
         .then_some(())
         .and_then(|()| {
             let suggestions = std::str::from_utf8(stderr)
@@ -748,7 +748,7 @@ fn run_rustfix(
                     rustfix::get_suggestions_from_json(
                         line,
                         &HashSet::new(),
-                        if let Mode::Yolo { .. } = config.mode {
+                        if global_rustfix == RustfixMode::Everything {
                             rustfix::Filter::Everything
                         } else {
                             rustfix::Filter::MachineApplicableOnly

@@ -662,7 +662,10 @@ impl<CommentsType> CommentParser<CommentsType> {
                 });
                 let Some(end) = end else {
                     self.error(s.span(), "`[` without corresponding `]`");
-                    return (Spanned::new(vec![], pattern.span().shrink_to_start()), pattern);
+                    return (
+                        Spanned::new(vec![], pattern.span().shrink_to_start()),
+                        pattern,
+                    );
                 };
                 let (revision, pattern) = s.split_at(end);
                 let revisions = revision.split(',').map(|s| s.trim().to_string()).collect();

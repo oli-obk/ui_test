@@ -5,6 +5,23 @@ use crate::Errored;
 use std::fmt::Display;
 use std::process::ExitStatus;
 
+/// When to run rustfix on tests
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum RustfixMode {
+    /// Do not run rustfix on the test
+    Disabled,
+    /// Apply only `MachineApplicable` suggestions emitted by the test
+    MachineApplicable,
+    /// Apply all suggestions emitted by the test
+    Everything,
+}
+
+impl RustfixMode {
+    pub(crate) fn enabled(self) -> bool {
+        self != RustfixMode::Disabled
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 /// Decides what is expected of each test's exit status.
 pub enum Mode {
@@ -21,13 +38,13 @@ pub enum Mode {
     Fail {
         /// Whether failing tests must have error patterns. Set to false if you just care about .stderr output.
         require_patterns: bool,
-        /// Whether to run rustfix on the test if it has machine applicable suggestions.
-        rustfix: bool,
+        /// When to run rustfix on the test
+        rustfix: RustfixMode,
     },
     /// Run the tests, but always pass them as long as all annotations are satisfied and stderr files match.
     Yolo {
-        /// Whether to run
-        rustfix: bool,
+        /// When to run rustfix on the test
+        rustfix: RustfixMode,
     },
 }
 
