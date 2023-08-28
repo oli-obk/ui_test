@@ -66,8 +66,11 @@ impl Config {
                 (Match::Exact(br"\\?\".to_vec()), b""),
             ],
             stdout_filters: vec![
+                (Match::PathBackslash, b"/"),
                 #[cfg(windows)]
                 (Match::Exact(vec![b'\r']), b""),
+                #[cfg(windows)]
+                (Match::Exact(br"\\?\".to_vec()), b""),
             ],
             root_dir: root_dir.into(),
             mode: Mode::Fail {
@@ -115,6 +118,17 @@ impl Config {
     ) {
         let pattern = path.canonicalize().unwrap();
         self.stderr_filters
+            .push((pattern.parent().unwrap().into(), replacement.as_ref()));
+    }
+
+    /// Replace all occurrences of a path in stdout with a byte string.
+    pub fn path_stdout_filter(
+        &mut self,
+        path: &Path,
+        replacement: &'static (impl AsRef<[u8]> + ?Sized),
+    ) {
+        let pattern = path.canonicalize().unwrap();
+        self.stdout_filters
             .push((pattern.parent().unwrap().into(), replacement.as_ref()));
     }
 

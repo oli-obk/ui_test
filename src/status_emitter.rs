@@ -210,9 +210,9 @@ impl TestStatus for TextTest {
             };
             let old_msg = self.msg();
             let msg = format!("... {result}");
-            if ProgressDrawTarget::stderr().is_hidden() {
-                eprintln!("{old_msg} {msg}");
-                std::io::stderr().flush().unwrap();
+            if ProgressDrawTarget::stdout().is_hidden() {
+                println!("{old_msg} {msg}");
+                std::io::stdout().flush().unwrap();
             } else {
                 self.text.sender.send(Msg::Pop(old_msg, Some(msg))).unwrap();
             }
@@ -224,28 +224,28 @@ impl TestStatus for TextTest {
     }
 
     fn failed_test<'a>(&self, cmd: &Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
-        eprintln!();
+        println!();
         let path = self.path.display().to_string();
-        eprint!("{}", path.underline().bold());
+        print!("{}", path.underline().bold());
         let revision = if self.revision.is_empty() {
             String::new()
         } else {
             format!(" (revision `{}`)", self.revision)
         };
-        eprint!("{revision}");
-        eprint!(" {}", "FAILED:".red().bold());
-        eprintln!();
-        eprintln!("command: {cmd:?}");
-        eprintln!();
+        print!("{revision}");
+        print!(" {}", "FAILED:".red().bold());
+        println!();
+        println!("command: {cmd:?}");
+        println!();
 
         #[derive(Debug)]
         struct Guard<'a>(&'a [u8]);
         impl<'a> Drop for Guard<'a> {
             fn drop(&mut self) {
-                eprintln!("full stderr:");
-                std::io::stderr().write_all(self.0).unwrap();
-                eprintln!();
-                eprintln!();
+                println!("full stderr:");
+                std::io::stdout().write_all(self.0).unwrap();
+                println!();
+                println!();
             }
         }
         Box::new(Guard(stderr))
@@ -300,26 +300,26 @@ impl StatusEmitter for Text {
         while !self.sender.is_empty() {
             std::thread::sleep(Duration::from_millis(10));
         }
-        if !ProgressDrawTarget::stderr().is_hidden() {
+        if !ProgressDrawTarget::stdout().is_hidden() {
             // The progress bars do not have a trailing newline, so let's
             // add it here.
-            eprintln!();
+            println!();
         }
         // Print all errors in a single thread to show reliable output
         if failures == 0 {
-            eprintln!();
-            eprint!("test result: {}.", "ok".green());
+            println!();
+            print!("test result: {}.", "ok".green());
             if succeeded > 0 {
-                eprint!(" {} passed;", succeeded.to_string().green());
+                print!(" {} passed;", succeeded.to_string().green());
             }
             if ignored > 0 {
-                eprint!(" {} ignored;", ignored.to_string().yellow());
+                print!(" {} ignored;", ignored.to_string().yellow());
             }
             if filtered > 0 {
-                eprint!(" {} filtered out;", filtered.to_string().yellow());
+                print!(" {} filtered out;", filtered.to_string().yellow());
             }
-            eprintln!();
-            eprintln!();
+            println!();
+            println!();
             Box::new(())
         } else {
             struct Summarizer {
@@ -349,24 +349,24 @@ impl StatusEmitter for Text {
 
             impl Drop for Summarizer {
                 fn drop(&mut self) {
-                    eprintln!("{}", "FAILURES:".red().underline().bold());
+                    println!("{}", "FAILURES:".red().underline().bold());
                     for line in &self.failures {
-                        eprintln!("{line}");
+                        println!("{line}");
                     }
-                    eprintln!();
-                    eprint!("test result: {}.", "FAIL".red());
-                    eprint!(" {} failed;", self.failures.len().to_string().green());
+                    println!();
+                    print!("test result: {}.", "FAIL".red());
+                    print!(" {} failed;", self.failures.len().to_string().green());
                     if self.succeeded > 0 {
-                        eprint!(" {} passed;", self.succeeded.to_string().green());
+                        print!(" {} passed;", self.succeeded.to_string().green());
                     }
                     if self.ignored > 0 {
-                        eprint!(" {} ignored;", self.ignored.to_string().yellow());
+                        print!(" {} ignored;", self.ignored.to_string().yellow());
                     }
                     if self.filtered > 0 {
-                        eprint!(" {} filtered out;", self.filtered.to_string().yellow());
+                        print!(" {} filtered out;", self.filtered.to_string().yellow());
                     }
-                    eprintln!();
-                    eprintln!();
+                    println!();
+                    println!();
                 }
             }
             Box::new(Summarizer {
@@ -386,10 +386,10 @@ fn print_error(error: &Error, path: &Path) {
             status,
             expected,
         } => {
-            eprintln!("{mode} test got {status}, but expected {expected}")
+            println!("{mode} test got {status}, but expected {expected}")
         }
         Error::Command { kind, status } => {
-            eprintln!("{kind} failed with {status}");
+            println!("{kind} failed with {status}");
         }
         Error::PatternNotFound(pattern) => {
             let msg = match &**pattern {
@@ -410,10 +410,10 @@ fn print_error(error: &Error, path: &Path) {
             );
         }
         Error::NoPatternsFound => {
-            eprintln!("{}", "no error patterns found in fail test".red());
+            println!("{}", "no error patterns found in fail test".red());
         }
         Error::PatternFoundInPassTest => {
-            eprintln!("{}", "error pattern found in pass test".red())
+            println!("{}", "error pattern found in pass test".red())
         }
         Error::OutputDiffers {
             path: output_path,
@@ -421,14 +421,14 @@ fn print_error(error: &Error, path: &Path) {
             expected,
             bless_command,
         } => {
-            eprintln!("{}", "actual output differed from expected".underline());
-            eprintln!(
+            println!("{}", "actual output differed from expected".underline());
+            println!(
                 "Execute `{}` to update `{}` to the actual output",
                 bless_command,
                 output_path.display()
             );
-            eprintln!("{}", format!("--- {}", output_path.display()).red());
-            eprintln!("{}", "+++ <stderr output>".green());
+            println!("{}", format!("--- {}", output_path.display()).red());
+            println!("{}", "+++ <stderr output>".green());
             crate::diff::print_diff(expected, actual);
         }
         Error::ErrorsWithoutPattern { path, msgs } => {
@@ -450,7 +450,7 @@ fn print_error(error: &Error, path: &Path) {
                     path,
                 );
             } else {
-                eprintln!(
+                println!(
                     "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
                     msgs.len(),
                 );
@@ -460,7 +460,7 @@ fn print_error(error: &Error, path: &Path) {
                     line_col: _,
                 } in msgs
                 {
-                    eprintln!("    {level:?}: {message}")
+                    println!("    {level:?}: {message}")
                 }
             }
         }
@@ -479,27 +479,27 @@ fn print_error(error: &Error, path: &Path) {
             )
         }
         Error::Bug(msg) => {
-            eprintln!("A bug in `ui_test` occurred: {msg}");
+            println!("A bug in `ui_test` occurred: {msg}");
         }
         Error::Aux {
             path: aux_path,
             errors,
             line,
         } => {
-            eprintln!("Aux build from {}:{line} failed", path.display());
+            println!("Aux build from {}:{line} failed", path.display());
             for error in errors {
                 print_error(error, aux_path);
             }
         }
         Error::Rustfix(error) => {
-            eprintln!(
+            println!(
                 "failed to apply suggestions for {} with rustfix: {error}",
                 path.display()
             );
-            eprintln!("Add //@no-rustfix to the test file to ignore rustfix suggestions");
+            println!("Add //@no-rustfix to the test file to ignore rustfix suggestions");
         }
     }
-    eprintln!();
+    println!();
 }
 
 #[allow(clippy::type_complexity)]
@@ -560,7 +560,7 @@ fn create_error(
             margin: None,
         },
     };
-    eprintln!("{}", DisplayList::from(msg));
+    println!("{}", DisplayList::from(msg));
 }
 
 fn gha_error(error: &Error, test_path: &str, revision: &str) {

@@ -11,18 +11,18 @@ fn skip(skipped_lines: &[&str]) {
         Some(skipped @ 2..) => {
             // Print an initial `CONTEXT` amount of lines.
             for line in &skipped_lines[..CONTEXT] {
-                eprintln!(" {line}");
+                println!(" {line}");
             }
-            eprintln!("... {skipped} lines skipped ...");
+            println!("... {skipped} lines skipped ...");
             // Print `... n lines skipped ...` followed by the last `CONTEXT` lines.
             for line in &skipped_lines[skipped + CONTEXT..] {
-                eprintln!(" {line}");
+                println!(" {line}");
             }
         }
         _ => {
             // Print all the skipped lines if the amount of context desired is less than the amount of lines
             for line in skipped_lines {
-                eprintln!(" {line}");
+                println!(" {line}");
             }
         }
     }
@@ -32,7 +32,7 @@ fn row(row: DiffOp<'_, &str>) {
     match row {
         Remove(l) => {
             for l in l {
-                eprintln!("{}{}", "-".red(), l.red());
+                println!("{}{}", "-".red(), l.red());
             }
         }
         Equal(l) => {
@@ -45,7 +45,7 @@ fn row(row: DiffOp<'_, &str>) {
         }
         Insert(r) => {
             for r in r {
-                eprintln!("{}{}", "+".green(), r.green());
+                println!("{}{}", "+".green(), r.green());
             }
         }
     }
@@ -59,71 +59,71 @@ fn print_line_diff(l: &str, r: &str) {
     {
         // The line both adds and removes chars, print both lines, but highlight their differences instead of
         // drawing the entire line in red/green.
-        eprint!("{}", "-".red());
+        print!("{}", "-".red());
         for char in &diff {
             match *char {
                 Replace(l, _) | Remove(l) => {
                     for l in l {
-                        eprint!("{}", l.to_string().on_red())
+                        print!("{}", l.to_string().on_red())
                     }
                 }
                 Insert(_) => {}
                 Equal(l) => {
                     for l in l {
-                        eprint!("{l}")
+                        print!("{l}")
                     }
                 }
             }
         }
-        eprintln!();
-        eprint!("{}", "+".green());
+        println!();
+        print!("{}", "+".green());
         for char in diff {
             match char {
                 Remove(_) => {}
                 Replace(_, r) | Insert(r) => {
                     for r in r {
-                        eprint!("{}", r.to_string().on_green())
+                        print!("{}", r.to_string().on_green())
                     }
                 }
                 Equal(r) => {
                     for r in r {
-                        eprint!("{r}")
+                        print!("{r}")
                     }
                 }
             }
         }
-        eprintln!();
+        println!();
     } else {
         // The line only adds or only removes chars, print a single line highlighting their differences.
-        eprint!("{}", "~".yellow());
+        print!("{}", "~".yellow());
         for char in diff {
             match char {
                 Remove(l) => {
                     for l in l {
-                        eprint!("{}", l.to_string().on_red())
+                        print!("{}", l.to_string().on_red())
                     }
                 }
                 Equal(w) => {
                     for w in w {
-                        eprint!("{w}")
+                        print!("{w}")
                     }
                 }
                 Insert(r) => {
                     for r in r {
-                        eprint!("{}", r.to_string().on_green())
+                        print!("{}", r.to_string().on_green())
                     }
                 }
                 Replace(l, r) => {
                     for l in l {
-                        eprint!("{}", l.to_string().on_red())
+                        print!("{}", l.to_string().on_red())
                     }
                     for r in r {
-                        eprint!("{}", r.to_string().on_green())
+                        print!("{}", r.to_string().on_green())
                     }
                 }
             }
         }
-        eprintln!();
+        println!();
     }
 }
 
@@ -147,7 +147,7 @@ pub fn print_diff(expected: &[u8], actual: &[u8]) {
     let actual_str = String::from_utf8_lossy(actual);
 
     if expected_str.as_bytes() != expected || actual_str.as_bytes() != actual {
-        eprintln!(
+        println!(
             "{}",
             "Non-UTF8 characters in output, diff may be imprecise.".red()
         );
@@ -160,5 +160,5 @@ pub fn print_diff(expected: &[u8], actual: &[u8]) {
     for r in diff_lines(&expected_str, &actual_str).diff() {
         row(r);
     }
-    eprintln!()
+    println!()
 }
