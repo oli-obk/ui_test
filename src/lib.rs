@@ -800,6 +800,7 @@ fn run_rustfix(
                     .flat_map(|r| r.env_vars.iter().cloned())
                     .collect(),
                 normalize_stderr: vec![],
+                normalize_stdout: vec![],
                 error_in_other_files: vec![],
                 error_matches: vec![],
                 require_annotations_for_level: Default::default(),
@@ -824,7 +825,7 @@ fn run_rustfix(
         fixed_code.unwrap_or_default().as_bytes(),
         path,
         &mut errors,
-        revised(revision, "fixed"),
+        "fixed",
         &Filter::default(),
         config,
         &rustfix_comments,
@@ -935,7 +936,7 @@ fn check_test_output(
         stderr,
         path,
         errors,
-        revised(revision, "stderr"),
+        "stderr",
         &config.stderr_filters,
         config,
         comments,
@@ -945,7 +946,7 @@ fn check_test_output(
         stdout,
         path,
         errors,
-        revised(revision, "stdout"),
+        "stdout",
         &config.stdout_filters,
         config,
         comments,
@@ -1075,15 +1076,15 @@ fn check_output(
     output: &[u8],
     path: &Path,
     errors: &mut Errors,
-    kind: String,
+    kind: &'static str,
     filters: &Filter,
     config: &Config,
     comments: &Comments,
     revision: &str,
 ) -> PathBuf {
     let target = config.target.as_ref().unwrap();
-    let output = normalize(path, output, filters, comments, revision);
-    let path = output_path(path, comments, kind, target, revision);
+    let output = normalize(path, output, filters, comments, revision, kind);
+    let path = output_path(path, comments, revised(revision, kind), target, revision);
     match &config.output_conflict_handling {
         OutputConflictHandling::Bless => {
             if output.is_empty() {
@@ -1177,6 +1178,7 @@ fn normalize(
     filters: &Filter,
     comments: &Comments,
     revision: &str,
+    kind: &'static str,
 ) -> Vec<u8> {
     // Useless paths
     let path_filter = (Match::from(path.parent().unwrap()), b"$DIR" as &[u8]);
@@ -1190,10 +1192,12 @@ fn normalize(
         text = rule.replace_all(&text, replacement).into_owned();
     }
 
-    for (from, to) in comments
-        .for_revision(revision)
-        .flat_map(|r| r.normalize_stderr.iter())
-    {
+    for (from, to) in comments.for_revision(revision).flat_map(|r| match kind {
+        "fixed" => &[] as &[_],
+        "stderr" => &r.normalize_stderr,
+        "stdout" => &r.normalize_stdout,
+        _ => unreachable!(),
+    }) {
         text = from.replace_all(&text, to).into_owned();
     }
     text
