@@ -110,6 +110,12 @@ impl Config {
         }
     }
 
+    /// Replace all occurrences of a path in stderr/stdout with a byte string.
+    pub fn path_filter(&mut self, path: &Path, replacement: &'static (impl AsRef<[u8]> + ?Sized)) {
+        self.path_stderr_filter(path, replacement);
+        self.path_stdout_filter(path, replacement);
+    }
+
     /// Replace all occurrences of a path in stderr with a byte string.
     pub fn path_stderr_filter(
         &mut self,
@@ -130,6 +136,12 @@ impl Config {
         let pattern = path.canonicalize().unwrap();
         self.stdout_filters
             .push((pattern.parent().unwrap().into(), replacement.as_ref()));
+    }
+
+    /// Replace all occurrences of a regex pattern in stderr/stdout with a byte string.
+    pub fn filter(&mut self, pattern: &str, replacement: &'static (impl AsRef<[u8]> + ?Sized)) {
+        self.stderr_filter(pattern, replacement);
+        self.stdout_filter(pattern, replacement);
     }
 
     /// Replace all occurrences of a regex pattern in stderr with a byte string.

@@ -36,21 +36,15 @@ fn main() -> Result<()> {
 
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
-    config.stderr_filter(
-        "( *process didn't exit successfully: `[^-]+)-[0-9a-f]+",
-        "$1-HASH",
-    );
-    config.stdout_filter(
+    config.filter(
         "( *process didn't exit successfully: `[^-]+)-[0-9a-f]+",
         "$1-HASH",
     );
     // Windows io::Error uses "exit code".
-    config.stdout_filter("exit code", "exit status");
-    config.stderr_filter("exit code", "exit status");
+    config.filter("exit code", "exit status");
     // The order of the `/deps` directory flag is flaky
     config.stdout_filter("/deps", "");
-    config.path_stdout_filter(std::path::Path::new(path), "$DIR");
-    config.path_stderr_filter(std::path::Path::new(path), "$DIR");
+    config.path_filter(std::path::Path::new(path), "$DIR");
     config.stdout_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
     // Windows backslashes are sometimes escaped.
     // Insert the replacement filter at the start to make sure the filter for single backslashes
@@ -58,11 +52,9 @@ fn main() -> Result<()> {
     config
         .stdout_filters
         .insert(0, (Match::Exact(b"\\\\".to_vec()), b"\\"));
-    config.stderr_filter("\\.exe", b"");
-    config.stdout_filter("\\.exe", b"");
+    config.filter("\\.exe", b"");
     config.stdout_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
-    config.stdout_filter("   [0-9]: .*", "");
-    config.stderr_filter("   [0-9]: .*", "");
+    config.filter("   [0-9]: .*", "");
     config.stdout_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
     config.stdout_filter("/target/.tmp[^/ \"]+", "/target/$$TMP");
     // Normalize proc macro filenames on windows to their linux repr
@@ -70,12 +62,9 @@ fn main() -> Result<()> {
     // Normalize proc macro filenames on mac to their linux repr
     config.stdout_filter("/([^/\\.]+)\\.dylib", "/$1.so");
     config.stdout_filter("(command: )\"[^<rp][^\"]+", "$1\"$$CMD");
-    config.stdout_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
-    config.stderr_filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
-    config.stdout_filter("program not found", "No such file or directory");
-    config.stderr_filter("program not found", "No such file or directory");
-    config.stdout_filter(" \\(os error [0-9]+\\)", "");
-    config.stderr_filter(" \\(os error [0-9]+\\)", "");
+    config.filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
+    config.filter("program not found", "No such file or directory");
+    config.filter(" \\(os error [0-9]+\\)", "");
 
     let text = if args.quiet {
         ui_test::status_emitter::Text::quiet()

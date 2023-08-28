@@ -112,6 +112,8 @@ pub(crate) struct Revisioned {
     pub env_vars: Vec<(String, String)>,
     /// Normalizations to apply to the stderr output before emitting it to disk
     pub normalize_stderr: Vec<(Regex, Vec<u8>)>,
+    /// Normalizations to apply to the stdout output before emitting it to disk
+    pub normalize_stdout: Vec<(Regex, Vec<u8>)>,
     /// Arbitrary patterns to look for in the stderr.
     /// The error must be from another file, as errors from the current file must be
     /// checked via `error_matches`.
@@ -401,6 +403,7 @@ impl CommentParser<Comments> {
                     compile_flags: Default::default(),
                     env_vars: Default::default(),
                     normalize_stderr: Default::default(),
+                    normalize_stdout: Default::default(),
                     error_in_other_files: Default::default(),
                     error_matches: Default::default(),
                     require_annotations_for_level: Default::default(),
@@ -421,6 +424,38 @@ impl CommentParser<Comments> {
 }
 
 impl CommentParser<&mut Revisioned> {
+    fn parse_normalize_test(
+        &mut self,
+        args: Spanned<&str>,
+        mode: &str,
+    ) -> Option<(Regex, Vec<u8>)> {
+        let (from, rest) = self.parse_str(args);
+
+        let to = match rest.strip_prefix("->") {
+            Some(v) => v,
+            None => {
+                self.error(
+                    rest.span(),
+                    format!(
+                        "normalize-{mode}-test needs a pattern and replacement separated by `->`"
+                    ),
+                );
+                return None;
+            }
+        }
+        .trim_start();
+        let (to, rest) = self.parse_str(to);
+
+        self.check(
+            rest.span(),
+            rest.is_empty(),
+            "trailing text after pattern replacement",
+        );
+
+        let regex = self.parse_regex(from)?;
+        Some((regex, to.as_bytes().to_owned()))
+    }
+
     fn commands() -> HashMap<&'static str, CommandParserFunc> {
         let mut commands = HashMap::<_, CommandParserFunc>::new();
         macro_rules! commands {
@@ -450,26 +485,13 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "normalize-stderr-test" => (this, args, _span){
-                let (from, rest) = this.parse_str(args);
-
-                let to = match rest.strip_prefix("->") {
-                    Some(v) => v,
-                    None => {
-                        this.error(rest.span(), "normalize-stderr-test needs a pattern and replacement separated by `->`");
-                        return;
-                    },
-                }.trim_start();
-                let (to, rest) = this.parse_str(to);
-
-                this.check(
-                    rest.span(),
-                    rest.is_empty(),
-                    "trailing text after pattern replacement",
-                );
-
-                if let Some(regex) = this.parse_regex(from) {
-                    this.normalize_stderr
-                        .push((regex, to.as_bytes().to_owned()))
+                if let Some(res) = this.parse_normalize_test(args, "stderr") {
+                    this.normalize_stderr.push(res)
+                }
+            }
+            "normalize-stdout-test" => (this, args, _span){
+                if let Some(res) = this.parse_normalize_test(args, "stdout") {
+                    this.normalize_stdout.push(res)
                 }
             }
             "error-pattern" => (this, _args, span){
