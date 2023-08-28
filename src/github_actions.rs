@@ -51,7 +51,7 @@ impl Drop for Error {
             } else {
                 format!("::{}", github_action_multiline_escape(message))
             };
-            eprintln!("::error file={file},line={line},title={title}{message}");
+            println!("::error file={file},line={line},title={title}{message}");
         }
     }
 }
@@ -73,7 +73,7 @@ fn github_action_multiline_escape(s: &str) -> String {
 /// not really work.
 pub fn group(name: impl std::fmt::Display) -> Group {
     if std::env::var_os("GITHUB_ACTION").is_some() {
-        eprintln!("::group::{name}");
+        println!("::group::{name}");
     }
     Group(())
 }
@@ -90,7 +90,7 @@ impl Debug for Group {
 impl Drop for Group {
     fn drop(&mut self) {
         if std::env::var_os("GITHUB_ACTION").is_some() {
-            eprintln!("::endgroup::");
+            println!("::endgroup::");
         }
     }
 }
