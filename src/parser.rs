@@ -611,7 +611,7 @@ impl CommentParser<&mut Revisioned> {
             let best_match = self
                 .commands
                 .keys()
-                .min_by_key(|key| distance::damerau_levenshtein(key, *command))
+                .min_by_key(|key| levenshtein::levenshtein(key, *command))
                 .unwrap();
             self.error(
                 command.span(),
