@@ -223,8 +223,9 @@ FAILURES:
 
 test result: FAIL. 8 failed;
 
-tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 Building dependencies ... ok
+tests/actual_tests_bless/aux_build_not_found.rs ... FAILED
+tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 Building aux file tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
@@ -262,6 +263,15 @@ tests/actual_tests_bless/rustfix-fail-revisions.rs (b) ... FAILED
 tests/actual_tests_bless/rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
+
+tests/actual_tests_bless/aux_build_not_found.rs FAILED:
+command: "<unknown>"
+
+A bug in `ui_test` occurred: called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+
+full stderr:
+
+
 
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
 command: "parse comments"
@@ -616,6 +626,7 @@ full stderr:
 
 
 FAILURES:
+    tests/actual_tests_bless/aux_build_not_found.rs
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
     tests/actual_tests_bless/aux_proc_macro_no_main.rs
     tests/actual_tests_bless/compile_flags_quotes.rs
@@ -635,7 +646,7 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
 
-test result: FAIL. 18 failed; 14 passed; 3 ignored;
+test result: FAIL. 19 failed; 14 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
