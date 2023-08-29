@@ -9,11 +9,7 @@ fn main() -> Result<()> {
     let mut config = Config {
         ..Config::cargo(root_dir.clone())
     };
-    let args = Args::test()?;
-
-    if !args.check {
-        config.output_conflict_handling = OutputConflictHandling::Bless;
-    }
+    let args = Args::test(true)?;
 
     config.program.args = vec![
         "test".into(),

@@ -10,9 +10,7 @@ use std::{
     sync::{Arc, OnceLock, RwLock},
 };
 
-use crate::{
-    build_aux, status_emitter::StatusEmitter, Config, Errored, Mode, OutputConflictHandling,
-};
+use crate::{build_aux, status_emitter::StatusEmitter, Args, Config, Errored, Mode};
 
 #[derive(Default, Debug)]
 pub struct Dependencies {
@@ -45,7 +43,7 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
 }
 
 /// Compiles dependencies and returns the crate names and corresponding rmeta files.
-pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
+pub(crate) fn build_dependencies(args: &Args, config: &Config) -> Result<Dependencies> {
     let manifest_path = match &config.dependencies_crate_manifest_path {
         Some(path) => path.to_owned(),
         None => return Ok(Default::default()),
@@ -59,12 +57,10 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
     }
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
-    let set_locking = |cmd: &mut Command| match (&config.output_conflict_handling, &config.mode) {
-        (_, Mode::Yolo { .. }) => {}
-        (OutputConflictHandling::Error(_), _) => {
+    let set_locking = |cmd: &mut Command| {
+        if !matches!(config.mode, Mode::Yolo { .. }) && args.check {
             cmd.arg("--locked");
         }
-        _ => {}
     };
 
     set_locking(&mut build);
@@ -237,7 +233,12 @@ impl<'a> BuildManager<'a> {
     /// that need to be passed in order to build the dependencies.
     /// The error is only reported once, all follow up invocations of the same build will
     /// have a generic error about a previous build failing.
-    pub fn build(&self, what: Build, config: &Config) -> Result<Vec<OsString>, Errored> {
+    pub fn build(
+        &self,
+        what: Build,
+        config: &Config,
+        args: &Args,
+    ) -> Result<Vec<OsString>, Errored> {
         // Fast path without much contention.
         if let Some(res) = self.cache.read().unwrap().get(&what).and_then(|o| o.get()) {
             return res.clone().map_err(|()| Errored {
@@ -275,7 +276,7 @@ impl<'a> BuildManager<'a> {
                 .register_test(what.description().into())
                 .for_revision("");
             let res = match &what {
-                Build::Dependencies => match config.build_dependencies() {
+                Build::Dependencies => match config.build_dependencies(args) {
                     Ok(args) => Ok(args),
                     Err(e) => {
                         err = Some(Errored {
@@ -287,7 +288,7 @@ impl<'a> BuildManager<'a> {
                         Err(())
                     }
                 },
-                Build::Aux { aux_file } => match build_aux(aux_file, config, self) {
+                Build::Aux { aux_file } => match build_aux(aux_file, config, args, self) {
                     Ok(args) => Ok(args.iter().map(Into::into).collect()),
                     Err(e) => {
                         err = Some(e);

@@ -435,14 +435,8 @@ fn print_error(error: &Error, path: &Path) {
             path: output_path,
             actual,
             expected,
-            bless_command,
         } => {
             println!("{}", "actual output differed from expected".underline());
-            println!(
-                "Execute `{}` to update `{}` to the actual output",
-                bless_command,
-                output_path.display()
-            );
             println!("{}", format!("--- {}", output_path.display()).red());
             println!(
                 "{}",
@@ -621,7 +615,6 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             path: output_path,
             actual,
             expected,
-            bless_command: _,
         } => {
             if expected.is_empty() {
                 let mut err = github_actions::error(
