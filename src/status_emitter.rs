@@ -51,7 +51,12 @@ pub trait TestStatus: Send + Sync + RefUnwindSafe {
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
     /// gets invoked afterwards.
-    fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a>;
+    fn failed_test<'a>(
+        &'a self,
+        cmd: &'a Command,
+        stderr: &'a [u8],
+        stdout: &'a [u8],
+    ) -> Box<dyn Debug + 'a>;
 
     /// Change the status of the test while it is running to supply some kind of progress
     fn update_status(&self, msg: String);
@@ -223,7 +228,12 @@ impl TestStatus for TextTest {
         self.text.sender.send(Msg::Status(self.msg(), msg)).unwrap();
     }
 
-    fn failed_test<'a>(&self, cmd: &Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
+    fn failed_test<'a>(
+        &self,
+        cmd: &Command,
+        stderr: &'a [u8],
+        stdout: &'a [u8],
+    ) -> Box<dyn Debug + 'a> {
         println!();
         let path = self.path.display().to_string();
         print!("{}", path.underline().bold());
@@ -239,16 +249,22 @@ impl TestStatus for TextTest {
         println!();
 
         #[derive(Debug)]
-        struct Guard<'a>(&'a [u8]);
+        struct Guard<'a> {
+            stderr: &'a [u8],
+            stdout: &'a [u8],
+        }
         impl<'a> Drop for Guard<'a> {
             fn drop(&mut self) {
                 println!("full stderr:");
-                std::io::stdout().write_all(self.0).unwrap();
+                std::io::stdout().write_all(self.stderr).unwrap();
+                println!();
+                println!("full stdout:");
+                std::io::stdout().write_all(self.stdout).unwrap();
                 println!();
                 println!();
             }
         }
-        Box::new(Guard(stderr))
+        Box::new(Guard { stderr, stdout })
     }
 
     fn path(&self) -> &Path {
@@ -428,7 +444,14 @@ fn print_error(error: &Error, path: &Path) {
                 output_path.display()
             );
             println!("{}", format!("--- {}", output_path.display()).red());
-            println!("{}", "+++ <stderr output>".green());
+            println!(
+                "{}",
+                format!(
+                    "+++ <{} output>",
+                    output_path.extension().unwrap().to_str().unwrap()
+                )
+                .green()
+            );
             crate::diff::print_diff(expected, actual);
         }
         Error::ErrorsWithoutPattern { path, msgs } => {
@@ -739,7 +762,7 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
         })
     }
 
-    fn failed_test(&self, _cmd: &Command, _stderr: &[u8]) -> Box<dyn Debug> {
+    fn failed_test(&self, _cmd: &Command, _stderr: &[u8], _stdout: &[u8]) -> Box<dyn Debug> {
         if GROUP {
             Box::new(github_actions::group(format_args!(
                 "{}:{}",
@@ -834,10 +857,15 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
         self.1.done(result);
     }
 
-    fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
+    fn failed_test<'a>(
+        &'a self,
+        cmd: &'a Command,
+        stderr: &'a [u8],
+        stdout: &'a [u8],
+    ) -> Box<dyn Debug + 'a> {
         Box::new((
-            self.0.failed_test(cmd, stderr),
-            self.1.failed_test(cmd, stderr),
+            self.0.failed_test(cmd, stderr, stdout),
+            self.1.failed_test(cmd, stderr, stdout),
         ))
     }
 
@@ -902,8 +930,13 @@ impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
         (**self).for_revision(revision)
     }
 
-    fn failed_test<'a>(&'a self, cmd: &'a Command, stderr: &'a [u8]) -> Box<dyn Debug + 'a> {
-        (**self).failed_test(cmd, stderr)
+    fn failed_test<'a>(
+        &'a self,
+        cmd: &'a Command,
+        stderr: &'a [u8],
+        stdout: &'a [u8],
+    ) -> Box<dyn Debug + 'a> {
+        (**self).failed_test(cmd, stderr, stdout)
     }
 
     fn update_status(&self, msg: String) {

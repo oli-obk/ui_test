@@ -49,6 +49,8 @@ error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0308`.
 
+full stdout:
+
 
 
 tests/actual_tests/executable.rs FAILED:
@@ -57,12 +59,14 @@ command: "$CMD"
 actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.stdout` to the actual output
 --- tests/actual_tests/executable.stdout
-+++ <stderr output>
++++ <stdout output>
 -69
 +42
 
 
 full stderr:
+
+full stdout:
 
 
 
@@ -106,6 +110,8 @@ error: this file contains an unclosed delimiter
 error: aborting due to previous error
 
 
+full stdout:
+
 
 
 tests/actual_tests/exit_code_fail.rs FAILED:
@@ -116,6 +122,8 @@ fail test got exit status: 0, but expected 1
 no error patterns found in fail test
 
 full stderr:
+
+full stdout:
 
 
 
@@ -130,6 +138,8 @@ error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host
   |
 
 full stderr:
+
+full stdout:
 
 
 
@@ -181,6 +191,8 @@ error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0308`.
 
+full stdout:
+
 
 
 tests/actual_tests/foomp2.rs FAILED:
@@ -189,12 +201,14 @@ command: "$CMD"
 actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.fixed` to the actual output
 --- tests/actual_tests/foomp2.fixed
-+++ <stderr output>
++++ <fixed output>
 -this is just a test file showing that
 -stray .fixed files are detected and blessed away
 
 
 full stderr:
+
+full stdout:
 
 
 
@@ -210,6 +224,8 @@ error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 li
 
 full stderr:
 
+full stdout:
+
 
 FAILURES:
     tests/actual_tests/bad_pattern.rs
@@ -223,8 +239,9 @@ FAILURES:
 
 test result: FAIL. 8 failed;
 
-tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 Building dependencies ... ok
+tests/actual_tests_bless/aux_build_not_found.rs ... FAILED
+tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 Building aux file tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
@@ -263,6 +280,15 @@ tests/actual_tests_bless/rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 
+tests/actual_tests_bless/aux_build_not_found.rs FAILED:
+command: "$CMD"
+
+full stderr:
+No such file or directory
+full stdout:
+
+
+
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
 command: "parse comments"
 
@@ -274,6 +300,8 @@ error: proc macros are now auto-detected, you can remove the `:proc-macro` after
   |
 
 full stderr:
+
+full stdout:
 
 
 
@@ -299,6 +327,8 @@ error: expected one of `!` or `::`, found `<eof>`
 error: aborting due to previous error
 
 
+full stdout:
+
 
 
 tests/actual_tests_bless/compile_flags_quotes.rs FAILED:
@@ -319,6 +349,8 @@ error: `-Z "cheese is good` contains an unclosed quotation mark
   |
 
 full stderr:
+
+full stdout:
 
 
 
@@ -354,6 +386,8 @@ The `//` must be directly followed by `@` or `~`.
 
 full stderr:
 
+full stdout:
+
 
 
 tests/actual_tests_bless/failing_executable.rs FAILED:
@@ -362,6 +396,8 @@ command: "$CMD"
 run(0) test got exit status: 101, but expected 0
 
 full stderr:
+
+full stdout:
 
 
 
@@ -373,6 +409,8 @@ fail test got exit status: 0, but expected 1
 no error patterns found in fail test
 
 full stderr:
+
+full stdout:
 
 
 
@@ -404,6 +442,8 @@ error: aborting due to 2 previous errors
 
 For more information about this error, try `rustc --explain E0601`.
 
+full stdout:
+
 
 
 tests/actual_tests_bless/no_test.rs FAILED:
@@ -414,6 +454,8 @@ fail test got exit status: 0, but expected 1
 no error patterns found in fail test
 
 full stderr:
+
+full stdout:
 
 
 
@@ -440,6 +482,8 @@ The `//` must be directly followed by `@` or `~`.
 
 full stderr:
 
+full stdout:
+
 
 
 tests/actual_tests_bless/revised_revision.rs FAILED:
@@ -454,6 +498,8 @@ error: revisions cannot be declared under a revision
 
 full stderr:
 
+full stdout:
+
 
 
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) FAILED:
@@ -463,6 +509,8 @@ run(101) test got exit status: 0, but expected 101
 
 full stderr:
 
+full stdout:
+
 
 
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) FAILED:
@@ -471,6 +519,8 @@ command: "$CMD"
 run(0) test got exit status: 101, but expected 0
 
 full stderr:
+
+full stdout:
 
 
 
@@ -502,6 +552,8 @@ error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0601`.
 
+full stdout:
+
 
 
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) FAILED:
@@ -529,6 +581,8 @@ help: consider cloning the value if the performance cost is acceptable
 error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0382`.
+
+full stdout:
 
 
 
@@ -558,6 +612,8 @@ error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0382`.
 
+full stdout:
+
 
 
 tests/actual_tests_bless/rustfix-fail.rs FAILED:
@@ -586,6 +642,8 @@ error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0382`.
 
+full stdout:
+
 
 
 tests/actual_tests_bless/unknown_revision.rs FAILED:
@@ -599,6 +657,8 @@ error: there are no revisions in this test
   |
 
 full stderr:
+
+full stdout:
 
 
 
@@ -614,8 +674,11 @@ error: the revision `cake` is not known
 
 full stderr:
 
+full stdout:
+
 
 FAILURES:
+    tests/actual_tests_bless/aux_build_not_found.rs
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
     tests/actual_tests_bless/aux_proc_macro_no_main.rs
     tests/actual_tests_bless/compile_flags_quotes.rs
@@ -635,7 +698,7 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
 
-test result: FAIL. 18 failed; 14 passed; 3 ignored;
+test result: FAIL. 19 failed; 14 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
@@ -663,6 +726,8 @@ error: aborting due to previous error
 
 For more information about this error, try `rustc --explain E0601`.
 
+full stdout:
+
 
 FAILURES:
     tests/actual_tests_bless_yolo/revisions_bad.rs (revision bar)
@@ -686,6 +751,8 @@ A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a
 
 full stderr:
 
+full stdout:
+
 
 
 tests/actual_tests/executable.rs FAILED:
@@ -694,6 +761,8 @@ command: "<unknown>"
 A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory
 
 full stderr:
+
+full stdout:
 
 
 
@@ -704,6 +773,8 @@ A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a
 
 full stderr:
 
+full stdout:
+
 
 
 tests/actual_tests/exit_code_fail.rs FAILED:
@@ -712,6 +783,8 @@ command: "<unknown>"
 A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory
 
 full stderr:
+
+full stdout:
 
 
 
@@ -727,6 +800,8 @@ error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host
 
 full stderr:
 
+full stdout:
+
 
 
 tests/actual_tests/foomp.rs FAILED:
@@ -736,6 +811,8 @@ A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a
 
 full stderr:
 
+full stdout:
+
 
 
 tests/actual_tests/foomp2.rs FAILED:
@@ -744,6 +821,8 @@ command: "<unknown>"
 A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory
 
 full stderr:
+
+full stdout:
 
 
 
@@ -758,6 +837,8 @@ error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 li
   |
 
 full stderr:
+
+full stdout:
 
 
 FAILURES:

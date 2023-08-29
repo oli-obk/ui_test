@@ -64,6 +64,7 @@ impl Comments {
                     lines: errors,
                 }],
                 stderr: vec![],
+                stdout: vec![],
             })
         }
     }

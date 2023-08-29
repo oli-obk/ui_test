@@ -22,7 +22,7 @@ use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::num::NonZeroUsize;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf, Prefix};
 use std::process::{Command, ExitStatus};
 use std::thread;
 
@@ -205,6 +205,8 @@ pub struct Errored {
     errors: Vec<Error>,
     /// The full stderr of the test run.
     stderr: Vec<u8>,
+    /// The full stdout of the test run.
+    stdout: Vec<u8>,
 }
 
 struct TestRun {
@@ -290,6 +292,7 @@ pub fn run_tests_generic(
                                     .unwrap(),
                                 )],
                                 stderr: vec![],
+                                stdout: vec![],
                             }),
                             status,
                         })?;
@@ -332,10 +335,11 @@ pub fn run_tests_generic(
             command,
             errors,
             stderr,
+            stdout,
         },
     ) in &failures
     {
-        let _guard = status.failed_test(command, stderr);
+        let _guard = status.failed_test(command, stderr, stdout);
         failure_emitter.test_failure(status, errors);
     }
 
@@ -434,6 +438,7 @@ fn parse_comments(file_contents: &[u8]) -> Result<Comments, Errored> {
             command: Command::new("parse comments"),
             errors,
             stderr: vec![],
+            stdout: vec![],
         }),
     }
 }
@@ -476,7 +481,12 @@ fn build_aux(
     config: &Config,
     build_manager: &BuildManager<'_>,
 ) -> std::result::Result<Vec<OsString>, Errored> {
-    let file_contents = std::fs::read(aux_file).unwrap();
+    let file_contents = std::fs::read(aux_file).map_err(|err| Errored {
+        command: Command::new(format!("reading aux file `{}`", aux_file.display())),
+        errors: vec![],
+        stderr: err.to_string().into_bytes(),
+        stdout: vec![],
+    })?;
     let comments = parse_comments(&file_contents)?;
     assert_eq!(
         comments.revisions, None,
@@ -509,7 +519,7 @@ fn build_aux(
 
     // Put aux builds into a separate directory per path so that multiple aux files
     // from different directories (but with the same file name) don't collide.
-    let relative = config.strip_path_prefix(aux_file.parent().unwrap());
+    let relative = strip_path_prefix(aux_file.parent().unwrap(), &config.out_dir);
 
     config.out_dir.extend(relative);
 
@@ -537,6 +547,7 @@ fn build_aux(
             command: aux_cmd,
             errors: vec![error],
             stderr: rustc_stderr::process(aux_file, &output.stderr).rendered,
+            stdout: output.stdout,
         });
     }
 
@@ -601,14 +612,17 @@ impl dyn TestStatus {
                             "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
                         ))],
                         stderr: vec![],
+                        stdout: vec![],
                     });
                 }
             }
         }
         check_test_result(
-            cmd, *mode, path, config, revision, comments, status, stdout, &stderr,
+            cmd, *mode, path, config, revision, comments, status, &stdout, &stderr,
         )?;
-        run_rustfix(&stderr, path, comments, revision, config, *mode, extra_args)?;
+        run_rustfix(
+            &stderr, &stdout, path, comments, revision, config, *mode, extra_args,
+        )?;
         Ok(TestOk::Ok)
     }
 
@@ -647,9 +661,19 @@ fn build_aux_files(
                 build_manager
                     .build(
                         Build::Aux {
-                            aux_file: config
-                                .strip_path_prefix(&aux_file.canonicalize().unwrap())
-                                .collect(),
+                            aux_file: strip_path_prefix(
+                                &aux_file.canonicalize().map_err(|err| Errored {
+                                    command: Command::new(format!(
+                                        "canonicalizing path `{}`",
+                                        aux_file.display()
+                                    )),
+                                    errors: vec![],
+                                    stderr: err.to_string().into_bytes(),
+                                    stdout: vec![],
+                                })?,
+                                &std::env::current_dir().unwrap(),
+                            )
+                            .collect(),
                         },
                         config,
                     )
@@ -658,6 +682,7 @@ fn build_aux_files(
                              command,
                              errors,
                              stderr,
+                             stdout,
                          }| Errored {
                             command,
                             errors: vec![Error::Aux {
@@ -666,6 +691,7 @@ fn build_aux_files(
                                 line,
                             }],
                             stderr,
+                            stdout,
                         },
                     )?,
             );
@@ -714,12 +740,14 @@ fn run_test_binary(
             command: exe,
             errors,
             stderr: vec![],
+            stdout: vec![],
         })
     }
 }
 
 fn run_rustfix(
     stderr: &[u8],
+    stdout: &[u8],
     path: &Path,
     comments: &Comments,
     revision: &str,
@@ -773,6 +801,7 @@ fn run_rustfix(
             command: Command::new(format!("rustfix {}", path.display())),
             errors: vec![Error::Rustfix(err)],
             stderr: stderr.into(),
+            stdout: stdout.into(),
         })?;
 
     let edition = comments.edition(revision, config)?;
@@ -836,6 +865,7 @@ fn run_rustfix(
             command: Command::new(format!("checking {}", path.display())),
             errors,
             stderr: vec![],
+            stdout: vec![],
         });
     }
 
@@ -864,6 +894,7 @@ fn run_rustfix(
                 status: output.status,
             }],
             stderr: rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
+            stdout: output.stdout,
         })
     }
 }
@@ -884,7 +915,7 @@ fn check_test_result(
     revision: &str,
     comments: &Comments,
     status: ExitStatus,
-    stdout: Vec<u8>,
+    stdout: &[u8],
     stderr: &[u8],
 ) -> Result<(), Errored> {
     let mut errors = vec![];
@@ -897,7 +928,7 @@ fn check_test_result(
         revision,
         config,
         comments,
-        &stdout,
+        stdout,
         &diagnostics.rendered,
     );
     // Check error annotations in the source against output
@@ -917,6 +948,7 @@ fn check_test_result(
             command,
             errors,
             stderr: diagnostics.rendered,
+            stdout: stdout.into(),
         })
     }
 }
@@ -1201,4 +1233,25 @@ fn normalize(
         text = from.replace_all(&text, to).into_owned();
     }
     text
+}
+/// Remove the common prefix of this path and the `root_dir`.
+fn strip_path_prefix<'a>(path: &'a Path, prefix: &Path) -> impl Iterator<Item = Component<'a>> {
+    let mut components = path.components();
+    for c in prefix.components() {
+        // Windows has some funky paths. This is probably wrong, but works well in practice.
+        let deverbatimize = |c| match c {
+            Component::Prefix(prefix) => Err(match prefix.kind() {
+                Prefix::VerbatimUNC(a, b) => Prefix::UNC(a, b),
+                Prefix::VerbatimDisk(d) => Prefix::Disk(d),
+                other => other,
+            }),
+            c => Ok(c),
+        };
+        let c2 = components.next();
+        if Some(deverbatimize(c)) == c2.map(deverbatimize) {
+            continue;
+        }
+        return c2.into_iter().chain(components);
+    }
+    None.into_iter().chain(components)
 }

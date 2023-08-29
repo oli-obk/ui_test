@@ -244,6 +244,7 @@ impl<'a> BuildManager<'a> {
                 command: Command::new(format!("{what:?}")),
                 errors: vec![],
                 stderr: b"previous build failed".to_vec(),
+                stdout: vec![],
             });
         }
         let mut lock = self.cache.write().unwrap();
@@ -254,6 +255,7 @@ impl<'a> BuildManager<'a> {
                         command: Command::new(format!("{what:?}")),
                         errors: vec![],
                         stderr: b"previous build failed".to_vec(),
+                        stdout: vec![],
                     });
                 }
                 entry.get().clone()
@@ -280,6 +282,7 @@ impl<'a> BuildManager<'a> {
                             command: Command::new(format!("{what:?}")),
                             errors: vec![],
                             stderr: format!("{e:?}").into_bytes(),
+                            stdout: vec![],
                         });
                         Err(())
                     }
@@ -299,6 +302,7 @@ impl<'a> BuildManager<'a> {
                         command: Command::new(what.description()),
                         errors: vec![],
                         stderr: vec![],
+                        stdout: vec![],
                     }),
             );
             res
@@ -309,6 +313,7 @@ impl<'a> BuildManager<'a> {
                 command: Command::new(what.description()),
                 errors: vec![],
                 stderr: b"previous build failed".to_vec(),
+                stdout: vec![],
             })
         })
     }
