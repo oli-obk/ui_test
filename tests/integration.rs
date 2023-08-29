@@ -43,7 +43,7 @@ fn main() -> Result<()> {
     // Windows io::Error uses "exit code".
     config.filter("exit code", "exit status");
     config.filter(
-        "The system cannot find the file specified",
+        "The system cannot find the file specified.",
         "No such file or directory",
     );
     // The order of the `/deps` directory flag is flaky
