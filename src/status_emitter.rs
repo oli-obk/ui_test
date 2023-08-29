@@ -428,7 +428,14 @@ fn print_error(error: &Error, path: &Path) {
                 output_path.display()
             );
             println!("{}", format!("--- {}", output_path.display()).red());
-            println!("{}", "+++ <stderr output>".green());
+            println!(
+                "{}",
+                format!(
+                    "+++ <{} output>",
+                    output_path.extension().unwrap().to_str().unwrap()
+                )
+                .green()
+            );
             crate::diff::print_diff(expected, actual);
         }
         Error::ErrorsWithoutPattern { path, msgs } => {

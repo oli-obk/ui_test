@@ -57,7 +57,7 @@ command: "$CMD"
 actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.stdout` to the actual output
 --- tests/actual_tests/executable.stdout
-+++ <stderr output>
++++ <stdout output>
 -69
 +42
 
@@ -189,7 +189,7 @@ command: "$CMD"
 actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.fixed` to the actual output
 --- tests/actual_tests/foomp2.fixed
-+++ <stderr output>
++++ <fixed output>
 -this is just a test file showing that
 -stray .fixed files are detected and blessed away
 
