@@ -34,11 +34,6 @@ pub struct Config {
     pub program: CommandBuilder,
     /// The command to run to obtain the cfgs that the output is supposed to
     pub cfgs: CommandBuilder,
-    /// What to do in case the stdout/stderr output differs from the expected one.
-    /// By default, errors in case of conflict, but emits a message informing the user
-    /// that running `cargo test -- -- --bless` will automatically overwrite the
-    /// `.stdout` and `.stderr` files with the latest output.
-    pub output_conflict_handling: OutputConflictHandling,
     /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
     pub dependencies_crate_manifest_path: Option<PathBuf>,
     /// The command to run can be changed from `cargo` to any custom command to build the
@@ -79,13 +74,6 @@ impl Config {
             },
             program: CommandBuilder::rustc(),
             cfgs: CommandBuilder::cfgs(),
-            output_conflict_handling: OutputConflictHandling::Error(format!(
-                "{} --bless",
-                std::env::args()
-                    .map(|s| format!("{s:?}"))
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            )),
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
             out_dir: std::env::var_os("CARGO_TARGET_DIR")
@@ -166,8 +154,8 @@ impl Config {
 
     /// Compile dependencies and return the right flags
     /// to find the dependencies.
-    pub fn build_dependencies(&self) -> Result<Vec<OsString>> {
-        let dependencies = build_dependencies(self)?;
+    pub fn build_dependencies(&self, args: &Args) -> Result<Vec<OsString>> {
+        let dependencies = build_dependencies(args, self)?;
         let mut args = vec![];
         for (name, artifacts) in dependencies.dependencies {
             for dependency in artifacts {
@@ -218,18 +206,4 @@ impl Config {
             .iter()
             .any(|arch| self.target.as_ref().unwrap().contains(arch))
     }
-}
-
-#[derive(Debug, Clone)]
-/// The different options for what to do when stdout/stderr files differ from the actual output.
-pub enum OutputConflictHandling {
-    /// The default: emit a diff of the expected/actual output.
-    ///
-    /// The string should be a command that can be executed to bless all tests.
-    Error(String),
-    /// Ignore mismatches in the stderr/stdout files.
-    Ignore,
-    /// Instead of erroring if the stderr/stdout differs from the expected
-    /// automatically replace it with the found output (after applying filters).
-    Bless,
 }

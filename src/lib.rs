@@ -115,7 +115,7 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.
 pub fn run_tests(config: Config) -> Result<()> {
-    let args = Args::test()?;
+    let args = Args::test(true)?;
     if !args.quiet {
         println!("Compiler: {}", config.program.display());
     }
@@ -173,7 +173,7 @@ pub fn default_per_file_config(config: &mut Config, _path: &Path, file_contents:
 /// Ignores various settings from `Config` that relate to finding test files.
 pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
-    let extra_args = config.build_dependencies()?;
+    let extra_args = config.build_dependencies(&Args::default(false)?)?;
 
     let comments =
         Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
@@ -271,7 +271,7 @@ pub fn run_tests_generic(
                 let mut config = config.clone();
                 per_file_config(&mut config, path, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
-                    parse_and_test_file(&build_manager, &status, config, file_contents)
+                    parse_and_test_file(&build_manager, &status, config, &args, file_contents)
                 }) {
                     Ok(Ok(res)) => res,
                     Ok(Err(err)) => {
@@ -391,6 +391,7 @@ fn parse_and_test_file(
     build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
     mut config: Config,
+    args: &Args,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = parse_comments(&file_contents)?;
@@ -412,7 +413,7 @@ fn parse_and_test_file(
 
             if !built_deps {
                 status.update_status("waiting for dependencies to finish building".into());
-                match build_manager.build(Build::Dependencies, &config) {
+                match build_manager.build(Build::Dependencies, &config, args) {
                     Ok(extra_args) => config.program.args.extend(extra_args),
                     Err(err) => {
                         return TestRun {
@@ -425,7 +426,7 @@ fn parse_and_test_file(
                 built_deps = true;
             }
 
-            let result = status.run_test(build_manager, &config, &comments);
+            let result = status.run_test(build_manager, &config, args, &comments);
             TestRun { result, status }
         })
         .collect())
@@ -479,6 +480,7 @@ fn build_command(
 fn build_aux(
     aux_file: &Path,
     config: &Config,
+    args: &Args,
     build_manager: &BuildManager<'_>,
 ) -> std::result::Result<Vec<OsString>, Errored> {
     let file_contents = std::fs::read(aux_file).map_err(|err| Errored {
@@ -530,6 +532,7 @@ fn build_aux(
         &comments,
         "",
         &config,
+        args,
         build_manager,
     )?;
     // Make sure we see our dependencies
@@ -577,6 +580,7 @@ impl dyn TestStatus {
         &self,
         build_manager: &BuildManager<'_>,
         config: &Config,
+        args: &Args,
         comments: &Comments,
     ) -> TestResult {
         let path = self.path();
@@ -587,6 +591,7 @@ impl dyn TestStatus {
             comments,
             revision,
             config,
+            args,
             build_manager,
         )?;
 
@@ -599,7 +604,7 @@ impl dyn TestStatus {
 
         match *mode {
             Mode::Run { .. } if Mode::Pass.ok(status).is_ok() => {
-                return run_test_binary(mode, path, revision, comments, cmd, config)
+                return run_test_binary(mode, path, revision, comments, cmd, config, args)
             }
             Mode::Panic | Mode::Yolo { .. } => {}
             Mode::Run { .. } | Mode::Pass | Mode::Fail { .. } => {
@@ -618,10 +623,10 @@ impl dyn TestStatus {
             }
         }
         check_test_result(
-            cmd, *mode, path, config, revision, comments, status, &stdout, &stderr,
+            cmd, *mode, path, config, args, revision, comments, status, &stdout, &stderr,
         )?;
         run_rustfix(
-            &stderr, &stdout, path, comments, revision, config, *mode, extra_args,
+            &stderr, &stdout, path, comments, revision, config, args, *mode, extra_args,
         )?;
         Ok(TestOk::Ok)
     }
@@ -645,6 +650,7 @@ fn build_aux_files(
     comments: &Comments,
     revision: &str,
     config: &Config,
+    args: &Args,
     build_manager: &BuildManager<'_>,
 ) -> Result<Vec<OsString>, Errored> {
     let mut extra_args = vec![];
@@ -676,6 +682,7 @@ fn build_aux_files(
                             .collect(),
                         },
                         config,
+                        args,
                     )
                     .map_err(
                         |Errored {
@@ -707,6 +714,7 @@ fn run_test_binary(
     comments: &Comments,
     mut cmd: Command,
     config: &Config,
+    args: &Args,
 ) -> TestResult {
     cmd.arg("--print").arg("file-names");
     let output = cmd.output().unwrap();
@@ -727,6 +735,7 @@ fn run_test_binary(
         &mut errors,
         revision,
         config,
+        args,
         comments,
         &output.stdout,
         &output.stderr,
@@ -752,6 +761,7 @@ fn run_rustfix(
     comments: &Comments,
     revision: &str,
     config: &Config,
+    args: &Args,
     mode: Mode,
     extra_args: Vec<OsString>,
 ) -> Result<(), Errored> {
@@ -857,6 +867,7 @@ fn run_rustfix(
         "fixed",
         &Filter::default(),
         config,
+        args,
         &rustfix_comments,
         revision,
     );
@@ -912,6 +923,7 @@ fn check_test_result(
     mode: Mode,
     path: &Path,
     config: &Config,
+    args: &Args,
     revision: &str,
     comments: &Comments,
     status: ExitStatus,
@@ -927,6 +939,7 @@ fn check_test_result(
         &mut errors,
         revision,
         config,
+        args,
         comments,
         stdout,
         &diagnostics.rendered,
@@ -958,6 +971,7 @@ fn check_test_output(
     errors: &mut Vec<Error>,
     revision: &str,
     config: &Config,
+    args: &Args,
     comments: &Comments,
     stdout: &[u8],
     stderr: &[u8],
@@ -971,6 +985,7 @@ fn check_test_output(
         "stderr",
         &config.stderr_filters,
         config,
+        args,
         comments,
         revision,
     );
@@ -981,6 +996,7 @@ fn check_test_output(
         "stdout",
         &config.stdout_filters,
         config,
+        args,
         comments,
         revision,
     );
@@ -1111,32 +1127,29 @@ fn check_output(
     kind: &'static str,
     filters: &Filter,
     config: &Config,
+    args: &Args,
     comments: &Comments,
     revision: &str,
 ) -> PathBuf {
     let target = config.target.as_ref().unwrap();
     let output = normalize(path, output, filters, comments, revision, kind);
     let path = output_path(path, comments, revised(revision, kind), target, revision);
-    match &config.output_conflict_handling {
-        OutputConflictHandling::Bless => {
-            if output.is_empty() {
-                let _ = std::fs::remove_file(&path);
-            } else {
-                std::fs::write(&path, &output).unwrap();
-            }
+    if args.check {
+        let expected_output = std::fs::read(&path).unwrap_or_default();
+        if output != expected_output {
+            errors.push(Error::OutputDiffers {
+                path: path.clone(),
+                actual: output.clone(),
+                expected: expected_output,
+            });
         }
-        OutputConflictHandling::Error(bless_command) => {
-            let expected_output = std::fs::read(&path).unwrap_or_default();
-            if output != expected_output {
-                errors.push(Error::OutputDiffers {
-                    path: path.clone(),
-                    actual: output,
-                    expected: expected_output,
-                    bless_command: bless_command.clone(),
-                });
-            }
+    }
+    if args.bless {
+        if output.is_empty() {
+            let _ = std::fs::remove_file(&path);
+        } else {
+            std::fs::write(&path, &output).unwrap();
         }
-        OutputConflictHandling::Ignore => {}
     }
     path
 }

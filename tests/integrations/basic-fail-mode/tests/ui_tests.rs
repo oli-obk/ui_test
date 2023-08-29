@@ -10,9 +10,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
         },
         ..Config::rustc("tests/actual_tests")
     };
-    if std::env::var_os("BLESS").is_some() {
-        config.output_conflict_handling = OutputConflictHandling::Bless
-    }
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
@@ -20,7 +17,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
 
     run_tests_generic(
         vec![config],
-        Args::test()?,
+        Args::test(std::env::var_os("BLESS").is_some())?,
         default_file_filter,
         default_per_file_config,
         // Avoid github actions, as these would end up showing up in `Cargo.stderr`

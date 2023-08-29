@@ -32,7 +32,7 @@ pub struct Args {
 impl Args {
     /// Dummy arguments, but with the number of threads loaded from the environment.
     /// The boolearn argument decides whether to bless (`true`) or whether to error (`false`)
-    fn default(bless: bool) -> Result<Self> {
+    pub fn default(bless: bool) -> Result<Self> {
         Ok(Args {
             filters: vec![],
             quiet: false,
@@ -51,8 +51,9 @@ impl Args {
 
     /// Parse the program arguments.
     /// This is meant to be used if `ui_test` is used as a `harness=false` test, called from `cargo test`.
-    pub fn test() -> Result<Self> {
-        Self::default(true)?.parse_args(std::env::args().skip(1))
+    /// The boolearn argument decides whether to bless (`true`) or whether to error (`false`)
+    pub fn test(bless: bool) -> Result<Self> {
+        Self::default(bless)?.parse_args(std::env::args().skip(1))
     }
 
     /// Parse arguments into an existing `Args` struct.

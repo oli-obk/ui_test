@@ -6,7 +6,9 @@ fn main() -> ui_test::color_eyre::Result<()> {
             require_patterns: true,
             rustfix: RustfixMode::MachineApplicable,
         },
-        Mode::Yolo { rustfix: RustfixMode::Everything },
+        Mode::Yolo {
+            rustfix: RustfixMode::Everything,
+        },
     ] {
         let path = "../../../target";
 
@@ -21,9 +23,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
             mode,
             ..Config::rustc(root_dir)
         };
-        if std::env::var_os("BLESS").is_some() {
-            config.output_conflict_handling = OutputConflictHandling::Bless
-        }
 
         // hide binaries generated for successfully passing tests
         let tmp_dir = tempfile::tempdir_in(path)?;
@@ -37,7 +36,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
         let result = run_tests_generic(
             vec![config],
-            Args::test()?,
+            Args::test(std::env::var_os("BLESS").is_some())?,
             default_file_filter,
             default_per_file_config,
             // Avoid github actions, as these would end up showing up in `Cargo.stderr`
