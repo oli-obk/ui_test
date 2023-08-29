@@ -22,7 +22,7 @@ use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::num::NonZeroUsize;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf, Prefix};
 use std::process::{Command, ExitStatus};
 use std::thread;
 
@@ -513,7 +513,7 @@ fn build_aux(
 
     // Put aux builds into a separate directory per path so that multiple aux files
     // from different directories (but with the same file name) don't collide.
-    let relative = config.strip_path_prefix(aux_file.parent().unwrap());
+    let relative = strip_path_prefix(aux_file.parent().unwrap(), &config.out_dir);
 
     config.out_dir.extend(relative);
 
@@ -651,18 +651,18 @@ fn build_aux_files(
                 build_manager
                     .build(
                         Build::Aux {
-                            aux_file: config
-                                .strip_path_prefix(&aux_file.canonicalize().map_err(|err| {
-                                    Errored {
-                                        command: Command::new(format!(
-                                            "canonicalizing path `{}`",
-                                            aux_file.display()
-                                        )),
-                                        errors: vec![],
-                                        stderr: err.to_string().into_bytes(),
-                                    }
-                                })?)
-                                .collect(),
+                            aux_file: strip_path_prefix(
+                                &aux_file.canonicalize().map_err(|err| Errored {
+                                    command: Command::new(format!(
+                                        "canonicalizing path `{}`",
+                                        aux_file.display()
+                                    )),
+                                    errors: vec![],
+                                    stderr: err.to_string().into_bytes(),
+                                })?,
+                                &std::env::current_dir().unwrap(),
+                            )
+                            .collect(),
                         },
                         config,
                     )
@@ -1214,4 +1214,25 @@ fn normalize(
         text = from.replace_all(&text, to).into_owned();
     }
     text
+}
+/// Remove the common prefix of this path and the `root_dir`.
+fn strip_path_prefix<'a>(path: &'a Path, prefix: &Path) -> impl Iterator<Item = Component<'a>> {
+    let mut components = path.components();
+    for c in prefix.components() {
+        // Windows has some funky paths. This is probably wrong, but works well in practice.
+        let deverbatimize = |c| match c {
+            Component::Prefix(prefix) => Err(match prefix.kind() {
+                Prefix::VerbatimUNC(a, b) => Prefix::UNC(a, b),
+                Prefix::VerbatimDisk(d) => Prefix::Disk(d),
+                other => other,
+            }),
+            c => Ok(c),
+        };
+        let c2 = components.next();
+        if Some(deverbatimize(c)) == c2.map(deverbatimize) {
+            continue;
+        }
+        return c2.into_iter().chain(components);
+    }
+    None.into_iter().chain(components)
 }
