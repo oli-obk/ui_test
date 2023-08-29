@@ -928,7 +928,7 @@ fn check_test_result(
         revision,
         config,
         comments,
-        &stdout,
+        stdout,
         &diagnostics.rendered,
     );
     // Check error annotations in the source against output
