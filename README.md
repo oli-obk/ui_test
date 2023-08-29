@@ -47,7 +47,7 @@ their command specifies, or the test will fail without even being run.
     * you can specify multiple such commands, there is no need to create a single regex that handles multiple replacements that you want to perform.
 * `//@require-annotations-for-level: LEVEL` can be used to change the level of diagnostics that require a corresponding annotation.
     * this is only useful if there are any annotations like `HELP`, `WARN` or `NOTE`, as these would automatically require annotations for all other diagnostics of the same or higher level.
-* `//@check-pass` overrides the `Config::mode` and will make the test behave as if the test suite were in `Mode::Pass`.
+* `//@check-pass` requires that a test has no error annotations, emits no errors, and exits successfully with exit/status code 0.
 * `//@edition: EDITION` overwrites the default edition (2021) to the given edition.
 * `//@no-rustfix` do not run [rustfix] on tests that have machine applicable suggestions.
 * `//@aux-build: filename` looks for a file in the `auxiliary` directory (within the directory of the test), compiles it as a library and links the current crate against it. This allows you import the crate with `extern crate` or just via `use` statements. This will automatically detect aux files that are proc macros and build them as proc macros.
