@@ -36,7 +36,7 @@ impl Args {
         Ok(Args {
             filters: vec![],
             quiet: false,
-            bless: bless,
+            bless,
             check: !bless,
             skip: vec![],
             threads: match std::env::var_os("RUST_TEST_THREADS") {
