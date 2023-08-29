@@ -14,9 +14,13 @@ pub struct Args {
     /// Whether to minimize output given to the user.
     pub quiet: bool,
 
-    /// Whether error on mismatches between `.stderr` files and actual
-    /// output. Will update the files otherwise.
+    /// Whether to error on mismatches between `.stderr` files and actual
+    /// output.
     pub check: bool,
+
+    /// Whether to overwrite `.stderr` files on mismtach with the actual
+    /// output.
+    pub bless: bool,
 
     /// The number of threads to use
     pub threads: NonZeroUsize,
@@ -26,12 +30,14 @@ pub struct Args {
 }
 
 impl Args {
-    /// Arguments if `ui_test` is used as a `harness=false` test, called from `cargo test`.
-    pub fn test() -> Result<Self> {
-        let mut args = Args {
+    /// Dummy arguments, but with the number of threads loaded from the environment.
+    /// The boolearn argument decides whether to bless (`true`) or whether to error (`false`)
+    fn default(bless: bool) -> Result<Self> {
+        Ok(Args {
             filters: vec![],
             quiet: false,
-            check: false,
+            bless: bless,
+            check: !bless,
             skip: vec![],
             threads: match std::env::var_os("RUST_TEST_THREADS") {
                 None => std::thread::available_parallelism()?,
@@ -40,32 +46,41 @@ impl Args {
                     .ok_or_else(|| eyre!("could not parse RUST_TEST_THREADS env var"))?
                     .parse()?,
             },
-        };
-        let mut iter = std::env::args().skip(1);
+        })
+    }
+
+    /// Parse the program arguments.
+    /// This is meant to be used if `ui_test` is used as a `harness=false` test, called from `cargo test`.
+    pub fn test() -> Result<Self> {
+        Self::default(true)?.parse_args(std::env::args().skip(1))
+    }
+
+    /// Parse arguments into an existing `Args` struct.
+    pub fn parse_args(mut self, mut iter: impl Iterator<Item = String>) -> Result<Self> {
         while let Some(arg) = iter.next() {
             if arg == "--" {
                 continue;
             }
             if arg == "--quiet" {
-                args.quiet = true;
+                self.quiet = true;
             } else if arg == "--check" {
-                args.check = true;
+                self.check = true;
             } else if let Some(skip) = parse_value("--skip", &arg, &mut iter)? {
-                args.skip.push(skip.into_owned());
+                self.skip.push(skip.into_owned());
             } else if arg == "--help" {
                 bail!("available flags: --quiet, --check, --test-threads=n, --skip")
             } else if let Some(n) = parse_value("--test-threads", &arg, &mut iter)? {
-                args.threads = n.parse()?;
+                self.threads = n.parse()?;
             } else if arg.starts_with("--") {
                 bail!(
                     "unknown command line flag `{arg}`: {:?}",
-                    std::env::args().collect::<Vec<_>>()
+                    iter.collect::<Vec<_>>()
                 );
             } else {
-                args.filters.push(arg);
+                self.filters.push(arg);
             }
         }
-        Ok(args)
+        Ok(self)
     }
 }
 
