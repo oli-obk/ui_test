@@ -6,12 +6,11 @@ error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/debug/deps/ui_tests-HASH` (exit status: 1)
-thread '<unnamed>' panicked at 'called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }', $DIR/src/lib.rs:LL:CC
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
     $DIR/src/lib.rs:LL:CC)', tests/ui_tests_bless.rs:49:18
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
 

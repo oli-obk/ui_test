@@ -265,12 +265,10 @@ tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 
 tests/actual_tests_bless/aux_build_not_found.rs FAILED:
-command: "<unknown>"
-
-A bug in `ui_test` occurred: called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+command: "$CMD"
 
 full stderr:
-
+No such file or directory
 
 
 tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:

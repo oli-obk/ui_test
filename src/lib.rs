@@ -476,7 +476,11 @@ fn build_aux(
     config: &Config,
     build_manager: &BuildManager<'_>,
 ) -> std::result::Result<Vec<OsString>, Errored> {
-    let file_contents = std::fs::read(aux_file).unwrap();
+    let file_contents = std::fs::read(aux_file).map_err(|err| Errored {
+        command: Command::new(format!("reading aux file `{}`", aux_file.display())),
+        errors: vec![],
+        stderr: err.to_string().into_bytes(),
+    })?;
     let comments = parse_comments(&file_contents)?;
     assert_eq!(
         comments.revisions, None,
@@ -648,7 +652,16 @@ fn build_aux_files(
                     .build(
                         Build::Aux {
                             aux_file: config
-                                .strip_path_prefix(&aux_file.canonicalize().unwrap())
+                                .strip_path_prefix(&aux_file.canonicalize().map_err(|err| {
+                                    Errored {
+                                        command: Command::new(format!(
+                                            "canonicalizing path `{}`",
+                                            aux_file.display()
+                                        )),
+                                        errors: vec![],
+                                        stderr: err.to_string().into_bytes(),
+                                    }
+                                })?)
                                 .collect(),
                         },
                         config,
