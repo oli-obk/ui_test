@@ -205,6 +205,8 @@ pub struct Errored {
     errors: Vec<Error>,
     /// The full stderr of the test run.
     stderr: Vec<u8>,
+    /// The full stdout of the test run.
+    stdout: Vec<u8>,
 }
 
 struct TestRun {
@@ -290,6 +292,7 @@ pub fn run_tests_generic(
                                     .unwrap(),
                                 )],
                                 stderr: vec![],
+                                stdout: vec![],
                             }),
                             status,
                         })?;
@@ -332,10 +335,11 @@ pub fn run_tests_generic(
             command,
             errors,
             stderr,
+            stdout,
         },
     ) in &failures
     {
-        let _guard = status.failed_test(command, stderr);
+        let _guard = status.failed_test(command, stderr, stdout);
         failure_emitter.test_failure(status, errors);
     }
 
@@ -434,6 +438,7 @@ fn parse_comments(file_contents: &[u8]) -> Result<Comments, Errored> {
             command: Command::new("parse comments"),
             errors,
             stderr: vec![],
+            stdout: vec![],
         }),
     }
 }
@@ -480,6 +485,7 @@ fn build_aux(
         command: Command::new(format!("reading aux file `{}`", aux_file.display())),
         errors: vec![],
         stderr: err.to_string().into_bytes(),
+        stdout: vec![],
     })?;
     let comments = parse_comments(&file_contents)?;
     assert_eq!(
@@ -541,6 +547,7 @@ fn build_aux(
             command: aux_cmd,
             errors: vec![error],
             stderr: rustc_stderr::process(aux_file, &output.stderr).rendered,
+            stdout: output.stdout,
         });
     }
 
@@ -605,14 +612,17 @@ impl dyn TestStatus {
                             "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
                         ))],
                         stderr: vec![],
+                        stdout: vec![],
                     });
                 }
             }
         }
         check_test_result(
-            cmd, *mode, path, config, revision, comments, status, stdout, &stderr,
+            cmd, *mode, path, config, revision, comments, status, &stdout, &stderr,
         )?;
-        run_rustfix(&stderr, path, comments, revision, config, *mode, extra_args)?;
+        run_rustfix(
+            &stderr, &stdout, path, comments, revision, config, *mode, extra_args,
+        )?;
         Ok(TestOk::Ok)
     }
 
@@ -659,6 +669,7 @@ fn build_aux_files(
                                     )),
                                     errors: vec![],
                                     stderr: err.to_string().into_bytes(),
+                                    stdout: vec![],
                                 })?,
                                 &std::env::current_dir().unwrap(),
                             )
@@ -671,6 +682,7 @@ fn build_aux_files(
                              command,
                              errors,
                              stderr,
+                             stdout,
                          }| Errored {
                             command,
                             errors: vec![Error::Aux {
@@ -679,6 +691,7 @@ fn build_aux_files(
                                 line,
                             }],
                             stderr,
+                            stdout,
                         },
                     )?,
             );
@@ -727,12 +740,14 @@ fn run_test_binary(
             command: exe,
             errors,
             stderr: vec![],
+            stdout: vec![],
         })
     }
 }
 
 fn run_rustfix(
     stderr: &[u8],
+    stdout: &[u8],
     path: &Path,
     comments: &Comments,
     revision: &str,
@@ -786,6 +801,7 @@ fn run_rustfix(
             command: Command::new(format!("rustfix {}", path.display())),
             errors: vec![Error::Rustfix(err)],
             stderr: stderr.into(),
+            stdout: stdout.into(),
         })?;
 
     let edition = comments.edition(revision, config)?;
@@ -849,6 +865,7 @@ fn run_rustfix(
             command: Command::new(format!("checking {}", path.display())),
             errors,
             stderr: vec![],
+            stdout: vec![],
         });
     }
 
@@ -877,6 +894,7 @@ fn run_rustfix(
                 status: output.status,
             }],
             stderr: rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
+            stdout: output.stdout,
         })
     }
 }
@@ -897,7 +915,7 @@ fn check_test_result(
     revision: &str,
     comments: &Comments,
     status: ExitStatus,
-    stdout: Vec<u8>,
+    stdout: &[u8],
     stderr: &[u8],
 ) -> Result<(), Errored> {
     let mut errors = vec![];
@@ -930,6 +948,7 @@ fn check_test_result(
             command,
             errors,
             stderr: diagnostics.rendered,
+            stdout: stdout.into(),
         })
     }
 }
