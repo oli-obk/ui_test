@@ -66,10 +66,12 @@ impl Args {
                 self.quiet = true;
             } else if arg == "--check" {
                 self.check = true;
+            } else if arg == "--bless" {
+                self.bless = true;
             } else if let Some(skip) = parse_value("--skip", &arg, &mut iter)? {
                 self.skip.push(skip.into_owned());
             } else if arg == "--help" {
-                bail!("available flags: --quiet, --check, --test-threads=n, --skip")
+                bail!("available flags: --quiet, --check, --bless, --test-threads=n, --skip")
             } else if let Some(n) = parse_value("--test-threads", &arg, &mut iter)? {
                 self.threads = n.parse()?;
             } else if arg.starts_with("--") {
