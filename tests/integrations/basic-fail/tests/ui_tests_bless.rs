@@ -26,6 +26,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
                 OutputConflictHandling::Error("cargo test".to_string())
             },
             mode,
+            force_rerun: true,
             ..Config::rustc(root_dir)
         };
 

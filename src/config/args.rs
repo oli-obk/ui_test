@@ -18,6 +18,10 @@ pub struct Args {
     /// output.
     pub check: bool,
 
+    /// Rerun all tests, even if their test files are unchanged and they passed
+    /// in a previous run.
+    pub force_rerun: bool,
+
     /// Whether to overwrite `.stderr` files on mismtach with the actual
     /// output.
     pub bless: bool,
@@ -48,6 +52,8 @@ impl Args {
                 self.check = true;
             } else if arg == "--bless" {
                 self.bless = true;
+            } else if arg == "--force-rerun" {
+                self.force_rerun = true;
             } else if let Some(skip) = parse_value("--skip", &arg, &mut iter)? {
                 self.skip.push(skip.into_owned());
             } else if arg == "--help" {

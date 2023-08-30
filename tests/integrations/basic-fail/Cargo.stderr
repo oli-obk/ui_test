@@ -9,7 +9,7 @@ Caused by:
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/lib.rs:LL:CC)', tests/ui_tests_bless.rs:52:18
+    $DIR/src/lib.rs:LL:CC)', tests/ui_tests_bless.rs:53:18
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj

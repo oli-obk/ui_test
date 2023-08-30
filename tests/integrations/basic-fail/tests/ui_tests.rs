@@ -8,7 +8,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         output_conflict_handling: OutputConflictHandling::Error(
             "DO NOT BLESS. These are meant to fail".into(),
         ),
-
+        force_rerun: true,
         ..Config::rustc("tests/actual_tests")
     };
 

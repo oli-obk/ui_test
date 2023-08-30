@@ -8,6 +8,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
             "DO NOT BLESS. These are meant to fail".into(),
         ),
         host: Some("foo".into()),
+        force_rerun: true,
         ..Config::rustc("tests/actual_tests")
     };
 

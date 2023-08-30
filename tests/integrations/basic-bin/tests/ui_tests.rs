@@ -9,6 +9,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         } else {
             OutputConflictHandling::Error("cargo test".to_string())
         },
+        force_rerun: true,
         ..Config::rustc("tests/actual_tests")
     };
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");

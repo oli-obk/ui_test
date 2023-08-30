@@ -53,6 +53,8 @@ pub struct Config {
     pub filter_files: Vec<String>,
     /// Override the number of threads to use.
     pub threads: Option<NonZeroUsize>,
+    /// Rerun tests even if they passed previously
+    pub force_rerun: bool,
 }
 
 impl Config {
@@ -94,6 +96,7 @@ impl Config {
             skip_files: Vec::new(),
             filter_files: Vec::new(),
             threads: None,
+            force_rerun: false,
         }
     }
 
@@ -120,6 +123,7 @@ impl Config {
         let Args {
             ref filters,
             quiet: _,
+            force_rerun,
             check,
             bless,
             threads,
@@ -130,6 +134,7 @@ impl Config {
 
         self.filter_files.extend_from_slice(filters);
         self.skip_files.extend_from_slice(skip);
+        self.force_rerun |= force_rerun;
 
         let bless = match (bless, check) {
             (_, true) => false,

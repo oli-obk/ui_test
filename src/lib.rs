@@ -148,8 +148,8 @@ pub fn default_file_filter(path: &Path, config: &Config) -> bool {
 ///
 /// To only include rust files see [`default_file_filter`].
 pub fn default_any_file_filter(path: &Path, config: &Config) -> bool {
-    let path = path.display().to_string();
-    let contains_path = |files: &[String]| files.iter().any(|f| path.contains(f));
+    let path_str = path.display().to_string();
+    let contains_path = |files: &[String]| files.iter().any(|f| path_str.contains(f));
 
     if contains_path(&config.skip_files) {
         return false;
@@ -158,7 +158,25 @@ pub fn default_any_file_filter(path: &Path, config: &Config) -> bool {
     if !config.filter_files.is_empty() && !contains_path(&config.filter_files) {
         return false;
     }
-    true
+    config.force_rerun || modified_since_last_successful_run(path, config)
+}
+
+/// Returns `true` if the file was modified since the last time it was tested and passed successfully.
+pub fn modified_since_last_successful_run(path: &Path, config: &Config) -> bool {
+    macro_rules! modified {
+        ($path:expr) => {
+            if let Ok(time) = std::fs::metadata(&$path).and_then(|m| m.modified()) {
+                time
+            } else {
+                // If we can't get a time, assume the file has been modified.
+                return true;
+            }
+        };
+    }
+    let file_modified = modified!(path);
+    let test_suite = modified!(std::env::current_exe().unwrap());
+    let check_file = modified!(config.out_dir.join(path.with_extension("timestamp")));
+    (check_file < test_suite) || (check_file < file_modified)
 }
 
 /// The default per-file config used by `run_tests`.
@@ -274,6 +292,10 @@ pub fn run_tests_generic(
                         todo.push_back((entry, config));
                     }
                 } else if file_filter(&path, config) {
+                    // If we start a test, remove the marker that it was cached.
+                    let check_file = config.out_dir.join(path.with_extension("timestamp"));
+                    // The file may not exist, in this case we don't need to do anything.
+                    let _ = std::fs::remove_file(check_file);
                     let status = status_emitter.register_test(path);
                     // Forward .rs files to the test workers.
                     submit.send((status, config)).unwrap();
@@ -639,6 +661,13 @@ impl dyn TestStatus {
         run_rustfix(
             &stderr, &stdout, path, comments, revision, config, *mode, extra_args,
         )?;
+
+        // Make sure the `default_file_filter` recognizes that the test has already been run successfully
+        // and avoid running it again.
+        let check_file = config.out_dir.join(path.with_extension("timestamp"));
+        std::fs::create_dir_all(check_file.parent().unwrap()).unwrap();
+        std::fs::File::create(check_file).unwrap();
+
         Ok(TestOk::Ok)
     }
 
