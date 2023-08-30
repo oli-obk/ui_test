@@ -155,7 +155,10 @@ pub fn default_any_file_filter(path: &Path, config: &Config) -> bool {
         return false;
     }
 
-    config.filter_files.is_empty() || contains_path(&config.filter_files)
+    if !config.filter_files.is_empty() && !contains_path(&config.filter_files) {
+        return false;
+    }
+    true
 }
 
 /// The default per-file config used by `run_tests`.
