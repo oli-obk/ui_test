@@ -20,6 +20,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
 
         let mut config = Config {
             dependencies_crate_manifest_path: Some("Cargo.toml".into()),
+            output_conflict_handling: if std::env::var_os("BLESS").is_some() {
+                OutputConflictHandling::Bless
+            } else {
+                OutputConflictHandling::Error("cargo test".to_string())
+            },
             mode,
             ..Config::rustc(root_dir)
         };
@@ -36,7 +41,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
         let result = run_tests_generic(
             vec![config],
-            Args::test(std::env::var_os("BLESS").is_some())?,
             default_file_filter,
             default_per_file_config,
             // Avoid github actions, as these would end up showing up in `Cargo.stderr`

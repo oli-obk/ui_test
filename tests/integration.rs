@@ -9,7 +9,8 @@ fn main() -> Result<()> {
     let mut config = Config {
         ..Config::cargo(root_dir.clone())
     };
-    let args = Args::test(true)?;
+    let args = Args::test()?;
+    config.with_args(&args, true);
 
     config.program.args = vec![
         "test".into(),
@@ -83,8 +84,7 @@ fn main() -> Result<()> {
                 ..config
             },
         ],
-        args,
-        |path, args, config| {
+        |path, config| {
             let fail = path
                 .parent()
                 .unwrap()
@@ -107,7 +107,7 @@ fn main() -> Result<()> {
                     Mode::Panic => fail,
                     Mode::Run { .. } | Mode::Yolo { .. } | Mode::Fail { .. } => unreachable!(),
                 }
-                && default_filter_by_arg(path, args)
+                && default_any_file_filter(path, config)
         },
         |_, _, _| {},
         (

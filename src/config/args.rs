@@ -3,10 +3,10 @@
 
 use std::{borrow::Cow, num::NonZeroUsize};
 
-use color_eyre::eyre::{bail, ensure, eyre, Result};
+use color_eyre::eyre::{bail, ensure, Result};
 
 /// Plain arguments if `ui_test` is used as a binary.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Args {
     /// Filters that will be used to match on individual tests
     pub filters: Vec<String>,
@@ -23,37 +23,17 @@ pub struct Args {
     pub bless: bool,
 
     /// The number of threads to use
-    pub threads: NonZeroUsize,
+    pub threads: Option<NonZeroUsize>,
 
     /// Skip tests whose names contain any of these entries.
     pub skip: Vec<String>,
 }
 
 impl Args {
-    /// Dummy arguments, but with the number of threads loaded from the environment.
-    /// The boolearn argument decides whether to bless (`true`) or whether to error (`false`)
-    pub fn default(bless: bool) -> Result<Self> {
-        Ok(Args {
-            filters: vec![],
-            quiet: false,
-            bless,
-            check: !bless,
-            skip: vec![],
-            threads: match std::env::var_os("RUST_TEST_THREADS") {
-                None => std::thread::available_parallelism()?,
-                Some(n) => n
-                    .to_str()
-                    .ok_or_else(|| eyre!("could not parse RUST_TEST_THREADS env var"))?
-                    .parse()?,
-            },
-        })
-    }
-
     /// Parse the program arguments.
     /// This is meant to be used if `ui_test` is used as a `harness=false` test, called from `cargo test`.
-    /// The boolearn argument decides whether to bless (`true`) or whether to error (`false`)
-    pub fn test(bless: bool) -> Result<Self> {
-        Self::default(bless)?.parse_args(std::env::args().skip(1))
+    pub fn test() -> Result<Self> {
+        Self::default().parse_args(std::env::args().skip(1))
     }
 
     /// Parse arguments into an existing `Args` struct.
@@ -73,7 +53,7 @@ impl Args {
             } else if arg == "--help" {
                 bail!("available flags: --quiet, --check, --bless, --test-threads=n, --skip")
             } else if let Some(n) = parse_value("--test-threads", &arg, &mut iter)? {
-                self.threads = n.parse()?;
+                self.threads = Some(n.parse()?);
             } else if arg.starts_with("--") {
                 bail!(
                     "unknown command line flag `{arg}`: {:?}",
