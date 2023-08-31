@@ -5,6 +5,7 @@ pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
     ffi::OsString,
+    num::NonZeroUsize,
     path::{Path, PathBuf},
 };
 
@@ -34,16 +35,24 @@ pub struct Config {
     pub program: CommandBuilder,
     /// The command to run to obtain the cfgs that the output is supposed to
     pub cfgs: CommandBuilder,
+    /// What to do in case the stdout/stderr output differs from the expected one.
+    pub output_conflict_handling: OutputConflictHandling,
     /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
     pub dependencies_crate_manifest_path: Option<PathBuf>,
     /// The command to run can be changed from `cargo` to any custom command to build the
-    /// dependencies in `dependencies_crate_manifest_path`
+    /// dependencies in `dependencies_crate_manifest_path`.
     pub dependency_builder: CommandBuilder,
     /// Where to dump files like the binaries compiled from tests.
     /// Defaults to `target/ui` in the current directory.
     pub out_dir: PathBuf,
-    /// The default edition to use on all tests
+    /// The default edition to use on all tests.
     pub edition: Option<String>,
+    /// Skip test files whose names contain any of these entries.
+    pub skip_files: Vec<String>,
+    /// Only test files whose names contain any of these entries.
+    pub filter_files: Vec<String>,
+    /// Override the number of threads to use.
+    pub threads: Option<NonZeroUsize>,
 }
 
 impl Config {
@@ -74,6 +83,7 @@ impl Config {
             },
             program: CommandBuilder::rustc(),
             cfgs: CommandBuilder::cfgs(),
+            output_conflict_handling: OutputConflictHandling::Bless,
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
             out_dir: std::env::var_os("CARGO_TARGET_DIR")
@@ -81,6 +91,9 @@ impl Config {
                 .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"))
                 .join("ui"),
             edition: Some("2021".into()),
+            skip_files: Vec::new(),
+            filter_files: Vec::new(),
+            threads: None,
         }
     }
 
@@ -96,6 +109,44 @@ impl Config {
             },
             ..Self::rustc(root_dir)
         }
+    }
+
+    /// Populate the config with the values from parsed command line arguments.
+    /// If neither `--bless` or `--check` are provided `default_bless` is used.
+    ///
+    /// The default output conflict handling command suggests adding `--bless`
+    /// to the end of the current command.
+    pub fn with_args(&mut self, args: &Args, default_bless: bool) {
+        let Args {
+            ref filters,
+            quiet: _,
+            check,
+            bless,
+            threads,
+            ref skip,
+        } = *args;
+
+        self.threads = threads.or(self.threads);
+
+        self.filter_files.extend_from_slice(filters);
+        self.skip_files.extend_from_slice(skip);
+
+        let bless = match (bless, check) {
+            (_, true) => false,
+            (true, _) => true,
+            _ => default_bless,
+        };
+        self.output_conflict_handling = if bless {
+            OutputConflictHandling::Bless
+        } else {
+            OutputConflictHandling::Error(format!(
+                "{} --bless",
+                std::env::args()
+                    .map(|s| format!("{s:?}"))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            ))
+        };
     }
 
     /// Replace all occurrences of a path in stderr/stdout with a byte string.
@@ -154,8 +205,8 @@ impl Config {
 
     /// Compile dependencies and return the right flags
     /// to find the dependencies.
-    pub fn build_dependencies(&self, args: &Args) -> Result<Vec<OsString>> {
-        let dependencies = build_dependencies(args, self)?;
+    pub fn build_dependencies(&self) -> Result<Vec<OsString>> {
+        let dependencies = build_dependencies(self)?;
         let mut args = vec![];
         for (name, artifacts) in dependencies.dependencies {
             for dependency in artifacts {
@@ -206,4 +257,16 @@ impl Config {
             .iter()
             .any(|arch| self.target.as_ref().unwrap().contains(arch))
     }
+}
+
+#[derive(Debug, Clone)]
+/// The different options for what to do when stdout/stderr files differ from the actual output.
+pub enum OutputConflictHandling {
+    /// The string should be a command that can be executed to bless all tests.
+    Error(String),
+    /// Ignore mismatches in the stderr/stdout files.
+    Ignore,
+    /// Instead of erroring if the stderr/stdout differs from the expected
+    /// automatically replace it with the found output (after applying filters).
+    Bless,
 }

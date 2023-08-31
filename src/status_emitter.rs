@@ -435,8 +435,14 @@ fn print_error(error: &Error, path: &Path) {
             path: output_path,
             actual,
             expected,
+            bless_command,
         } => {
             println!("{}", "actual output differed from expected".underline());
+            println!(
+                "Execute `{}` to update `{}` to the actual output",
+                bless_command,
+                output_path.display()
+            );
             println!("{}", format!("--- {}", output_path.display()).red());
             println!(
                 "{}",
@@ -615,13 +621,18 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             path: output_path,
             actual,
             expected,
+            bless_command,
         } => {
             if expected.is_empty() {
                 let mut err = github_actions::error(
                     test_path,
                     "test generated output, but there was no output file",
                 );
-                writeln!(err, "you likely need to bless the tests").unwrap();
+                writeln!(
+                    err,
+                    "you likely need to bless the tests with `{bless_command}`"
+                )
+                .unwrap();
                 return;
             }
 

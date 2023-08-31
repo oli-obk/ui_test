@@ -48,7 +48,7 @@ impl CommandBuilder {
         }
     }
 
-    /// Same as [`rustc`], but with arguments for obtaining the cfgs.
+    /// Same as [`CommandBuilder::rustc`], but with arguments for obtaining the cfgs.
     pub fn cfgs() -> Self {
         Self {
             args: vec!["--print".into(), "cfg".into()],
