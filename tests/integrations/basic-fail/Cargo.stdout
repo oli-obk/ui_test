@@ -256,6 +256,7 @@ tests/actual_tests_bless/no_main_manual.rs ... FAILED
 tests/actual_tests_bless/no_test.rs ... FAILED
 tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/pass.rs ... ok
+tests/actual_tests_bless/pass_with_annotation.rs ... FAILED
 tests/actual_tests_bless/revised_revision.rs ... FAILED
 tests/actual_tests_bless/revisioned_executable.rs (run) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (panic) ... FAILED
@@ -486,6 +487,24 @@ full stdout:
 
 
 
+tests/actual_tests_bless/pass_with_annotation.rs FAILED:
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/pass_with_annotation.rs" "--edition" "2021"
+
+error: substring `the cake is a lie` not found in stderr output
+ --> tests/actual_tests_bless/pass_with_annotation.rs:3:12
+  |
+3 | //~ ERROR: the cake is a lie
+  |            ^^^^^^^^^^^^^^^^^ expected because of this pattern
+  |
+
+error pattern found in pass test
+
+full stderr:
+
+full stdout:
+
+
+
 tests/actual_tests_bless/revised_revision.rs FAILED:
 command: "parse comments"
 
@@ -688,6 +707,7 @@ FAILURES:
     tests/actual_tests_bless/no_main_manual.rs
     tests/actual_tests_bless/no_test.rs
     tests/actual_tests_bless/non_top_level_configs.rs
+    tests/actual_tests_bless/pass_with_annotation.rs
     tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisioned_executable.rs (revision panic)
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision run)
@@ -698,7 +718,7 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
 
-test result: FAIL. 19 failed; 14 passed; 3 ignored;
+test result: FAIL. 20 failed; 14 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
