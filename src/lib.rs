@@ -295,15 +295,15 @@ pub fn run_tests_generic(
                     // If we start a test, remove the marker that it was cached.
                     let check_file = config.out_dir.join(path.with_extension("timestamp"));
                     // The file may not exist, in this case we don't need to do anything.
-                    let _ = std::fs::remove_file(check_file);
+                    let _ = std::fs::remove_file(&check_file);
                     let status = status_emitter.register_test(path);
                     // Forward .rs files to the test workers.
-                    submit.send((status, config)).unwrap();
+                    submit.send((status, config, check_file)).unwrap();
                 }
             }
         },
         |receive, finished_files_sender| -> Result<()> {
-            for (status, config) in receive {
+            for (status, config, check_file) in receive {
                 let path = status.path();
                 let file_contents = std::fs::read(path).unwrap();
                 let mut config = config.clone();
@@ -311,7 +311,15 @@ pub fn run_tests_generic(
                 let result = match std::panic::catch_unwind(|| {
                     parse_and_test_file(&build_manager, &status, config, file_contents)
                 }) {
-                    Ok(Ok(res)) => res,
+                    Ok(Ok(res)) => {
+                        if res.iter().all(|res| matches!(res.result, Ok(TestOk::Ok))) {
+                            // Make sure the `default_file_filter` recognizes that the test has already been run successfully
+                            // and avoid running it again.
+                            std::fs::create_dir_all(check_file.parent().unwrap()).unwrap();
+                            std::fs::File::create(check_file).unwrap();
+                        }
+                        res
+                    }
                     Ok(Err(err)) => {
                         finished_files_sender.send(TestRun {
                             result: Err(err),
@@ -661,12 +669,6 @@ impl dyn TestStatus {
         run_rustfix(
             &stderr, &stdout, path, comments, revision, config, *mode, extra_args,
         )?;
-
-        // Make sure the `default_file_filter` recognizes that the test has already been run successfully
-        // and avoid running it again.
-        let check_file = config.out_dir.join(path.with_extension("timestamp"));
-        std::fs::create_dir_all(check_file.parent().unwrap()).unwrap();
-        std::fs::File::create(check_file).unwrap();
 
         Ok(TestOk::Ok)
     }
