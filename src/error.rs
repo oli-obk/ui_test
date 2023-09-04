@@ -23,7 +23,12 @@ pub enum Error {
     /// A ui test checking for failure does not have any failure patterns
     NoPatternsFound,
     /// A ui test checking for success has failure patterns
-    PatternFoundInPassTest,
+    PatternFoundInPassTest {
+        /// Span of a flag changing the mode (if changed from default).
+        mode: Option<Span>,
+        /// Span of the pattern
+        span: Span,
+    },
     /// Stderr/Stdout differed from the `.stderr`/`.stdout` file present.
     OutputDiffers {
         /// The file containing the expected output that differs from the actual output.

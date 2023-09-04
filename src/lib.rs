@@ -1012,9 +1012,9 @@ fn check_annotations(
         .for_revision(revision)
         .flat_map(|r| r.error_in_other_files.iter());
 
-    let mut seen_error_match = false;
+    let mut seen_error_match = None;
     for error_pattern in error_patterns {
-        seen_error_match = true;
+        seen_error_match = Some(error_pattern.span());
         // first check the diagnostics messages outside of our file. We check this first, so that
         // you can mix in-file annotations with //@error-in-other-file annotations, even if there is overlap
         // in the messages.
@@ -1040,7 +1040,7 @@ fn check_annotations(
         .for_revision(revision)
         .flat_map(|r| r.error_matches.iter())
     {
-        seen_error_match = true;
+        seen_error_match = Some(pattern.span());
         // If we found a diagnostic with a level annotation, make sure that all
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
@@ -1104,13 +1104,18 @@ fn check_annotations(
     }
 
     match (*mode, seen_error_match) {
-        (Mode::Pass, true) | (Mode::Panic, true) => errors.push(Error::PatternFoundInPassTest),
+        (Mode::Pass, Some(span)) | (Mode::Panic, Some(span)) => {
+            errors.push(Error::PatternFoundInPassTest {
+                mode: mode.span(),
+                span,
+            })
+        }
         (
             Mode::Fail {
                 require_patterns: true,
                 ..
             },
-            false,
+            None,
         ) => errors.push(Error::NoPatternsFound),
         _ => {}
     }

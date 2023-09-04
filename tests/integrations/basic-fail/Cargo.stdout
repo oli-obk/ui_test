@@ -497,7 +497,17 @@ error: substring `the cake is a lie` not found in stderr output
   |            ^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error pattern found in pass test
+error: error pattern found in pass test
+ --> tests/actual_tests_bless/pass_with_annotation.rs:3:12
+  |
+3 | //~ ERROR: the cake is a lie
+  |            ^^^^^^^^^^^^^^^^^ expected because of this annotation
+  |
+ ::: tests/actual_tests_bless/pass_with_annotation.rs:1:4
+  |
+1 | //@check-pass
+  |    ^^^^^^^^^^ expected because of this mode change
+  |
 
 full stderr:
 
