@@ -116,16 +116,15 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 /// Will additionally process command line arguments.
 pub fn run_tests(mut config: Config) -> Result<()> {
     let args = Args::test()?;
-    if !args.quiet {
+    if let Format::Pretty = args.format {
         println!("Compiler: {}", config.program.display());
     }
 
     let name = config.root_dir.display().to_string();
 
-    let text = if args.quiet {
-        status_emitter::Text::quiet()
-    } else {
-        status_emitter::Text::verbose()
+    let text = match args.format {
+        Format::Terse => status_emitter::Text::quiet(),
+        Format::Pretty => status_emitter::Text::verbose(),
     };
     config.with_args(&args, true);
 
@@ -271,9 +270,13 @@ pub fn run_tests_generic(
                         todo.push_back((entry, config));
                     }
                 } else if file_filter(&path, config) {
-                    let status = status_emitter.register_test(path);
-                    // Forward .rs files to the test workers.
-                    submit.send((status, config)).unwrap();
+                    if config.list {
+                        status_emitter.list_test(path);
+                    } else {
+                        let status = status_emitter.register_test(path);
+                        // Forward .rs files to the test workers.
+                        submit.send((status, config)).unwrap();
+                    }
                 }
             }
         },

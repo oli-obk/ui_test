@@ -11,9 +11,6 @@ pub struct Args {
     /// Filters that will be used to match on individual tests
     pub filters: Vec<String>,
 
-    /// Whether to minimize output given to the user.
-    pub quiet: bool,
-
     /// Whether to error on mismatches between `.stderr` files and actual
     /// output.
     pub check: bool,
@@ -22,11 +19,27 @@ pub struct Args {
     /// output.
     pub bless: bool,
 
+    /// List the tests that can be run.
+    pub list: bool,
+
+    /// Choose an output format
+    pub format: Format,
+
     /// The number of threads to use
     pub threads: Option<NonZeroUsize>,
 
     /// Skip tests whose names contain any of these entries.
     pub skip: Vec<String>,
+}
+
+/// Possible choices for styling the output.
+#[derive(Debug, Copy, Clone, Default)]
+pub enum Format {
+    /// Print one line per test
+    #[default]
+    Pretty,
+    /// Remove test lines once the test finishes and show a progress bar.
+    Terse,
 }
 
 impl Args {
@@ -43,11 +56,19 @@ impl Args {
                 continue;
             }
             if arg == "--quiet" {
-                self.quiet = true;
+                self.format = Format::Terse;
             } else if arg == "--check" {
                 self.check = true;
             } else if arg == "--bless" {
                 self.bless = true;
+            } else if arg == "--list" {
+                self.list = true;
+            } else if let Some(format) = parse_value("--format", &arg, &mut iter)? {
+                self.format = match &*format {
+                    "terse" => Format::Terse,
+                    "pretty" => Format::Pretty,
+                    _ => bail!("unsupported format `{format}`"),
+                };
             } else if let Some(skip) = parse_value("--skip", &arg, &mut iter)? {
                 self.skip.push(skip.into_owned());
             } else if arg == "--help" {

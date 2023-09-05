@@ -10,7 +10,7 @@ use std::{
 };
 
 mod args;
-pub use args::Args;
+pub use args::{Args, Format};
 
 #[derive(Debug, Clone)]
 /// Central datastructure containing all information to run the tests.
@@ -53,6 +53,8 @@ pub struct Config {
     pub filter_files: Vec<String>,
     /// Override the number of threads to use.
     pub threads: Option<NonZeroUsize>,
+    /// Only list the tests, don't run them.
+    pub list: bool,
 }
 
 impl Config {
@@ -94,6 +96,7 @@ impl Config {
             skip_files: Vec::new(),
             filter_files: Vec::new(),
             threads: None,
+            list: true,
         }
     }
 
@@ -119,9 +122,10 @@ impl Config {
     pub fn with_args(&mut self, args: &Args, default_bless: bool) {
         let Args {
             ref filters,
-            quiet: _,
             check,
             bless,
+            list,
+            format: _,
             threads,
             ref skip,
         } = *args;
@@ -130,6 +134,8 @@ impl Config {
 
         self.filter_files.extend_from_slice(filters);
         self.skip_files.extend_from_slice(skip);
+
+        self.list = list;
 
         let bless = match (bless, check) {
             (_, true) => false,
