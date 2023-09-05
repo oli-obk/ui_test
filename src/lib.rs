@@ -271,7 +271,7 @@ pub fn run_tests_generic(
                     }
                 } else if file_filter(&path, config) {
                     if config.list {
-                        status_emitter.list_test(path);
+                        let _ = status_emitter.list_test(path, config);
                     } else {
                         let status = status_emitter.register_test(path);
                         // Forward .rs files to the test workers.
@@ -329,6 +329,10 @@ pub fn run_tests_generic(
             }
         },
     )?;
+
+    if configs.iter().all(|c| c.list) {
+        return Ok(());
+    }
 
     let mut failures = vec![];
     let mut succeeded = 0;
@@ -1191,18 +1195,19 @@ impl dyn TestStatus {
             .flat_map(|r| r.ignore.iter())
             .any(|c| test_condition(c, config))
         {
-            return false;
+            return config.run_only_ignored;
         }
         if comments
             .for_revision(revision)
             .any(|r| r.needs_asm_support && !config.has_asm_support())
         {
-            return false;
+            return config.run_only_ignored;
         }
         comments
             .for_revision(revision)
             .flat_map(|r| r.only.iter())
             .all(|c| test_condition(c, config))
+            ^ config.run_only_ignored
     }
 }
 

@@ -13,7 +13,7 @@ use crate::{
     github_actions,
     parser::Pattern,
     rustc_stderr::{Message, Span},
-    Error, Errored, Errors, Format, TestOk, TestResult,
+    Config, Error, Errored, Errors, Format, TestOk, TestResult,
 };
 use std::{
     collections::HashMap,
@@ -35,7 +35,7 @@ pub trait StatusEmitter: Sync + RefUnwindSafe {
 
     /// When we aren't running tests but just listing them,
     /// this function gets called on each test.
-    fn list_test(&self, path: PathBuf);
+    fn list_test(&self, path: PathBuf, config: &Config) -> Result<(), Errored>;
 
     /// Create a report about the entire test run at the end.
     #[allow(clippy::type_complexity)]
@@ -318,8 +318,20 @@ impl StatusEmitter for Text {
         })
     }
 
-    fn list_test(&self, path: PathBuf) {
-        println!("{}", path.display());
+    fn list_test(&self, path: PathBuf, config: &Config) -> Result<(), Errored> {
+        let file_contents = std::fs::read(&path).unwrap();
+        let comments = crate::parse_comments(&file_contents)?;
+        let status: &dyn TestStatus = &TextTest {
+            text: self.clone(),
+            path,
+            revision: String::new(),
+            first: AtomicBool::new(true),
+        };
+        // Ignore file if only/ignore rules do (not) apply
+        if status.test_file_conditions(&comments, config) {
+            println!("{}: test", status.path().display());
+        }
+        Ok(())
     }
 
     fn finalize(
@@ -877,7 +889,9 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
         })
     }
 
-    fn list_test(&self, _path: PathBuf) {}
+    fn list_test(&self, _path: PathBuf, _config: &Config) -> Result<(), Errored> {
+        Ok(())
+    }
 }
 
 impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
@@ -941,9 +955,9 @@ impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
         ))
     }
 
-    fn list_test(&self, path: PathBuf) {
-        self.0.list_test(path.clone());
-        self.1.list_test(path);
+    fn list_test(&self, path: PathBuf, config: &Config) -> Result<(), Errored> {
+        self.0.list_test(path.clone(), config)?;
+        self.1.list_test(path, config)
     }
 }
 
@@ -993,8 +1007,8 @@ impl<T: StatusEmitter + ?Sized> StatusEmitter for Box<T> {
         (**self).finalize(failures, succeeded, ignored, filtered)
     }
 
-    fn list_test(&self, path: PathBuf) {
-        (**self).list_test(path.clone());
+    fn list_test(&self, path: PathBuf, config: &Config) -> Result<(), Errored> {
+        (**self).list_test(path.clone(), config)
     }
 }
 

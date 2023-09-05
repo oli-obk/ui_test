@@ -19,6 +19,9 @@ pub struct Args {
     /// output.
     pub bless: bool,
 
+    /// Whether to only run ignored tests.
+    pub ignored: bool,
+
     /// List the tests that can be run.
     pub list: bool,
 
@@ -63,6 +66,8 @@ impl Args {
                 self.bless = true;
             } else if arg == "--list" {
                 self.list = true;
+            } else if arg == "--ignored" {
+                self.ignored = true;
             } else if let Some(format) = parse_value("--format", &arg, &mut iter)? {
                 self.format = match &*format {
                     "terse" => Format::Terse,

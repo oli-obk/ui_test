@@ -55,6 +55,8 @@ pub struct Config {
     pub threads: Option<NonZeroUsize>,
     /// Only list the tests, don't run them.
     pub list: bool,
+    /// Only run the tests that are ignored.
+    pub run_only_ignored: bool,
 }
 
 impl Config {
@@ -96,7 +98,8 @@ impl Config {
             skip_files: Vec::new(),
             filter_files: Vec::new(),
             threads: None,
-            list: true,
+            list: false,
+            run_only_ignored: false,
         }
     }
 
@@ -125,6 +128,7 @@ impl Config {
             check,
             bless,
             list,
+            ignored,
             format: _,
             threads,
             ref skip,
@@ -134,6 +138,7 @@ impl Config {
 
         self.filter_files.extend_from_slice(filters);
         self.skip_files.extend_from_slice(skip);
+        self.run_only_ignored = ignored;
 
         self.list = list;
 
