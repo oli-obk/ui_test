@@ -23,7 +23,7 @@ use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::path::{Component, Path, PathBuf, Prefix};
-use std::process::{Command, ExitStatus};
+use std::process::{Command, ExitStatus, Output};
 use std::thread;
 
 use crate::parser::{Comments, Condition};
@@ -606,28 +606,13 @@ impl dyn TestStatus {
         let mut cmd = build_command(path, config, revision, comments)?;
         cmd.args(&extra_args);
 
-        let (status, stderr, stdout) = self.run_command(&mut cmd);
+        let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
 
         let mode = config.mode.maybe_override(comments, revision)?;
 
-        match *mode {
-            Mode::Run { .. } if Mode::Pass.ok(status).is_ok() => {
-                return run_test_binary(mode, path, revision, comments, cmd, config)
-            }
-            Mode::Panic | Mode::Yolo { .. } => {}
-            Mode::Run { .. } | Mode::Pass | Mode::Fail { .. } => {
-                if status.code() == Some(101) {
-                    let stderr = String::from_utf8_lossy(&stderr);
-                    let stdout = String::from_utf8_lossy(&stdout);
-                    return Err(Errored {
-                        command: cmd,
-                        errors: vec![Error::Bug(format!(
-                            "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
-                        ))],
-                        stderr: vec![],
-                        stdout: vec![],
-                    });
-                }
+        if let Mode::Run { .. } = *mode {
+            if Mode::Pass.ok(status).is_ok() {
+                return run_test_binary(mode, path, revision, comments, cmd, config);
             }
         }
         check_test_result(
@@ -641,15 +626,24 @@ impl dyn TestStatus {
 
     /// Run a command, and if it takes more than 100ms, start appending the last stderr/stdout
     /// line to the current status spinner.
-    fn run_command(&self, cmd: &mut Command) -> (ExitStatus, Vec<u8>, Vec<u8>) {
-        let output = cmd.output().unwrap_or_else(|err| {
-            panic!(
-                "could not spawn `{:?}` as a process: {err}",
-                cmd.get_program()
-            )
-        });
-
-        (output.status, output.stderr, output.stdout)
+    fn run_command(
+        &self,
+        mut cmd: Command,
+    ) -> Result<(Command, ExitStatus, Vec<u8>, Vec<u8>), Errored> {
+        match cmd.output() {
+            Err(err) => Err(Errored {
+                errors: vec![],
+                stderr: err.to_string().into_bytes(),
+                stdout: format!("could not spawn `{:?}` as a process", cmd.get_program())
+                    .into_bytes(),
+                command: cmd,
+            }),
+            Ok(Output {
+                status,
+                stdout,
+                stderr,
+            }) => Ok((cmd, status, stderr, stdout)),
+        }
     }
 }
 
