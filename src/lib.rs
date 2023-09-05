@@ -610,24 +610,9 @@ impl dyn TestStatus {
 
         let mode = config.mode.maybe_override(comments, revision)?;
 
-        match *mode {
-            Mode::Run { .. } if Mode::Pass.ok(status).is_ok() => {
-                return run_test_binary(mode, path, revision, comments, cmd, config)
-            }
-            Mode::Panic | Mode::Yolo { .. } => {}
-            Mode::Run { .. } | Mode::Pass | Mode::Fail { .. } => {
-                if status.code() == Some(101) {
-                    let stderr = String::from_utf8_lossy(&stderr);
-                    let stdout = String::from_utf8_lossy(&stdout);
-                    return Err(Errored {
-                        command: cmd,
-                        errors: vec![Error::Bug(format!(
-                            "test panicked: stderr:\n{stderr}\nstdout:\n{stdout}",
-                        ))],
-                        stderr: vec![],
-                        stdout: vec![],
-                    });
-                }
+        if let Mode::Run { .. } = *mode {
+            if Mode::Pass.ok(status).is_ok() {
+                return run_test_binary(mode, path, revision, comments, cmd, config);
             }
         }
         check_test_result(
