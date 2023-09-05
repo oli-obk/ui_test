@@ -24,13 +24,6 @@ error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/debug/deps/ui_tests_invalid_program-HASH` (exit status: 1)
-thread '<unnamed>' panicked at 'could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory', $DIR/src/lib.rs:LL:CC
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-thread '<unnamed>' panicked at 'could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory', $DIR/src/lib.rs:LL:CC
-thread '<unnamed>' panicked at 'could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory', $DIR/src/lib.rs:LL:CC
-thread '<unnamed>' panicked at 'could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory', $DIR/src/lib.rs:LL:CC
-thread '<unnamed>' panicked at 'could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory', $DIR/src/lib.rs:LL:CC
-thread '<unnamed>' panicked at 'could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory', $DIR/src/lib.rs:LL:CC
 Error: tests failed
 
 Location:

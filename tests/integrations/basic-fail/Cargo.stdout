@@ -775,47 +775,39 @@ tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
-command: "<unknown>"
-
-A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory
+command: "$CMD" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 full stderr:
-
+No such file or directory
 full stdout:
-
+could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
 tests/actual_tests/executable.rs FAILED:
-command: "<unknown>"
-
-A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory
+command: "$CMD" "tests/actual_tests/executable.rs" "--edition" "2021"
 
 full stderr:
-
+No such file or directory
 full stdout:
-
+could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
 tests/actual_tests/executable_compile_err.rs FAILED:
-command: "<unknown>"
-
-A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory
+command: "$CMD" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
 
 full stderr:
-
+No such file or directory
 full stdout:
-
+could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
 tests/actual_tests/exit_code_fail.rs FAILED:
-command: "<unknown>"
-
-A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory
+command: "$CMD" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
 full stderr:
-
+No such file or directory
 full stdout:
-
+could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
 tests/actual_tests/filters.rs FAILED:
@@ -835,25 +827,21 @@ full stdout:
 
 
 tests/actual_tests/foomp.rs FAILED:
-command: "<unknown>"
-
-A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory
+command: "$CMD" "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 full stderr:
-
+No such file or directory
 full stdout:
-
+could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
 tests/actual_tests/foomp2.rs FAILED:
-command: "<unknown>"
-
-A bug in `ui_test` occurred: could not spawn `"invalid_foobarlaksdfalsdfj"` as a process: No such file or directory
+command: "$CMD" "tests/actual_tests/foomp2.rs" "--edition" "2021"
 
 full stderr:
-
+No such file or directory
 full stdout:
-
+could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
 tests/actual_tests/pattern_too_many_arrow.rs FAILED:
