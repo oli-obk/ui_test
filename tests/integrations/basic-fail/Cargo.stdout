@@ -230,7 +230,7 @@ full stdout:
 
 
 tests/actual_tests/rustc_ice.rs FAILED:
-command: RUSTC_BOOTSTRAP="1" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
 
 fail test got exit status: 101, but expected 1
 
@@ -911,7 +911,7 @@ full stdout:
 
 
 tests/actual_tests/rustc_ice.rs FAILED:
-command: RUSTC_BOOTSTRAP="1" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
+command: "$CMD" "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
 
 full stderr:
 No such file or directory
