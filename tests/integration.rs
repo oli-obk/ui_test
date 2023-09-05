@@ -55,7 +55,8 @@ fn main() -> Result<()> {
         .insert(0, (Match::Exact(b"\\\\".to_vec()), b"\\"));
     config.filter("\\.exe", b"");
     config.stdout_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
-    config.filter("   [0-9]: .*", "");
+    config.filter(" +[0-9]+: .*\n", "");
+    config.filter("                at /.*\n", "");
     config.stdout_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
     config.stdout_filter("/target/.tmp[^/ \"]+", "/target/$$TMP");
     // Normalize proc macro filenames on windows to their linux repr

@@ -16,8 +16,6 @@ Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
 
 Caused by:
 
-
-
 Location:
     $DIR/src/config.rs:LL:CC
 error: test failed, to rerun pass `--test ui_tests_invalid_program`

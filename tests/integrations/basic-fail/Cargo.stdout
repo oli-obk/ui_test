@@ -12,6 +12,7 @@ tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
+tests/actual_tests/rustc_ice.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
@@ -227,6 +228,37 @@ full stderr:
 full stdout:
 
 
+
+tests/actual_tests/rustc_ice.rs FAILED:
+command: RUSTC_BOOTSTRAP="1" "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
+
+A bug in `ui_test` occurred: test panicked: stderr:
+{"message":"no errors reported for args","code":null,"level":"error: internal compiler error","spans":[{"file_name":"tests/actual_tests/rustc_ice.rs","byte_start":108,"byte_end":120,"line_start":7,"line_end":7,"column_start":5,"column_end":17,"is_primary":true,"text":[{"text":"    add(\"42\", 3);","highlight_start":5,"highlight_end":17}],"label":null,"suggested_replacement":null,"suggestion_applicability":null,"expansion":null}],"children":[],"rendered":"error: internal compiler error: no errors reported for args\n --> tests/actual_tests/rustc_ice.rs:7:5\n  |\n7 |     add(\"42\", 3);\n  |     ^^^^^^^^^^^^\n\n"}
+thread 'rustc' panicked at 'aborting due to `-Z treat-err-as-bug=1`', compiler/rustc_errors/src/lib.rs
+stack backtrace:
+                                                                                                                                                                                                                                                                                                                           
+error: the compiler unexpectedly panicked. this is a bug.
+
+note: we would appreciate a bug report: https://github.com/rust-lang/rust/issues/new?labels=C-bug%2C+I-ICE%2C+T-compiler&template=ice.md
+
+note: rustc 1.72.0 (5680fa18f 2023-08-23) running on x86_64-unknown-linux-gnu
+
+note: compiler flags: -Z treat-err-as-bug
+
+query stack during panic:
+#0 [typeck] type-checking `main`
+#1 [used_trait_imports] finding used_trait_imports `main`
+#2 [analysis] running analysis passes on this crate
+end of query stack
+
+stdout:
+
+
+full stderr:
+
+full stdout:
+
+
 FAILURES:
     tests/actual_tests/bad_pattern.rs
     tests/actual_tests/executable.rs
@@ -236,8 +268,9 @@ FAILURES:
     tests/actual_tests/foomp.rs
     tests/actual_tests/foomp2.rs
     tests/actual_tests/pattern_too_many_arrow.rs
+    tests/actual_tests/rustc_ice.rs
 
-test result: FAIL. 8 failed;
+test result: FAIL. 9 failed;
 
 Building dependencies ... ok
 tests/actual_tests_bless/aux_build_not_found.rs ... FAILED
@@ -773,6 +806,7 @@ tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
+tests/actual_tests/rustc_ice.rs ... FAILED
 
 tests/actual_tests/bad_pattern.rs FAILED:
 command: "$CMD" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
@@ -859,6 +893,15 @@ full stderr:
 full stdout:
 
 
+
+tests/actual_tests/rustc_ice.rs FAILED:
+command: RUSTC_BOOTSTRAP="1" "invalid_foobarlaksdfalsdfj" "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
+
+full stderr:
+No such file or directory
+full stdout:
+could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+
 FAILURES:
     tests/actual_tests/bad_pattern.rs
     tests/actual_tests/executable.rs
@@ -868,8 +911,9 @@ FAILURES:
     tests/actual_tests/foomp.rs
     tests/actual_tests/foomp2.rs
     tests/actual_tests/pattern_too_many_arrow.rs
+    tests/actual_tests/rustc_ice.rs
 
-test result: FAIL. 8 failed;
+test result: FAIL. 9 failed;
 
 
 running 0 tests
