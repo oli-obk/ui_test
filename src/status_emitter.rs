@@ -428,8 +428,14 @@ fn print_error(error: &Error, path: &Path) {
         Error::NoPatternsFound => {
             println!("{}", "no error patterns found in fail test".red());
         }
-        Error::PatternFoundInPassTest => {
-            println!("{}", "error pattern found in pass test".red())
+        Error::PatternFoundInPassTest { mode, span } => {
+            let annot = [("expected because of this annotation", Some(*span))];
+            let mut lines: Vec<(&[_], _)> = vec![(&annot, span.line_start)];
+            let annot = [("expected because of this mode change", *mode)];
+            if let Some(mode) = mode {
+                lines.push((&annot, mode.line_start))
+            }
+            create_error("error pattern found in pass test", &lines, path);
         }
         Error::OutputDiffers {
             path: output_path,
@@ -611,7 +617,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                 format!("no error patterns found in fail test{revision}"),
             );
         }
-        Error::PatternFoundInPassTest => {
+        Error::PatternFoundInPassTest { .. } => {
             github_actions::error(
                 test_path,
                 format!("error pattern found in pass test{revision}"),
