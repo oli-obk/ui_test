@@ -148,7 +148,15 @@ pub fn default_file_filter(path: &Path, config: &Config) -> bool {
 /// To only include rust files see [`default_file_filter`].
 pub fn default_any_file_filter(path: &Path, config: &Config) -> bool {
     let path = path.display().to_string();
-    let contains_path = |files: &[String]| files.iter().any(|f| path.contains(f));
+    let contains_path = |files: &[String]| {
+        files.iter().any(|f| {
+            if config.filter_exact {
+                *f == path
+            } else {
+                path.contains(f)
+            }
+        })
+    };
 
     if contains_path(&config.skip_files) {
         return false;

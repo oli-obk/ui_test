@@ -57,6 +57,8 @@ pub struct Config {
     pub list: bool,
     /// Only run the tests that are ignored.
     pub run_only_ignored: bool,
+    /// Filters must match exactly instead of just checking for substrings.
+    pub filter_exact: bool,
 }
 
 impl Config {
@@ -100,6 +102,7 @@ impl Config {
             threads: None,
             list: false,
             run_only_ignored: false,
+            filter_exact: false,
         }
     }
 
@@ -128,6 +131,7 @@ impl Config {
             check,
             bless,
             list,
+            exact,
             ignored,
             format: _,
             threads,
@@ -139,6 +143,7 @@ impl Config {
         self.filter_files.extend_from_slice(filters);
         self.skip_files.extend_from_slice(skip);
         self.run_only_ignored = ignored;
+        self.filter_exact = exact;
 
         self.list = list;
 

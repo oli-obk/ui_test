@@ -19,6 +19,9 @@ pub struct Args {
     /// output.
     pub bless: bool,
 
+    /// Only run the test matching the filters exactly.
+    pub exact: bool,
+
     /// Whether to only run ignored tests.
     pub ignored: bool,
 
@@ -66,8 +69,12 @@ impl Args {
                 self.bless = true;
             } else if arg == "--list" {
                 self.list = true;
+            } else if arg == "--exact" {
+                self.exact = true;
             } else if arg == "--ignored" {
                 self.ignored = true;
+            } else if arg == "--nocapture" {
+                // We ignore this flag for now.
             } else if let Some(format) = parse_value("--format", &arg, &mut iter)? {
                 self.format = match &*format {
                     "terse" => Format::Terse,
