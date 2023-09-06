@@ -70,11 +70,7 @@ fn main() -> Result<()> {
     config.filter("program not found", "No such file or directory");
     config.filter(" \\(os error [0-9]+\\)", "");
 
-    let text = if args.quiet {
-        ui_test::status_emitter::Text::quiet()
-    } else {
-        ui_test::status_emitter::Text::verbose()
-    };
+    let text = ui_test::status_emitter::Text::from(args.format);
 
     run_tests_generic(
         vec![

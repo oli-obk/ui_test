@@ -13,7 +13,7 @@ use crate::{
     github_actions,
     parser::Pattern,
     rustc_stderr::{Message, Span},
-    Error, Errored, Errors, TestOk, TestResult,
+    Error, Errored, Errors, Format, TestOk, TestResult,
 };
 use std::{
     collections::HashMap,
@@ -180,6 +180,15 @@ impl Text {
         Self {
             sender: Self::start_thread(),
             progress: true,
+        }
+    }
+}
+
+impl From<Format> for Text {
+    fn from(format: Format) -> Self {
+        match format {
+            Format::Terse => Text::quiet(),
+            Format::Pretty => Text::verbose(),
         }
     }
 }

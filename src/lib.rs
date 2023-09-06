@@ -116,16 +116,15 @@ pub type Filter = Vec<(Match, &'static [u8])>;
 /// Will additionally process command line arguments.
 pub fn run_tests(mut config: Config) -> Result<()> {
     let args = Args::test()?;
-    if !args.quiet {
+    if let Format::Pretty = args.format {
         println!("Compiler: {}", config.program.display());
     }
 
     let name = config.root_dir.display().to_string();
 
-    let text = if args.quiet {
-        status_emitter::Text::quiet()
-    } else {
-        status_emitter::Text::verbose()
+    let text = match args.format {
+        Format::Terse => status_emitter::Text::quiet(),
+        Format::Pretty => status_emitter::Text::verbose(),
     };
     config.with_args(&args, true);
 
@@ -149,7 +148,15 @@ pub fn default_file_filter(path: &Path, config: &Config) -> bool {
 /// To only include rust files see [`default_file_filter`].
 pub fn default_any_file_filter(path: &Path, config: &Config) -> bool {
     let path = path.display().to_string();
-    let contains_path = |files: &[String]| files.iter().any(|f| path.contains(f));
+    let contains_path = |files: &[String]| {
+        files.iter().any(|f| {
+            if config.filter_exact {
+                *f == path
+            } else {
+                path.contains(f)
+            }
+        })
+    };
 
     if contains_path(&config.skip_files) {
         return false;
@@ -229,6 +236,23 @@ pub fn run_tests_generic(
     per_file_config: impl Fn(&mut Config, &Path, &[u8]) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
+    // Nexttest emulation: we act as if we are one single test.
+    if configs.iter().any(|c| c.list) {
+        if configs.iter().any(|c| !c.run_only_ignored) {
+            println!("ui_test: test");
+        }
+        return Ok(());
+    }
+    for config in &mut configs {
+        if config.filter_exact
+            && config.filter_files.len() == 1
+            && config.filter_files[0] == "ui_test"
+        {
+            config.filter_exact = false;
+            config.filter_files.clear();
+        }
+    }
+
     for config in &mut configs {
         config.fill_host_and_target()?;
     }
@@ -1188,18 +1212,19 @@ impl dyn TestStatus {
             .flat_map(|r| r.ignore.iter())
             .any(|c| test_condition(c, config))
         {
-            return false;
+            return config.run_only_ignored;
         }
         if comments
             .for_revision(revision)
             .any(|r| r.needs_asm_support && !config.has_asm_support())
         {
-            return false;
+            return config.run_only_ignored;
         }
         comments
             .for_revision(revision)
             .flat_map(|r| r.only.iter())
             .all(|c| test_condition(c, config))
+            ^ config.run_only_ignored
     }
 }
 

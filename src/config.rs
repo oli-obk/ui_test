@@ -10,7 +10,7 @@ use std::{
 };
 
 mod args;
-pub use args::Args;
+pub use args::{Args, Format};
 
 #[derive(Debug, Clone)]
 /// Central datastructure containing all information to run the tests.
@@ -53,6 +53,12 @@ pub struct Config {
     pub filter_files: Vec<String>,
     /// Override the number of threads to use.
     pub threads: Option<NonZeroUsize>,
+    /// Nextest emulation: only list the test itself, not its components.
+    pub list: bool,
+    /// Only run the tests that are ignored.
+    pub run_only_ignored: bool,
+    /// Filters must match exactly instead of just checking for substrings.
+    pub filter_exact: bool,
 }
 
 impl Config {
@@ -94,6 +100,9 @@ impl Config {
             skip_files: Vec::new(),
             filter_files: Vec::new(),
             threads: None,
+            list: false,
+            run_only_ignored: false,
+            filter_exact: false,
         }
     }
 
@@ -119,9 +128,12 @@ impl Config {
     pub fn with_args(&mut self, args: &Args, default_bless: bool) {
         let Args {
             ref filters,
-            quiet: _,
             check,
             bless,
+            list,
+            exact,
+            ignored,
+            format: _,
             threads,
             ref skip,
         } = *args;
@@ -130,6 +142,10 @@ impl Config {
 
         self.filter_files.extend_from_slice(filters);
         self.skip_files.extend_from_slice(skip);
+        self.run_only_ignored = ignored;
+        self.filter_exact = exact;
+
+        self.list = list;
 
         let bless = match (bless, check) {
             (_, true) => false,
