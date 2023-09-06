@@ -13,7 +13,7 @@ use crate::{
     github_actions,
     parser::Pattern,
     rustc_stderr::{Message, Span},
-    Config, Error, Errored, Errors, Format, TestOk, TestResult,
+    Error, Errored, Errors, Format, TestOk, TestResult,
 };
 use std::{
     collections::HashMap,
@@ -32,10 +32,6 @@ pub trait StatusEmitter: Sync + RefUnwindSafe {
     /// Invoked the moment we know a test will later be run.
     /// Useful for progress bars and such.
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus>;
-
-    /// When we aren't running tests but just listing them,
-    /// this function gets called on each test.
-    fn list_test(&self, path: PathBuf, config: &Config) -> Result<(), Errored>;
 
     /// Create a report about the entire test run at the end.
     #[allow(clippy::type_complexity)]
@@ -316,22 +312,6 @@ impl StatusEmitter for Text {
             revision: String::new(),
             first: AtomicBool::new(true),
         })
-    }
-
-    fn list_test(&self, path: PathBuf, config: &Config) -> Result<(), Errored> {
-        let file_contents = std::fs::read(&path).unwrap();
-        let comments = crate::parse_comments(&file_contents)?;
-        let status: &dyn TestStatus = &TextTest {
-            text: self.clone(),
-            path,
-            revision: String::new(),
-            first: AtomicBool::new(true),
-        };
-        // Ignore file if only/ignore rules do (not) apply
-        if status.test_file_conditions(&comments, config) {
-            println!("{}: test", status.path().display());
-        }
-        Ok(())
     }
 
     fn finalize(
@@ -888,10 +868,6 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
             name: self.name.clone(),
         })
     }
-
-    fn list_test(&self, _path: PathBuf, _config: &Config) -> Result<(), Errored> {
-        Ok(())
-    }
 }
 
 impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
@@ -954,11 +930,6 @@ impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
             self.0.finalize(failures, succeeded, ignored, filtered),
         ))
     }
-
-    fn list_test(&self, path: PathBuf, config: &Config) -> Result<(), Errored> {
-        self.0.list_test(path.clone(), config)?;
-        self.1.list_test(path, config)
-    }
 }
 
 impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
@@ -1005,10 +976,6 @@ impl<T: StatusEmitter + ?Sized> StatusEmitter for Box<T> {
         filtered: usize,
     ) -> Box<dyn Summary> {
         (**self).finalize(failures, succeeded, ignored, filtered)
-    }
-
-    fn list_test(&self, path: PathBuf, config: &Config) -> Result<(), Errored> {
-        (**self).list_test(path.clone(), config)
     }
 }
 

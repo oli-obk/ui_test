@@ -236,6 +236,23 @@ pub fn run_tests_generic(
     per_file_config: impl Fn(&mut Config, &Path, &[u8]) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
+    // Nexttest emulation: we act as if we are one single test.
+    if configs.iter().any(|c| c.list) {
+        if configs.iter().any(|c| !c.run_only_ignored) {
+            println!("ui_test: test");
+        }
+        return Ok(());
+    }
+    for config in &mut configs {
+        if config.filter_exact
+            && config.filter_files.len() == 1
+            && config.filter_files[0] == "ui_test"
+        {
+            config.filter_exact = false;
+            config.filter_files.clear();
+        }
+    }
+
     for config in &mut configs {
         config.fill_host_and_target()?;
     }
@@ -278,13 +295,9 @@ pub fn run_tests_generic(
                         todo.push_back((entry, config));
                     }
                 } else if file_filter(&path, config) {
-                    if config.list {
-                        let _ = status_emitter.list_test(path, config);
-                    } else {
-                        let status = status_emitter.register_test(path);
-                        // Forward .rs files to the test workers.
-                        submit.send((status, config)).unwrap();
-                    }
+                    let status = status_emitter.register_test(path);
+                    // Forward .rs files to the test workers.
+                    submit.send((status, config)).unwrap();
                 }
             }
         },
@@ -337,10 +350,6 @@ pub fn run_tests_generic(
             }
         },
     )?;
-
-    if configs.iter().all(|c| c.list) {
-        return Ok(());
-    }
 
     let mut failures = vec![];
     let mut succeeded = 0;

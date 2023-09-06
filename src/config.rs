@@ -53,7 +53,7 @@ pub struct Config {
     pub filter_files: Vec<String>,
     /// Override the number of threads to use.
     pub threads: Option<NonZeroUsize>,
-    /// Only list the tests, don't run them.
+    /// Nextest emulation: only list the test itself, not its components.
     pub list: bool,
     /// Only run the tests that are ignored.
     pub run_only_ignored: bool,
