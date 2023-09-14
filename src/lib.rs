@@ -768,6 +768,10 @@ fn run_test_binary(
     let file = std::str::from_utf8(file).unwrap();
     let exe = config.out_dir.join(file);
     let mut exe = Command::new(exe);
+    let stdin = path.with_extension(format!("{revision}.stdin"));
+    if stdin.exists() {
+        exe.stdin(std::fs::File::open(stdin).unwrap());
+    }
     let output = exe.output().unwrap();
 
     let mut errors = vec![];
