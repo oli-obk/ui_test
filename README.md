@@ -6,6 +6,7 @@ A smaller version of compiletest-rs
   So if you have any slow tests, prepend them with a small integral number to make them get run first, taking advantage of parallelism as much as possible (instead of waiting for the slow tests at the end).
 * `cargo test --test your_test_name -- --help` lists the commands you can specify for filtering, blessing and making your tests less verbose.
     * Since `cargo test` on its own runs all tests, using `cargo test -- --check` will not work on its own, but `cargo test -- --quiet` and `cargo test -- some_test_name` will work just fine, as the CLI matches.
+* if there is a `.stdin` file with the same filename as your test, it will be piped as standard input to your program.
 
 ## Supported magic comment annotations
 
@@ -53,6 +54,8 @@ their command specifies, or the test will fail without even being run.
 * `//@aux-build: filename` looks for a file in the `auxiliary` directory (within the directory of the test), compiles it as a library and links the current crate against it. This allows you import the crate with `extern crate` or just via `use` statements. This will automatically detect aux files that are proc macros and build them as proc macros.
 * `//@run` compiles the test and runs the resulting binary. The resulting binary must exit successfully. Stdout and stderr are taken from the resulting binary. Any warnings during compilation are ignored.
     * You can also specify a different exit code/status that is expected via e.g. `//@run: 1` or `//@run: 101` (the latter is the standard Rust exit code for panics).
+    * run tests collect the run output into `.run.stderr` and `.run.stdout` respectively.
+    * if a `.run.stdin` file exists, it will be piped as standard input to your test's execution.
 
 [rustfix]: https://github.com/rust-lang/rustfix
 
