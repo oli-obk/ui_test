@@ -69,6 +69,7 @@ fn main() -> Result<()> {
     config.filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
     config.filter("program not found", "No such file or directory");
     config.filter(" \\(os error [0-9]+\\)", "");
+    config.filter("note: rustc 1\\..*", "");
 
     let text = ui_test::status_emitter::Text::from(args.format);
 
