@@ -637,15 +637,25 @@ impl dyn TestStatus {
         let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
 
         let mode = config.mode.maybe_override(comments, revision)?;
+        let cmd = check_test_result(
+            cmd,
+            match *mode {
+                Mode::Run { .. } => Mode::Pass,
+                _ => *mode,
+            },
+            path,
+            config,
+            revision,
+            comments,
+            status,
+            &stdout,
+            &stderr,
+        )?;
 
         if let Mode::Run { .. } = *mode {
-            if Mode::Pass.ok(status).is_ok() {
-                return run_test_binary(mode, path, revision, comments, cmd, config);
-            }
+            return run_test_binary(mode, path, revision, comments, cmd, config);
         }
-        check_test_result(
-            cmd, *mode, path, config, revision, comments, status, &stdout, &stderr,
-        )?;
+
         run_rustfix(
             &stderr, &stdout, path, comments, revision, config, *mode, extra_args,
         )?;
@@ -743,6 +753,11 @@ fn run_test_binary(
     mut cmd: Command,
     config: &Config,
 ) -> TestResult {
+    let revision = if revision.is_empty() {
+        "run".to_string()
+    } else {
+        format!("run.{revision}")
+    };
     cmd.arg("--print").arg("file-names");
     let output = cmd.output().unwrap();
     assert!(output.status.success());
@@ -760,7 +775,7 @@ fn run_test_binary(
     check_test_output(
         path,
         &mut errors,
-        revision,
+        &revision,
         config,
         comments,
         &output.stdout,
@@ -952,7 +967,7 @@ fn check_test_result(
     status: ExitStatus,
     stdout: &[u8],
     stderr: &[u8],
-) -> Result<(), Errored> {
+) -> Result<Command, Errored> {
     let mut errors = vec![];
     errors.extend(mode.ok(status).err());
     // Always remove annotation comments from stderr.
@@ -977,7 +992,7 @@ fn check_test_result(
         comments,
     )?;
     if errors.is_empty() {
-        Ok(())
+        Ok(command)
     } else {
         Err(Errored {
             command,

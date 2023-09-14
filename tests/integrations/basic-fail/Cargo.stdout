@@ -58,8 +58,8 @@ tests/actual_tests/executable.rs FAILED:
 command: "$CMD"
 
 actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.stdout` to the actual output
---- tests/actual_tests/executable.stdout
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.run.stdout` to the actual output
+--- tests/actual_tests/executable.run.stdout
 +++ <stdout output>
 -69
 +42
@@ -74,7 +74,7 @@ full stdout:
 tests/actual_tests/executable_compile_err.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
 
-run(0) test got exit status: 1, but expected 0
+pass test got exit status: 1, but expected 0
 
 actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual output
