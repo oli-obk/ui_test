@@ -629,6 +629,10 @@ impl dyn TestStatus {
 
         let mut cmd = build_command(path, config, revision, comments)?;
         cmd.args(&extra_args);
+        let stdin = path.with_extension("stdin");
+        if stdin.exists() {
+            cmd.stdin(std::fs::File::open(stdin).unwrap());
+        }
 
         let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
 

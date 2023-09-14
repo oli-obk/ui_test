@@ -4,5 +4,6 @@
         "./tests/integrations/basic-bin/Cargo.toml",
         "./tests/integrations/basic-fail/Cargo.toml",
         "./tests/integrations/basic-fail-mode/Cargo.toml",
+        "./tests/integrations/cargo-run/Cargo.toml"
     ]
 }

@@ -1,0 +1,2 @@
+thread 'main' panicked at '.stdin file is missing line 1', src/main.rs:6:26
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
