@@ -34,8 +34,8 @@ fn main() -> Result<()> {
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
     config.filter(
-        "( *process didn't exit successfully: `[^-]+)-[0-9a-f]+",
-        "$1-HASH",
+        "( *process didn't exit successfully: `.*)-[0-9a-f]+`",
+        "$1-HASH`",
     );
     // Windows io::Error uses "exit code".
     config.filter("exit code", "exit status");

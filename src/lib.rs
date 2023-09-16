@@ -627,7 +627,15 @@ impl dyn TestStatus {
             build_manager,
         )?;
 
-        let mut cmd = build_command(path, config, revision, comments)?;
+        let mut config = config.clone();
+
+        // Put aux builds into a separate directory per path so that multiple aux files
+        // from different directories (but with the same file name) don't collide.
+        let relative = strip_path_prefix(path.parent().unwrap(), &config.out_dir);
+
+        config.out_dir.extend(relative);
+
+        let mut cmd = build_command(path, &config, revision, comments)?;
         cmd.args(&extra_args);
         let stdin = path.with_extension("stdin");
         if stdin.exists() {
@@ -644,7 +652,7 @@ impl dyn TestStatus {
                 _ => *mode,
             },
             path,
-            config,
+            &config,
             revision,
             comments,
             status,
@@ -653,11 +661,11 @@ impl dyn TestStatus {
         )?;
 
         if let Mode::Run { .. } = *mode {
-            return run_test_binary(mode, path, revision, comments, cmd, config);
+            return run_test_binary(mode, path, revision, comments, cmd, &config);
         }
 
         run_rustfix(
-            &stderr, &stdout, path, comments, revision, config, *mode, extra_args,
+            &stderr, &stdout, path, comments, revision, &config, *mode, extra_args,
         )?;
         Ok(TestOk::Ok)
     }
@@ -766,13 +774,15 @@ fn run_test_binary(
     let file = files.next().unwrap();
     assert_eq!(files.next(), None);
     let file = std::str::from_utf8(file).unwrap();
-    let exe = config.out_dir.join(file);
-    let mut exe = Command::new(exe);
+    let exe_file = config.out_dir.join(file);
+    let mut exe = Command::new(&exe_file);
     let stdin = path.with_extension(format!("{revision}.stdin"));
     if stdin.exists() {
         exe.stdin(std::fs::File::open(stdin).unwrap());
     }
-    let output = exe.output().unwrap();
+    let output = exe
+        .output()
+        .unwrap_or_else(|err| panic!("exe file: {}: {err}", exe_file.display()));
 
     let mut errors = vec![];
 
