@@ -637,7 +637,11 @@ impl dyn TestStatus {
 
         let mut cmd = build_command(path, &config, revision, comments)?;
         cmd.args(&extra_args);
-        let stdin = path.with_extension("stdin");
+        let stdin = path.with_extension(if revision.is_empty() {
+            "stdin".into()
+        } else {
+            format!("{revision}.stdin")
+        });
         if stdin.exists() {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
         }
