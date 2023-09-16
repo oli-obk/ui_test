@@ -166,12 +166,14 @@ impl Config {
     }
 
     /// Replace all occurrences of a path in stderr/stdout with a byte string.
+    #[track_caller]
     pub fn path_filter(&mut self, path: &Path, replacement: &'static (impl AsRef<[u8]> + ?Sized)) {
         self.path_stderr_filter(path, replacement);
         self.path_stdout_filter(path, replacement);
     }
 
     /// Replace all occurrences of a path in stderr with a byte string.
+    #[track_caller]
     pub fn path_stderr_filter(
         &mut self,
         path: &Path,
@@ -183,6 +185,7 @@ impl Config {
     }
 
     /// Replace all occurrences of a path in stdout with a byte string.
+    #[track_caller]
     pub fn path_stdout_filter(
         &mut self,
         path: &Path,
@@ -194,12 +197,14 @@ impl Config {
     }
 
     /// Replace all occurrences of a regex pattern in stderr/stdout with a byte string.
+    #[track_caller]
     pub fn filter(&mut self, pattern: &str, replacement: &'static (impl AsRef<[u8]> + ?Sized)) {
         self.stderr_filter(pattern, replacement);
         self.stdout_filter(pattern, replacement);
     }
 
     /// Replace all occurrences of a regex pattern in stderr with a byte string.
+    #[track_caller]
     pub fn stderr_filter(
         &mut self,
         pattern: &str,
@@ -210,6 +215,7 @@ impl Config {
     }
 
     /// Replace all occurrences of a regex pattern in stdout with a byte string.
+    #[track_caller]
     pub fn stdout_filter(
         &mut self,
         pattern: &str,
