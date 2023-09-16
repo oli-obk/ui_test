@@ -627,23 +627,45 @@ impl dyn TestStatus {
             build_manager,
         )?;
 
-        let mut cmd = build_command(path, config, revision, comments)?;
+        let mut config = config.clone();
+
+        // Put aux builds into a separate directory per path so that multiple aux files
+        // from different directories (but with the same file name) don't collide.
+        let relative = strip_path_prefix(path.parent().unwrap(), &config.out_dir);
+
+        config.out_dir.extend(relative);
+
+        let mut cmd = build_command(path, &config, revision, comments)?;
         cmd.args(&extra_args);
+        let stdin = path.with_extension("stdin");
+        if stdin.exists() {
+            cmd.stdin(std::fs::File::open(stdin).unwrap());
+        }
 
         let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
 
         let mode = config.mode.maybe_override(comments, revision)?;
+        let cmd = check_test_result(
+            cmd,
+            match *mode {
+                Mode::Run { .. } => Mode::Pass,
+                _ => *mode,
+            },
+            path,
+            &config,
+            revision,
+            comments,
+            status,
+            &stdout,
+            &stderr,
+        )?;
 
         if let Mode::Run { .. } = *mode {
-            if Mode::Pass.ok(status).is_ok() {
-                return run_test_binary(mode, path, revision, comments, cmd, config);
-            }
+            return run_test_binary(mode, path, revision, comments, cmd, &config);
         }
-        check_test_result(
-            cmd, *mode, path, config, revision, comments, status, &stdout, &stderr,
-        )?;
+
         run_rustfix(
-            &stderr, &stdout, path, comments, revision, config, *mode, extra_args,
+            &stderr, &stdout, path, comments, revision, &config, *mode, extra_args,
         )?;
         Ok(TestOk::Ok)
     }
@@ -739,6 +761,11 @@ fn run_test_binary(
     mut cmd: Command,
     config: &Config,
 ) -> TestResult {
+    let revision = if revision.is_empty() {
+        "run".to_string()
+    } else {
+        format!("run.{revision}")
+    };
     cmd.arg("--print").arg("file-names");
     let output = cmd.output().unwrap();
     assert!(output.status.success());
@@ -747,16 +774,22 @@ fn run_test_binary(
     let file = files.next().unwrap();
     assert_eq!(files.next(), None);
     let file = std::str::from_utf8(file).unwrap();
-    let exe = config.out_dir.join(file);
-    let mut exe = Command::new(exe);
-    let output = exe.output().unwrap();
+    let exe_file = config.out_dir.join(file);
+    let mut exe = Command::new(&exe_file);
+    let stdin = path.with_extension(format!("{revision}.stdin"));
+    if stdin.exists() {
+        exe.stdin(std::fs::File::open(stdin).unwrap());
+    }
+    let output = exe
+        .output()
+        .unwrap_or_else(|err| panic!("exe file: {}: {err}", exe_file.display()));
 
     let mut errors = vec![];
 
     check_test_output(
         path,
         &mut errors,
-        revision,
+        &revision,
         config,
         comments,
         &output.stdout,
@@ -948,7 +981,7 @@ fn check_test_result(
     status: ExitStatus,
     stdout: &[u8],
     stderr: &[u8],
-) -> Result<(), Errored> {
+) -> Result<Command, Errored> {
     let mut errors = vec![];
     errors.extend(mode.ok(status).err());
     // Always remove annotation comments from stderr.
@@ -973,7 +1006,7 @@ fn check_test_result(
         comments,
     )?;
     if errors.is_empty() {
-        Ok(())
+        Ok(command)
     } else {
         Err(Errored {
             command,

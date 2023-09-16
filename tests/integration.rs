@@ -33,9 +33,10 @@ fn main() -> Result<()> {
 
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
+    config.filter("\\.exe", b"");
     config.filter(
-        "( *process didn't exit successfully: `[^-]+)-[0-9a-f]+",
-        "$1-HASH",
+        "( *process didn't exit successfully: `.*)-[0-9a-f]+`",
+        "$1-HASH`",
     );
     // Windows io::Error uses "exit code".
     config.filter("exit code", "exit status");
@@ -54,7 +55,6 @@ fn main() -> Result<()> {
     config
         .stdout_filters
         .insert(0, (Match::Exact(b"\\\\".to_vec()), b"\\"));
-    config.filter("\\.exe", b"");
     config.stdout_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     config.filter("(\\+)? +[0-9]+: .*\n", "");
     config.filter("(\\+)?                +at /.*\n", "");
@@ -69,6 +69,7 @@ fn main() -> Result<()> {
     config.filter("(src/.*?\\.rs):[0-9]+:[0-9]+", "$1:LL:CC");
     config.filter("program not found", "No such file or directory");
     config.filter(" \\(os error [0-9]+\\)", "");
+    config.filter("note: rustc 1\\..*", "");
 
     let text = ui_test::status_emitter::Text::from(args.format);
 

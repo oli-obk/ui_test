@@ -5,7 +5,7 @@ Location:
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/ui/debug/deps/ui_tests-HASH` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/$DIR/debug/deps/ui_tests-HASH` (exit status: 1)
 thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
 
 Location:
@@ -21,7 +21,7 @@ Location:
 error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/ui/debug/deps/ui_tests_invalid_program-HASH` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/$DIR/debug/deps/ui_tests_invalid_program-HASH` (exit status: 1)
 Error: tests failed
 
 Location:
@@ -29,7 +29,7 @@ Location:
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/ui/debug/deps/ui_tests_invalid_program2-HASH` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/$DIR/debug/deps/ui_tests_invalid_program2-HASH` (exit status: 1)
 error: 4 targets failed:
     `--test ui_tests`
     `--test ui_tests_bless`
