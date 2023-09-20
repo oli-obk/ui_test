@@ -11,8 +11,8 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use spanned::Span;
 
 use crate::{
-    github_actions, parser::Pattern, rustc_stderr::Message, Error, Errored, Errors, Format, TestOk,
-    TestResult,
+    github_actions, parser::Pattern, rustc_stderr::Level, Error, Errored, Errors, Format, Message,
+    TestOk, TestResult,
 };
 use std::{
     collections::HashMap,
@@ -446,6 +446,23 @@ fn print_error(error: &Error, path: &Path) {
                 path,
             );
         }
+        Error::CodeNotFound {
+            code,
+            expected_line,
+        } => {
+            let line = match expected_line {
+                Some(line) => format!("on line {line}"),
+                None => format!("outside the testfile"),
+            };
+            create_error(
+                format!("diagnostic code `{}` not found {line}", &**code),
+                &[(
+                    &[("expected because of this pattern", Some(code.span()))],
+                    code.line(),
+                )],
+                path,
+            );
+        }
         Error::NoPatternsFound => {
             print_error_header("no error patterns found in fail test");
         }
@@ -488,10 +505,13 @@ fn print_error(error: &Error, path: &Path) {
                 let msgs = msgs
                     .iter()
                     .map(|msg| {
-                        (
-                            format!("{:?}: {}", msg.level, msg.message),
-                            msg.line_col.clone(),
-                        )
+                        let text = match (&msg.code, msg.level) {
+                            (Some(code), Level::Error) => {
+                                format!("Error[{code}]: {}", msg.message)
+                            }
+                            _ => format!("{:?}: {}", msg.level, msg.message),
+                        };
+                        (text, msg.line_col.clone())
                     })
                     .collect::<Vec<_>>();
                 // This will print a suitable error header.
@@ -515,6 +535,7 @@ fn print_error(error: &Error, path: &Path) {
                     level,
                     message,
                     line_col: _,
+                    code: _,
                 } in msgs
                 {
                     println!("    {level:?}: {message}")
@@ -647,6 +668,10 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             github_actions::error(test_path, format!("Pattern not found{revision}"))
                 .line(pattern.line());
         }
+        Error::CodeNotFound { code, .. } => {
+            github_actions::error(test_path, format!("Diagnostic code not found{revision}"))
+                .line(code.line());
+        }
         Error::NoPatternsFound => {
             github_actions::error(
                 test_path,
@@ -735,6 +760,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                     level,
                     message,
                     line_col: _,
+                    code: _,
                 } in msgs
                 {
                     writeln!(err, "{level:?}: {message}").unwrap();
@@ -748,6 +774,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                     level,
                     message,
                     line_col: _,
+                    code: _,
                 } in msgs
                 {
                     writeln!(err, "{level:?}: {message}").unwrap();

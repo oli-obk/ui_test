@@ -14,7 +14,7 @@ use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, OptWithLine, Revisioned, Spanned};
+use parser::{ErrorMatch, ErrorMatchKind, OptWithLine, Revisioned, Spanned};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Level, Message};
 use spanned::Span;
@@ -1076,35 +1076,58 @@ fn check_annotations(
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
     let mut lowest_annotation_level = Level::Error;
-    for &ErrorMatch {
-        ref pattern,
-        level,
-        line,
-    } in comments
+    for &ErrorMatch { ref kind, line } in comments
         .for_revision(revision)
         .flat_map(|r| r.error_matches.iter())
     {
-        seen_error_match = Some(pattern.span());
-        // If we found a diagnostic with a level annotation, make sure that all
-        // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
-        // for this pattern.
-        if lowest_annotation_level > level {
-            lowest_annotation_level = level;
-        }
-
-        if let Some(msgs) = messages.get_mut(line.get()) {
-            let found = msgs
-                .iter()
-                .position(|msg| pattern.matches(&msg.message) && msg.level == level);
-            if let Some(found) = found {
-                msgs.remove(found);
-                continue;
+        match kind {
+            ErrorMatchKind::Code(code) => {
+                seen_error_match = Some(code.span());
+            }
+            &ErrorMatchKind::Pattern { ref pattern, level } => {
+                seen_error_match = Some(pattern.span());
+                // If we found a diagnostic with a level annotation, make sure that all
+                // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
+                // for this pattern.
+                if lowest_annotation_level > level {
+                    lowest_annotation_level = level;
+                }
             }
         }
 
-        errors.push(Error::PatternNotFound {
-            pattern: pattern.clone(),
-            expected_line: Some(line),
+        if let Some(msgs) = messages.get_mut(line.get()) {
+            match kind {
+                &ErrorMatchKind::Pattern { ref pattern, level } => {
+                    let found = msgs
+                        .iter()
+                        .position(|msg| pattern.matches(&msg.message) && msg.level == level);
+                    if let Some(found) = found {
+                        msgs.remove(found);
+                        continue;
+                    }
+                }
+                ErrorMatchKind::Code(code) => {
+                    let found = msgs.iter().position(|msg| {
+                        msg.level == Level::Error
+                            && msg.code.as_ref().is_some_and(|msg| *msg == **code)
+                    });
+                    if let Some(found) = found {
+                        msgs.remove(found);
+                        continue;
+                    }
+                }
+            }
+        }
+
+        errors.push(match kind {
+            ErrorMatchKind::Pattern { pattern, .. } => Error::PatternNotFound {
+                pattern: pattern.clone(),
+                expected_line: Some(line),
+            },
+            ErrorMatchKind::Code(code) => Error::CodeNotFound {
+                code: code.clone(),
+                expected_line: Some(line),
+            },
         });
     }
 

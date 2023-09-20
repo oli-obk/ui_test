@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Started maintaining a changelog
 * `Config::comment_defaults` allows setting `//@` comments for all tests
+* `//~` comments can now specify just an error code or lint name, without any message. ERROR level is implied
 
 ### Fixed
 

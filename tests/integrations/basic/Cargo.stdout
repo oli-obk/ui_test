@@ -16,13 +16,14 @@ tests/actual_tests/aux_proc_macro.rs ... ok
 tests/actual_tests/executable.rs ... ok
 tests/actual_tests/foomp-rustfix.rs ... ok
 tests/actual_tests/foomp.rs ... ok
+tests/actual_tests/match_diagnostic_code.rs ... ok
 tests/actual_tests/no_rustfix.rs ... ok
 tests/actual_tests/stdin.rs ... ok
 tests/actual_tests/unicode.rs ... ok
 tests/actual_tests/windows_paths.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 10 passed;
+test result: ok. 11 passed;
 
 
 running 0 tests

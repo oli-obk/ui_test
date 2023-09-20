@@ -11,16 +11,17 @@ A stable version of compiletest-rs
 ## Supported magic comment annotations
 
 If your test tests for failure, you need to add a `//~` annotation where the error is happening
-to make sure that the test will always keep failing with a specific message at the annotated line.
+to ensure that the test will always keep failing at the annotated line. These comments can take two forms:
 
-`//~ ERROR: XXX` make sure the stderr output contains `XXX` for an error in the line where this comment is written
-
-* Also supports `HELP`, `WARN` or `NOTE` for different kind of message
-    * if one of those levels is specified explicitly, *all* diagnostics of this level or higher need an annotation. If you want to avoid this, just leave out the all caps level note entirely.
-* If the all caps note is left out, a message of any level is matched. Leaving it out is not allowed for `ERROR` levels.
-* This checks the output *before* normalization, so you can check things that get normalized away, but need to
-    be careful not to accidentally have a pattern that differs between platforms.
-* if `XXX` is of the form `/XXX/` it is treated as a regex instead of a substring and will succeed if the regex matches.
+* `//~ LEVEL: XXX` matches by error level and message text
+    * `LEVEL` can be one of the following (descending order): `ERROR`, `HELP`, `WARN` or `NOTE`
+    * If a level is specified explicitly, *all* diagnostics of that level or higher need an annotation. To avoid this see `//@require-annotations-for-level`
+    * This checks the output *before* normalization, so you can check things that get normalized away, but need to
+        be careful not to accidentally have a pattern that differs between platforms.
+    * if `XXX` is of the form `/XXX/` it is treated as a regex instead of a substring and will succeed if the regex matches.
+* `//~ CODE` matches by diagnostic code.
+    * `CODE` can take multiple forms such as: `E####`, `lint_name`, `tool::lint_name`.
+    * This will only match a diagnostic at the `ERROR` level.
 
 In order to change how a single test is tested, you can add various `//@` comments to the test.
 Any other comments will be ignored, and all `//@` comments must be formatted precisely as

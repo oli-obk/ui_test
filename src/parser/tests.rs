@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::{
-    parser::{Condition, Pattern},
+    parser::{Condition, ErrorMatchKind, Pattern},
     Error,
 };
 
@@ -20,8 +20,11 @@ fn main() {
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
-    assert_eq!(revisioned.error_matches[0].pattern.line().get(), 5);
-    match &*revisioned.error_matches[0].pattern {
+    let ErrorMatchKind::Pattern { pattern, .. } = &revisioned.error_matches[0].kind else {
+        panic!("expected pattern matcher");
+    };
+    assert_eq!(pattern.line().get(), 5);
+    match &**pattern {
         Pattern::SubString(s) => {
             assert_eq!(
                 s,
@@ -30,6 +33,24 @@ fn main() {
         }
         other => panic!("expected substring, got {other:?}"),
     }
+}
+
+#[test]
+fn parse_error_code_comment() {
+    let s = r"
+fn main() {
+    let _x: i32 = 0u32; //~ E0308
+}
+    ";
+    let comments = Comments::parse(s, Comments::default(), Path::new("")).unwrap();
+    println!("parsed comments: {:#?}", comments);
+    assert_eq!(comments.revisioned.len(), 1);
+    let revisioned = &comments.revisioned[&vec![]];
+    let ErrorMatchKind::Code(code) = &revisioned.error_matches[0].kind else {
+        panic!("expected diagnostic code matcher");
+    };
+    assert_eq!(code.line().get(), 3);
+    assert_eq!(**code, "E0308");
 }
 
 #[test]
@@ -46,7 +67,7 @@ fn main() {
     assert_eq!(errors.len(), 1);
     match &errors[0] {
         Error::InvalidComment { msg, span } if span.line_start.get() == 5 => {
-            assert_eq!(msg, "unknown level `encountered`")
+            assert_eq!(msg, "text found after error code `encountered`")
         }
         _ => unreachable!(),
     }
