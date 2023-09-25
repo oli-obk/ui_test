@@ -229,7 +229,9 @@ struct TestRun {
 
 /// A version of `run_tests` that allows more fine-grained control over running tests.
 ///
-/// If multiple configs are provided only the first [`Config::threads`] value is used
+/// All `configs` are being run in parallel.
+/// If multiple configs are provided, the [`Config::threads`] value of the first one is used;
+/// the thread count of all other configs is ignored.
 pub fn run_tests_generic(
     mut configs: Vec<Config>,
     file_filter: impl Fn(&Path, &Config) -> bool + Sync,
