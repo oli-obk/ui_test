@@ -419,10 +419,13 @@ fn print_error(error: &Error, path: &Path) {
         Error::PatternNotFound(pattern) => {
             let msg = match &**pattern {
                 Pattern::SubString(s) => {
-                    format!("substring `{s}` {} in stderr output", "not found")
+                    format!("`{s}` not found in diagnostics for line {}", pattern.line())
                 }
                 Pattern::Regex(r) => {
-                    format!("`/{r}/` does {} stderr output", "not match")
+                    format!(
+                        "`/{r}/` does not match diagnostics for line {}",
+                        pattern.line()
+                    )
                 }
             };
             create_error(
