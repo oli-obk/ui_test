@@ -14,7 +14,7 @@ tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 tests/actual_tests/rustc_ice.rs ... FAILED
 
-tests/actual_tests/bad_pattern.rs FAILED:
+FAILED TEST: tests/actual_tests/bad_pattern.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 error: `miesmätsched types` not found in diagnostics on line 4
@@ -24,7 +24,7 @@ error: `miesmätsched types` not found in diagnostics on line 4
   |                 ^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
  --> tests/actual_tests/bad_pattern.rs:4:9
   |
 4 |     add("42", 3);
@@ -54,10 +54,10 @@ full stdout:
 
 
 
-tests/actual_tests/executable.rs FAILED:
+FAILED TEST: tests/actual_tests/executable.rs
 command: "$CMD"
 
-actual output differed from expected
+error: actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.run.stdout` to the actual output
 --- tests/actual_tests/executable.run.stdout
 +++ <stdout output>
@@ -71,12 +71,12 @@ full stdout:
 
 
 
-tests/actual_tests/executable_compile_err.rs FAILED:
+FAILED TEST: tests/actual_tests/executable_compile_err.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
 
-pass test got exit status: 1, but expected 0
+error: pass test got exit status: 1, but expected 0
 
-actual output differed from expected
+error: actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual output
 --- tests/actual_tests/executable_compile_err.stderr
 +++ <stderr output>
@@ -92,7 +92,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 +
 
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
  --> tests/actual_tests/executable_compile_err.rs:4:1
   |
 4 | 
@@ -115,12 +115,12 @@ full stdout:
 
 
 
-tests/actual_tests/exit_code_fail.rs FAILED:
+FAILED TEST: tests/actual_tests/exit_code_fail.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
-fail test got exit status: 0, but expected 1
+error: fail test got exit status: 0, but expected 1
 
-no error patterns found in fail test
+error: no error patterns found in fail test
 
 full stderr:
 
@@ -128,7 +128,7 @@ full stdout:
 
 
 
-tests/actual_tests/filters.rs FAILED:
+FAILED TEST: tests/actual_tests/filters.rs
 command: "parse comments"
 
 error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
@@ -144,10 +144,10 @@ full stdout:
 
 
 
-tests/actual_tests/foomp.rs FAILED:
+FAILED TEST: tests/actual_tests/foomp.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--edition" "2021"
 
-actual output differed from expected
+error: actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp.stderr` to the actual output
 --- tests/actual_tests/foomp.stderr
 +++ <stderr output>
@@ -196,10 +196,10 @@ full stdout:
 
 
 
-tests/actual_tests/foomp2.rs FAILED:
+FAILED TEST: tests/actual_tests/foomp2.rs
 command: "$CMD"
 
-actual output differed from expected
+error: actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.fixed` to the actual output
 --- tests/actual_tests/foomp2.fixed
 +++ <fixed output>
@@ -213,7 +213,7 @@ full stdout:
 
 
 
-tests/actual_tests/pattern_too_many_arrow.rs FAILED:
+FAILED TEST: tests/actual_tests/pattern_too_many_arrow.rs
 command: "parse comments"
 
 error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
@@ -229,10 +229,10 @@ full stdout:
 
 
 
-tests/actual_tests/rustc_ice.rs FAILED:
+FAILED TEST: tests/actual_tests/rustc_ice.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
 
-fail test got exit status: 101, but expected 1
+error: fail test got exit status: 101, but expected 1
 
 error: `mismatched types` not found in diagnostics on line 10
   --> tests/actual_tests/rustc_ice.rs:11:17
@@ -241,7 +241,7 @@ error: `mismatched types` not found in diagnostics on line 10
    |                 ^^^^^^^^^^^^^^^^ expected because of this pattern
    |
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
   --> tests/actual_tests/rustc_ice.rs:10:5
    |
 10 |     add("42", 3);
@@ -307,30 +307,30 @@ tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/pass_with_annotation.rs ... FAILED
 tests/actual_tests_bless/revised_revision.rs ... FAILED
-tests/actual_tests_bless/revisioned_executable.rs (run) ... ok
-tests/actual_tests_bless/revisioned_executable.rs (panic) ... FAILED
-tests/actual_tests_bless/revisioned_executable_panic.rs (run) ... FAILED
-tests/actual_tests_bless/revisioned_executable_panic.rs (panic) ... ok
-tests/actual_tests_bless/revisions.rs (foo) ... ok
-tests/actual_tests_bless/revisions.rs (bar) ... ok
-tests/actual_tests_bless/revisions_bad.rs (foo) ... ok
-tests/actual_tests_bless/revisions_bad.rs (bar) ... FAILED
-tests/actual_tests_bless/revisions_filter.rs (foo) ... ignored (in-test comment)
-tests/actual_tests_bless/revisions_filter.rs (bar) ... ignored (in-test comment)
-tests/actual_tests_bless/revisions_filter2.rs (foo) ... ignored (in-test comment)
-tests/actual_tests_bless/revisions_filter2.rs (bar) ... ok
-tests/actual_tests_bless/revisions_multiple_per_annotation.rs (foo) ... ok
-tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
-tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
-tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
+tests/actual_tests_bless/revisioned_executable.rs (revision `run`) ... ok
+tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) ... ok
+tests/actual_tests_bless/revisions.rs (revision `foo`) ... ok
+tests/actual_tests_bless/revisions.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_bad.rs (revision `foo`) ... ok
+tests/actual_tests_bless/revisions_bad.rs (revision `bar`) ... FAILED
+tests/actual_tests_bless/revisions_filter.rs (revision `foo`) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter.rs (revision `bar`) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter2.rs (revision `foo`) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter2.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `foo`) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (revision `foo`) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (revision `bar`) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
-tests/actual_tests_bless/rustfix-fail-revisions.rs (a) ... FAILED
-tests/actual_tests_bless/rustfix-fail-revisions.rs (b) ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... FAILED
 tests/actual_tests_bless/rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 
-tests/actual_tests_bless/aux_build_not_found.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/aux_build_not_found.rs
 command: "$CMD"
 
 full stderr:
@@ -339,7 +339,7 @@ full stdout:
 
 
 
-tests/actual_tests_bless/aux_proc_macro_misuse.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/aux_proc_macro_misuse.rs
 command: "parse comments"
 
 error: proc macros are now auto-detected, you can remove the `:proc-macro` after the file name
@@ -355,17 +355,17 @@ full stdout:
 
 
 
-tests/actual_tests_bless/aux_proc_macro_no_main.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/aux_proc_macro_no_main.rs
 command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/auxiliary"
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
  --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:8
   |
 7 | thing!(cake);
   |        ^^^^ Error: expected one of `!` or `::`, found `<eof>`
   |
 
-no error patterns found in fail test
+error: no error patterns found in fail test
 
 full stderr:
 error: expected one of `!` or `::`, found `<eof>`
@@ -381,7 +381,7 @@ full stdout:
 
 
 
-tests/actual_tests_bless/compile_flags_quotes.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/compile_flags_quotes.rs
 command: "parse comments"
 
 error: `compile-flag` is not a command known to `ui_test`, did you mean `compile-flags`?
@@ -404,7 +404,7 @@ full stdout:
 
 
 
-tests/actual_tests_bless/compiletest-rs-command.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/compiletest-rs-command.rs
 command: "parse comments"
 
 error: a compiletest-rs style comment was detected.
@@ -440,10 +440,10 @@ full stdout:
 
 
 
-tests/actual_tests_bless/failing_executable.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/failing_executable.rs
 command: "$CMD"
 
-run(0) test got exit status: 101, but expected 0
+error: run(0) test got exit status: 101, but expected 0
 
 full stderr:
 
@@ -451,12 +451,12 @@ full stdout:
 
 
 
-tests/actual_tests_bless/no_main.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/no_main.rs
 command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
 
-fail test got exit status: 0, but expected 1
+error: fail test got exit status: 0, but expected 1
 
-no error patterns found in fail test
+error: no error patterns found in fail test
 
 full stderr:
 
@@ -464,20 +464,20 @@ full stdout:
 
 
 
-tests/actual_tests_bless/no_main_manual.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/no_main_manual.rs
 command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main_manual.rs" "--crate-type=bin" "--edition" "2021"
 
-There were 1 unmatched diagnostics that occurred outside the testfile and had no pattern
+error: there were 1 unmatched diagnostics that occurred outside the testfile and had no pattern
     Error: cannot mix `bin` crate type with others
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
  --> tests/actual_tests_bless/no_main_manual.rs:3:16
   |
 3 | pub fn foo() {}
   |                ^ Error: `main` function not found in crate `no_main_manual`
   |
 
-no error patterns found in fail test
+error: no error patterns found in fail test
 
 full stderr:
 error: cannot mix `bin` crate type with others
@@ -496,12 +496,12 @@ full stdout:
 
 
 
-tests/actual_tests_bless/no_test.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/no_test.rs
 command: "rustc" "--error-format=json" "--test" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
 
-fail test got exit status: 0, but expected 1
+error: fail test got exit status: 0, but expected 1
 
-no error patterns found in fail test
+error: no error patterns found in fail test
 
 full stderr:
 
@@ -509,7 +509,7 @@ full stdout:
 
 
 
-tests/actual_tests_bless/non_top_level_configs.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/non_top_level_configs.rs
 command: "parse comments"
 
 error: comment looks suspiciously like a test suite command: `@check-pass`
@@ -536,7 +536,7 @@ full stdout:
 
 
 
-tests/actual_tests_bless/pass_with_annotation.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/pass_with_annotation.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/pass_with_annotation.rs" "--edition" "2021"
 
 error: `the cake is a lie` not found in diagnostics on line 3
@@ -564,7 +564,7 @@ full stdout:
 
 
 
-tests/actual_tests_bless/revised_revision.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/revised_revision.rs
 command: "parse comments"
 
 error: revisions cannot be declared under a revision
@@ -580,10 +580,10 @@ full stdout:
 
 
 
-tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) FAILED:
+FAILED TEST: tests/actual_tests_bless/revisioned_executable.rs (revision `panic`)
 command: "$CMD"
 
-run(101) test got exit status: 0, but expected 101
+error: run(101) test got exit status: 0, but expected 101
 
 full stderr:
 
@@ -591,10 +591,10 @@ full stdout:
 
 
 
-tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) FAILED:
+FAILED TEST: tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`)
 command: "$CMD"
 
-run(0) test got exit status: 101, but expected 0
+error: run(0) test got exit status: 101, but expected 0
 
 full stderr:
 
@@ -602,7 +602,7 @@ full stdout:
 
 
 
-tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
+FAILED TEST: tests/actual_tests_bless/revisions_bad.rs (revision `bar`)
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
@@ -612,7 +612,7 @@ error: ``main` function not found in crate `revisions_bad`` not found in diagnos
   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
   --> tests/actual_tests_bless/revisions_bad.rs:10:2
    |
 10 | }
@@ -634,10 +634,10 @@ full stdout:
 
 
 
-tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) FAILED:
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`)
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
-rustfix failed with exit status: 1
+error: rustfix failed with exit status: 1
 
 full stderr:
 error[E0382]: use of moved value: `x`
@@ -664,10 +664,10 @@ full stdout:
 
 
 
-tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) FAILED:
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`)
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
-rustfix failed with exit status: 1
+error: rustfix failed with exit status: 1
 
 full stderr:
 error[E0382]: use of moved value: `x`
@@ -694,10 +694,10 @@ full stdout:
 
 
 
-tests/actual_tests_bless/rustfix-fail.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/rustfix-fail.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--edition" "2021" "--crate-name" "rustfix_fail"
 
-rustfix failed with exit status: 1
+error: rustfix failed with exit status: 1
 
 full stderr:
 error[E0382]: use of moved value: `x`
@@ -724,7 +724,7 @@ full stdout:
 
 
 
-tests/actual_tests_bless/unknown_revision.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/unknown_revision.rs
 command: "parse comments"
 
 error: there are no revisions in this test
@@ -740,7 +740,7 @@ full stdout:
 
 
 
-tests/actual_tests_bless/unknown_revision2.rs FAILED:
+FAILED TEST: tests/actual_tests_bless/unknown_revision2.rs
 command: "parse comments"
 
 error: the revision `cake` is not known
@@ -780,11 +780,11 @@ FAILURES:
 test result: FAIL. 20 failed; 14 passed; 3 ignored;
 
 Building dependencies ... ok
-tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
-tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
+tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
+tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... FAILED
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
 
-tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) FAILED:
+FAILED TEST: tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`)
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
@@ -824,7 +824,7 @@ tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 tests/actual_tests/rustc_ice.rs ... FAILED
 
-tests/actual_tests/bad_pattern.rs FAILED:
+FAILED TEST: tests/actual_tests/bad_pattern.rs
 command: "$CMD" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 full stderr:
@@ -833,7 +833,7 @@ full stdout:
 could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
-tests/actual_tests/executable.rs FAILED:
+FAILED TEST: tests/actual_tests/executable.rs
 command: "$CMD" "tests/actual_tests/executable.rs" "--edition" "2021"
 
 full stderr:
@@ -842,7 +842,7 @@ full stdout:
 could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
-tests/actual_tests/executable_compile_err.rs FAILED:
+FAILED TEST: tests/actual_tests/executable_compile_err.rs
 command: "$CMD" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
 
 full stderr:
@@ -851,7 +851,7 @@ full stdout:
 could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
-tests/actual_tests/exit_code_fail.rs FAILED:
+FAILED TEST: tests/actual_tests/exit_code_fail.rs
 command: "$CMD" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
 full stderr:
@@ -860,7 +860,7 @@ full stdout:
 could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
-tests/actual_tests/filters.rs FAILED:
+FAILED TEST: tests/actual_tests/filters.rs
 command: "parse comments"
 
 error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
@@ -876,7 +876,7 @@ full stdout:
 
 
 
-tests/actual_tests/foomp.rs FAILED:
+FAILED TEST: tests/actual_tests/foomp.rs
 command: "$CMD" "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 full stderr:
@@ -885,7 +885,7 @@ full stdout:
 could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
-tests/actual_tests/foomp2.rs FAILED:
+FAILED TEST: tests/actual_tests/foomp2.rs
 command: "$CMD" "tests/actual_tests/foomp2.rs" "--edition" "2021"
 
 full stderr:
@@ -894,7 +894,7 @@ full stdout:
 could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
-tests/actual_tests/pattern_too_many_arrow.rs FAILED:
+FAILED TEST: tests/actual_tests/pattern_too_many_arrow.rs
 command: "parse comments"
 
 error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
@@ -910,7 +910,7 @@ full stdout:
 
 
 
-tests/actual_tests/rustc_ice.rs FAILED:
+FAILED TEST: tests/actual_tests/rustc_ice.rs
 command: "$CMD" "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
 
 full stderr:

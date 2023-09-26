@@ -17,7 +17,7 @@ use crate::{
 };
 use std::{
     collections::HashMap,
-    fmt::{Debug, Write as _},
+    fmt::{Debug, Display, Write as _},
     io::Write as _,
     num::NonZeroUsize,
     panic::RefUnwindSafe,
@@ -201,11 +201,12 @@ struct TextTest {
 }
 
 impl TextTest {
+    /// Prints the user-visible name for this test.
     fn msg(&self) -> String {
         if self.revision.is_empty() {
             self.path.display().to_string()
         } else {
-            format!("{} ({})", self.path.display(), self.revision)
+            format!("{} (revision `{}`)", self.path.display(), self.revision)
         }
     }
 }
@@ -218,7 +219,7 @@ impl TestStatus for TextTest {
         } else {
             let result = match result {
                 Ok(TestOk::Ok) => "ok".green(),
-                Err(Errored { .. }) => "FAILED".red().bold(),
+                Err(Errored { .. }) => "FAILED".bright_red().bold(),
                 Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
                 Ok(TestOk::Filtered) => return,
             };
@@ -243,17 +244,10 @@ impl TestStatus for TextTest {
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
+        let text = format!("{} {}", "FAILED TEST:".bright_red(), self.msg());
+
         println!();
-        let path = self.path.display().to_string();
-        print!("{}", path.underline().bold());
-        let revision = if self.revision.is_empty() {
-            String::new()
-        } else {
-            format!(" (revision `{}`)", self.revision)
-        };
-        print!("{revision}");
-        print!(" {}", "FAILED:".red().bold());
-        println!();
+        println!("{}", text.bold().underline());
         println!("command: {cmd:?}");
         println!();
 
@@ -264,10 +258,10 @@ impl TestStatus for TextTest {
         }
         impl<'a> Drop for Guard<'a> {
             fn drop(&mut self) {
-                println!("full stderr:");
+                println!("{}", "full stderr:".bold());
                 std::io::stdout().write_all(self.stderr).unwrap();
                 println!();
-                println!("full stdout:");
+                println!("{}", "full stdout:".bold());
                 std::io::stdout().write_all(self.stdout).unwrap();
                 println!();
                 println!();
@@ -374,12 +368,12 @@ impl StatusEmitter for Text {
 
             impl Drop for Summarizer {
                 fn drop(&mut self) {
-                    println!("{}", "FAILURES:".red().underline().bold());
+                    println!("{}", "FAILURES:".bright_red().underline().bold());
                     for line in &self.failures {
                         println!("{line}");
                     }
                     println!();
-                    print!("test result: {}.", "FAIL".red());
+                    print!("test result: {}.", "FAIL".bright_red());
                     print!(" {} failed;", self.failures.len().to_string().green());
                     if self.succeeded > 0 {
                         print!(" {} passed;", self.succeeded.to_string().green());
@@ -405,16 +399,27 @@ impl StatusEmitter for Text {
 }
 
 fn print_error(error: &Error, path: &Path) {
+    /// Every error starts with a header like that, to make them all easy to find.
+    /// It is made to look like the headers printed for spanned errors.
+    fn print_error_header(msg: impl Display) {
+        let text = format!("{} {msg}", "error:".bright_red());
+        println!("{}", text.bold());
+    }
+
     match error {
         Error::ExitStatus {
             mode,
             status,
             expected,
         } => {
-            println!("{mode} test got {status}, but expected {expected}")
+            // `status` prints as `exit status: N`.
+            print_error_header(format_args!(
+                "{mode} test got {status}, but expected {expected}"
+            ))
         }
         Error::Command { kind, status } => {
-            println!("{kind} failed with {status}");
+            // `status` prints as `exit status: N`.
+            print_error_header(format_args!("{kind} failed with {status}"));
         }
         Error::PatternNotFound {
             pattern,
@@ -432,6 +437,7 @@ fn print_error(error: &Error, path: &Path) {
                     format!("`/{r}/` does not match diagnostics {line}",)
                 }
             };
+            // This will print a suitable error header.
             create_error(
                 msg,
                 &[(
@@ -442,7 +448,7 @@ fn print_error(error: &Error, path: &Path) {
             );
         }
         Error::NoPatternsFound => {
-            println!("{}", "no error patterns found in fail test".red());
+            print_error_header("no error patterns found in fail test");
         }
         Error::PatternFoundInPassTest { mode, span } => {
             let annot = [("expected because of this annotation", Some(*span))];
@@ -451,6 +457,7 @@ fn print_error(error: &Error, path: &Path) {
             if let Some(mode) = mode {
                 lines.push((&annot, mode.line_start))
             }
+            // This will print a suitable error header.
             create_error("error pattern found in pass test", &lines, path);
         }
         Error::OutputDiffers {
@@ -459,7 +466,7 @@ fn print_error(error: &Error, path: &Path) {
             expected,
             bless_command,
         } => {
-            println!("{}", "actual output differed from expected".underline());
+            print_error_header("actual output differed from expected");
             println!(
                 "Execute `{}` to update `{}` to the actual output",
                 bless_command,
@@ -483,8 +490,9 @@ fn print_error(error: &Error, path: &Path) {
                     .iter()
                     .map(|msg| (format!("{:?}: {}", msg.level, msg.message), msg.line_col))
                     .collect::<Vec<_>>();
+                // This will print a suitable error header.
                 create_error(
-                    format!("There were {} unmatched diagnostics", msgs.len()),
+                    format!("there were {} unmatched diagnostics", msgs.len()),
                     &[(
                         &msgs
                             .iter()
@@ -495,10 +503,10 @@ fn print_error(error: &Error, path: &Path) {
                     path,
                 );
             } else {
-                println!(
-                    "There were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
+                print_error_header(format_args!(
+                    "there were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
                     msgs.len(),
-                );
+                ));
                 for Message {
                     level,
                     message,
@@ -510,10 +518,12 @@ fn print_error(error: &Error, path: &Path) {
             }
         }
         Error::InvalidComment { msg, span } => {
+            // This will print a suitable error header.
             create_error(msg, &[(&[("", Some(*span))], span.line_start)], path)
         }
         Error::MultipleRevisionsWithResults { kind, lines } => {
             let title = format!("multiple {kind} found");
+            // This will print a suitable error header.
             create_error(
                 title,
                 &lines
@@ -524,23 +534,28 @@ fn print_error(error: &Error, path: &Path) {
             )
         }
         Error::Bug(msg) => {
-            println!("A bug in `ui_test` occurred: {msg}");
+            print_error_header("a bug in `ui_test` occurred");
+            println!("{msg}");
         }
         Error::Aux {
             path: aux_path,
             errors,
             line,
         } => {
-            println!("Aux build from {}:{line} failed", path.display());
+            print_error_header(format_args!(
+                "aux build from {}:{line} failed",
+                path.display()
+            ));
             for error in errors {
                 print_error(error, aux_path);
             }
         }
         Error::Rustfix(error) => {
-            println!(
-                "failed to apply suggestions for {} with rustfix: {error}",
+            print_error_header(format_args!(
+                "failed to apply suggestions for {} with rustfix",
                 path.display()
-            );
+            ));
+            println!("{error}");
             println!("Add //@no-rustfix to the test file to ignore rustfix suggestions");
         }
     }
