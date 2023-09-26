@@ -492,7 +492,7 @@ fn print_error(error: &Error, path: &Path) {
                     .collect::<Vec<_>>();
                 // This will print a suitable error header.
                 create_error(
-                    format!("There were {} unmatched diagnostics", msgs.len()),
+                    format!("there were {} unmatched diagnostics", msgs.len()),
                     &[(
                         &msgs
                             .iter()

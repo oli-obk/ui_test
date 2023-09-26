@@ -24,7 +24,7 @@ error: `miesmätsched types` not found in diagnostics on line 4
   |                 ^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
  --> tests/actual_tests/bad_pattern.rs:4:9
   |
 4 |     add("42", 3);
@@ -92,7 +92,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 +
 
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
  --> tests/actual_tests/executable_compile_err.rs:4:1
   |
 4 | 
@@ -241,7 +241,7 @@ error: `mismatched types` not found in diagnostics on line 10
    |                 ^^^^^^^^^^^^^^^^ expected because of this pattern
    |
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
   --> tests/actual_tests/rustc_ice.rs:10:5
    |
 10 |     add("42", 3);
@@ -358,7 +358,7 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/aux_proc_macro_no_main.rs
 command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/auxiliary"
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
  --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:8
   |
 7 | thing!(cake);
@@ -470,7 +470,7 @@ command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail
 error: there were 1 unmatched diagnostics that occurred outside the testfile and had no pattern
     Error: cannot mix `bin` crate type with others
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
  --> tests/actual_tests_bless/no_main_manual.rs:3:16
   |
 3 | pub fn foo() {}
@@ -612,7 +612,7 @@ error: ``main` function not found in crate `revisions_bad`` not found in diagnos
   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: There were 1 unmatched diagnostics
+error: there were 1 unmatched diagnostics
   --> tests/actual_tests_bless/revisions_bad.rs:10:2
    |
 10 | }
