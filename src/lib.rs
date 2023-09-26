@@ -1081,7 +1081,10 @@ fn check_annotations(
         {
             messages_from_unknown_file_or_line.remove(i);
         } else {
-            errors.push(Error::PatternNotFound(error_pattern.clone()));
+            errors.push(Error::PatternNotFound {
+                pattern: error_pattern.clone(),
+                expected_line: None,
+            });
         }
     }
 
@@ -1115,7 +1118,10 @@ fn check_annotations(
             }
         }
 
-        errors.push(Error::PatternNotFound(pattern.clone()));
+        errors.push(Error::PatternNotFound {
+            pattern: pattern.clone(),
+            expected_line: Some(line),
+        });
     }
 
     let required_annotation_level = comments.find_one_for_revision(
