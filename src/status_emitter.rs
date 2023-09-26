@@ -218,7 +218,7 @@ impl TestStatus for TextTest {
         } else {
             let result = match result {
                 Ok(TestOk::Ok) => "ok".green(),
-                Err(Errored { .. }) => "FAILED".red().bold(),
+                Err(Errored { .. }) => "FAILED".bright_red().bold(),
                 Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
                 Ok(TestOk::Filtered) => return,
             };
@@ -247,7 +247,7 @@ impl TestStatus for TextTest {
         if !self.revision.is_empty() {
             write!(path, " (revision `{}`)", self.revision).unwrap();
         }
-        let text = format!("{} {path}", "FAILED TEST:".red());
+        let text = format!("{} {path}", "FAILED TEST:".bright_red());
 
         println!();
         println!("{}", text.bold().underline());
@@ -371,12 +371,12 @@ impl StatusEmitter for Text {
 
             impl Drop for Summarizer {
                 fn drop(&mut self) {
-                    println!("{}", "FAILURES:".red().underline().bold());
+                    println!("{}", "FAILURES:".bright_red().underline().bold());
                     for line in &self.failures {
                         println!("{line}");
                     }
                     println!();
-                    print!("test result: {}.", "FAIL".red());
+                    print!("test result: {}.", "FAIL".bright_red());
                     print!(" {} failed;", self.failures.len().to_string().green());
                     if self.succeeded > 0 {
                         print!(" {} passed;", self.succeeded.to_string().green());
@@ -405,7 +405,7 @@ fn print_error(error: &Error, path: &Path) {
     /// Every error starts with a header like that, to make them all easy to find.
     /// It is made to look like the headers printed for spanned errors.
     fn print_error_header(msg: impl Display) {
-        let text = format!("{} {msg}", "error:".red());
+        let text = format!("{} {msg}", "error:".bright_red());
         println!("{}", text.bold());
     }
 
