@@ -46,7 +46,7 @@ fn main() {
     )
     .unwrap();
     match &errors[..] {
-        [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern { path, .. }]
+        [Error::PatternNotFound { pattern, .. }, Error::ErrorsWithoutPattern { path, .. }]
             if path.as_ref().is_some_and(|p| p.line().get() == 5) && pattern.line().get() == 5 => {}
         _ => panic!("{:#?}", errors),
     }
@@ -111,7 +111,7 @@ fn main() {
         )
         .unwrap();
         match &errors[..] {
-            [Error::PatternNotFound(pattern), Error::ErrorsWithoutPattern { path, .. }]
+            [Error::PatternNotFound { pattern, .. }, Error::ErrorsWithoutPattern { path, .. }]
                 if path.as_ref().is_some_and(|p| p.line().get() == 4)
                     && pattern.line().get() == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
@@ -143,7 +143,7 @@ fn main() {
         .unwrap();
         match &errors[..] {
             // Note no `ErrorsWithoutPattern`, because there are no `//~NOTE` in the test file, so we ignore them
-            [Error::PatternNotFound(pattern)] if pattern.line().get() == 5 => {}
+            [Error::PatternNotFound { pattern, .. }] if pattern.line().get() == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -183,7 +183,7 @@ fn main() {
     )
     .unwrap();
     match &errors[..] {
-        [Error::PatternNotFound(pattern)] if pattern.line().get() == 6 => {}
+        [Error::PatternNotFound { pattern, .. }] if pattern.line().get() == 6 => {}
         _ => panic!("{:#?}", errors),
     }
 }

@@ -17,7 +17,7 @@ tests/actual_tests/rustc_ice.rs ... FAILED
 tests/actual_tests/bad_pattern.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
-error: `miesmätsched types` not found in diagnostics for line 5
+error: `miesmätsched types` not found in diagnostics on line 4
  --> tests/actual_tests/bad_pattern.rs:5:17
   |
 5 |     //~^ ERROR: miesmätsched types
@@ -234,7 +234,7 @@ command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../..
 
 fail test got exit status: 101, but expected 1
 
-error: `mismatched types` not found in diagnostics for line 11
+error: `mismatched types` not found in diagnostics on line 10
   --> tests/actual_tests/rustc_ice.rs:11:17
    |
 11 |     //~^ ERROR: mismatched types
@@ -539,7 +539,7 @@ full stdout:
 tests/actual_tests_bless/pass_with_annotation.rs FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/pass_with_annotation.rs" "--edition" "2021"
 
-error: `the cake is a lie` not found in diagnostics for line 3
+error: `the cake is a lie` not found in diagnostics on line 3
  --> tests/actual_tests_bless/pass_with_annotation.rs:3:12
   |
 3 | //~ ERROR: the cake is a lie
@@ -605,7 +605,7 @@ full stdout:
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
-error: ``main` function not found in crate `revisions_bad`` not found in diagnostics for line 4
+error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
  --> tests/actual_tests_bless/revisions_bad.rs:4:31
   |
 4 | //@[bar] error-in-other-file: `main` function not found in crate `revisions_bad`
@@ -787,7 +787,7 @@ tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) FAILED:
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
-error: ``main` function not found in crate `revisions_bad`` not found in diagnostics for line 4
+error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
  --> tests/actual_tests_bless_yolo/revisions_bad.rs:4:31
   |
 4 | //@[bar] error-in-other-file: `main` function not found in crate `revisions_bad`

@@ -19,7 +19,12 @@ pub enum Error {
         expected: i32,
     },
     /// A pattern was declared but had no matching error.
-    PatternNotFound(Spanned<Pattern>),
+    PatternNotFound {
+        /// The pattern that was not found, and the span of where that pattern was declared.
+        pattern: Spanned<Pattern>,
+        /// Can be `None` when it is expected outside the current file
+        expected_line: Option<NonZeroUsize>,
+    },
     /// A ui test checking for failure does not have any failure patterns
     NoPatternsFound,
     /// A ui test checking for success has failure patterns

@@ -416,16 +416,20 @@ fn print_error(error: &Error, path: &Path) {
         Error::Command { kind, status } => {
             println!("{kind} failed with {status}");
         }
-        Error::PatternNotFound(pattern) => {
+        Error::PatternNotFound {
+            pattern,
+            expected_line,
+        } => {
+            let line = match expected_line {
+                Some(line) => format!("on line {line}"),
+                None => format!("outside the testfile"),
+            };
             let msg = match &**pattern {
                 Pattern::SubString(s) => {
-                    format!("`{s}` not found in diagnostics for line {}", pattern.line())
+                    format!("`{s}` not found in diagnostics {line}")
                 }
                 Pattern::Regex(r) => {
-                    format!(
-                        "`/{r}/` does not match diagnostics for line {}",
-                        pattern.line()
-                    )
+                    format!("`/{r}/` does not match diagnostics {line}",)
                 }
             };
             create_error(
@@ -619,7 +623,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
         Error::Command { kind, status } => {
             github_actions::error(test_path, format!("{kind}{revision} failed with {status}"));
         }
-        Error::PatternNotFound(pattern) => {
+        Error::PatternNotFound { pattern, .. } => {
             github_actions::error(test_path, format!("Pattern not found{revision}"))
                 .line(pattern.line());
         }
