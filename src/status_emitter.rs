@@ -201,11 +201,12 @@ struct TextTest {
 }
 
 impl TextTest {
+    /// Prints the user-visible name for this test.
     fn msg(&self) -> String {
         if self.revision.is_empty() {
             self.path.display().to_string()
         } else {
-            format!("{} ({})", self.path.display(), self.revision)
+            format!("{} (revision `{}`)", self.path.display(), self.revision)
         }
     }
 }
@@ -243,11 +244,7 @@ impl TestStatus for TextTest {
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
-        let mut path = self.path.display().to_string();
-        if !self.revision.is_empty() {
-            write!(path, " (revision `{}`)", self.revision).unwrap();
-        }
-        let text = format!("{} {path}", "FAILED TEST:".bright_red());
+        let text = format!("{} {}", "FAILED TEST:".bright_red(), self.msg());
 
         println!();
         println!("{}", text.bold().underline());

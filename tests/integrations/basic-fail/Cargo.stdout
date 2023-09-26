@@ -307,25 +307,25 @@ tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/pass_with_annotation.rs ... FAILED
 tests/actual_tests_bless/revised_revision.rs ... FAILED
-tests/actual_tests_bless/revisioned_executable.rs (run) ... ok
-tests/actual_tests_bless/revisioned_executable.rs (panic) ... FAILED
-tests/actual_tests_bless/revisioned_executable_panic.rs (run) ... FAILED
-tests/actual_tests_bless/revisioned_executable_panic.rs (panic) ... ok
-tests/actual_tests_bless/revisions.rs (foo) ... ok
-tests/actual_tests_bless/revisions.rs (bar) ... ok
-tests/actual_tests_bless/revisions_bad.rs (foo) ... ok
-tests/actual_tests_bless/revisions_bad.rs (bar) ... FAILED
-tests/actual_tests_bless/revisions_filter.rs (foo) ... ignored (in-test comment)
-tests/actual_tests_bless/revisions_filter.rs (bar) ... ignored (in-test comment)
-tests/actual_tests_bless/revisions_filter2.rs (foo) ... ignored (in-test comment)
-tests/actual_tests_bless/revisions_filter2.rs (bar) ... ok
-tests/actual_tests_bless/revisions_multiple_per_annotation.rs (foo) ... ok
-tests/actual_tests_bless/revisions_multiple_per_annotation.rs (bar) ... ok
-tests/actual_tests_bless/revisions_same_everywhere.rs (foo) ... ok
-tests/actual_tests_bless/revisions_same_everywhere.rs (bar) ... ok
+tests/actual_tests_bless/revisioned_executable.rs (revision `run`) ... ok
+tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) ... ok
+tests/actual_tests_bless/revisions.rs (revision `foo`) ... ok
+tests/actual_tests_bless/revisions.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_bad.rs (revision `foo`) ... ok
+tests/actual_tests_bless/revisions_bad.rs (revision `bar`) ... FAILED
+tests/actual_tests_bless/revisions_filter.rs (revision `foo`) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter.rs (revision `bar`) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter2.rs (revision `foo`) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter2.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `foo`) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (revision `foo`) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (revision `bar`) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
-tests/actual_tests_bless/rustfix-fail-revisions.rs (a) ... FAILED
-tests/actual_tests_bless/rustfix-fail-revisions.rs (b) ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... FAILED
 tests/actual_tests_bless/rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
@@ -780,8 +780,8 @@ FAILURES:
 test result: FAIL. 20 failed; 14 passed; 3 ignored;
 
 Building dependencies ... ok
-tests/actual_tests_bless_yolo/revisions_bad.rs (foo) ... ok
-tests/actual_tests_bless_yolo/revisions_bad.rs (bar) ... FAILED
+tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
+tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... FAILED
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
 
 FAILED TEST: tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`)
