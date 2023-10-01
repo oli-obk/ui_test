@@ -31,6 +31,8 @@ pub struct Config {
     pub cfgs: CommandBuilder,
     /// What to do in case the stdout/stderr output differs from the expected one.
     pub output_conflict_handling: OutputConflictHandling,
+    /// The recommended command to bless failing tests.
+    pub bless_command: Option<String>,
     /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
     pub dependencies_crate_manifest_path: Option<PathBuf>,
     /// The command to run can be changed from `cargo` to any custom command to build the
@@ -85,6 +87,7 @@ impl Config {
             program: CommandBuilder::rustc(),
             cfgs: CommandBuilder::cfgs(),
             output_conflict_handling: OutputConflictHandling::Bless,
+            bless_command: None,
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
             out_dir: std::env::var_os("CARGO_TARGET_DIR")
@@ -118,11 +121,7 @@ impl Config {
     }
 
     /// Populate the config with the values from parsed command line arguments.
-    /// If neither `--bless` or `--check` are provided `default_bless` is used.
-    ///
-    /// The default output conflict handling command suggests adding `--bless`
-    /// to the end of the current command.
-    pub fn with_args(&mut self, args: &Args, default_bless: bool) {
+    pub fn with_args(&mut self, args: &Args) {
         let Args {
             ref filters,
             check,
@@ -144,22 +143,11 @@ impl Config {
 
         self.list = list;
 
-        let bless = match (bless, check) {
-            (_, true) => false,
-            (true, _) => true,
-            _ => default_bless,
-        };
-        self.output_conflict_handling = if bless {
-            OutputConflictHandling::Bless
-        } else {
-            OutputConflictHandling::Error(format!(
-                "{} --bless",
-                std::env::args()
-                    .map(|s| format!("{s:?}"))
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            ))
-        };
+        if check {
+            self.output_conflict_handling = OutputConflictHandling::Error;
+        } else if bless {
+            self.output_conflict_handling = OutputConflictHandling::Bless;
+        }
     }
 
     /// Replace all occurrences of a path in stderr/stdout with a byte string.
@@ -289,8 +277,10 @@ impl Config {
 #[derive(Debug, Clone)]
 /// The different options for what to do when stdout/stderr files differ from the actual output.
 pub enum OutputConflictHandling {
-    /// The string should be a command that can be executed to bless all tests.
-    Error(String),
+    /// Fail the test when mismatches are found, if provided the command string
+    /// in [`Config::bless_command`] will be suggested as a way to bless the
+    /// test.
+    Error,
     /// Ignore mismatches in the stderr/stdout files.
     Ignore,
     /// Instead of erroring if the stderr/stdout differs from the expected

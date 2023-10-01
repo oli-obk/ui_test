@@ -5,10 +5,8 @@ fn main() -> ui_test::color_eyre::Result<()> {
     let mut config = Config {
         dependencies_crate_manifest_path: Some("Cargo.toml".into()),
         // Never bless integrations-fail tests, we want to see stderr mismatches
-        output_conflict_handling: OutputConflictHandling::Error(
-            "DO NOT BLESS. These are meant to fail".into(),
-        ),
-
+        output_conflict_handling: OutputConflictHandling::Error,
+        bless_command: Some("DO NOT BLESS. These are meant to fail".to_string()),
         ..Config::rustc("tests/actual_tests")
     };
 

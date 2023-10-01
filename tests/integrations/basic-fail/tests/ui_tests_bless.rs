@@ -23,8 +23,9 @@ fn main() -> ui_test::color_eyre::Result<()> {
             output_conflict_handling: if std::env::var_os("BLESS").is_some() {
                 OutputConflictHandling::Bless
             } else {
-                OutputConflictHandling::Error("cargo test".to_string())
+                OutputConflictHandling::Error
             },
+            bless_command: Some("cargo test".to_string()),
             ..Config::rustc(root_dir)
         };
         config.comment_defaults.base().mode = Spanned::dummy(mode).into();

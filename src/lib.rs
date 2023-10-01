@@ -127,7 +127,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         Format::Terse => status_emitter::Text::quiet(),
         Format::Pretty => status_emitter::Text::verbose(),
     };
-    config.with_args(&args, true);
+    config.with_args(&args);
 
     run_tests_generic(
         vec![config],
@@ -1183,14 +1183,14 @@ fn check_output(
     let output = normalize(output, comments, revision, kind);
     let path = output_path(path, comments, revised(revision, kind), target, revision);
     match &config.output_conflict_handling {
-        OutputConflictHandling::Error(bless_command) => {
+        OutputConflictHandling::Error => {
             let expected_output = std::fs::read(&path).unwrap_or_default();
             if output != expected_output {
                 errors.push(Error::OutputDiffers {
                     path: path.clone(),
                     actual: output.clone(),
                     expected: expected_output,
-                    bless_command: bless_command.clone(),
+                    bless_command: config.bless_command.clone(),
                 });
             }
         }

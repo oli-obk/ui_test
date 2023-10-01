@@ -466,11 +466,13 @@ fn print_error(error: &Error, path: &Path) {
             bless_command,
         } => {
             print_error_header("actual output differed from expected");
-            println!(
-                "Execute `{}` to update `{}` to the actual output",
-                bless_command,
-                output_path.display()
-            );
+            if let Some(bless_command) = bless_command {
+                println!(
+                    "Execute `{}` to update `{}` to the actual output",
+                    bless_command,
+                    output_path.display()
+                );
+            }
             println!("{}", format!("--- {}", output_path.display()).red());
             println!(
                 "{}",
@@ -670,11 +672,13 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                     test_path,
                     "test generated output, but there was no output file",
                 );
-                writeln!(
-                    err,
-                    "you likely need to bless the tests with `{bless_command}`"
-                )
-                .unwrap();
+                if let Some(bless_command) = bless_command {
+                    writeln!(
+                        err,
+                        "you likely need to bless the tests with `{bless_command}`"
+                    )
+                    .unwrap();
+                }
                 return;
             }
 

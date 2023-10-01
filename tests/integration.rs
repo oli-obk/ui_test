@@ -6,9 +6,12 @@ use ui_test::{spanned::Spanned, *};
 fn main() -> Result<()> {
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join("integrations");
-    let mut config = Config::cargo(root_dir.clone());
+    let mut config = Config {
+        bless_command: Some("cargo test".to_string()),
+        ..Config::cargo(root_dir.clone())
+    };
     let args = Args::test()?;
-    config.with_args(&args, true);
+    config.with_args(&args);
 
     config.program.args = vec![
         "test".into(),

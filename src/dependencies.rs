@@ -69,7 +69,7 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
             .unwrap(),
     ) {
         (_, Mode::Yolo { .. }) => {}
-        (OutputConflictHandling::Error(_), _) => {
+        (OutputConflictHandling::Error, _) => {
             cmd.arg("--locked");
         }
         _ => {}
