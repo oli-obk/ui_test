@@ -164,6 +164,9 @@ pub struct Revisioned {
     pub(crate) needs_asm_support: bool,
     /// Don't run [`rustfix`] for this test
     pub no_rustfix: OptWithLine<()>,
+    /// Prefix added to all diagnostic code matchers. Note this will make it impossible
+    /// match codes which do not contain this prefix.
+    pub diagnostic_code_prefix: OptWithLine<String>,
 }
 
 #[derive(Debug)]
@@ -330,6 +333,7 @@ impl Comments {
             mode,
             needs_asm_support,
             no_rustfix,
+            diagnostic_code_prefix,
         } = parser.comments.base();
         if span.is_dummy() {
             *span = defaults.span;
@@ -355,6 +359,9 @@ impl Comments {
         }
         if no_rustfix.is_none() {
             *no_rustfix = defaults.no_rustfix;
+        }
+        if diagnostic_code_prefix.is_none() {
+            *diagnostic_code_prefix = defaults.diagnostic_code_prefix;
         }
         *needs_asm_support |= defaults.needs_asm_support;
 

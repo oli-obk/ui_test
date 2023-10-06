@@ -915,6 +915,7 @@ fn run_rustfix(
                 edition,
                 mode: OptWithLine::new(Mode::Pass, Span::default()),
                 no_rustfix: OptWithLine::new((), Span::default()),
+                diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
                 needs_asm_support: false,
             },
         ))
@@ -1071,12 +1072,19 @@ fn check_annotations(
             });
         }
     }
+    let diagnostic_code_prefix = comments
+        .find_one_for_revision(revision, "diagnostic_code_prefix", |r| {
+            r.diagnostic_code_prefix.clone()
+        })?
+        .into_inner()
+        .map(|s| s.content)
+        .unwrap_or_default();
 
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
     let mut lowest_annotation_level = Level::Error;
-    for &ErrorMatch { ref kind, line } in comments
+    'err: for &ErrorMatch { ref kind, line } in comments
         .for_revision(revision)
         .flat_map(|r| r.error_matches.iter())
     {
@@ -1107,13 +1115,18 @@ fn check_annotations(
                     }
                 }
                 ErrorMatchKind::Code(code) => {
-                    let found = msgs.iter().position(|msg| {
-                        msg.level == Level::Error
-                            && msg.code.as_ref().is_some_and(|msg| *msg == **code)
-                    });
-                    if let Some(found) = found {
-                        msgs.remove(found);
-                        continue;
+                    for (i, msg) in msgs.iter().enumerate() {
+                        if msg.level != Level::Error {
+                            continue;
+                        }
+                        let Some(msg_code) = &msg.code else { continue };
+                        let Some(msg) = msg_code.strip_prefix(&diagnostic_code_prefix) else {
+                            continue;
+                        };
+                        if msg == **code {
+                            msgs.remove(i);
+                            continue 'err;
+                        }
                     }
                 }
             }
@@ -1125,7 +1138,7 @@ fn check_annotations(
                 expected_line: Some(line),
             },
             ErrorMatchKind::Code(code) => Error::CodeNotFound {
-                code: code.clone(),
+                code: Spanned::new(format!("{}{}", diagnostic_code_prefix, **code), code.span()),
                 expected_line: Some(line),
             },
         });

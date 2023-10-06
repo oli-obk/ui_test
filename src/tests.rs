@@ -451,3 +451,73 @@ fn main() {
         }
     }
 }
+
+#[test]
+fn find_code_with_prefix() {
+    let s = r"
+fn main() {
+    let _x: i32 = 0u32; //~ E0308
+}
+    ";
+    let mut config = config();
+    config.comment_defaults.base().diagnostic_code_prefix =
+        Spanned::dummy("prefix::".to_string()).into();
+    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    {
+        let messages = vec![
+            vec![],
+            vec![],
+            vec![],
+            vec![Message {
+                message: "mismatched types".to_string(),
+                level: Level::Error,
+                line_col: None,
+                code: Some("prefix::E0308".into()),
+            }],
+        ];
+        let mut errors = vec![];
+        check_annotations(
+            messages,
+            vec![],
+            Path::new("moobar"),
+            &mut errors,
+            "",
+            &comments,
+        )
+        .unwrap();
+        match &errors[..] {
+            [] => {}
+            _ => panic!("{:#?}", errors),
+        }
+    }
+
+    // missing prefix
+    {
+        let messages = vec![
+            vec![],
+            vec![],
+            vec![],
+            vec![Message {
+                message: "mismatched types".to_string(),
+                level: Level::Error,
+                line_col: None,
+                code: Some("E0308".into()),
+            }],
+        ];
+        let mut errors = vec![];
+        check_annotations(
+            messages,
+            vec![],
+            Path::new("moobar"),
+            &mut errors,
+            "",
+            &comments,
+        )
+        .unwrap();
+        match &errors[..] {
+            [Error::CodeNotFound { code, .. }, Error::ErrorsWithoutPattern { msgs, .. }]
+                if **code == "prefix::E0308" && code.line().get() == 3 && msgs.len() == 1 => {}
+            _ => panic!("{:#?}", errors),
+        }
+    }
+}
