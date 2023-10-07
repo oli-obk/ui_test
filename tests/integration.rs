@@ -45,6 +45,7 @@ fn main() -> Result<()> {
         "No such file or directory",
     );
     config.filter("RUSTC_BOOTSTRAP=\"1\" ", "");
+    config.filter("RUSTC_ICE=\"0\" ", "");
     // The order of the `/deps` directory flag is flaky
     config.stdout_filter("/deps", "");
     config.path_filter(std::path::Path::new(path), "$DIR");

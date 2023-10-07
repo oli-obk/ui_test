@@ -1,9 +1,7 @@
 //@compile-flags: -Ztreat-err-as-bug
 //@rustc-env: RUSTC_BOOTSTRAP=1
-//@normalize-stderr-test: " +[0-9]+: .*\n" -> ""
-//@normalize-stderr-test: "                +at \.?/.*\n" -> ""
-//@normalize-stderr-test: " running on .*" -> ""
-//@normalize-stderr-test: "note: rustc 1\..*" -> ""
+//@rustc-env: RUSTC_ICE=0
+//@normalize-stderr-test: "(?s)(thread 'rustc' panicked).*end of query stack" -> "$1"
 use basic_fail::add;
 
 fn main() {

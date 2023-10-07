@@ -234,28 +234,29 @@ command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../..
 
 error: fail test got exit status: 101, but expected 1
 
-error: `mismatched types` not found in diagnostics on line 10
-  --> tests/actual_tests/rustc_ice.rs:11:17
-   |
-11 |     //~^ ERROR: mismatched types
-   |                 ^^^^^^^^^^^^^^^^ expected because of this pattern
-   |
+error: `mismatched types` not found in diagnostics on line 8
+ --> tests/actual_tests/rustc_ice.rs:9:17
+  |
+9 |     //~^ ERROR: mismatched types
+  |                 ^^^^^^^^^^^^^^^^ expected because of this pattern
+  |
 
 error: there were 1 unmatched diagnostics
-  --> tests/actual_tests/rustc_ice.rs:10:5
-   |
-10 |     add("42", 3);
-   |     ^^^^^^^^^^^^ Ice: no errors reported for args
-   |
+ --> tests/actual_tests/rustc_ice.rs:8:5
+  |
+8 |     add("42", 3);
+  |     ^^^^^^^^^^^^ Ice: no errors reported for args
+  |
 
 full stderr:
 error: internal compiler error: no errors reported for args
-  --> tests/actual_tests/rustc_ice.rs:10:5
-   |
-10 |     add("42", 3);
-   |     ^^^^^^^^^^^^
+ --> tests/actual_tests/rustc_ice.rs:8:5
+  |
+8 |     add("42", 3);
+  |     ^^^^^^^^^^^^
 
-thread 'rustc' panicked at 'aborting due to `-Z treat-err-as-bug=1`', compiler/rustc_errors/src/lib.rs
+thread 'rustc' panicked at compiler/rustc_errors/src/lib.rs:
+aborting due to `-Z treat-err-as-bug=1`
 stack backtrace:
 
 error: the compiler unexpectedly panicked. this is a bug.
@@ -268,8 +269,7 @@ note: compiler flags: -Z treat-err-as-bug
 
 query stack during panic:
 #0 [typeck] type-checking `main`
-#1 [used_trait_imports] finding used_trait_imports `main`
-#2 [analysis] running analysis passes on this crate
+#1 [analysis] running analysis passes on this crate
 end of query stack
 
 full stdout:

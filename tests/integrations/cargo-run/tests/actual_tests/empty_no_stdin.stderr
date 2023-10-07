@@ -1,2 +1,3 @@
-thread 'main' panicked at 'done', src/main.rs:12:5
+thread 'main' panicked at src/main.rs:12:5:
+done
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

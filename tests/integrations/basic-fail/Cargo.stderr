@@ -6,10 +6,11 @@ error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/$DIR/debug/deps/ui_tests-HASH` (exit status: 1)
-thread 'main' panicked at 'invalid mode/result combo: yolo: Err(tests failed
+thread 'main' panicked at tests/ui_tests_bless.rs:52:18:
+invalid mode/result combo: yolo: Err(tests failed
 
 Location:
-    $DIR/src/lib.rs:LL:CC)', tests/ui_tests_bless.rs:52:18
+    $DIR/src/lib.rs:LL:CC)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 error: test failed, to rerun pass `--test ui_tests_bless`
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
