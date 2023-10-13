@@ -15,7 +15,7 @@ tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 tests/actual_tests/rustc_ice.rs ... FAILED
 
 FAILED TEST: tests/actual_tests/bad_pattern.rs
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
 error: `miesmätsched types` not found in diagnostics on line 4
  --> tests/actual_tests/bad_pattern.rs:5:17
@@ -41,7 +41,7 @@ error[E0308]: mismatched types
   |     arguments to this function are incorrect
   |
 note: function defined here
- --> $DIR/$DIR/src/lib.rs:LL:CC
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
   |
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
@@ -72,7 +72,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/executable_compile_err.rs
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--edition" "2021"
 
 error: pass test got exit status: 1, but expected 0
 
@@ -81,7 +81,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 --- tests/actual_tests/executable_compile_err.stderr
 +++ <stderr output>
 +error: this file contains an unclosed delimiter
-+ --> $DIR/executable_compile_err.rs:4:2
++ --> tests/actual_tests/executable_compile_err.rs:4:2
 +  |
 +3 | fn main() {
 +  |           - unclosed delimiter
@@ -116,7 +116,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/exit_code_fail.rs
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 
 error: fail test got exit status: 0, but expected 1
 
@@ -145,14 +145,14 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/foomp.rs
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--edition" "2021"
 
 error: actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp.stderr` to the actual output
 --- tests/actual_tests/foomp.stderr
 +++ <stderr output>
  error[E0308]: mismatched types
-  --> $DIR/foomp.rs:4:9
+  --> tests/actual_tests/foomp.rs:4:9
    |
  4 |     add("42", 3);
    |     --- ^^^^ expected `usize`, found `&str`
@@ -161,10 +161,10 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
    |
  note: function defined here
 - --> $DIR/tests/integrations/basic/src/lib.rs:LL:CC
-+ --> $DIR/$DIR/src/lib.rs:LL:CC
++ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
    |
  1 | pub fn add(left: usize, right: usize) -> usize {
--  |        ^^^ some expected text that isn't in the actual message░
+-  |        ^^^ some expected text that isn't in the actual message
 +  |        ^^^
  
 -error: aborting doo to previous error
@@ -183,7 +183,7 @@ error[E0308]: mismatched types
   |     arguments to this function are incorrect
   |
 note: function defined here
- --> $DIR/$DIR/src/lib.rs:LL:CC
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
   |
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
@@ -230,7 +230,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/rustc_ice.rs
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
 
 error: fail test got exit status: 101, but expected 1
 
@@ -356,7 +356,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/aux_proc_macro_no_main.rs
-command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/$DIR/../../../target/$TMP/tests/actual_tests_bless/auxiliary"
+command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/tests/integrations/basic-fail/../../../target/$TMP/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/tests/actual_tests_bless/auxiliary"
 
 error: there were 1 unmatched diagnostics
  --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:8
@@ -452,7 +452,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/no_main.rs
-command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--edition" "2021"
 
 error: fail test got exit status: 0, but expected 1
 
@@ -465,7 +465,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/no_main_manual.rs
-command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main_manual.rs" "--crate-type=bin" "--edition" "2021"
+command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_main_manual.rs" "--crate-type=bin" "--edition" "2021"
 
 error: there were 1 unmatched diagnostics that occurred outside the testfile and had no pattern
     Error: cannot mix `bin` crate type with others
@@ -497,7 +497,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/no_test.rs
-command: "rustc" "--error-format=json" "--test" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--test" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--edition" "2021"
 
 error: fail test got exit status: 0, but expected 1
 
@@ -537,7 +537,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/pass_with_annotation.rs
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/pass_with_annotation.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/pass_with_annotation.rs" "--edition" "2021"
 
 error: `the cake is a lie` not found in diagnostics on line 3
  --> tests/actual_tests_bless/pass_with_annotation.rs:3:12
@@ -603,7 +603,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/revisions_bad.rs (revision `bar`)
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
  --> tests/actual_tests_bless/revisions_bad.rs:4:31
@@ -635,7 +635,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`)
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: rustfix failed with exit status: 1
 
@@ -665,7 +665,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`)
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: rustfix failed with exit status: 1
 
@@ -695,7 +695,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/rustfix-fail.rs
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--edition" "2021" "--crate-name" "rustfix_fail"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--edition" "2021" "--crate-name" "rustfix_fail"
 
 error: rustfix failed with exit status: 1
 
@@ -785,7 +785,7 @@ tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... FAILED
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
 
 FAILED TEST: tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`)
-command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/$DIR/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--edition" "2021"
 
 error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
  --> tests/actual_tests_bless_yolo/revisions_bad.rs:4:31

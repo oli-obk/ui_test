@@ -1,5 +1,5 @@
 error[E0432]: unresolved import `basic_bin`
- --> $DIR/foomp.rs:1:5
+ --> tests/actual_tests/foomp.rs:1:5
   |
 1 | use basic_bin::add;
   |     ^^^^^^^^^ use of undeclared crate or module `basic_bin`

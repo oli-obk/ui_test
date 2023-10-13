@@ -1196,7 +1196,7 @@ fn check_output(
     revision: &str,
 ) -> PathBuf {
     let target = config.target.as_ref().unwrap();
-    let output = normalize(path, output, filters, comments, revision, kind);
+    let output = normalize(output, filters, comments, revision, kind);
     let path = output_path(path, comments, revised(revision, kind), target, revision);
     match &config.output_conflict_handling {
         OutputConflictHandling::Error(bless_command) => {
@@ -1287,20 +1287,13 @@ fn get_pointer_width(triple: &str) -> u8 {
 }
 
 fn normalize(
-    path: &Path,
     text: &[u8],
     filters: &Filter,
     comments: &Comments,
     revision: &str,
     kind: &'static str,
 ) -> Vec<u8> {
-    // Useless paths
-    let path_filter = (Match::from(path.parent().unwrap()), b"$DIR" as &[u8]);
-    let filters = filters.iter().chain(std::iter::once(&path_filter));
     let mut text = text.to_owned();
-    if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
-        text = text.replace(lib_path, "RUSTLIB");
-    }
 
     for (rule, replacement) in filters {
         text = rule.replace_all(&text, replacement).into_owned();

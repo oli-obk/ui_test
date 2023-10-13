@@ -1,5 +1,5 @@
 warning: variable `x` is assigned to, but never used
- --> $DIR/aux_derive.rs:7:9
+ --> tests/actual_tests/aux_derive.rs:7:9
   |
 7 |     let x = Foo;
   |         ^
@@ -8,7 +8,7 @@ warning: variable `x` is assigned to, but never used
   = note: `#[warn(unused_variables)]` on by default
 
 warning: value assigned to `x` is never read
- --> $DIR/aux_derive.rs:8:5
+ --> tests/actual_tests/aux_derive.rs:8:5
   |
 8 |     x = Foo;
   |     ^
@@ -17,7 +17,7 @@ warning: value assigned to `x` is never read
   = note: `#[warn(unused_assignments)]` on by default
 
 error[E0384]: cannot assign twice to immutable variable `x`
- --> $DIR/aux_derive.rs:8:5
+ --> tests/actual_tests/aux_derive.rs:8:5
   |
 7 |     let x = Foo;
   |         -
