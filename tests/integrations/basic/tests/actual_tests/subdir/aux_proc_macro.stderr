@@ -1,5 +1,5 @@
 error[E0425]: cannot find value `cake` in this scope
- --> $DIR/aux_proc_macro.rs:6:12
+ --> tests/actual_tests/subdir/aux_proc_macro.rs:6:12
   |
 6 |     thing!(cake);
   |            ^^^^ not found in this scope

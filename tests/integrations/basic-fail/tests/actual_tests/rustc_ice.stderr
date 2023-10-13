@@ -1,5 +1,5 @@
 error: internal compiler error: no errors reported for args
- --> $DIR/rustc_ice.rs:8:5
+ --> tests/actual_tests/rustc_ice.rs:8:5
   |
 8 |     add("42", 3);
   |     ^^^^^^^^^^^^

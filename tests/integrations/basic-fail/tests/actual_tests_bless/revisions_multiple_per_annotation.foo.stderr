@@ -1,5 +1,5 @@
 error[E0308]: mismatched types
- --> $DIR/revisions_multiple_per_annotation.rs:5:9
+ --> tests/actual_tests_bless/revisions_multiple_per_annotation.rs:5:9
   |
 5 |     add("42", 3);
   |     --- ^^^^ expected `usize`, found `&str`

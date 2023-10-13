@@ -1,5 +1,5 @@
 error: expected `,` following `match` arm
- --> $DIR/rustfix-fail-revisions.rs:6:27
+ --> tests/actual_tests_bless/rustfix-fail-revisions.rs:6:27
   |
 6 |         0 => String::new()
   |                           ^ help: missing a comma here to end this `match` arm: `,`

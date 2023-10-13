@@ -1,5 +1,5 @@
 error[E0308]: mismatched types
- --> $DIR/rustfix-maybe-incorrect.rs:4:22
+ --> tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs:4:22
   |
 4 |     let _x: String = 42;
   |             ------   ^^- help: try using a conversion method: `.to_string()`
