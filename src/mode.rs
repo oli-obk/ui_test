@@ -49,6 +49,7 @@ pub enum Mode {
 }
 
 impl Mode {
+    #[allow(clippy::result_large_err)]
     pub(crate) fn ok(self, status: ExitStatus) -> Result<(), Error> {
         let expected = match self {
             Mode::Run { exit_code } => exit_code,
@@ -72,8 +73,10 @@ impl Mode {
         comments: &Comments,
         revision: &str,
     ) -> Result<MaybeSpanned<Self>, Errored> {
-        let mode = comments.find_one_for_revision(revision, "mode changes", |r| r.mode)?;
-        Ok(mode.map_or(MaybeSpanned::new_config(self), Into::into))
+        let mode = comments.find_one_for_revision(revision, "mode changes", |r| r.mode.clone())?;
+        Ok(mode
+            .into_inner()
+            .map_or(MaybeSpanned::new_config(self), Into::into))
     }
 }
 

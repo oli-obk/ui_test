@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::{
     parser::{Condition, Pattern},
     Error,
@@ -14,7 +16,7 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ ERROR: encountered a dangling reference (address $HEX is unallocated)
 }
     ";
-    let comments = Comments::parse(s).unwrap();
+    let comments = Comments::parse(s, Path::new("")).unwrap();
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
@@ -39,7 +41,7 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ encountered a dangling reference (address $HEX is unallocated)
 }
     ";
-    let errors = Comments::parse(s).unwrap_err();
+    let errors = Comments::parse(s, Path::new("")).unwrap_err();
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 1);
     match &errors[0] {
@@ -57,7 +59,7 @@ fn parse_slash_slash_at() {
 use std::mem;
 
     ";
-    let comments = Comments::parse(s).unwrap();
+    let comments = Comments::parse(s, Path::new("")).unwrap();
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
@@ -73,7 +75,7 @@ fn parse_regex_error_pattern() {
 use std::mem;
 
     ";
-    let comments = Comments::parse(s).unwrap();
+    let comments = Comments::parse(s, Path::new("")).unwrap();
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
@@ -89,7 +91,7 @@ fn parse_slash_slash_at_fail() {
 use std::mem;
 
     ";
-    let errors = Comments::parse(s).unwrap_err();
+    let errors = Comments::parse(s, Path::new("")).unwrap_err();
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 2);
     match &errors[0] {
@@ -113,7 +115,7 @@ fn missing_colon_fail() {
 use std::mem;
 
     ";
-    let errors = Comments::parse(s).unwrap_err();
+    let errors = Comments::parse(s, Path::new("")).unwrap_err();
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 1);
     match &errors[0] {
@@ -127,7 +129,7 @@ use std::mem;
 #[test]
 fn parse_x86_64() {
     let s = r"//@ only-target-x86_64-unknown-linux";
-    let comments = Comments::parse(s).unwrap();
+    let comments = Comments::parse(s, Path::new("")).unwrap();
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];

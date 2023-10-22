@@ -8,10 +8,7 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{
-    rustc_stderr::{Level, Span},
-    Error, Errored, Mode,
-};
+use crate::{rustc_stderr::Level, Error, Errored, Mode};
 
 use color_eyre::eyre::{Context, Result};
 
@@ -211,13 +208,14 @@ impl Comments {
     pub(crate) fn parse_file(path: &Path) -> Result<std::result::Result<Self, Vec<Error>>> {
         let content =
             std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
-        Ok(Self::parse(&content))
+        Ok(Self::parse(&content, path))
     }
 
     /// Parse comments in `content`.
     /// `path` is only used to emit diagnostics if parsing fails.
     pub(crate) fn parse(
         content: &(impl AsRef<[u8]> + ?Sized),
+        file: &Path,
     ) -> std::result::Result<Self, Vec<Error>> {
         let mut parser = CommentParser {
             comments: Comments::default(),
@@ -229,14 +227,15 @@ impl Comments {
         for (l, line) in content.as_ref().lines().enumerate() {
             let l = NonZeroUsize::new(l + 1).unwrap(); // enumerate starts at 0, but line numbers start at 1
             let span = Span {
+                file: file.to_path_buf(),
                 line_start: l,
                 line_end: l,
-                column_start: NonZeroUsize::new(1).unwrap(),
-                column_end: NonZeroUsize::new(line.chars().count() + 1).unwrap(),
+                col_start: NonZeroUsize::new(1).unwrap(),
+                col_end: NonZeroUsize::new(line.chars().count() + 1).unwrap(),
             };
             match parser.parse_checked_line(&mut fallthrough_to, Spanned::new(line, span)) {
                 Ok(()) => {}
-                Err(e) => parser.error(span, format!("Comment is not utf8: {e:?}")),
+                Err(e) => parser.error(e.span, format!("Comment is not utf8: {:?}", e.content)),
             }
         }
         if let Some(revisions) = &parser.comments.revisions {
@@ -245,7 +244,7 @@ impl Comments {
                     if !revisions.contains(rev) {
                         parser.errors.push(Error::InvalidComment {
                             msg: format!("the revision `{rev}` is not known"),
-                            span: revisioned.span,
+                            span: revisioned.span.clone(),
                         })
                     }
                 }
@@ -255,7 +254,7 @@ impl Comments {
                 if !key.is_empty() {
                     parser.errors.push(Error::InvalidComment {
                         msg: "there are no revisions in this test".into(),
-                        span: revisioned.span,
+                        span: revisioned.span.clone(),
                     })
                 }
             }
@@ -273,7 +272,7 @@ impl CommentParser<Comments> {
         &mut self,
         fallthrough_to: &mut Option<NonZeroUsize>,
         line: Spanned<&[u8]>,
-    ) -> std::result::Result<(), Utf8Error> {
+    ) -> std::result::Result<(), Spanned<Utf8Error>> {
         if let Some(command) = line.strip_prefix(b"//@") {
             self.parse_command(command.to_str()?.trim())
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
@@ -283,9 +282,9 @@ impl CommentParser<Comments> {
             })
         } else {
             *fallthrough_to = None;
-            for pos in line.find_iter("//") {
-                let (_, rest) = line.to_str()?.split_at(pos + 2);
-                for rest in std::iter::once(rest).chain(rest.strip_prefix(" ")) {
+            for pos in line.clone().find_iter("//") {
+                let (_, rest) = line.clone().to_str()?.split_at(pos + 2);
+                for rest in std::iter::once(rest.clone()).chain(rest.strip_prefix(" ")) {
                     if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
                         self.error(
                             rest.span(),
@@ -302,10 +301,11 @@ impl CommentParser<Comments> {
                             comments: Comments::default(),
                             commands: std::mem::take(&mut self.commands),
                         };
+                        let span = rest.span();
                         parser.parse_command(rest);
                         if parser.errors.is_empty() {
                             self.error(
-                                rest.span(),
+                                span,
                                 "a compiletest-rs style comment was detected.\n\
                                 Please use text that could not also be interpreted as a command,\n\
                                 and prefix all actual commands with `//@`",
@@ -349,7 +349,10 @@ impl CommentParser<Comments> {
             .char_indices()
             .find_map(|(i, c)| (!c.is_alphanumeric() && c != '-' && c != '_').then_some(i))
         {
-            None => (command, Spanned::new("", command.span().shrink_to_end())),
+            None => {
+                let span = command.span().shrink_to_end();
+                (command, Spanned::new("", span))
+            }
             Some(i) => {
                 let (command, args) = command.split_at(i);
                 // Commands are separated from their arguments by ':' or ' '
@@ -388,8 +391,10 @@ impl CommentParser<Comments> {
         revisions: Spanned<Vec<String>>,
         f: impl FnOnce(&mut CommentParser<&mut Revisioned>),
     ) {
-        let span = revisions.span();
-        let revisions = revisions.into_inner();
+        let Spanned {
+            content: revisions,
+            span,
+        } = revisions;
         let mut this = CommentParser {
             errors: std::mem::take(&mut self.errors),
             commands: std::mem::take(&mut self.commands),
@@ -453,7 +458,7 @@ impl CommentParser<&mut Revisioned> {
             "trailing text after pattern replacement",
         );
 
-        let regex = self.parse_regex(from)?;
+        let regex = self.parse_regex(from)?.content;
         Some((regex, to.as_bytes().to_owned()))
     }
 
@@ -517,7 +522,7 @@ impl CommentParser<&mut Revisioned> {
             }
             "no-rustfix" => (this, _args, span){
                 // args are ignored (can be used as comment)
-                let prev = this.no_rustfix.set((), span);
+                let prev = this.no_rustfix.set((), span.clone());
                 this.check(
                     span,
                     prev.is_none(),
@@ -548,7 +553,7 @@ impl CommentParser<&mut Revisioned> {
                 this.check(span, prev.is_none(), "cannot specify `edition` twice");
             }
             "check-pass" => (this, _args, span){
-                let prev = this.mode.set(Mode::Pass, span);
+                let prev = this.mode.set(Mode::Pass, span.clone());
                 // args are ignored (can be used as comment)
                 this.check(
                     span,
@@ -566,7 +571,7 @@ impl CommentParser<&mut Revisioned> {
                 if args.is_empty() {
                     set(0);
                 } else {
-                    match args.parse() {
+                    match args.content.parse() {
                         Ok(exit_code) => {set(exit_code);},
                         Err(err) => this.error(args.span(), err.to_string()),
                     }
@@ -574,7 +579,7 @@ impl CommentParser<&mut Revisioned> {
             }
             "require-annotations-for-level" => (this, args, span){
                 let args = args.trim();
-                let prev = match args.parse() {
+                let prev = match args.content.parse() {
                     Ok(it) =>  this.require_annotations_for_level.set(it, args.span()),
                     Err(msg) => {
                         this.error(args.span(), msg);
@@ -625,9 +630,9 @@ impl CommentParser<&mut Revisioned> {
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
-    fn parse_regex(&mut self, regex: Spanned<&str>) -> Option<Regex> {
+    fn parse_regex(&mut self, regex: Spanned<&str>) -> Option<Spanned<Regex>> {
         match Regex::new(*regex) {
-            Ok(regex) => Some(regex),
+            Ok(r) => Some(regex.map(|_| r)),
             Err(err) => {
                 self.error(regex.span(), format!("invalid regex: {err:?}"));
                 None
@@ -655,7 +660,8 @@ impl<CommentsType> CommentParser<CommentsType> {
                     }
                 }
                 self.error(s.span(), format!("no closing quotes found for {}", *s));
-                (s, Spanned::new("", s.span()))
+                let span = s.span();
+                (s, Spanned::new("", span))
             }
             None => {
                 if s.is_empty() {
@@ -666,7 +672,8 @@ impl<CommentsType> CommentParser<CommentsType> {
                         format!("expected `\"`, got `{}`", s.chars().next().unwrap()),
                     )
                 }
-                (s, Spanned::new("", s.span()))
+                let span = s.span();
+                (s, Spanned::new("", span))
             }
         }
     }
@@ -804,19 +811,19 @@ impl<CommentsType> CommentParser<CommentsType> {
         if let Some(regex) = pattern.strip_prefix("/") {
             match regex.strip_suffix("/") {
                 Some(regex) => match self.parse_regex(regex) {
-                    Some(r) => Spanned::new(Pattern::Regex(r), regex.span()),
-                    None => Spanned::new(Pattern::SubString(pattern.to_string()), regex.span()),
+                    Some(r) => r.map(Pattern::Regex),
+                    None => pattern.map(|p| Pattern::SubString(p.to_string())),
                 },
                 None => {
                     self.error(
                         regex.span(),
                         "expected regex pattern due to leading `/`, but found no closing `/`",
                     );
-                    Spanned::new(Pattern::SubString(pattern.to_string()), regex.span())
+                    pattern.map(|p| Pattern::SubString(p.to_string()))
                 }
             }
         } else {
-            Spanned::new(Pattern::SubString(pattern.to_string()), pattern.span())
+            pattern.map(|p| Pattern::SubString(p.to_string()))
         }
     }
 }

@@ -16,7 +16,8 @@ use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeSpanned, OptWithLine, Revisioned, Spanned};
 use regex::bytes::{Captures, Regex};
-use rustc_stderr::{Level, Message, Span};
+use rustc_stderr::{Level, Message};
+use spanned::Span;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
@@ -432,7 +433,7 @@ fn parse_and_test_file(
     mut config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
-    let comments = parse_comments(&file_contents)?;
+    let comments = parse_comments(&file_contents, status.path())?;
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
@@ -470,8 +471,8 @@ fn parse_and_test_file(
         .collect())
 }
 
-fn parse_comments(file_contents: &[u8]) -> Result<Comments, Errored> {
-    match Comments::parse(file_contents) {
+fn parse_comments(file_contents: &[u8], file: &Path) -> Result<Comments, Errored> {
+    match Comments::parse(file_contents, file) {
         Ok(comments) => Ok(comments),
         Err(errors) => Err(Errored {
             command: Command::new("parse comments"),
@@ -526,7 +527,7 @@ fn build_aux(
         stderr: err.to_string().into_bytes(),
         stdout: vec![],
     })?;
-    let comments = parse_comments(&file_contents)?;
+    let comments = parse_comments(&file_contents, aux_file)?;
     assert_eq!(
         comments.revisions, None,
         "aux builds cannot specify revisions"
@@ -826,7 +827,9 @@ fn run_rustfix(
     extra_args: Vec<OsString>,
 ) -> Result<(), Errored> {
     let no_run_rustfix =
-        comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)?;
+        comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| {
+            r.no_rustfix.clone()
+        })?;
 
     let global_rustfix = match mode {
         Mode::Pass | Mode::Run { .. } | Mode::Panic => RustfixMode::Disabled,
@@ -877,7 +880,7 @@ fn run_rustfix(
     let edition = comments.edition(revision, config)?;
     let edition = edition
         .map(|mwl| {
-            let line = mwl.span().unwrap_or(Span::INVALID);
+            let line = mwl.span().unwrap_or_default();
             Spanned::new(mwl.into_inner(), line)
         })
         .into();
@@ -886,7 +889,7 @@ fn run_rustfix(
         revisioned: std::iter::once((
             vec![],
             Revisioned {
-                span: Span::INVALID,
+                span: Span::default(),
                 ignore: vec![],
                 only: vec![],
                 stderr_per_bitwidth: false,
@@ -908,8 +911,8 @@ fn run_rustfix(
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
                 edition,
-                mode: OptWithLine::new(Mode::Pass, Span::INVALID),
-                no_rustfix: OptWithLine::new((), Span::INVALID),
+                mode: OptWithLine::new(Mode::Pass, Span::default()),
+                no_rustfix: OptWithLine::new((), Span::default()),
                 needs_asm_support: false,
             },
         ))
@@ -1127,11 +1130,12 @@ fn check_annotations(
     let required_annotation_level = comments.find_one_for_revision(
         revision,
         "`require_annotations_for_level` annotations",
-        |r| r.require_annotations_for_level,
+        |r| r.require_annotations_for_level.clone(),
     )?;
 
-    let required_annotation_level =
-        required_annotation_level.map_or(lowest_annotation_level, |l| *l);
+    let required_annotation_level = required_annotation_level
+        .into_inner()
+        .map_or(lowest_annotation_level, |l| *l);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
         msgs.retain(|msg| msg.level >= required_annotation_level);
         msgs
@@ -1155,9 +1159,9 @@ fn check_annotations(
                 errors.push(Error::ErrorsWithoutPattern {
                     path: Some(Spanned::new(
                         path.to_path_buf(),
-                        Span {
+                        spanned::Span {
                             line_start: line,
-                            ..Span::INVALID
+                            ..spanned::Span::default()
                         },
                     )),
                     msgs,
