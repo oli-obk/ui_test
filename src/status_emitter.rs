@@ -8,12 +8,11 @@ use bstr::ByteSlice;
 use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use spanned::Span;
 
 use crate::{
-    github_actions,
-    parser::Pattern,
-    rustc_stderr::{Message, Span},
-    Error, Errored, Errors, Format, TestOk, TestResult,
+    github_actions, parser::Pattern, rustc_stderr::Message, Error, Errored, Errors, Format, TestOk,
+    TestResult,
 };
 use std::{
     collections::HashMap,
@@ -451,9 +450,9 @@ fn print_error(error: &Error, path: &Path) {
             print_error_header("no error patterns found in fail test");
         }
         Error::PatternFoundInPassTest { mode, span } => {
-            let annot = [("expected because of this annotation", Some(*span))];
+            let annot = [("expected because of this annotation", Some(span.clone()))];
             let mut lines: Vec<(&[_], _)> = vec![(&annot, span.line_start)];
-            let annot = [("expected because of this mode change", *mode)];
+            let annot = [("expected because of this mode change", mode.clone())];
             if let Some(mode) = mode {
                 lines.push((&annot, mode.line_start))
             }
@@ -488,7 +487,12 @@ fn print_error(error: &Error, path: &Path) {
                 let line = path.line();
                 let msgs = msgs
                     .iter()
-                    .map(|msg| (format!("{:?}: {}", msg.level, msg.message), msg.line_col))
+                    .map(|msg| {
+                        (
+                            format!("{:?}: {}", msg.level, msg.message),
+                            msg.line_col.clone(),
+                        )
+                    })
                     .collect::<Vec<_>>();
                 // This will print a suitable error header.
                 create_error(
@@ -496,7 +500,7 @@ fn print_error(error: &Error, path: &Path) {
                     &[(
                         &msgs
                             .iter()
-                            .map(|(msg, lc)| (msg.as_ref(), *lc))
+                            .map(|(msg, lc)| (msg.as_ref(), lc.clone().map(Into::into)))
                             .collect::<Vec<_>>(),
                         line,
                     )],
@@ -519,7 +523,7 @@ fn print_error(error: &Error, path: &Path) {
         }
         Error::InvalidComment { msg, span } => {
             // This will print a suitable error header.
-            create_error(msg, &[(&[("", Some(*span))], span.line_start)], path)
+            create_error(msg, &[(&[("", Some(span.clone()))], span.line_start)], path)
         }
         Error::MultipleRevisionsWithResults { kind, lines } => {
             let title = format!("multiple {kind} found");
@@ -589,20 +593,20 @@ fn create_error(
                     annotations: label
                         .iter()
                         .map(|(label, lc)| SourceAnnotation {
-                            range: lc.map_or((0, len - 1), |lc| {
+                            range: lc.as_ref().map_or((0, len - 1), |lc| {
                                 assert_eq!(lc.line_start, *line);
                                 if lc.line_end > lc.line_start {
-                                    (lc.column_start.get() - 1, len - 1)
-                                } else if lc.column_start == lc.column_end {
-                                    if lc.column_start.get() - 1 == len {
+                                    (lc.col_start.get() - 1, len - 1)
+                                } else if lc.col_start == lc.col_end {
+                                    if lc.col_start.get() - 1 == len {
                                         // rustc sometimes produces spans pointing *after* the `\n` at the end of the line,
                                         // but we want to render an annotation at the end.
-                                        (lc.column_start.get() - 2, lc.column_start.get() - 1)
+                                        (lc.col_start.get() - 2, lc.col_start.get() - 1)
                                     } else {
-                                        (lc.column_start.get() - 1, lc.column_start.get())
+                                        (lc.col_start.get() - 1, lc.col_start.get())
                                     }
                                 } else {
-                                    (lc.column_start.get() - 1, lc.column_end.get() - 1)
+                                    (lc.col_start.get() - 1, lc.col_end.get() - 1)
                                 }
                             }),
                             label,
