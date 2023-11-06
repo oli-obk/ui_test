@@ -14,12 +14,18 @@ struct RustcMessage {
     children: Vec<RustcMessage>,
 }
 
+/// Message level.
 #[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub(crate) enum Level {
+pub enum Level {
+    /// Internal compiler error.
     Ice = 5,
+    /// Compilation error.
     Error = 4,
+    /// Compilation warning.
     Warn = 3,
+    /// Help message.
     Help = 2,
+    /// Note message.
     Note = 1,
     /// Only used for "For more information about this error, try `rustc --explain EXXXX`".
     FailureNote = 0,

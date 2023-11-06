@@ -16,7 +16,7 @@ use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
 use parser::{ErrorMatch, MaybeSpanned, OptWithLine, Revisioned, Spanned};
 use regex::bytes::{Captures, Regex};
-use rustc_stderr::{Level, Message};
+use rustc_stderr::Message;
 use spanned::Span;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
@@ -46,6 +46,7 @@ pub use cmd::*;
 pub use config::*;
 pub use error::*;
 pub use mode::*;
+pub use rustc_stderr::Level;
 
 /// A filter's match rule.
 #[derive(Clone, Debug)]
@@ -665,6 +666,7 @@ impl dyn TestStatus {
             status,
             &stdout,
             &stderr,
+            config.forced_lowest_annotation_level,
         )?;
 
         if let Mode::Run { .. } = *mode {
@@ -990,6 +992,7 @@ fn check_test_result(
     status: ExitStatus,
     stdout: &[u8],
     stderr: &[u8],
+    forced_lowest_annotation_level: Option<Level>,
 ) -> Result<Command, Errored> {
     let mut errors = vec![];
     errors.extend(mode.ok(status).err());
@@ -1013,6 +1016,7 @@ fn check_test_result(
         config,
         revision,
         comments,
+        forced_lowest_annotation_level,
     )?;
     if errors.is_empty() {
         Ok(command)
@@ -1067,6 +1071,7 @@ fn check_annotations(
     config: &Config,
     revision: &str,
     comments: &Comments,
+    forced_lowest_annotation_level: Option<Level>,
 ) -> Result<(), Errored> {
     let error_patterns = comments
         .for_revision(revision)
@@ -1094,7 +1099,7 @@ fn check_annotations(
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
-    let mut lowest_annotation_level = Level::Error;
+    let mut lowest_annotation_level = forced_lowest_annotation_level.unwrap_or(Level::Error);
     for &ErrorMatch {
         ref pattern,
         level,
@@ -1107,7 +1112,11 @@ fn check_annotations(
         // If we found a diagnostic with a level annotation, make sure that all
         // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
         // for this pattern.
-        if lowest_annotation_level > level {
+        if lowest_annotation_level > level
+            && forced_lowest_annotation_level
+                .map(|forced_minimum| forced_minimum <= level)
+                .unwrap_or(true)
+        {
             lowest_annotation_level = level;
         }
 

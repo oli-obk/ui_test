@@ -1,6 +1,8 @@
 use regex::bytes::Regex;
 
-use crate::{dependencies::build_dependencies, CommandBuilder, Filter, Match, Mode, RustfixMode};
+use crate::{
+    dependencies::build_dependencies, CommandBuilder, Filter, Level, Match, Mode, RustfixMode,
+};
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
@@ -59,6 +61,9 @@ pub struct Config {
     pub run_only_ignored: bool,
     /// Filters must match exactly instead of just checking for substrings.
     pub filter_exact: bool,
+    /// If set, lower level annotations will still be checked but we won't go below
+    /// `forced_lowest_annotation_level`.
+    pub forced_lowest_annotation_level: Option<Level>,
 }
 
 impl Config {
@@ -103,6 +108,7 @@ impl Config {
             list: false,
             run_only_ignored: false,
             filter_exact: false,
+            forced_lowest_annotation_level: None,
         }
     }
 

@@ -43,6 +43,7 @@ fn main() {
         &config,
         "",
         &comments,
+        None,
     )
     .unwrap();
     match &errors[..] {
@@ -81,6 +82,7 @@ fn main() {
             &config,
             "",
             &comments,
+            None,
         )
         .unwrap();
         match &errors[..] {
@@ -108,6 +110,7 @@ fn main() {
             &config,
             "",
             &comments,
+            None,
         )
         .unwrap();
         match &errors[..] {
@@ -139,6 +142,7 @@ fn main() {
             &config,
             "",
             &comments,
+            None,
         )
         .unwrap();
         match &errors[..] {
@@ -180,6 +184,7 @@ fn main() {
         &config,
         "",
         &comments,
+        None,
     )
     .unwrap();
     match &errors[..] {
@@ -223,6 +228,7 @@ fn main() {
         &config,
         "",
         &comments,
+        None,
     )
     .unwrap();
     match &errors[..] {
@@ -277,6 +283,7 @@ fn main() {
         &config,
         "",
         &comments,
+        None,
     )
     .unwrap();
     match &errors[..] {
@@ -341,6 +348,7 @@ fn main() {
         &config,
         "",
         &comments,
+        None,
     )
     .unwrap();
     match &errors[..] {
