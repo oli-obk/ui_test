@@ -8,7 +8,7 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error, Errored, Mode};
+use crate::{rustc_stderr::Level, Error, Errored, Match, Mode};
 
 use color_eyre::eyre::{Context, Result};
 
@@ -118,9 +118,9 @@ pub struct Revisioned {
     /// Additional env vars to set for the executable
     pub env_vars: Vec<(String, String)>,
     /// Normalizations to apply to the stderr output before emitting it to disk
-    pub normalize_stderr: Vec<(Regex, Vec<u8>)>,
+    pub normalize_stderr: Vec<(Match, Vec<u8>)>,
     /// Normalizations to apply to the stdout output before emitting it to disk
-    pub normalize_stdout: Vec<(Regex, Vec<u8>)>,
+    pub normalize_stdout: Vec<(Match, Vec<u8>)>,
     /// Arbitrary patterns to look for in the stderr.
     /// The error must be from another file, as errors from the current file must be
     /// checked via `error_matches`.
@@ -506,13 +506,13 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "normalize-stderr-test" => (this, args, _span){
-                if let Some(res) = this.parse_normalize_test(args, "stderr") {
-                    this.normalize_stderr.push(res)
+                if let Some((regex, replacement)) = this.parse_normalize_test(args, "stderr") {
+                    this.normalize_stderr.push((regex.into(), replacement))
                 }
             }
             "normalize-stdout-test" => (this, args, _span){
-                if let Some(res) = this.parse_normalize_test(args, "stdout") {
-                    this.normalize_stdout.push(res)
+                if let Some((regex, replacement)) = this.parse_normalize_test(args, "stdout") {
+                    this.normalize_stdout.push((regex.into(), replacement))
                 }
             }
             "error-pattern" => (this, _args, span){

@@ -2,8 +2,8 @@ use regex::bytes::Regex;
 use spanned::Span;
 
 use crate::{
-    dependencies::build_dependencies, per_test_config::Comments, CommandBuilder, Filter, Match,
-    Mode, RustfixMode,
+    dependencies::build_dependencies, per_test_config::Comments, CommandBuilder, Match, Mode,
+    RustfixMode,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
@@ -23,14 +23,6 @@ pub struct Config {
     pub host: Option<String>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
-    /// Filters applied to stderr output before processing it.
-    /// By default contains a filter for replacing backslashes in paths with
-    /// regular slashes.
-    /// On windows, contains a filter to remove `\r`.
-    pub stderr_filters: Filter,
-    /// Filters applied to stdout output before processing it.
-    /// On windows, contains a filter to remove `\r`.
-    pub stdout_filters: Filter,
     /// The folder in which to start searching for .rs files
     pub root_dir: PathBuf,
     /// The mode in which to run the tests.
@@ -74,23 +66,18 @@ impl Config {
             .base()
             .edition
             .set("2021".into(), Span::default());
+        let filters = vec![
+            (Match::PathBackslash, b"/".to_vec()),
+            #[cfg(windows)]
+            (Match::Exact(vec![b'\r']), b"".to_vec()),
+            #[cfg(windows)]
+            (Match::Exact(br"\\?\".to_vec()), b"".to_vec()),
+        ];
+        let _ = comment_defaults.base().normalize_stderr = filters.clone();
+        let _ = comment_defaults.base().normalize_stdout = filters;
         Self {
             host: None,
             target: None,
-            stderr_filters: vec![
-                (Match::PathBackslash, b"/"),
-                #[cfg(windows)]
-                (Match::Exact(vec![b'\r']), b""),
-                #[cfg(windows)]
-                (Match::Exact(br"\\?\".to_vec()), b""),
-            ],
-            stdout_filters: vec![
-                (Match::PathBackslash, b"/"),
-                #[cfg(windows)]
-                (Match::Exact(vec![b'\r']), b""),
-                #[cfg(windows)]
-                (Match::Exact(br"\\?\".to_vec()), b""),
-            ],
             root_dir: root_dir.into(),
             mode: Mode::Fail {
                 require_patterns: true,
@@ -118,15 +105,16 @@ impl Config {
     /// Create a configuration for testing the output of running
     /// `cargo` on the test `Cargo.toml` files.
     pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
-        Self {
+        let mut this = Self {
             program: CommandBuilder::cargo(),
-            comment_defaults: Comments::default(),
             mode: Mode::Fail {
                 require_patterns: true,
                 rustfix: RustfixMode::Disabled,
             },
             ..Self::rustc(root_dir)
-        }
+        };
+        this.comment_defaults.base().edition = Default::default();
+        this
     }
 
     /// Populate the config with the values from parsed command line arguments.
@@ -189,8 +177,10 @@ impl Config {
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
         let pattern = path.canonicalize().unwrap();
-        self.stderr_filters
-            .push((pattern.parent().unwrap().into(), replacement.as_ref()));
+        self.comment_defaults.base().normalize_stderr.push((
+            pattern.parent().unwrap().into(),
+            replacement.as_ref().to_owned(),
+        ));
     }
 
     /// Replace all occurrences of a path in stdout with a byte string.
@@ -201,8 +191,10 @@ impl Config {
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
         let pattern = path.canonicalize().unwrap();
-        self.stdout_filters
-            .push((pattern.parent().unwrap().into(), replacement.as_ref()));
+        self.comment_defaults.base().normalize_stdout.push((
+            pattern.parent().unwrap().into(),
+            replacement.as_ref().to_owned(),
+        ));
     }
 
     /// Replace all occurrences of a regex pattern in stderr/stdout with a byte string.
@@ -219,8 +211,10 @@ impl Config {
         pattern: &str,
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
-        self.stderr_filters
-            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
+        self.comment_defaults.base().normalize_stderr.push((
+            Regex::new(pattern).unwrap().into(),
+            replacement.as_ref().to_owned(),
+        ));
     }
 
     /// Replace all occurrences of a regex pattern in stdout with a byte string.
@@ -230,8 +224,10 @@ impl Config {
         pattern: &str,
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
-        self.stdout_filters
-            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
+        self.comment_defaults.base().normalize_stdout.push((
+            Regex::new(pattern).unwrap().into(),
+            replacement.as_ref().to_owned(),
+        ));
     }
 
     /// Compile dependencies and return the right flags

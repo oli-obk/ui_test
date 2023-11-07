@@ -111,9 +111,6 @@ impl From<Regex> for Match {
     }
 }
 
-/// Replacements to apply to output files.
-pub type Filter = Vec<(Match, &'static [u8])>;
-
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.
 pub fn run_tests(mut config: Config) -> Result<()> {
@@ -931,7 +928,6 @@ fn run_rustfix(
         path,
         &mut errors,
         "fixed",
-        &Filter::default(),
         config,
         &rustfix_comments,
         revision,
@@ -1040,26 +1036,8 @@ fn check_test_output(
 ) {
     // Check output files (if any)
     // Check output files against actual output
-    check_output(
-        stderr,
-        path,
-        errors,
-        "stderr",
-        &config.stderr_filters,
-        config,
-        comments,
-        revision,
-    );
-    check_output(
-        stdout,
-        path,
-        errors,
-        "stdout",
-        &config.stdout_filters,
-        config,
-        comments,
-        revision,
-    );
+    check_output(stderr, path, errors, "stderr", config, comments, revision);
+    check_output(stdout, path, errors, "stdout", config, comments, revision);
 }
 
 fn check_annotations(
@@ -1197,13 +1175,12 @@ fn check_output(
     path: &Path,
     errors: &mut Errors,
     kind: &'static str,
-    filters: &Filter,
     config: &Config,
     comments: &Comments,
     revision: &str,
 ) -> PathBuf {
     let target = config.target.as_ref().unwrap();
-    let output = normalize(output, filters, comments, revision, kind);
+    let output = normalize(output, comments, revision, kind);
     let path = output_path(path, comments, revised(revision, kind), target, revision);
     match &config.output_conflict_handling {
         OutputConflictHandling::Error(bless_command) => {
@@ -1293,18 +1270,8 @@ fn get_pointer_width(triple: &str) -> u8 {
     }
 }
 
-fn normalize(
-    text: &[u8],
-    filters: &Filter,
-    comments: &Comments,
-    revision: &str,
-    kind: &'static str,
-) -> Vec<u8> {
+fn normalize(text: &[u8], comments: &Comments, revision: &str, kind: &'static str) -> Vec<u8> {
     let mut text = text.to_owned();
-
-    for (rule, replacement) in filters {
-        text = rule.replace_all(&text, replacement).into_owned();
-    }
 
     for (from, to) in comments.for_revision(revision).flat_map(|r| match kind {
         "fixed" => &[] as &[_],

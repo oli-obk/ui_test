@@ -52,8 +52,10 @@ fn main() -> Result<()> {
     // Insert the replacement filter at the start to make sure the filter for single backslashes
     // runs afterwards.
     config
-        .stdout_filters
-        .insert(0, (Match::Exact(b"\\\\".to_vec()), b"\\"));
+        .comment_defaults
+        .base()
+        .normalize_stdout
+        .insert(0, (Match::Exact(b"\\\\".to_vec()), b"\\".to_vec()));
     config.stdout_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     // We don't want to normalize lines starting with `+`, those are diffs of the inner ui_test
     // and normalizing these here doesn't make the "actual output differed from expected" go
