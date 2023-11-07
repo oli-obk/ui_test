@@ -1,4 +1,4 @@
-A smaller version of compiletest-rs
+A stable version of compiletest-rs
 
 ## Magic behavior
 
