@@ -37,6 +37,7 @@ mod error;
 pub mod github_actions;
 mod mode;
 mod parser;
+pub mod per_test_config;
 mod rustc_stderr;
 pub mod status_emitter;
 #[cfg(test)]

@@ -22,7 +22,7 @@ mod tests;
 /// configuration values. This struct parses them all in one go and then they
 /// get processed by their respective use sites.
 #[derive(Default, Debug)]
-pub(crate) struct Comments {
+pub struct Comments {
     /// List of revision names to execute. Can only be specified once
     pub revisions: Option<Vec<String>>,
     /// Comments that are only available under specific revisions.
@@ -94,7 +94,7 @@ impl Comments {
 
 #[derive(Debug)]
 /// Comments that can be filtered for specific revisions.
-pub(crate) struct Revisioned {
+pub struct Revisioned {
     /// The character range in which this revisioned item was first added.
     /// Used for reporting errors on unknown revisions.
     pub span: Span,
@@ -115,16 +115,18 @@ pub(crate) struct Revisioned {
     /// Arbitrary patterns to look for in the stderr.
     /// The error must be from another file, as errors from the current file must be
     /// checked via `error_matches`.
-    pub error_in_other_files: Vec<Spanned<Pattern>>,
-    pub error_matches: Vec<ErrorMatch>,
+    pub(crate) error_in_other_files: Vec<Spanned<Pattern>>,
+    pub(crate) error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: OptWithLine<Level>,
+    /// Files that get built and exposed as dependencies to the current test.
     pub aux_builds: Vec<Spanned<PathBuf>>,
+    /// Set the `--edition` flag on the test.
     pub edition: OptWithLine<String>,
     /// Overwrites the mode from `Config`.
     pub mode: OptWithLine<Mode>,
-    pub needs_asm_support: bool,
+    pub(crate) needs_asm_support: bool,
     /// Don't run [`rustfix`] for this test
     pub no_rustfix: OptWithLine<()>,
 }
@@ -157,7 +159,7 @@ impl<T> std::ops::DerefMut for CommentParser<T> {
 
 /// The conditions used for "ignore" and "only" filters.
 #[derive(Debug)]
-pub(crate) enum Condition {
+pub enum Condition {
     /// The given string must appear in the host triple.
     Host(String),
     /// The given string must appear in the target triple.

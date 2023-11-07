@@ -15,11 +15,17 @@ struct RustcMessage {
 }
 
 #[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub(crate) enum Level {
+/// The different levels of diagnostic messages and their relative ranking.
+pub enum Level {
+    /// internal compiler errors
     Ice = 5,
+    /// ´error´ level messages
     Error = 4,
+    /// ´warn´ level messages
     Warn = 3,
+    /// ´help´ level messages
     Help = 2,
+    /// ´note´ level messages
     Note = 1,
     /// Only used for "For more information about this error, try `rustc --explain EXXXX`".
     FailureNote = 0,
