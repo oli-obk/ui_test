@@ -190,8 +190,8 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
     let extra_args = config.build_dependencies()?;
 
-    let comments =
-        Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
+    let comments = Comments::parse_file(config.comment_defaults.clone(), path)?
+        .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let mut result = build_command(path, &config, "", &comments).unwrap();
     result.args(extra_args);
 
@@ -434,7 +434,11 @@ fn parse_and_test_file(
     mut config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
-    let comments = parse_comments(&file_contents, status.path())?;
+    let comments = parse_comments(
+        &file_contents,
+        config.comment_defaults.clone(),
+        status.path(),
+    )?;
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
@@ -472,8 +476,12 @@ fn parse_and_test_file(
         .collect())
 }
 
-fn parse_comments(file_contents: &[u8], file: &Path) -> Result<Comments, Errored> {
-    match Comments::parse(file_contents, file) {
+fn parse_comments(
+    file_contents: &[u8],
+    comments: Comments,
+    file: &Path,
+) -> Result<Comments, Errored> {
+    match Comments::parse(file_contents, comments, file) {
         Ok(comments) => Ok(comments),
         Err(errors) => Err(Errored {
             command: Command::new("parse comments"),
@@ -501,7 +509,7 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let edition = comments.edition(revision, &config.comment_defaults)?;
+    let edition = comments.edition(revision)?;
 
     if let Some(edition) = edition {
         cmd.arg("--edition").arg(&*edition);
@@ -528,7 +536,7 @@ fn build_aux(
         stderr: err.to_string().into_bytes(),
         stdout: vec![],
     })?;
-    let comments = parse_comments(&file_contents, aux_file)?;
+    let comments = parse_comments(&file_contents, Comments::default(), aux_file)?;
     assert_eq!(
         comments.revisions, None,
         "aux builds cannot specify revisions"
@@ -878,7 +886,7 @@ fn run_rustfix(
             stdout: stdout.into(),
         })?;
 
-    let edition = comments.edition(revision, &config.comment_defaults)?.into();
+    let edition = comments.edition(revision)?.into();
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((

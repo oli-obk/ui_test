@@ -88,16 +88,10 @@ impl Comments {
         })
     }
 
-    pub(crate) fn edition(
-        &self,
-        revision: &str,
-        default: &Self,
-    ) -> Result<Option<Spanned<String>>, Errored> {
-        let edition =
-            self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
-        let default = default
-            .find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
-        let edition = edition.into_inner().or(default.into_inner());
+    pub(crate) fn edition(&self, revision: &str) -> Result<Option<Spanned<String>>, Errored> {
+        let edition = self
+            .find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?
+            .into_inner();
         Ok(edition)
     }
 
@@ -222,20 +216,24 @@ impl Condition {
 }
 
 impl Comments {
-    pub(crate) fn parse_file(path: &Path) -> Result<std::result::Result<Self, Vec<Error>>> {
+    pub(crate) fn parse_file(
+        comments: Comments,
+        path: &Path,
+    ) -> Result<std::result::Result<Self, Vec<Error>>> {
         let content =
             std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
-        Ok(Self::parse(&content, path))
+        Ok(Self::parse(&content, comments, path))
     }
 
     /// Parse comments in `content`.
     /// `path` is only used to emit diagnostics if parsing fails.
     pub(crate) fn parse(
         content: &(impl AsRef<[u8]> + ?Sized),
+        comments: Comments,
         file: &Path,
     ) -> std::result::Result<Self, Vec<Error>> {
         let mut parser = CommentParser {
-            comments: Comments::default(),
+            comments,
             errors: vec![],
             commands: CommentParser::<_>::commands(),
         };

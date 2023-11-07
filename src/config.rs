@@ -120,7 +120,7 @@ impl Config {
     pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
         Self {
             program: CommandBuilder::cargo(),
-            comment_defaults: Default::default(),
+            comment_defaults: Comments::default(),
             mode: Mode::Fail {
                 require_patterns: true,
                 rustfix: RustfixMode::Disabled,
