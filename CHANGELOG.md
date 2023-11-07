@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+* crate-private span handling was passed off to the `spanned` crate, improving some diagnostics along the way.
+
 ### Removed
 
 * `$DIR` and `RUSTLIB` replacements
