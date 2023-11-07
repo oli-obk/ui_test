@@ -21,13 +21,24 @@ mod tests;
 /// This crate supports various magic comments that get parsed as file-specific
 /// configuration values. This struct parses them all in one go and then they
 /// get processed by their respective use sites.
-#[derive(Default, Debug)]
+#[derive(Debug, Clone)]
 pub struct Comments {
     /// List of revision names to execute. Can only be specified once
     pub revisions: Option<Vec<String>>,
     /// Comments that are only available under specific revisions.
     /// The defaults are in key `vec![]`
     pub revisioned: HashMap<Vec<String>, Revisioned>,
+}
+
+impl Default for Comments {
+    fn default() -> Self {
+        let mut this = Self {
+            revisions: Default::default(),
+            revisioned: Default::default(),
+        };
+        this.revisioned.insert(vec![], Revisioned::default());
+        this
+    }
 }
 
 impl Comments {
@@ -80,19 +91,26 @@ impl Comments {
     pub(crate) fn edition(
         &self,
         revision: &str,
-        config: &crate::Config,
+        default: &Self,
     ) -> Result<Option<MaybeSpanned<String>>, Errored> {
         let edition =
             self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
+        let default = default
+            .find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
         let edition = edition
             .into_inner()
-            .map(MaybeSpanned::from)
-            .or(config.edition.clone().map(MaybeSpanned::new_config));
+            .or(default.into_inner())
+            .map(MaybeSpanned::from);
         Ok(edition)
+    }
+
+    /// The comments set for all revisions
+    pub fn base(&mut self) -> &mut Revisioned {
+        self.revisioned.get_mut(&[][..]).unwrap()
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 /// Comments that can be filtered for specific revisions.
 pub struct Revisioned {
     /// The character range in which this revisioned item was first added.
@@ -158,7 +176,7 @@ impl<T> std::ops::DerefMut for CommentParser<T> {
 }
 
 /// The conditions used for "ignore" and "only" filters.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Condition {
     /// The given string must appear in the host triple.
     Host(String),
@@ -177,7 +195,7 @@ pub enum Pattern {
     Regex(Regex),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct ErrorMatch {
     pub pattern: Spanned<Pattern>,
     pub level: Level,

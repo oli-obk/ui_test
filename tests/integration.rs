@@ -6,9 +6,7 @@ use ui_test::*;
 fn main() -> Result<()> {
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join("integrations");
-    let mut config = Config {
-        ..Config::cargo(root_dir.clone())
-    };
+    let mut config = Config::cargo(root_dir.clone());
     let args = Args::test()?;
     config.with_args(&args, true);
 

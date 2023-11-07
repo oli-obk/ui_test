@@ -1,6 +1,10 @@
 use regex::bytes::Regex;
+use spanned::Span;
 
-use crate::{dependencies::build_dependencies, CommandBuilder, Filter, Match, Mode, RustfixMode};
+use crate::{
+    dependencies::build_dependencies, per_test_config::Comments, CommandBuilder, Filter, Match,
+    Mode, RustfixMode,
+};
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
@@ -45,8 +49,6 @@ pub struct Config {
     /// Where to dump files like the binaries compiled from tests.
     /// Defaults to `target/ui` in the current directory.
     pub out_dir: PathBuf,
-    /// The default edition to use on all tests.
-    pub edition: Option<String>,
     /// Skip test files whose names contain any of these entries.
     pub skip_files: Vec<String>,
     /// Only test files whose names contain any of these entries.
@@ -59,12 +61,19 @@ pub struct Config {
     pub run_only_ignored: bool,
     /// Filters must match exactly instead of just checking for substrings.
     pub filter_exact: bool,
+    /// The default settings settable via `@` comments
+    pub comment_defaults: Comments,
 }
 
 impl Config {
     /// Create a configuration for testing the output of running
     /// `rustc` on the test files.
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
+        let mut comment_defaults = Comments::default();
+        let _ = comment_defaults
+            .base()
+            .edition
+            .set("2021".into(), Span::default());
         Self {
             host: None,
             target: None,
@@ -96,13 +105,13 @@ impl Config {
                 .map(PathBuf::from)
                 .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"))
                 .join("ui"),
-            edition: Some("2021".into()),
             skip_files: Vec::new(),
             filter_files: Vec::new(),
             threads: None,
             list: false,
             run_only_ignored: false,
             filter_exact: false,
+            comment_defaults,
         }
     }
 
@@ -111,7 +120,7 @@ impl Config {
     pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
         Self {
             program: CommandBuilder::cargo(),
-            edition: None,
+            comment_defaults: Default::default(),
             mode: Mode::Fail {
                 require_patterns: true,
                 rustfix: RustfixMode::Disabled,

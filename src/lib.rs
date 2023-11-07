@@ -501,7 +501,7 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let edition = comments.edition(revision, config)?;
+    let edition = comments.edition(revision, &config.comment_defaults)?;
 
     if let Some(edition) = edition {
         cmd.arg("--edition").arg(&*edition);
@@ -878,7 +878,7 @@ fn run_rustfix(
             stdout: stdout.into(),
         })?;
 
-    let edition = comments.edition(revision, config)?;
+    let edition = comments.edition(revision, &config.comment_defaults)?;
     let edition = edition
         .map(|mwl| {
             let line = mwl.span().unwrap_or_default();
