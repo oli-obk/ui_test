@@ -1,5 +1,5 @@
 use regex::bytes::Regex;
-use spanned::Span;
+use spanned::{Span, Spanned};
 
 use crate::{
     dependencies::build_dependencies, per_test_config::Comments, CommandBuilder, Match, Mode,
@@ -25,8 +25,6 @@ pub struct Config {
     pub target: Option<String>,
     /// The folder in which to start searching for .rs files
     pub root_dir: PathBuf,
-    /// The mode in which to run the tests.
-    pub mode: Mode,
     /// The binary to actually execute.
     pub program: CommandBuilder,
     /// The command to run to obtain the cfgs that the output is supposed to
@@ -73,16 +71,17 @@ impl Config {
             #[cfg(windows)]
             (Match::Exact(br"\\?\".to_vec()), b"".to_vec()),
         ];
-        let _ = comment_defaults.base().normalize_stderr = filters.clone();
-        let _ = comment_defaults.base().normalize_stdout = filters;
+        comment_defaults.base().normalize_stderr = filters.clone();
+        comment_defaults.base().normalize_stdout = filters;
+        comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
+            require_patterns: true,
+            rustfix: RustfixMode::MachineApplicable,
+        })
+        .into();
         Self {
             host: None,
             target: None,
             root_dir: root_dir.into(),
-            mode: Mode::Fail {
-                require_patterns: true,
-                rustfix: RustfixMode::MachineApplicable,
-            },
             program: CommandBuilder::rustc(),
             cfgs: CommandBuilder::cfgs(),
             output_conflict_handling: OutputConflictHandling::Bless,
@@ -107,13 +106,14 @@ impl Config {
     pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
         let mut this = Self {
             program: CommandBuilder::cargo(),
-            mode: Mode::Fail {
-                require_patterns: true,
-                rustfix: RustfixMode::Disabled,
-            },
             ..Self::rustc(root_dir)
         };
         this.comment_defaults.base().edition = Default::default();
+        this.comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
+            require_patterns: true,
+            rustfix: RustfixMode::Disabled,
+        })
+        .into();
         this
     }
 

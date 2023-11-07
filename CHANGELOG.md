@@ -24,5 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `Config::edition` (replaced by `config.comment_defaults.base().edition`)
 * `Config::filter_stdout` (replaced by `config.comment_defaults.base().normalize_stdout`)
 * `Config::filter_stderr` (replaced by `config.comment_defaults.base().normalize_stderr`)
+* `Config::mode` (replaced by `config.comment_defaults.base().mode`)
 
 ## [0.21.2] - 2023-09-27

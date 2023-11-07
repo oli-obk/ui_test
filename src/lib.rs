@@ -14,7 +14,7 @@ use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, MaybeSpanned, OptWithLine, Revisioned, Spanned};
+use parser::{ErrorMatch, OptWithLine, Revisioned, Spanned};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Level, Message};
 use spanned::Span;
@@ -47,6 +47,8 @@ pub use cmd::*;
 pub use config::*;
 pub use error::*;
 pub use mode::*;
+
+pub use spanned;
 
 /// A filter's match rule.
 #[derive(Clone, Debug)]
@@ -657,7 +659,7 @@ impl dyn TestStatus {
 
         let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
 
-        let mode = config.mode.maybe_override(comments, revision)?;
+        let mode = comments.mode(revision)?;
         let cmd = check_test_result(
             cmd,
             match *mode {
@@ -767,7 +769,7 @@ fn build_aux_files(
 }
 
 fn run_test_binary(
-    mode: MaybeSpanned<Mode>,
+    mode: Spanned<Mode>,
     path: &Path,
     revision: &str,
     comments: &Comments,
@@ -1009,7 +1011,6 @@ fn check_test_result(
         diagnostics.messages_from_unknown_file_or_line,
         path,
         &mut errors,
-        config,
         revision,
         comments,
     )?;
@@ -1045,7 +1046,6 @@ fn check_annotations(
     mut messages_from_unknown_file_or_line: Vec<Message>,
     path: &Path,
     errors: &mut Errors,
-    config: &Config,
     revision: &str,
     comments: &Comments,
 ) -> Result<(), Errored> {
@@ -1122,9 +1122,9 @@ fn check_annotations(
         msgs
     };
 
-    let mode = config.mode.maybe_override(comments, revision)?;
+    let mode = comments.mode(revision)?;
 
-    if !matches!(config.mode, Mode::Yolo { .. }) {
+    if !matches!(*mode, Mode::Yolo { .. }) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
         if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {

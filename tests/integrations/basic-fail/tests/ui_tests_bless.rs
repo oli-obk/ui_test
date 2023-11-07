@@ -1,4 +1,4 @@
-use ui_test::*;
+use ui_test::{spanned::Spanned, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     for mode in [
@@ -25,9 +25,9 @@ fn main() -> ui_test::color_eyre::Result<()> {
             } else {
                 OutputConflictHandling::Error("cargo test".to_string())
             },
-            mode,
             ..Config::rustc(root_dir)
         };
+        config.comment_defaults.base().mode = Spanned::dummy(mode).into();
 
         // hide binaries generated for successfully passing tests
         let tmp_dir = tempfile::tempdir_in(path)?;

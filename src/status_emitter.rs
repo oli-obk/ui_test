@@ -452,8 +452,8 @@ fn print_error(error: &Error, path: &Path) {
         Error::PatternFoundInPassTest { mode, span } => {
             let annot = [("expected because of this annotation", Some(span.clone()))];
             let mut lines: Vec<(&[_], _)> = vec![(&annot, span.line_start)];
-            let annot = [("expected because of this mode change", mode.clone())];
-            if let Some(mode) = mode {
+            let annot = [("expected because of this mode change", Some(mode.clone()))];
+            if !mode.is_dummy() {
                 lines.push((&annot, mode.line_start))
             }
             // This will print a suitable error header.
@@ -562,6 +562,7 @@ fn print_error(error: &Error, path: &Path) {
             println!("{error}");
             println!("Add //@no-rustfix to the test file to ignore rustfix suggestions");
         }
+        Error::ConfigError(msg) => println!("{msg}"),
     }
     println!();
 }
@@ -777,6 +778,9 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                 test_path,
                 format!("failed to apply suggestions with rustfix: {error}"),
             );
+        }
+        Error::ConfigError(msg) => {
+            github_actions::error(test_path, msg.clone());
         }
     }
 }

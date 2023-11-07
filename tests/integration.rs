@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use ui_test::color_eyre::Result;
-use ui_test::*;
+use ui_test::{spanned::Spanned, *};
 
 fn main() -> Result<()> {
     let path = Path::new(file!()).parent().unwrap();
@@ -77,17 +77,13 @@ fn main() -> Result<()> {
 
     let text = ui_test::status_emitter::Text::from(args.format);
 
+    let mut pass_config = config.clone();
+    pass_config.comment_defaults.base().mode = Spanned::dummy(Mode::Pass).into();
+    let mut panic_config = config;
+    panic_config.comment_defaults.base().mode = Spanned::dummy(Mode::Panic).into();
+
     run_tests_generic(
-        vec![
-            Config {
-                mode: Mode::Pass,
-                ..config.clone()
-            },
-            Config {
-                mode: Mode::Panic,
-                ..config
-            },
-        ],
+        vec![pass_config, panic_config],
         |path, config| {
             let fail = path
                 .parent()
@@ -103,7 +99,13 @@ fn main() -> Result<()> {
             }
             path.ends_with("Cargo.toml")
                 && path.parent().unwrap().parent().unwrap() == root_dir
-                && match config.mode {
+                && match config
+                    .comment_defaults
+                    .base_immut()
+                    .mode
+                    .as_deref()
+                    .unwrap()
+                {
                     Mode::Pass => !fail,
                     // This is weird, but `cargo test` returns 101 instead of 1 when
                     // multiple [[test]]s exist. If there's only one test, it returns

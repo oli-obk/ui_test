@@ -40,7 +40,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )
@@ -78,7 +77,6 @@ fn main() {
             vec![],
             Path::new("moobar"),
             &mut errors,
-            &config,
             "",
             &comments,
         )
@@ -105,7 +103,6 @@ fn main() {
             vec![],
             Path::new("moobar"),
             &mut errors,
-            &config,
             "",
             &comments,
         )
@@ -136,7 +133,6 @@ fn main() {
             vec![],
             Path::new("moobar"),
             &mut errors,
-            &config,
             "",
             &comments,
         )
@@ -177,7 +173,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )
@@ -220,7 +215,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )
@@ -274,7 +268,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )
@@ -338,7 +331,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )
