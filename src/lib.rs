@@ -878,13 +878,7 @@ fn run_rustfix(
             stdout: stdout.into(),
         })?;
 
-    let edition = comments.edition(revision, &config.comment_defaults)?;
-    let edition = edition
-        .map(|mwl| {
-            let line = mwl.span().unwrap_or_default();
-            Spanned::new(mwl.into_inner(), line)
-        })
-        .into();
+    let edition = comments.edition(revision, &config.comment_defaults)?.into();
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((

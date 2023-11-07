@@ -92,15 +92,12 @@ impl Comments {
         &self,
         revision: &str,
         default: &Self,
-    ) -> Result<Option<MaybeSpanned<String>>, Errored> {
+    ) -> Result<Option<Spanned<String>>, Errored> {
         let edition =
             self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
         let default = default
             .find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
-        let edition = edition
-            .into_inner()
-            .or(default.into_inner())
-            .map(MaybeSpanned::from);
+        let edition = edition.into_inner().or(default.into_inner());
         Ok(edition)
     }
 

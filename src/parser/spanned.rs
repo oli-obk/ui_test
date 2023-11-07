@@ -23,10 +23,6 @@ impl<T> MaybeSpanned<T> {
     pub fn span(&self) -> Option<Span> {
         self.span.clone()
     }
-
-    pub fn into_inner(self) -> T {
-        self.data
-    }
 }
 
 impl<T> From<Spanned<T>> for MaybeSpanned<T> {
