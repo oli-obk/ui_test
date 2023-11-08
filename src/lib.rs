@@ -22,9 +22,10 @@ use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
+use std::io::Read;
 use std::num::NonZeroUsize;
 use std::path::{Component, Path, PathBuf, Prefix};
-use std::process::{Command, ExitStatus, Output};
+use std::process::{Command, ExitStatus, Stdio};
 use std::thread;
 
 use crate::parser::{Comments, Condition};
@@ -655,6 +656,9 @@ impl dyn TestStatus {
         });
         if stdin.exists() {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
+        } else {
+            // prevent child processes from attempting to read from our stdin
+            cmd.stdin(Stdio::null());
         }
 
         let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
@@ -691,20 +695,51 @@ impl dyn TestStatus {
         &self,
         mut cmd: Command,
     ) -> Result<(Command, ExitStatus, Vec<u8>, Vec<u8>), Errored> {
-        match cmd.output() {
-            Err(err) => Err(Errored {
+        cmd.stderr(Stdio::piped());
+        cmd.stdout(Stdio::piped());
+        let mut child = match cmd.spawn() {
+            Err(err) => {
+                return Err(Errored {
+                    errors: vec![],
+                    stderr: err.to_string().into_bytes(),
+                    stdout: format!("could not spawn `{:?}` as a process", cmd.get_program())
+                        .into_bytes(),
+                    command: cmd,
+                })
+            }
+            Ok(child) => child,
+        };
+        let status = match child.wait() {
+            Err(err) => {
+                return Err(Errored {
+                    errors: vec![],
+                    stderr: err.to_string().into_bytes(),
+                    stdout: format!("`{:?}` failed during execution", cmd.get_program())
+                        .into_bytes(),
+                    command: cmd,
+                })
+            }
+            Ok(status) => status,
+        };
+        let mut stderr = vec![];
+        if let Err(err) = child.stderr.unwrap().read_to_end(&mut stderr) {
+            return Err(Errored {
                 errors: vec![],
                 stderr: err.to_string().into_bytes(),
-                stdout: format!("could not spawn `{:?}` as a process", cmd.get_program())
-                    .into_bytes(),
+                stdout: format!("`{:?}` failed to read stderr", cmd.get_program()).into_bytes(),
                 command: cmd,
-            }),
-            Ok(Output {
-                status,
-                stdout,
-                stderr,
-            }) => Ok((cmd, status, stderr, stdout)),
-        }
+            });
+        };
+        let mut stdout = vec![];
+        if let Err(err) = child.stdout.unwrap().read_to_end(&mut stdout) {
+            return Err(Errored {
+                errors: vec![],
+                stderr: err.to_string().into_bytes(),
+                stdout: format!("`{:?}` failed to read stdout", cmd.get_program()).into_bytes(),
+                command: cmd,
+            });
+        };
+        Ok((cmd, status, stderr, stdout))
     }
 }
 
