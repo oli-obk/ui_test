@@ -6,12 +6,18 @@ use std::{
 };
 
 #[derive(serde::Deserialize, Debug)]
+struct RustcDiagnosticCode {
+    code: String,
+}
+
+#[derive(serde::Deserialize, Debug)]
 struct RustcMessage {
     rendered: Option<String>,
     spans: Vec<RustcSpan>,
     level: String,
     message: String,
     children: Vec<RustcMessage>,
+    code: Option<RustcDiagnosticCode>,
 }
 
 #[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
@@ -37,6 +43,7 @@ pub struct Message {
     pub(crate) level: Level,
     pub(crate) message: String,
     pub(crate) line_col: Option<spanned::Span>,
+    pub(crate) code: Option<String>,
 }
 
 /// Information about macro expansion.
@@ -107,6 +114,7 @@ impl RustcMessage {
             level: self.level.parse().unwrap(),
             message: self.message,
             line_col: line.clone(),
+            code: self.code.map(|x| x.code),
         };
         if let Some(line) = line.clone() {
             if messages.len() <= line.line_start.get() {

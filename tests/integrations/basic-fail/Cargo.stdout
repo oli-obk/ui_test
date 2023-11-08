@@ -28,7 +28,7 @@ error: there were 1 unmatched diagnostics
  --> tests/actual_tests/bad_pattern.rs:4:9
   |
 4 |     add("42", 3);
-  |         ^^^^ Error: mismatched types
+  |         ^^^^ Error[E0308]: mismatched types
   |
 
 full stderr:
@@ -329,6 +329,7 @@ tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... FAILED
 tests/actual_tests_bless/rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
+tests/actual_tests_bless/wrong_diagnostic_code.rs ... FAILED
 
 FAILED TEST: tests/actual_tests_bless/aux_build_not_found.rs
 command: "$CMD"
@@ -474,7 +475,7 @@ error: there were 1 unmatched diagnostics
  --> tests/actual_tests_bless/no_main_manual.rs:3:16
   |
 3 | pub fn foo() {}
-  |                ^ Error: `main` function not found in crate `no_main_manual`
+  |                ^ Error[E0601]: `main` function not found in crate `no_main_manual`
   |
 
 error: no error patterns found in fail test
@@ -616,7 +617,7 @@ error: there were 1 unmatched diagnostics
   --> tests/actual_tests_bless/revisions_bad.rs:10:2
    |
 10 | }
-   |  ^ Error: `main` function not found in crate `revisions_bad`
+   |  ^ Error[E0601]: `main` function not found in crate `revisions_bad`
    |
 
 full stderr:
@@ -755,6 +756,57 @@ full stderr:
 full stdout:
 
 
+
+FAILED TEST: tests/actual_tests_bless/wrong_diagnostic_code.rs
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/wrong_diagnostic_code.rs" "--edition" "2021"
+
+error: diagnostic code `should_be_dead_code` not found on line 3
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:4:10
+  |
+4 |     //~^ should_be_dead_code
+  |          ^^^^^^^^^^^^^^^^^^^ expected because of this pattern
+  |
+
+error: there were 1 unmatched diagnostics
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:3:4
+  |
+3 | fn foo() -> i32 {
+  |    ^^^ Error[dead_code]: function `foo` is never used
+  |
+
+full stderr:
+error: unreachable expression
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:6:5
+  |
+5 |     panic!();
+  |     -------- any code following this expression is unreachable
+6 |     0
+  |     ^ unreachable expression
+  |
+note: the lint level is defined here
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:1:20
+  |
+1 | #![deny(dead_code, unreachable_code)]
+  |                    ^^^^^^^^^^^^^^^^
+
+error: function `foo` is never used
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:3:4
+  |
+3 | fn foo() -> i32 {
+  |    ^^^
+  |
+note: the lint level is defined here
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:1:9
+  |
+1 | #![deny(dead_code, unreachable_code)]
+  |         ^^^^^^^^^
+
+error: aborting due to 2 previous errors
+
+
+full stdout:
+
+
 FAILURES:
     tests/actual_tests_bless/aux_build_not_found.rs
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
@@ -776,8 +828,9 @@ FAILURES:
     tests/actual_tests_bless/rustfix-fail.rs
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
+    tests/actual_tests_bless/wrong_diagnostic_code.rs
 
-test result: FAIL. 20 failed; 14 passed; 3 ignored;
+test result: FAIL. 21 failed; 14 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok

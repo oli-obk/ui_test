@@ -14,7 +14,7 @@ use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, OptWithLine, Revisioned, Spanned};
+use parser::{ErrorMatch, ErrorMatchKind, OptWithLine, Revisioned, Spanned};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Level, Message};
 use spanned::Span;
@@ -915,6 +915,7 @@ fn run_rustfix(
                 edition,
                 mode: OptWithLine::new(Mode::Pass, Span::default()),
                 no_rustfix: OptWithLine::new((), Span::default()),
+                diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
                 needs_asm_support: false,
             },
         ))
@@ -1071,40 +1072,75 @@ fn check_annotations(
             });
         }
     }
+    let diagnostic_code_prefix = comments
+        .find_one_for_revision(revision, "diagnostic_code_prefix", |r| {
+            r.diagnostic_code_prefix.clone()
+        })?
+        .into_inner()
+        .map(|s| s.content)
+        .unwrap_or_default();
 
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
     let mut lowest_annotation_level = Level::Error;
-    for &ErrorMatch {
-        ref pattern,
-        level,
-        line,
-    } in comments
+    'err: for &ErrorMatch { ref kind, line } in comments
         .for_revision(revision)
         .flat_map(|r| r.error_matches.iter())
     {
-        seen_error_match = Some(pattern.span());
-        // If we found a diagnostic with a level annotation, make sure that all
-        // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
-        // for this pattern.
-        if lowest_annotation_level > level {
-            lowest_annotation_level = level;
-        }
-
-        if let Some(msgs) = messages.get_mut(line.get()) {
-            let found = msgs
-                .iter()
-                .position(|msg| pattern.matches(&msg.message) && msg.level == level);
-            if let Some(found) = found {
-                msgs.remove(found);
-                continue;
+        match kind {
+            ErrorMatchKind::Code(code) => {
+                seen_error_match = Some(code.span());
+            }
+            &ErrorMatchKind::Pattern { ref pattern, level } => {
+                seen_error_match = Some(pattern.span());
+                // If we found a diagnostic with a level annotation, make sure that all
+                // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
+                // for this pattern.
+                if lowest_annotation_level > level {
+                    lowest_annotation_level = level;
+                }
             }
         }
 
-        errors.push(Error::PatternNotFound {
-            pattern: pattern.clone(),
-            expected_line: Some(line),
+        if let Some(msgs) = messages.get_mut(line.get()) {
+            match kind {
+                &ErrorMatchKind::Pattern { ref pattern, level } => {
+                    let found = msgs
+                        .iter()
+                        .position(|msg| pattern.matches(&msg.message) && msg.level == level);
+                    if let Some(found) = found {
+                        msgs.remove(found);
+                        continue;
+                    }
+                }
+                ErrorMatchKind::Code(code) => {
+                    for (i, msg) in msgs.iter().enumerate() {
+                        if msg.level != Level::Error {
+                            continue;
+                        }
+                        let Some(msg_code) = &msg.code else { continue };
+                        let Some(msg) = msg_code.strip_prefix(&diagnostic_code_prefix) else {
+                            continue;
+                        };
+                        if msg == **code {
+                            msgs.remove(i);
+                            continue 'err;
+                        }
+                    }
+                }
+            }
+        }
+
+        errors.push(match kind {
+            ErrorMatchKind::Pattern { pattern, .. } => Error::PatternNotFound {
+                pattern: pattern.clone(),
+                expected_line: Some(line),
+            },
+            ErrorMatchKind::Code(code) => Error::CodeNotFound {
+                code: Spanned::new(format!("{}{}", diagnostic_code_prefix, **code), code.span()),
+                expected_line: Some(line),
+            },
         });
     }
 

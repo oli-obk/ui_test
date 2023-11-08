@@ -164,6 +164,9 @@ pub struct Revisioned {
     pub(crate) needs_asm_support: bool,
     /// Don't run [`rustfix`] for this test
     pub no_rustfix: OptWithLine<()>,
+    /// Prefix added to all diagnostic code matchers. Note this will make it impossible
+    /// match codes which do not contain this prefix.
+    pub diagnostic_code_prefix: OptWithLine<String>,
 }
 
 #[derive(Debug)]
@@ -213,9 +216,19 @@ pub enum Pattern {
 }
 
 #[derive(Debug, Clone)]
+pub(crate) enum ErrorMatchKind {
+    /// A level and pattern pair parsed from a `//~ LEVEL: Message` comment.
+    Pattern {
+        pattern: Spanned<Pattern>,
+        level: Level,
+    },
+    /// An error code parsed from a `//~ error_code` comment.
+    Code(Spanned<String>),
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct ErrorMatch {
-    pub pattern: Spanned<Pattern>,
-    pub level: Level,
+    pub(crate) kind: ErrorMatchKind,
     /// The line this pattern is expecting to find a message in.
     pub line: NonZeroUsize,
 }
@@ -302,6 +315,7 @@ impl Comments {
                 }
             }
         }
+
         let Revisioned {
             span,
             ignore,
@@ -319,6 +333,7 @@ impl Comments {
             mode,
             needs_asm_support,
             no_rustfix,
+            diagnostic_code_prefix,
         } = parser.comments.base();
         if span.is_dummy() {
             *span = defaults.span;
@@ -344,6 +359,9 @@ impl Comments {
         }
         if no_rustfix.is_none() {
             *no_rustfix = defaults.no_rustfix;
+        }
+        if diagnostic_code_prefix.is_none() {
+            *diagnostic_code_prefix = defaults.diagnostic_code_prefix;
         }
         *needs_asm_support |= defaults.needs_asm_support;
 
@@ -788,7 +806,10 @@ impl<CommentsType> CommentParser<CommentsType> {
 }
 
 impl CommentParser<&mut Revisioned> {
-    // parse something like (\[[a-z]+(,[a-z]+)*\])?(?P<offset>\||[\^]+)? *(?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*)
+    // parse something like:
+    // (\[[a-z]+(,[a-z]+)*\])?
+    // (?P<offset>\||[\^]+)? *
+    // ((?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*))|(?P<code>[a-z0-9_:]+)
     fn parse_pattern(&mut self, pattern: Spanned<&str>, fallthrough_to: &mut Option<NonZeroUsize>) {
         let (match_line, pattern) = match pattern.chars().next() {
             Some('|') => (
@@ -831,43 +852,52 @@ impl CommentParser<&mut Revisioned> {
         };
 
         let pattern = pattern.trim_start();
-        let offset = match pattern.chars().position(|c| !c.is_ascii_alphabetic()) {
-            Some(offset) => offset,
-            None => {
-                self.error(pattern.span(), "pattern without level");
-                return;
-            }
+        let offset = pattern
+            .bytes()
+            .position(|c| !(c.is_ascii_alphanumeric() || c == b'_' || c == b':'))
+            .unwrap_or(pattern.len());
+
+        let (level_or_code, pattern) = pattern.split_at(offset);
+        if let Some(level) = level_or_code.strip_suffix(":") {
+            let level = match (*level).parse() {
+                Ok(level) => level,
+                Err(msg) => {
+                    self.error(level.span(), msg);
+                    return;
+                }
+            };
+
+            let pattern = pattern.trim();
+
+            self.check(pattern.span(), !pattern.is_empty(), "no pattern specified");
+
+            let pattern = self.parse_error_pattern(pattern);
+
+            self.error_matches.push(ErrorMatch {
+                kind: ErrorMatchKind::Pattern { pattern, level },
+                line: match_line,
+            });
+        } else if (*level_or_code).parse::<Level>().is_ok() {
+            // Shouldn't conflict with any real diagnostic code
+            self.error(level_or_code.span(), "no `:` after level found");
+            return;
+        } else if !pattern.trim_start().is_empty() {
+            self.error(
+                pattern.span(),
+                format!("text found after error code `{}`", *level_or_code),
+            );
+            return;
+        } else {
+            self.error_matches.push(ErrorMatch {
+                kind: ErrorMatchKind::Code(Spanned::new(
+                    level_or_code.to_string(),
+                    level_or_code.span(),
+                )),
+                line: match_line,
+            });
         };
-
-        let (level, pattern) = pattern.split_at(offset);
-        let level = match (*level).parse() {
-            Ok(level) => level,
-            Err(msg) => {
-                self.error(level.span(), msg);
-                return;
-            }
-        };
-        let pattern = match pattern.strip_prefix(":") {
-            Some(offset) => offset,
-            None => {
-                self.error(pattern.span(), "no `:` after level found");
-                return;
-            }
-        };
-
-        let pattern = pattern.trim();
-
-        self.check(pattern.span(), !pattern.is_empty(), "no pattern specified");
-
-        let pattern = self.parse_error_pattern(pattern);
 
         *fallthrough_to = Some(match_line);
-
-        self.error_matches.push(ErrorMatch {
-            pattern,
-            level,
-            line: match_line,
-        });
     }
 }
 
