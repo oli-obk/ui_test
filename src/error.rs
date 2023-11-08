@@ -43,7 +43,7 @@ pub enum Error {
         /// The contents of the file.
         expected: Vec<u8>,
         /// A command, that when run, causes the output to get blessed instead of erroring.
-        bless_command: String,
+        bless_command: Option<String>,
     },
     /// There were errors that don't have a pattern.
     ErrorsWithoutPattern {

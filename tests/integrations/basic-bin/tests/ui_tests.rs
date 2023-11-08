@@ -7,8 +7,9 @@ fn main() -> ui_test::color_eyre::Result<()> {
         output_conflict_handling: if std::env::var_os("BLESS").is_some() {
             OutputConflictHandling::Bless
         } else {
-            OutputConflictHandling::Error("cargo test".to_string())
+            OutputConflictHandling::Error
         },
+        bless_command: Some("cargo test".to_string()),
         ..Config::rustc("tests/actual_tests")
     };
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
