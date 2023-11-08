@@ -8,7 +8,7 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error, Errored, Mode};
+use crate::{rustc_stderr::Level, Error, Errored, Match, Mode};
 
 use color_eyre::eyre::{Context, Result};
 
@@ -21,13 +21,24 @@ mod tests;
 /// This crate supports various magic comments that get parsed as file-specific
 /// configuration values. This struct parses them all in one go and then they
 /// get processed by their respective use sites.
-#[derive(Default, Debug)]
-pub(crate) struct Comments {
+#[derive(Debug, Clone)]
+pub struct Comments {
     /// List of revision names to execute. Can only be specified once
     pub revisions: Option<Vec<String>>,
     /// Comments that are only available under specific revisions.
     /// The defaults are in key `vec![]`
     pub revisioned: HashMap<Vec<String>, Revisioned>,
+}
+
+impl Default for Comments {
+    fn default() -> Self {
+        let mut this = Self {
+            revisions: Default::default(),
+            revisioned: Default::default(),
+        };
+        this.revisioned.insert(vec![], Revisioned::default());
+        this
+    }
 }
 
 impl Comments {
@@ -42,7 +53,10 @@ impl Comments {
     ) -> Result<OptWithLine<T>, Errored> {
         let mut result = None;
         let mut errors = vec![];
-        for rev in self.for_revision(revision) {
+        for (k, rev) in &self.revisioned {
+            if !k.iter().any(|r| r == revision) {
+                continue;
+            }
             if let Some(found) = f(rev).into_inner() {
                 if result.is_some() {
                     errors.push(found.line());
@@ -50,6 +64,9 @@ impl Comments {
                     result = found.into();
                 }
             }
+        }
+        if result.is_none() {
+            result = f(&self.revisioned[&[][..]]).into_inner();
         }
         if errors.is_empty() {
             Ok(result.into())
@@ -77,24 +94,42 @@ impl Comments {
         })
     }
 
-    pub(crate) fn edition(
-        &self,
-        revision: &str,
-        config: &crate::Config,
-    ) -> Result<Option<MaybeSpanned<String>>, Errored> {
-        let edition =
-            self.find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?;
-        let edition = edition
-            .into_inner()
-            .map(MaybeSpanned::from)
-            .or(config.edition.clone().map(MaybeSpanned::new_config));
+    pub(crate) fn edition(&self, revision: &str) -> Result<Option<Spanned<String>>, Errored> {
+        let edition = self
+            .find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?
+            .into_inner();
         Ok(edition)
+    }
+
+    /// The comments set for all revisions
+    pub fn base(&mut self) -> &mut Revisioned {
+        self.revisioned.get_mut(&[][..]).unwrap()
+    }
+
+    /// The comments set for all revisions
+    pub fn base_immut(&self) -> &Revisioned {
+        self.revisioned.get(&[][..]).unwrap()
+    }
+
+    pub(crate) fn mode(&self, revision: &str) -> Result<Spanned<Mode>, Errored> {
+        let mode = self
+            .find_one_for_revision(revision, "`mode` annotations", |r| r.mode.clone())?
+            .into_inner()
+            .ok_or_else(|| Errored {
+                command: Command::new(format!("<finding mode for revision `{revision}`>")),
+                errors: vec![Error::ConfigError(
+                    "no mode set up in Config::comment_defaults".into(),
+                )],
+                stderr: vec![],
+                stdout: vec![],
+            })?;
+        Ok(mode)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 /// Comments that can be filtered for specific revisions.
-pub(crate) struct Revisioned {
+pub struct Revisioned {
     /// The character range in which this revisioned item was first added.
     /// Used for reporting errors on unknown revisions.
     pub span: Span,
@@ -109,22 +144,24 @@ pub(crate) struct Revisioned {
     /// Additional env vars to set for the executable
     pub env_vars: Vec<(String, String)>,
     /// Normalizations to apply to the stderr output before emitting it to disk
-    pub normalize_stderr: Vec<(Regex, Vec<u8>)>,
+    pub normalize_stderr: Vec<(Match, Vec<u8>)>,
     /// Normalizations to apply to the stdout output before emitting it to disk
-    pub normalize_stdout: Vec<(Regex, Vec<u8>)>,
+    pub normalize_stdout: Vec<(Match, Vec<u8>)>,
     /// Arbitrary patterns to look for in the stderr.
     /// The error must be from another file, as errors from the current file must be
     /// checked via `error_matches`.
-    pub error_in_other_files: Vec<Spanned<Pattern>>,
-    pub error_matches: Vec<ErrorMatch>,
+    pub(crate) error_in_other_files: Vec<Spanned<Pattern>>,
+    pub(crate) error_matches: Vec<ErrorMatch>,
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: OptWithLine<Level>,
+    /// Files that get built and exposed as dependencies to the current test.
     pub aux_builds: Vec<Spanned<PathBuf>>,
+    /// Set the `--edition` flag on the test.
     pub edition: OptWithLine<String>,
-    /// Overwrites the mode from `Config`.
+    /// The mode this test is being run in.
     pub mode: OptWithLine<Mode>,
-    pub needs_asm_support: bool,
+    pub(crate) needs_asm_support: bool,
     /// Don't run [`rustfix`] for this test
     pub no_rustfix: OptWithLine<()>,
 }
@@ -156,8 +193,8 @@ impl<T> std::ops::DerefMut for CommentParser<T> {
 }
 
 /// The conditions used for "ignore" and "only" filters.
-#[derive(Debug)]
-pub(crate) enum Condition {
+#[derive(Debug, Clone)]
+pub enum Condition {
     /// The given string must appear in the host triple.
     Host(String),
     /// The given string must appear in the target triple.
@@ -175,7 +212,7 @@ pub enum Pattern {
     Regex(Regex),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct ErrorMatch {
     pub pattern: Spanned<Pattern>,
     pub level: Level,
@@ -205,23 +242,29 @@ impl Condition {
 }
 
 impl Comments {
-    pub(crate) fn parse_file(path: &Path) -> Result<std::result::Result<Self, Vec<Error>>> {
+    pub(crate) fn parse_file(
+        comments: Comments,
+        path: &Path,
+    ) -> Result<std::result::Result<Self, Vec<Error>>> {
         let content =
             std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
-        Ok(Self::parse(&content, path))
+        Ok(Self::parse(&content, comments, path))
     }
 
     /// Parse comments in `content`.
     /// `path` is only used to emit diagnostics if parsing fails.
     pub(crate) fn parse(
         content: &(impl AsRef<[u8]> + ?Sized),
+        comments: Comments,
         file: &Path,
     ) -> std::result::Result<Self, Vec<Error>> {
         let mut parser = CommentParser {
-            comments: Comments::default(),
+            comments,
             errors: vec![],
             commands: CommentParser::<_>::commands(),
         };
+
+        let defaults = std::mem::take(parser.comments.revisioned.get_mut(&[][..]).unwrap());
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
         for (l, line) in content.as_ref().lines().enumerate() {
@@ -259,6 +302,51 @@ impl Comments {
                 }
             }
         }
+        let Revisioned {
+            span,
+            ignore,
+            only,
+            stderr_per_bitwidth,
+            compile_flags,
+            env_vars,
+            normalize_stderr,
+            normalize_stdout,
+            error_in_other_files,
+            error_matches,
+            require_annotations_for_level,
+            aux_builds,
+            edition,
+            mode,
+            needs_asm_support,
+            no_rustfix,
+        } = parser.comments.base();
+        if span.is_dummy() {
+            *span = defaults.span;
+        }
+        ignore.extend(defaults.ignore);
+        only.extend(defaults.only);
+        *stderr_per_bitwidth |= defaults.stderr_per_bitwidth;
+        compile_flags.extend(defaults.compile_flags);
+        env_vars.extend(defaults.env_vars);
+        normalize_stderr.extend(defaults.normalize_stderr);
+        normalize_stdout.extend(defaults.normalize_stdout);
+        error_in_other_files.extend(defaults.error_in_other_files);
+        error_matches.extend(defaults.error_matches);
+        aux_builds.extend(defaults.aux_builds);
+        if require_annotations_for_level.is_none() {
+            *require_annotations_for_level = defaults.require_annotations_for_level;
+        }
+        if edition.is_none() {
+            *edition = defaults.edition;
+        }
+        if mode.is_none() {
+            *mode = defaults.mode;
+        }
+        if no_rustfix.is_none() {
+            *no_rustfix = defaults.no_rustfix;
+        }
+        *needs_asm_support |= defaults.needs_asm_support;
+
         if parser.errors.is_empty() {
             Ok(parser.comments)
         } else {
@@ -403,21 +491,7 @@ impl CommentParser<Comments> {
                 .entry(revisions)
                 .or_insert_with(|| Revisioned {
                     span,
-                    ignore: Default::default(),
-                    only: Default::default(),
-                    stderr_per_bitwidth: Default::default(),
-                    compile_flags: Default::default(),
-                    env_vars: Default::default(),
-                    normalize_stderr: Default::default(),
-                    normalize_stdout: Default::default(),
-                    error_in_other_files: Default::default(),
-                    error_matches: Default::default(),
-                    require_annotations_for_level: Default::default(),
-                    aux_builds: Default::default(),
-                    edition: Default::default(),
-                    mode: Default::default(),
-                    needs_asm_support: Default::default(),
-                    no_rustfix: Default::default(),
+                    ..Default::default()
                 }),
         };
         f(&mut this);
@@ -491,13 +565,13 @@ impl CommentParser<&mut Revisioned> {
                 }
             }
             "normalize-stderr-test" => (this, args, _span){
-                if let Some(res) = this.parse_normalize_test(args, "stderr") {
-                    this.normalize_stderr.push(res)
+                if let Some((regex, replacement)) = this.parse_normalize_test(args, "stderr") {
+                    this.normalize_stderr.push((regex.into(), replacement))
                 }
             }
             "normalize-stdout-test" => (this, args, _span){
-                if let Some(res) = this.parse_normalize_test(args, "stdout") {
-                    this.normalize_stdout.push(res)
+                if let Some((regex, replacement)) = this.parse_normalize_test(args, "stdout") {
+                    this.normalize_stdout.push((regex.into(), replacement))
                 }
             }
             "error-pattern" => (this, _args, span){

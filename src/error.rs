@@ -30,7 +30,7 @@ pub enum Error {
     /// A ui test checking for success has failure patterns
     PatternFoundInPassTest {
         /// Span of a flag changing the mode (if changed from default).
-        mode: Option<Span>,
+        mode: Span,
         /// Span of the pattern
         span: Span,
     },
@@ -59,6 +59,8 @@ pub enum Error {
         /// The character range in which it was defined.
         span: Span,
     },
+    /// An invalid setting was used.
+    ConfigError(String),
     /// Conflicting comments
     MultipleRevisionsWithResults {
         /// The comment being looked for

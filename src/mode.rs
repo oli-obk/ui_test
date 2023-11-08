@@ -1,7 +1,4 @@
 use super::Error;
-use crate::parser::Comments;
-use crate::parser::MaybeSpanned;
-use crate::Errored;
 use std::fmt::Display;
 use std::process::ExitStatus;
 
@@ -67,16 +64,6 @@ impl Mode {
                 expected,
             })
         }
-    }
-    pub(crate) fn maybe_override(
-        self,
-        comments: &Comments,
-        revision: &str,
-    ) -> Result<MaybeSpanned<Self>, Errored> {
-        let mode = comments.find_one_for_revision(revision, "mode changes", |r| r.mode.clone())?;
-        Ok(mode
-            .into_inner()
-            .map_or(MaybeSpanned::new_config(self), Into::into))
     }
 }
 

@@ -14,7 +14,7 @@ use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, MaybeSpanned, OptWithLine, Revisioned, Spanned};
+use parser::{ErrorMatch, OptWithLine, Revisioned, Spanned};
 use regex::bytes::{Captures, Regex};
 use rustc_stderr::{Level, Message};
 use spanned::Span;
@@ -37,6 +37,7 @@ mod error;
 pub mod github_actions;
 mod mode;
 mod parser;
+pub mod per_test_config;
 mod rustc_stderr;
 pub mod status_emitter;
 #[cfg(test)]
@@ -46,6 +47,8 @@ pub use cmd::*;
 pub use config::*;
 pub use error::*;
 pub use mode::*;
+
+pub use spanned;
 
 /// A filter's match rule.
 #[derive(Clone, Debug)]
@@ -109,9 +112,6 @@ impl From<Regex> for Match {
         Self::Regex(v)
     }
 }
-
-/// Replacements to apply to output files.
-pub type Filter = Vec<(Match, &'static [u8])>;
 
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.
@@ -189,8 +189,8 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
     let extra_args = config.build_dependencies()?;
 
-    let comments =
-        Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
+    let comments = Comments::parse_file(config.comment_defaults.clone(), path)?
+        .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let mut result = build_command(path, &config, "", &comments).unwrap();
     result.args(extra_args);
 
@@ -433,7 +433,11 @@ fn parse_and_test_file(
     mut config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
-    let comments = parse_comments(&file_contents, status.path())?;
+    let comments = parse_comments(
+        &file_contents,
+        config.comment_defaults.clone(),
+        status.path(),
+    )?;
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
@@ -471,8 +475,12 @@ fn parse_and_test_file(
         .collect())
 }
 
-fn parse_comments(file_contents: &[u8], file: &Path) -> Result<Comments, Errored> {
-    match Comments::parse(file_contents, file) {
+fn parse_comments(
+    file_contents: &[u8],
+    comments: Comments,
+    file: &Path,
+) -> Result<Comments, Errored> {
+    match Comments::parse(file_contents, comments, file) {
         Ok(comments) => Ok(comments),
         Err(errors) => Err(Errored {
             command: Command::new("parse comments"),
@@ -500,7 +508,7 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let edition = comments.edition(revision, config)?;
+    let edition = comments.edition(revision)?;
 
     if let Some(edition) = edition {
         cmd.arg("--edition").arg(&*edition);
@@ -527,7 +535,7 @@ fn build_aux(
         stderr: err.to_string().into_bytes(),
         stdout: vec![],
     })?;
-    let comments = parse_comments(&file_contents, aux_file)?;
+    let comments = parse_comments(&file_contents, Comments::default(), aux_file)?;
     assert_eq!(
         comments.revisions, None,
         "aux builds cannot specify revisions"
@@ -651,7 +659,7 @@ impl dyn TestStatus {
 
         let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
 
-        let mode = config.mode.maybe_override(comments, revision)?;
+        let mode = comments.mode(revision)?;
         let cmd = check_test_result(
             cmd,
             match *mode {
@@ -761,7 +769,7 @@ fn build_aux_files(
 }
 
 fn run_test_binary(
-    mode: MaybeSpanned<Mode>,
+    mode: Spanned<Mode>,
     path: &Path,
     revision: &str,
     comments: &Comments,
@@ -877,13 +885,7 @@ fn run_rustfix(
             stdout: stdout.into(),
         })?;
 
-    let edition = comments.edition(revision, config)?;
-    let edition = edition
-        .map(|mwl| {
-            let line = mwl.span().unwrap_or_default();
-            Spanned::new(mwl.into_inner(), line)
-        })
-        .into();
+    let edition = comments.edition(revision)?.into();
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((
@@ -928,7 +930,6 @@ fn run_rustfix(
         path,
         &mut errors,
         "fixed",
-        &Filter::default(),
         config,
         &rustfix_comments,
         revision,
@@ -1010,7 +1011,6 @@ fn check_test_result(
         diagnostics.messages_from_unknown_file_or_line,
         path,
         &mut errors,
-        config,
         revision,
         comments,
     )?;
@@ -1037,26 +1037,8 @@ fn check_test_output(
 ) {
     // Check output files (if any)
     // Check output files against actual output
-    check_output(
-        stderr,
-        path,
-        errors,
-        "stderr",
-        &config.stderr_filters,
-        config,
-        comments,
-        revision,
-    );
-    check_output(
-        stdout,
-        path,
-        errors,
-        "stdout",
-        &config.stdout_filters,
-        config,
-        comments,
-        revision,
-    );
+    check_output(stderr, path, errors, "stderr", config, comments, revision);
+    check_output(stdout, path, errors, "stdout", config, comments, revision);
 }
 
 fn check_annotations(
@@ -1064,7 +1046,6 @@ fn check_annotations(
     mut messages_from_unknown_file_or_line: Vec<Message>,
     path: &Path,
     errors: &mut Errors,
-    config: &Config,
     revision: &str,
     comments: &Comments,
 ) -> Result<(), Errored> {
@@ -1141,9 +1122,9 @@ fn check_annotations(
         msgs
     };
 
-    let mode = config.mode.maybe_override(comments, revision)?;
+    let mode = comments.mode(revision)?;
 
-    if !matches!(config.mode, Mode::Yolo { .. }) {
+    if !matches!(*mode, Mode::Yolo { .. }) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
         if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
@@ -1194,13 +1175,12 @@ fn check_output(
     path: &Path,
     errors: &mut Errors,
     kind: &'static str,
-    filters: &Filter,
     config: &Config,
     comments: &Comments,
     revision: &str,
 ) -> PathBuf {
     let target = config.target.as_ref().unwrap();
-    let output = normalize(output, filters, comments, revision, kind);
+    let output = normalize(output, comments, revision, kind);
     let path = output_path(path, comments, revised(revision, kind), target, revision);
     match &config.output_conflict_handling {
         OutputConflictHandling::Error(bless_command) => {
@@ -1290,18 +1270,8 @@ fn get_pointer_width(triple: &str) -> u8 {
     }
 }
 
-fn normalize(
-    text: &[u8],
-    filters: &Filter,
-    comments: &Comments,
-    revision: &str,
-    kind: &'static str,
-) -> Vec<u8> {
+fn normalize(text: &[u8], comments: &Comments, revision: &str, kind: &'static str) -> Vec<u8> {
     let mut text = text.to_owned();
-
-    for (rule, replacement) in filters {
-        text = rule.replace_all(&text, replacement).into_owned();
-    }
 
     for (from, to) in comments.for_revision(revision).flat_map(|r| match kind {
         "fixed" => &[] as &[_],

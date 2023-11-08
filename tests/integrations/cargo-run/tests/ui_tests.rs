@@ -1,4 +1,4 @@
-use ui_test::*;
+use ui_test::{spanned::Spanned, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     let mut config = Config {
@@ -7,9 +7,9 @@ fn main() -> ui_test::color_eyre::Result<()> {
         } else {
             OutputConflictHandling::Error("cargo test".to_string())
         },
-        mode: Mode::Panic,
         ..Config::cargo("tests/actual_tests")
     };
+    config.comment_defaults.base().mode = Spanned::dummy(Mode::Panic).into();
 
     config.program.args = vec!["run".into(), "--quiet".into()];
     config.program.input_file_flag = Some("--".into());

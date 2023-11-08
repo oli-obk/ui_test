@@ -22,9 +22,9 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ ERROR: encountered a dangling reference (address $HEX is unallocated)
 }
     ";
-    let comments = Comments::parse(s, Path::new("")).unwrap();
-    let mut errors = vec![];
     let config = config();
+    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    let mut errors = vec![];
     let messages = vec![
         vec![], vec![], vec![], vec![], vec![],
         vec![
@@ -40,7 +40,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )
@@ -61,8 +60,8 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ ERROR: encountered a dangling reference (address 0x10 is unallocated)
 }
     ";
-    let comments = Comments::parse(s, Path::new("")).unwrap();
     let config = config();
+    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
     {
         let messages = vec![vec![], vec![], vec![], vec![], vec![], vec![
                 Message {
@@ -78,7 +77,6 @@ fn main() {
             vec![],
             Path::new("moobar"),
             &mut errors,
-            &config,
             "",
             &comments,
         )
@@ -105,7 +103,6 @@ fn main() {
             vec![],
             Path::new("moobar"),
             &mut errors,
-            &config,
             "",
             &comments,
         )
@@ -136,7 +133,6 @@ fn main() {
             vec![],
             Path::new("moobar"),
             &mut errors,
-            &config,
             "",
             &comments,
         )
@@ -159,8 +155,8 @@ fn main() {
     //~^ ERROR: encountered a dangling reference (address 0x10 is unallocated)
 }
     ";
-    let comments = Comments::parse(s, Path::new("")).unwrap();
     let config = config();
+    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
     let messages = vec![
         vec![], vec![], vec![], vec![], vec![],
         vec![
@@ -177,7 +173,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )
@@ -197,8 +192,8 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ ERROR: encountered a dangling reference (address 0x10 is unallocated)
 }
     ";
-    let comments = Comments::parse(s, Path::new("")).unwrap();
     let config = config();
+    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
     let messages = vec![
         vec![], vec![], vec![], vec![], vec![],
         vec![
@@ -220,7 +215,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )
@@ -242,8 +236,8 @@ fn main() {
     //~^ WARN: cake
 }
     ";
-    let comments = Comments::parse(s, Path::new("")).unwrap();
     let config = config();
+    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
     let messages= vec![
         vec![],
         vec![],
@@ -274,7 +268,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )
@@ -306,8 +299,8 @@ fn main() {
     //~^ WARN: cake
 }
     ";
-    let comments = Comments::parse(s, Path::new("")).unwrap();
     let config = config();
+    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
     let messages = vec![
         vec![],
         vec![],
@@ -338,7 +331,6 @@ fn main() {
         vec![],
         Path::new("moobar"),
         &mut errors,
-        &config,
         "",
         &comments,
     )

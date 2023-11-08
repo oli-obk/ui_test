@@ -1,43 +1,5 @@
 pub use spanned::*;
 
-#[derive(Default, Debug, Clone)]
-pub struct MaybeSpanned<T> {
-    data: T,
-    span: Option<Span>,
-}
-
-impl<T> std::ops::Deref for MaybeSpanned<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-
-impl<T> MaybeSpanned<T> {
-    /// Values from the `Config` struct don't have lines.
-    pub fn new_config(data: T) -> Self {
-        Self { data, span: None }
-    }
-
-    pub fn span(&self) -> Option<Span> {
-        self.span.clone()
-    }
-
-    pub fn into_inner(self) -> T {
-        self.data
-    }
-}
-
-impl<T> From<Spanned<T>> for MaybeSpanned<T> {
-    fn from(value: Spanned<T>) -> Self {
-        Self {
-            data: value.content,
-            span: Some(value.span),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct OptWithLine<T>(Option<Spanned<T>>);
 
