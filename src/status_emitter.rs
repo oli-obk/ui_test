@@ -758,7 +758,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                 let line = path.line();
                 let path = path.display();
                 let mut err =
-                    github_actions::error(&path, format!("Unmatched diagnostics{revision}"))
+                    github_actions::error(path, format!("Unmatched diagnostics{revision}"))
                         .line(line);
                 for Message {
                     level,
