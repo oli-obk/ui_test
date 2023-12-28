@@ -29,6 +29,7 @@ their command specifies, or the test will fail without even being run.
 
 * `//@ignore-C` avoids running the test when condition `C` is met.
     * `C` can be `target-XXX`, which checks whether the target triple contains `XXX`.
+    * `C` can be `host-XXX`, which checks whether the host triple contains `XXX`.
     * `C` can also be one of `64bit`, `32bit` or `16bit`.
     * `C` can also be `on-host`, which will only run the test during cross compilation testing.
 * `//@only-C` **only** runs the test when condition `C` is met. The conditions are the same as with `ignore`.
