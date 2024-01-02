@@ -514,6 +514,9 @@ fn build_command(
         cmd.arg("--edition").arg(&*edition);
     }
 
+    // False positive in miri, our `map` uses a ref pattern to get the references to the tuple fields instead
+    // of a reference to a tuple
+    #[allow(clippy::map_identity)]
     cmd.envs(
         comments
             .for_revision(revision)
