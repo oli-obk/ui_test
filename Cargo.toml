@@ -27,7 +27,7 @@ comma = "1.0.0"
 anyhow = "1.0.6"
 indicatif = "0.17.6"
 prettydiff = { version = "0.6.4", default_features = false }
-annotate-snippets = { version = "0.9.1", features = ["color"] }
+annotate-snippets = { version = "0.10.0" }
 levenshtein = "1.0.5"
 spanned = "0.1.5"
 

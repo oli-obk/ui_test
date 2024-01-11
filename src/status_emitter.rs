@@ -1,9 +1,6 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
-use annotate_snippets::{
-    display_list::{DisplayList, FormatOptions},
-    snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
-};
+use annotate_snippets::{Annotation, AnnotationType, Renderer, Slice, Snippet, SourceAnnotation};
 use bstr::ByteSlice;
 use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
@@ -642,13 +639,13 @@ fn create_error(
             })
             .collect(),
         footer: vec![],
-        opt: FormatOptions {
-            color: colored::control::SHOULD_COLORIZE.should_colorize(),
-            anonymized_line_numbers: false,
-            margin: None,
-        },
     };
-    println!("{}", DisplayList::from(msg));
+    let renderer = if colored::control::SHOULD_COLORIZE.should_colorize() {
+        Renderer::styled()
+    } else {
+        Renderer::plain()
+    };
+    println!("{}", renderer.render(msg));
 }
 
 fn gha_error(error: &Error, test_path: &str, revision: &str) {
