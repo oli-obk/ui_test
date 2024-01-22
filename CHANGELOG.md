@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * crate-private span handling was passed off to the `spanned` crate, improving some diagnostics along the way.
 * `Config::output_conflict_handling` does not contain the bless command message anymore, it is instead available separately as `Config::bless_command`
+* Updating `cargo_metadata` to `0.18`
 
 ### Removed
 
