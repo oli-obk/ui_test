@@ -24,7 +24,11 @@ pub struct Dependencies {
 }
 
 fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
-    let mut cmd = config.cfgs.build(&config.out_dir);
+    let Some(cfg) = &config.program.cfg_flag else {
+        return Ok(vec![]);
+    };
+    let mut cmd = config.program.build(&config.out_dir);
+    cmd.arg(cfg);
     cmd.arg("--target").arg(config.target.as_ref().unwrap());
     let output = cmd.output()?;
     let stdout = String::from_utf8(output.stdout)?;
