@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* report an error instead of panicking when encountering a suggestion that does not belong to the main file.
+
 ### Changed
 
 * crate-private span handling was passed off to the `spanned` crate, improving some diagnostics along the way.
