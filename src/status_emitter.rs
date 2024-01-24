@@ -217,7 +217,6 @@ impl TestStatus for TextTest {
                 Ok(TestOk::Ok) => "ok".green(),
                 Err(Errored { .. }) => "FAILED".bright_red().bold(),
                 Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
-                Ok(TestOk::Filtered) => return,
             };
             let old_msg = self.msg();
             let msg = format!("... {result}");

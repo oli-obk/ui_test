@@ -139,8 +139,10 @@ pub fn run_tests(mut config: Config) -> Result<()> {
 
 /// The filter used by `run_tests` to only run on `.rs` files that are
 /// specified by [`Config::filter_files`] and [`Config::skip_files`].
-pub fn default_file_filter(path: &Path, config: &Config) -> bool {
-    path.extension().is_some_and(|ext| ext == "rs") && default_any_file_filter(path, config)
+/// Returns `None` if there is no extension or the extension is not `.rs`.
+pub fn default_file_filter(path: &Path, config: &Config) -> Option<bool> {
+    path.extension().filter(|&ext| ext == "rs")?;
+    Some(default_any_file_filter(path, config))
 }
 
 /// Run on all files that are specified by [`Config::filter_files`] and
@@ -203,8 +205,6 @@ pub enum TestOk {
     Ok,
     /// The test was ignored due to a rule (`//@only-*` or `//@ignore-*`)
     Ignored,
-    /// The test was filtered with the `file_filter` argument.
-    Filtered,
 }
 
 /// The possible results a single test can have.
@@ -233,9 +233,12 @@ struct TestRun {
 /// All `configs` are being run in parallel.
 /// If multiple configs are provided, the [`Config::threads`] value of the first one is used;
 /// the thread count of all other configs is ignored.
+/// The file filter is supposed to return `None` if it was filtered because of file extensions
+/// and `Some(false)` if the file was rejected out of other reasons like the file path not matching
+/// a user defined filter.
 pub fn run_tests_generic(
     mut configs: Vec<Config>,
-    file_filter: impl Fn(&Path, &Config) -> bool + Sync,
+    file_filter: impl Fn(&Path, &Config) -> Option<bool> + Sync,
     per_file_config: impl Fn(&mut Config, &Path, &[u8]) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
@@ -275,6 +278,7 @@ pub fn run_tests_generic(
         },
     };
 
+    let mut filtered = 0;
     run_and_collect(
         num_threads,
         |submit| {
@@ -297,10 +301,14 @@ pub fn run_tests_generic(
                     for entry in entries {
                         todo.push_back((entry, config));
                     }
-                } else if file_filter(&path, config) {
-                    let status = status_emitter.register_test(path);
-                    // Forward .rs files to the test workers.
-                    submit.send((status, config)).unwrap();
+                } else if let Some(matched) = file_filter(&path, config) {
+                    if matched {
+                        let status = status_emitter.register_test(path);
+                        // Forward .rs files to the test workers.
+                        submit.send((status, config)).unwrap();
+                    } else {
+                        filtered += 1;
+                    }
                 }
             }
         },
@@ -357,13 +365,11 @@ pub fn run_tests_generic(
     let mut failures = vec![];
     let mut succeeded = 0;
     let mut ignored = 0;
-    let mut filtered = 0;
 
     for run in results {
         match run.result {
             Ok(TestOk::Ok) => succeeded += 1,
             Ok(TestOk::Ignored) => ignored += 1,
-            Ok(TestOk::Filtered) => filtered += 1,
             Err(errored) => failures.push((run.status, errored)),
         }
     }

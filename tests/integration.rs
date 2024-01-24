@@ -98,25 +98,29 @@ fn main() -> Result<()> {
                 .ends_with("-fail");
             if cfg!(windows) && path.components().any(|c| c.as_os_str() == "basic-bin") {
                 // on windows there's also a .pdb file, so we get additional errors that aren't there on other platforms
-                return false;
+                return Some(false);
             }
-            path.ends_with("Cargo.toml")
-                && path.parent().unwrap().parent().unwrap() == root_dir
-                && match config
-                    .comment_defaults
-                    .base_immut()
-                    .mode
-                    .as_deref()
-                    .unwrap()
-                {
-                    Mode::Pass => !fail,
-                    // This is weird, but `cargo test` returns 101 instead of 1 when
-                    // multiple [[test]]s exist. If there's only one test, it returns
-                    // 1 on failure.
-                    Mode::Panic => fail,
-                    Mode::Run { .. } | Mode::Yolo { .. } | Mode::Fail { .. } => unreachable!(),
-                }
-                && default_any_file_filter(path, config)
+            if !path.ends_with("Cargo.toml") {
+                return None;
+            }
+            Some(
+                path.parent().unwrap().parent().unwrap() == root_dir
+                    && match config
+                        .comment_defaults
+                        .base_immut()
+                        .mode
+                        .as_deref()
+                        .unwrap()
+                    {
+                        Mode::Pass => !fail,
+                        // This is weird, but `cargo test` returns 101 instead of 1 when
+                        // multiple [[test]]s exist. If there's only one test, it returns
+                        // 1 on failure.
+                        Mode::Panic => fail,
+                        Mode::Run { .. } | Mode::Yolo { .. } | Mode::Fail { .. } => unreachable!(),
+                    }
+                    && default_any_file_filter(path, config),
+            )
         },
         |_, _, _| {},
         (
