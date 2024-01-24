@@ -391,9 +391,14 @@ impl CommentParser<Comments> {
             for pos in line.clone().find_iter("//") {
                 let (_, rest) = line.clone().to_str()?.split_at(pos + 2);
                 for rest in std::iter::once(rest.clone()).chain(rest.strip_prefix(" ")) {
-                    if let Some('@' | '~' | '[' | ']' | '^' | '|') = rest.chars().next() {
+                    let c = rest.chars().next();
+                    if let Some(Spanned {
+                        content: '@' | '~' | '[' | ']' | '^' | '|',
+                        span,
+                    }) = c
+                    {
                         self.error(
-                            rest.span(),
+                            span,
                             format!(
                                 "comment looks suspiciously like a test suite command: `{}`\n\
                              All `//@` test suite commands must be at the start of the line.\n\
@@ -466,12 +471,13 @@ impl CommentParser<Comments> {
                     .chars()
                     .next()
                     .expect("the `position` above guarantees that there is at least one char");
+                let pos = next.len_utf8();
                 self.check(
-                    args.span().shrink_to_start(),
-                    next == ':',
+                    next.span,
+                    next.content == ':',
                     "test command must be followed by `:` (or end the line)",
                 );
-                (command, args.split_at(next.len_utf8()).1.trim())
+                (command, args.split_at(pos).1.trim())
             }
         };
 
@@ -759,10 +765,8 @@ impl<CommentsType> CommentParser<CommentsType> {
                 if s.is_empty() {
                     self.error(s.span(), "expected quoted string, but found end of line")
                 } else {
-                    self.error(
-                        s.span(),
-                        format!("expected `\"`, got `{}`", s.chars().next().unwrap()),
-                    )
+                    let c = s.chars().next().unwrap();
+                    self.error(c.span, format!("expected `\"`, got `{}`", c.content))
                 }
                 let span = s.span();
                 (s, Spanned::new("", span))
@@ -811,19 +815,23 @@ impl CommentParser<&mut Revisioned> {
     // (?P<offset>\||[\^]+)? *
     // ((?P<level>ERROR|HELP|WARN|NOTE): (?P<text>.*))|(?P<code>[a-z0-9_:]+)
     fn parse_pattern(&mut self, pattern: Spanned<&str>, fallthrough_to: &mut Option<NonZeroUsize>) {
-        let (match_line, pattern) = match pattern.chars().next() {
-            Some('|') => (
+        let c = pattern.chars().next();
+        let (match_line, pattern) = match c {
+            Some(Spanned { content: '|', span }) => (
                 match fallthrough_to {
                     Some(fallthrough) => *fallthrough,
                     None => {
-                        self.error(pattern.span(), "`//~|` pattern without preceding line");
+                        self.error(span, "`//~|` pattern without preceding line");
                         return;
                     }
                 },
                 pattern.split_at(1).1,
             ),
-            Some('^') => {
-                let offset = pattern.chars().take_while(|&c| c == '^').count();
+            Some(Spanned {
+                content: '^',
+                span: _,
+            }) => {
+                let offset = pattern.chars().take_while(|c| c.content == '^').count();
                 match pattern
                     .span()
                     .line_start
