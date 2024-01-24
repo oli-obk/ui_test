@@ -432,7 +432,7 @@ The `//` must be directly followed by `@` or `~`.
  --> tests/actual_tests_bless/compiletest-rs-command.rs:4:4
   |
 4 | // @aux-build:asldkfjasldfj.rs
-  |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |    ^
   |
 
 full stderr:
@@ -519,7 +519,7 @@ The `//` must be directly followed by `@` or `~`.
  --> tests/actual_tests_bless/non_top_level_configs.rs:1:5
   |
 1 | ////@check-pass
-  |     ^^^^^^^^^^^
+  |     ^
   |
 
 error: comment looks suspiciously like a test suite command: `@ignore-target-cheesecake`
@@ -528,7 +528,7 @@ The `//` must be directly followed by `@` or `~`.
  --> tests/actual_tests_bless/non_top_level_configs.rs:4:7
   |
 4 |     //@ignore-target-cheesecake
-  |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |       ^
   |
 
 full stderr:
