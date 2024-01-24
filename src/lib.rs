@@ -874,6 +874,14 @@ fn run_rustfix(
             if suggestions.is_empty() {
                 None
             } else {
+                let path_str = path.display().to_string();
+                for sugg in &suggestions {
+                    for snip in &sugg.snippets {
+                        if snip.file_name != path_str {
+                            return Some(Err(anyhow::anyhow!("cannot apply suggestions for `{}` since main file is `{path_str}`. Please use `//@no-rustfix` to disable rustfix", snip.file_name)));
+                        }
+                    }
+                }
                 Some(rustfix::apply_suggestions(
                     &std::fs::read_to_string(path).unwrap(),
                     &suggestions,
