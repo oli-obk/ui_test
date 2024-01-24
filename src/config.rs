@@ -27,8 +27,6 @@ pub struct Config {
     pub root_dir: PathBuf,
     /// The binary to actually execute.
     pub program: CommandBuilder,
-    /// The command to run to obtain the cfgs that the output is supposed to
-    pub cfgs: CommandBuilder,
     /// What to do in case the stdout/stderr output differs from the expected one.
     pub output_conflict_handling: OutputConflictHandling,
     /// The recommended command to bless failing tests.
@@ -85,7 +83,6 @@ impl Config {
             target: None,
             root_dir: root_dir.into(),
             program: CommandBuilder::rustc(),
-            cfgs: CommandBuilder::cfgs(),
             output_conflict_handling: OutputConflictHandling::Bless,
             bless_command: None,
             dependencies_crate_manifest_path: None,

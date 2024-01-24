@@ -20,6 +20,8 @@ pub struct CommandBuilder {
     /// Environment variables passed to the binary that is executed.
     /// The environment variable is removed if the second tuple field is `None`
     pub envs: Vec<(OsString, Option<OsString>)>,
+    /// A flag to add in order to make the command print the cfgs it supports
+    pub cfg_flag: Option<OsString>,
 }
 
 impl CommandBuilder {
@@ -31,6 +33,7 @@ impl CommandBuilder {
             out_dir_flag: Some("--target-dir".into()),
             input_file_flag: Some("--manifest-path".into()),
             envs: vec![],
+            cfg_flag: None,
         }
     }
 
@@ -45,14 +48,7 @@ impl CommandBuilder {
             out_dir_flag: Some("--out-dir".into()),
             input_file_flag: None,
             envs: vec![],
-        }
-    }
-
-    /// Same as [`CommandBuilder::rustc`], but with arguments for obtaining the cfgs.
-    pub fn cfgs() -> Self {
-        Self {
-            args: vec!["--print".into(), "cfg".into()],
-            ..Self::rustc()
+            cfg_flag: Some("--print=cfg".into()),
         }
     }
 
@@ -65,6 +61,7 @@ impl CommandBuilder {
             out_dir_flag: None,
             input_file_flag: None,
             envs: vec![],
+            cfg_flag: None,
         }
     }
 
