@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Updating `cargo_metadata` to `0.18`
 * Updated `spanned` to `0.1.5`, giving more precise spans for more iterator operations
 * `Config::cfgs` is now `Config::program::cfg_flag`
+* Bumped `annotate-snippets` to `0.10`
 
 ### Removed
 
