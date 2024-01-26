@@ -258,6 +258,11 @@ impl Config {
         Ok(())
     }
 
+    /// Check whether the host is the specified string
+    pub fn host_matches(&self, target: &str) -> bool {
+        self.host.as_ref().expect("host should have been filled in") == target
+    }
+
     pub(crate) fn has_asm_support(&self) -> bool {
         static ASM_SUPPORTED_ARCHS: &[&str] = &[
             "x86", "x86_64", "arm", "aarch64", "riscv32",

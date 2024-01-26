@@ -520,6 +520,15 @@ fn build_command(
         cmd.arg("--edition").arg(&*edition);
     }
 
+    if let Some(target) = &config.target {
+        // Adding a `--target` arg to calls to Cargo will cause target folders
+        // to create a target-specific sub-folder. We can avoid that by just
+        // not passing a `--target` arg if its the same as the host.
+        if !config.host_matches(target) {
+            cmd.arg("--target").arg(target);
+        }
+    }
+
     // False positive in miri, our `map` uses a ref pattern to get the references to the tuple fields instead
     // of a reference to a tuple
     #[allow(clippy::map_identity)]
@@ -1281,7 +1290,7 @@ fn test_condition(condition: &Condition, config: &Config) -> bool {
         Condition::Bitwidth(bits) => get_pointer_width(target) == *bits,
         Condition::Target(t) => target.contains(t),
         Condition::Host(t) => config.host.as_ref().unwrap().contains(t),
-        Condition::OnHost => target == config.host.as_ref().unwrap(),
+        Condition::OnHost => config.host_matches(target),
     }
 }
 

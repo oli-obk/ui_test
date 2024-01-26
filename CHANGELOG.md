@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* Passing `--target` to build command when cross-compiling.
+
 ### Changed
 
 ### Removed
