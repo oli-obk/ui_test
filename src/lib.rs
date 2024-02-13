@@ -544,7 +544,7 @@ fn build_aux(
         stderr: err.to_string().into_bytes(),
         stdout: vec![],
     })?;
-    let comments = parse_comments(&file_contents, Comments::default(), aux_file)?;
+    let comments = parse_comments(&file_contents, config.comment_defaults.clone(), aux_file)?;
     assert_eq!(
         comments.revisions, None,
         "aux builds cannot specify revisions"
