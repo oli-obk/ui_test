@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-### Fixedw
+* Add `//~v` comments to put an error matcher above the error site.
+
+### Fixed
 
 ### Changed
 

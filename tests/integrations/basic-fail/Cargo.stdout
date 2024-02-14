@@ -12,6 +12,7 @@ tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
+tests/actual_tests/pattern_too_many_arrow_above.rs ... FAILED
 tests/actual_tests/rustc_ice.rs ... FAILED
 
 FAILED TEST: tests/actual_tests/bad_pattern.rs
@@ -268,6 +269,22 @@ full stdout:
 
 
 
+FAILED TEST: tests/actual_tests/pattern_too_many_arrow_above.rs
+command: "parse comments"
+
+error: //~v pattern is trying to refer to line 8, but the file only has 6 lines
+ --> tests/actual_tests/pattern_too_many_arrow_above.rs:2:22
+  |
+2 |     //~vvvvvv ERROR: mismatched types
+  |                      ^^^^^^^^^^^^^^^^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
 FAILED TEST: tests/actual_tests/rustc_ice.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
 
@@ -323,9 +340,10 @@ FAILURES:
     tests/actual_tests/foomp.rs
     tests/actual_tests/foomp2.rs
     tests/actual_tests/pattern_too_many_arrow.rs
+    tests/actual_tests/pattern_too_many_arrow_above.rs
     tests/actual_tests/rustc_ice.rs
 
-test result: FAIL. 9 failed;
+test result: FAIL. 10 failed;
 
 Building dependencies ... ok
 tests/actual_tests_bless/aux_build_not_found.rs ... FAILED
@@ -914,6 +932,7 @@ tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
+tests/actual_tests/pattern_too_many_arrow_above.rs ... FAILED
 tests/actual_tests/rustc_ice.rs ... FAILED
 
 FAILED TEST: tests/actual_tests/bad_pattern.rs
@@ -1002,6 +1021,22 @@ full stdout:
 
 
 
+FAILED TEST: tests/actual_tests/pattern_too_many_arrow_above.rs
+command: "parse comments"
+
+error: //~v pattern is trying to refer to line 8, but the file only has 6 lines
+ --> tests/actual_tests/pattern_too_many_arrow_above.rs:2:22
+  |
+2 |     //~vvvvvv ERROR: mismatched types
+  |                      ^^^^^^^^^^^^^^^^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
 FAILED TEST: tests/actual_tests/rustc_ice.rs
 command: "$CMD" "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--edition" "2021"
 
@@ -1019,9 +1054,10 @@ FAILURES:
     tests/actual_tests/foomp.rs
     tests/actual_tests/foomp2.rs
     tests/actual_tests/pattern_too_many_arrow.rs
+    tests/actual_tests/pattern_too_many_arrow_above.rs
     tests/actual_tests/rustc_ice.rs
 
-test result: FAIL. 9 failed;
+test result: FAIL. 10 failed;
 
 
 running 0 tests

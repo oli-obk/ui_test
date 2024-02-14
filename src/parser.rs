@@ -280,7 +280,9 @@ impl Comments {
         let defaults = std::mem::take(parser.comments.revisioned.get_mut(&[][..]).unwrap());
 
         let mut fallthrough_to = None; // The line that a `|` will refer to.
+        let mut last_line = 0;
         for (l, line) in content.as_ref().lines().enumerate() {
+            last_line = l + 1;
             let l = NonZeroUsize::new(l + 1).unwrap(); // enumerate starts at 0, but line numbers start at 1
             let span = Span {
                 file: file.to_path_buf(),
@@ -312,6 +314,25 @@ impl Comments {
                         msg: "there are no revisions in this test".into(),
                         span: revisioned.span.clone(),
                     })
+                }
+            }
+        }
+
+        for revisioned in parser.comments.revisioned.values() {
+            for m in &revisioned.error_matches {
+                if m.line.get() > last_line {
+                    let span = match &m.kind {
+                        ErrorMatchKind::Pattern { pattern, .. } => pattern.span(),
+                        ErrorMatchKind::Code(code) => code.span(),
+                    };
+                    parser.errors.push(Error::InvalidComment {
+                        msg: format!(
+                            "//~v pattern is trying to refer to line {}, but the file only has {} lines",
+                            m.line.get(),
+                            last_line,
+                        ),
+                        span,
+                    });
                 }
             }
         }
@@ -847,6 +868,30 @@ impl CommentParser<&mut Revisioned> {
                             "//~^ pattern is trying to refer to {} lines above, but there are only {} lines above",
                             offset,
                             pattern.line().get() - 1,
+                        ));
+                        return;
+                    }
+                }
+            }
+            Some(Spanned {
+                content: 'v',
+                span: _,
+            }) => {
+                let offset = pattern.chars().take_while(|c| c.content == 'v').count();
+                match pattern
+                    .span()
+                    .line_start
+                    .get()
+                    .checked_add(offset)
+                    .and_then(NonZeroUsize::new)
+                {
+                    Some(match_line) => (match_line, pattern.split_at(offset).1),
+                    _ => {
+                        // The line count of the file is not yet known so we can only check
+                        // if the resulting line is in the range of a usize.
+                        self.error(pattern.span(), format!(
+                            "//~v pattern is trying to refer to {} lines below, which is more than ui_test can count",
+                            offset,
                         ));
                         return;
                     }
