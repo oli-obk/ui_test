@@ -17,6 +17,21 @@ tests/actual_tests/rustc_ice.rs ... FAILED
 FAILED TEST: tests/actual_tests/bad_pattern.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
+error: actual output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern.stderr` to the actual output
+--- tests/actual_tests/bad_pattern.stderr
++++ <stderr output>
+ error[E0308]: mismatched types
+  --> tests/actual_tests/bad_pattern.rs:4:9
+... 10 lines skipped ...
+   |        ^^^
+ 
+-error: aborting due to previous error
++error: aborting due to 1 previous error
+ 
+ For more information about this error, try `rustc --explain E0308`.
+
+
 error: `miesmätsched types` not found in diagnostics on line 4
  --> tests/actual_tests/bad_pattern.rs:5:17
   |
@@ -46,7 +61,7 @@ note: function defined here
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0308`.
 
@@ -88,7 +103,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 +4 |
 +  |  ^
 +
-+error: aborting due to previous error
++error: aborting due to 1 previous error
 +
 
 
@@ -108,7 +123,7 @@ error: this file contains an unclosed delimiter
 4 |
   |  ^
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 
 full stdout:
@@ -168,7 +183,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 +  |        ^^^
  
 -error: aborting doo to previous error
-+error: aborting due to previous error
++error: aborting due to 1 previous error
  
  For more information about this error, try `rustc --explain E0308`.
 
@@ -188,7 +203,7 @@ note: function defined here
 1 | pub fn add(left: usize, right: usize) -> usize {
   |        ^^^
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0308`.
 
@@ -197,17 +212,41 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/foomp2.rs
-command: "$CMD"
+command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/foomp2.rs" "--edition" "2021"
 
 error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.fixed` to the actual output
---- tests/actual_tests/foomp2.fixed
-+++ <fixed output>
--this is just a test file showing that
--stray .fixed files are detected and blessed away
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.stderr` to the actual output
+--- tests/actual_tests/foomp2.stderr
++++ <stderr output>
+ error[E0308]: mismatched types
+  --> tests/actual_tests/foomp2.rs:4:9
+... 10 lines skipped ...
+   |        ^^^
+ 
+-error: aborting due to previous error
++error: aborting due to 1 previous error
+ 
+ For more information about this error, try `rustc --explain E0308`.
 
 
 full stderr:
+error[E0308]: mismatched types
+ --> tests/actual_tests/foomp2.rs:4:9
+  |
+4 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.
 
 full stdout:
 
@@ -375,7 +414,7 @@ error: expected one of `!` or `::`, found `<eof>`
 7 | thing!(cake);
   |        ^^^^ expected one of `!` or `::`
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 
 full stdout:
@@ -627,7 +666,7 @@ error[E0601]: `main` function not found in crate `revisions_bad`
 10 | }
    |  ^ consider adding a `main` function to `tests/actual_tests_bless/revisions_bad.rs`
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0601`.
 
@@ -657,7 +696,7 @@ help: consider cloning the value if the performance cost is acceptable
 11 |     x.clone();
    |      ++++++++
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0382`.
 
@@ -687,7 +726,7 @@ help: consider cloning the value if the performance cost is acceptable
 11 |     x.clone();
    |      ++++++++
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0382`.
 
@@ -717,7 +756,7 @@ help: consider cloning the value if the performance cost is acceptable
 10 |     x.clone();
    |      ++++++++
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0382`.
 
@@ -854,7 +893,7 @@ error[E0601]: `main` function not found in crate `revisions_bad`
 10 | }
    |  ^ consider adding a `main` function to `tests/actual_tests_bless_yolo/revisions_bad.rs`
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0601`.
 

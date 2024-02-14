@@ -4,5 +4,5 @@ error: expected `,` following `match` arm
 6 |         0 => String::new()
   |                           ^ help: missing a comma here to end this `match` arm: `,`
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 

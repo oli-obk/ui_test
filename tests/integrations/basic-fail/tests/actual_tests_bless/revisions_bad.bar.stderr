@@ -4,6 +4,6 @@ error[E0601]: `main` function not found in crate `revisions_bad`
 10 | }
    |  ^ consider adding a `main` function to `tests/actual_tests_bless/revisions_bad.rs`
 
-error: aborting due to previous error
+error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0601`.
