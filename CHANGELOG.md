@@ -9,9 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+### Removed
+
+## [0.22.1] - 2024-02-16
+
+### Added
+
 * Add `//~v` comments to put an error matcher above the error site.
 
 ### Fixed
+
+* Give aux builds the default comment config, too
 
 ### Changed
 
