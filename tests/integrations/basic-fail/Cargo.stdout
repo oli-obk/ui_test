@@ -11,9 +11,14 @@ tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 tests/actual_tests/foomp2.rs ... FAILED
+tests/actual_tests/inline_chain.rs ... FAILED
+tests/actual_tests/joined_wrong_order.rs ... FAILED
+tests/actual_tests/lone_joined_pattern.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow_above.rs ... FAILED
 tests/actual_tests/rustc_ice.rs ... FAILED
+tests/actual_tests/touching_above_below.rs ... FAILED
+tests/actual_tests/touching_above_below_chain.rs ... FAILED
 
 FAILED TEST: tests/actual_tests/bad_pattern.rs
 command: "rustc" "--error-format=json" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
@@ -253,6 +258,61 @@ full stdout:
 
 
 
+FAILED TEST: tests/actual_tests/inline_chain.rs
+command: "parse comments"
+
+error: `//~|` comment not attached to anchoring matcher
+ --> tests/actual_tests/inline_chain.rs:5:26
+  |
+5 |                       //~| unused_variables
+  |                          ^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests/joined_wrong_order.rs
+command: "parse comments"
+
+error: `//~|` comment not attached to anchoring matcher
+ --> tests/actual_tests/joined_wrong_order.rs:5:8
+  |
+5 |     //~| unused_mut
+  |        ^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests/lone_joined_pattern.rs
+command: "parse comments"
+
+error: `//~|` comment not attached to anchoring matcher
+ --> tests/actual_tests/lone_joined_pattern.rs:2:8
+  |
+2 |     //~| ERROR: mismatched types
+  |        ^
+  |
+
+error: `//~|` comment not attached to anchoring matcher
+ --> tests/actual_tests/lone_joined_pattern.rs:4:8
+  |
+4 |     //~| ERROR: mismatched types
+  |        ^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
 FAILED TEST: tests/actual_tests/pattern_too_many_arrow.rs
 command: "parse comments"
 
@@ -331,6 +391,38 @@ end of query stack
 full stdout:
 
 
+
+FAILED TEST: tests/actual_tests/touching_above_below.rs
+command: "parse comments"
+
+error: `//~v` comment immediately following a `//~^` comment chain
+ --> tests/actual_tests/touching_above_below.rs:4:8
+  |
+4 |     //~v ERROR: mismatched types
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests/touching_above_below_chain.rs
+command: "parse comments"
+
+error: `//~v` comment immediately following a `//~^` comment chain
+ --> tests/actual_tests/touching_above_below_chain.rs:5:8
+  |
+5 |     //~v ERROR: unused variable
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+full stderr:
+
+full stdout:
+
+
 FAILURES:
     tests/actual_tests/bad_pattern.rs
     tests/actual_tests/executable.rs
@@ -339,11 +431,16 @@ FAILURES:
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
     tests/actual_tests/foomp2.rs
+    tests/actual_tests/inline_chain.rs
+    tests/actual_tests/joined_wrong_order.rs
+    tests/actual_tests/lone_joined_pattern.rs
     tests/actual_tests/pattern_too_many_arrow.rs
     tests/actual_tests/pattern_too_many_arrow_above.rs
     tests/actual_tests/rustc_ice.rs
+    tests/actual_tests/touching_above_below.rs
+    tests/actual_tests/touching_above_below_chain.rs
 
-test result: FAIL. 10 failed;
+test result: FAIL. 15 failed;
 
 Building dependencies ... ok
 tests/actual_tests_bless/aux_build_not_found.rs ... FAILED
@@ -931,9 +1028,14 @@ tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 tests/actual_tests/foomp2.rs ... FAILED
+tests/actual_tests/inline_chain.rs ... FAILED
+tests/actual_tests/joined_wrong_order.rs ... FAILED
+tests/actual_tests/lone_joined_pattern.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow_above.rs ... FAILED
 tests/actual_tests/rustc_ice.rs ... FAILED
+tests/actual_tests/touching_above_below.rs ... FAILED
+tests/actual_tests/touching_above_below_chain.rs ... FAILED
 
 FAILED TEST: tests/actual_tests/bad_pattern.rs
 command: "$CMD" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
@@ -1005,6 +1107,61 @@ full stdout:
 could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
+FAILED TEST: tests/actual_tests/inline_chain.rs
+command: "parse comments"
+
+error: `//~|` comment not attached to anchoring matcher
+ --> tests/actual_tests/inline_chain.rs:5:26
+  |
+5 |                       //~| unused_variables
+  |                          ^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests/joined_wrong_order.rs
+command: "parse comments"
+
+error: `//~|` comment not attached to anchoring matcher
+ --> tests/actual_tests/joined_wrong_order.rs:5:8
+  |
+5 |     //~| unused_mut
+  |        ^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests/lone_joined_pattern.rs
+command: "parse comments"
+
+error: `//~|` comment not attached to anchoring matcher
+ --> tests/actual_tests/lone_joined_pattern.rs:2:8
+  |
+2 |     //~| ERROR: mismatched types
+  |        ^
+  |
+
+error: `//~|` comment not attached to anchoring matcher
+ --> tests/actual_tests/lone_joined_pattern.rs:4:8
+  |
+4 |     //~| ERROR: mismatched types
+  |        ^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
 FAILED TEST: tests/actual_tests/pattern_too_many_arrow.rs
 command: "parse comments"
 
@@ -1045,6 +1202,38 @@ No such file or directory
 full stdout:
 could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
+
+FAILED TEST: tests/actual_tests/touching_above_below.rs
+command: "parse comments"
+
+error: `//~v` comment immediately following a `//~^` comment chain
+ --> tests/actual_tests/touching_above_below.rs:4:8
+  |
+4 |     //~v ERROR: mismatched types
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+full stderr:
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests/touching_above_below_chain.rs
+command: "parse comments"
+
+error: `//~v` comment immediately following a `//~^` comment chain
+ --> tests/actual_tests/touching_above_below_chain.rs:5:8
+  |
+5 |     //~v ERROR: unused variable
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+full stderr:
+
+full stdout:
+
+
 FAILURES:
     tests/actual_tests/bad_pattern.rs
     tests/actual_tests/executable.rs
@@ -1053,11 +1242,16 @@ FAILURES:
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
     tests/actual_tests/foomp2.rs
+    tests/actual_tests/inline_chain.rs
+    tests/actual_tests/joined_wrong_order.rs
+    tests/actual_tests/lone_joined_pattern.rs
     tests/actual_tests/pattern_too_many_arrow.rs
     tests/actual_tests/pattern_too_many_arrow_above.rs
     tests/actual_tests/rustc_ice.rs
+    tests/actual_tests/touching_above_below.rs
+    tests/actual_tests/touching_above_below_chain.rs
 
-test result: FAIL. 10 failed;
+test result: FAIL. 15 failed;
 
 
 running 0 tests
