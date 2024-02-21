@@ -228,6 +228,12 @@ struct TestRun {
     status: Box<dyn status_emitter::TestStatus>,
 }
 
+#[derive(Debug)]
+struct WriteBack {
+    level: WriteBackLevel,
+    messages: Vec<Vec<Message>>,
+}
+
 /// A version of `run_tests` that allows more fine-grained control over running tests.
 ///
 /// All `configs` are being run in parallel.
@@ -319,7 +325,7 @@ pub fn run_tests_generic(
                 let mut config = config.clone();
                 per_file_config(&mut config, path, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
-                    parse_and_test_file(&build_manager, &status, config, file_contents)
+                    parse_and_test_file(&build_manager, &status, config, file_contents, path)
                 }) {
                     Ok(Ok(res)) => res,
                     Ok(Err(err)) => {
@@ -438,6 +444,7 @@ fn parse_and_test_file(
     status: &dyn TestStatus,
     mut config: Config,
     file_contents: Vec<u8>,
+    file_path: &Path,
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = parse_comments(
         &file_contents,
@@ -448,7 +455,9 @@ fn parse_and_test_file(
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
     let mut built_deps = false;
-    Ok(revisions
+    let mut write_backs = Vec::new();
+    let mut success = true;
+    let results: Vec<_> = revisions
         .iter()
         .map(|revision| {
             let status = status.for_revision(revision);
@@ -475,10 +484,210 @@ fn parse_and_test_file(
                 built_deps = true;
             }
 
-            let result = status.run_test(build_manager, &config, &comments);
-            TestRun { result, status }
+            match status.run_test(build_manager, &config, &comments) {
+                Ok((result, Some(write_back))) => {
+                    write_backs.push((&**revision, write_back));
+                    TestRun {
+                        result: Ok(result),
+                        status,
+                    }
+                }
+                Ok((result, None)) => TestRun {
+                    result: Ok(result),
+                    status,
+                },
+                Err(e) => {
+                    success = false;
+                    TestRun {
+                        result: Err(e),
+                        status,
+                    }
+                }
+            }
         })
-        .collect())
+        .collect();
+
+    if success && !write_backs.is_empty() {
+        write_back_annotations(file_path, &file_contents, &comments, &write_backs);
+    }
+
+    Ok(results)
+}
+
+fn write_back_annotations(
+    file_path: &Path,
+    file_contents: &[u8],
+    comments: &Comments,
+    write_backs: &[(&str, WriteBack)],
+) {
+    let mut buf = Vec::<u8>::with_capacity(file_contents.len() * 2);
+    let (first_rev, revs) = write_backs.split_first().unwrap();
+    let mut counters = Vec::new();
+    let mut print_msgs = Vec::new();
+    let prefix = comments
+        .base_immut()
+        .diagnostic_code_prefix
+        .as_ref()
+        .map_or("", |x| x.as_str());
+    let mut skip_line_before_over_matcher = false;
+
+    match first_rev.1.level {
+        WriteBackLevel::Code => {
+            for (line, txt) in file_contents.lines_with_terminator().enumerate() {
+                let mut use_over_matcher = false;
+                let first_msgs: &[Message] =
+                    first_rev.1.messages.get(line + 1).map_or(&[], |m| &**m);
+
+                print_msgs.clear();
+                print_msgs.extend(
+                    first_msgs
+                        .iter()
+                        .filter(|m| m.level == Level::Error)
+                        .filter_map(|m| {
+                            m.line_col
+                                .as_ref()
+                                .zip(m.code.as_deref().and_then(|c| c.strip_prefix(prefix)))
+                        })
+                        .inspect(|(span, _)| use_over_matcher |= span.line_start != span.line_end)
+                        .enumerate()
+                        .map(|(i, (span, code))| (i, span, code, first_rev.0)),
+                );
+                counters.clear();
+                counters.resize(print_msgs.len(), 0);
+
+                for rev in revs {
+                    let msgs: &[Message] = rev.1.messages.get(line + 1).map_or(&[], |m| &**m);
+
+                    for (span, code) in
+                        msgs.iter()
+                            .filter(|m| m.level == Level::Error)
+                            .filter_map(|m| {
+                                m.line_col
+                                    .as_ref()
+                                    .zip(m.code.as_deref().and_then(|c| c.strip_prefix(prefix)))
+                            })
+                    {
+                        let i = if let Some(&(i, ..)) = print_msgs[..counters.len()].iter().find(
+                            |&&(_, prev_span, prev_code, _)| span == prev_span && code == prev_code,
+                        ) {
+                            counters[i] += 1;
+                            i
+                        } else {
+                            use_over_matcher |= span.line_start != span.line_end;
+                            usize::MAX
+                        };
+                        print_msgs.push((i, span, code, rev.0));
+                    }
+                }
+
+                // partition the first revision's messages
+                // in all revisions => only some revisions
+                let mut i = 0;
+                let mut j = counters.len();
+                while i < j {
+                    if counters[i] == revs.len() {
+                        print_msgs[i].3 = "";
+                        i += 1;
+                    } else if counters[j - 1] == revs.len() {
+                        print_msgs.swap(i, j - 1);
+                        print_msgs[i].3 = "";
+                        i += 1;
+                        j -= 1;
+                    } else {
+                        j -= 1;
+                    }
+                }
+                // For all other revision's messages, remove the ones that exist in all revisions.
+                print_msgs.retain(|&(i, _, _, rev)| {
+                    rev.is_empty() || counters.get(i).map_or(true, |&x| x != revs.len())
+                });
+
+                // rustfmt behaves poorly when putting a comment underneath in these cases.
+                use_over_matcher |= txt.trim_end().ends_with(b"{") || txt.contains_str(b"//");
+
+                match &*print_msgs {
+                    [] => {
+                        skip_line_before_over_matcher =
+                            !txt.trim_start().starts_with(b"//") && txt.contains_str(b"//");
+                        buf.extend(txt)
+                    }
+                    [(_, _, code, rev)]
+                        if !use_over_matcher && txt.len() + code.len() + rev.len() < 65 =>
+                    {
+                        skip_line_before_over_matcher = true;
+                        let (txt, end): (_, &[u8]) = if let Some(txt) = txt.strip_suffix(b"\r\n") {
+                            (txt, b"\r\n")
+                        } else if let Some(txt) = txt.strip_suffix(b"\n") {
+                            (txt, b"\n")
+                        } else {
+                            (txt, &[])
+                        };
+
+                        buf.extend(txt);
+                        buf.extend(b" //~");
+                        if !rev.is_empty() {
+                            buf.push(b'[');
+                            buf.extend(rev.as_bytes());
+                            buf.push(b']');
+                        }
+                        buf.push(b' ');
+                        buf.extend(code.as_bytes());
+                        buf.extend(end);
+                    }
+                    [..] => {
+                        if !use_over_matcher {
+                            buf.extend(txt);
+                            skip_line_before_over_matcher = true;
+                            if !buf.ends_with(b"\n") {
+                                buf.push(b'\n');
+                            }
+                        }
+                        let indent = &txt[..txt
+                            .iter()
+                            .position(|x| !matches!(x, b' ' | b'\t'))
+                            .unwrap_or(txt.len())];
+                        let end: &[u8] = if txt.ends_with(b"\r\n") {
+                            b"\r\n"
+                        } else {
+                            b"\n"
+                        };
+                        if use_over_matcher && skip_line_before_over_matcher {
+                            buf.extend(end);
+                        }
+
+                        let mut msg_num = 1;
+                        let msg_end = print_msgs.len();
+                        for (_, _, code, rev) in &print_msgs {
+                            buf.extend(indent);
+                            buf.extend(b"//~");
+                            if !rev.is_empty() {
+                                buf.push(b'[');
+                                buf.extend(rev.as_bytes());
+                                buf.push(b']');
+                            }
+                            buf.push(match (use_over_matcher, msg_num) {
+                                (false, 1) => b'^',
+                                (true, x) if x == msg_end => b'v',
+                                _ => b'|',
+                            });
+                            buf.push(b' ');
+                            buf.extend(code.as_bytes());
+                            buf.extend(end);
+                            msg_num += 1;
+                        }
+
+                        if use_over_matcher {
+                            skip_line_before_over_matcher =
+                                !txt.trim_start().starts_with(b"//") && txt.contains_str(b"//");
+                            buf.extend(txt);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let _ = std::fs::write(file_path, buf);
 }
 
 fn parse_comments(
@@ -635,7 +844,7 @@ impl dyn TestStatus {
         build_manager: &BuildManager<'_>,
         config: &Config,
         comments: &Comments,
-    ) -> TestResult {
+    ) -> Result<(TestOk, Option<WriteBack>), Errored> {
         let path = self.path();
         let revision = self.revision();
 
@@ -669,7 +878,7 @@ impl dyn TestStatus {
         let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
 
         let mode = comments.mode(revision)?;
-        let cmd = check_test_result(
+        let (cmd, write_back) = check_test_result(
             cmd,
             match *mode {
                 Mode::Run { .. } => Mode::Pass,
@@ -685,13 +894,14 @@ impl dyn TestStatus {
         )?;
 
         if let Mode::Run { .. } = *mode {
-            return run_test_binary(mode, path, revision, comments, cmd, &config);
+            return run_test_binary(mode, path, revision, comments, cmd, &config)
+                .map(|x| (x, None));
         }
 
         run_rustfix(
             &stderr, &stdout, path, comments, revision, &config, *mode, extra_args,
         )?;
-        Ok(TestOk::Ok)
+        Ok((TestOk::Ok, write_back))
     }
 
     /// Run a command, and if it takes more than 100ms, start appending the last stderr/stdout
@@ -850,7 +1060,7 @@ fn run_rustfix(
 
     let global_rustfix = match mode {
         Mode::Pass | Mode::Run { .. } | Mode::Panic => RustfixMode::Disabled,
-        Mode::Fail { rustfix, .. } | Mode::Yolo { rustfix } => rustfix,
+        Mode::Fail { rustfix, .. } | Mode::Yolo { rustfix, .. } => rustfix,
     };
 
     let fixed_code = (no_run_rustfix.is_none() && global_rustfix.enabled())
@@ -1009,7 +1219,7 @@ fn check_test_result(
     status: ExitStatus,
     stdout: &[u8],
     stderr: &[u8],
-) -> Result<Command, Errored> {
+) -> Result<(Command, Option<WriteBack>), Errored> {
     let mut errors = vec![];
     errors.extend(mode.ok(status).err());
     // Always remove annotation comments from stderr.
@@ -1024,7 +1234,7 @@ fn check_test_result(
         &diagnostics.rendered,
     );
     // Check error annotations in the source against output
-    check_annotations(
+    let write_back = check_annotations(
         diagnostics.messages,
         diagnostics.messages_from_unknown_file_or_line,
         path,
@@ -1033,7 +1243,7 @@ fn check_test_result(
         comments,
     )?;
     if errors.is_empty() {
-        Ok(command)
+        Ok((command, write_back))
     } else {
         Err(Errored {
             command,
@@ -1066,7 +1276,7 @@ fn check_annotations(
     errors: &mut Errors,
     revision: &str,
     comments: &Comments,
-) -> Result<(), Errored> {
+) -> Result<Option<WriteBack>, Errored> {
     let error_patterns = comments
         .for_revision(revision)
         .flat_map(|r| r.error_in_other_files.iter());
@@ -1177,7 +1387,9 @@ fn check_annotations(
 
     let mode = comments.mode(revision)?;
 
-    if !matches!(*mode, Mode::Yolo { .. }) {
+    let write_back = if let Mode::Yolo { write_back, .. } = *mode {
+        write_back.map(|level| WriteBack { level, messages })
+    } else {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
         if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
@@ -1202,7 +1414,9 @@ fn check_annotations(
                 });
             }
         }
-    }
+
+        None
+    };
 
     match (*mode, seen_error_match) {
         (Mode::Pass, Some(span)) | (Mode::Panic, Some(span)) => {
@@ -1220,7 +1434,7 @@ fn check_annotations(
         ) => errors.push(Error::NoPatternsFound),
         _ => {}
     }
-    Ok(())
+    Ok(write_back)
 }
 
 fn check_output(
