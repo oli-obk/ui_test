@@ -144,8 +144,14 @@ impl RustcSpan {
     /// Returns the most expanded line number *in the given file*, if possible.
     fn line(&self, file: &Path, primary: bool) -> Option<spanned::Span> {
         if let Some(exp) = &self.expansion {
-            if let Some(line) = exp.span.line(file, primary && !self.is_primary) {
+            if let Some(line) = exp.span.line(file, !primary || self.is_primary) {
                 return Some(line);
+            } else if self.file_name != file {
+                return if !primary && self.is_primary {
+                    exp.span.line(file, false)
+                } else {
+                    None
+                };
             }
         }
         ((!primary || self.is_primary) && self.file_name == file).then_some(spanned::Span {
