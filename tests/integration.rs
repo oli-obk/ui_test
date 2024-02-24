@@ -32,6 +32,11 @@ fn main() -> Result<()> {
         .envs
         .push(("BLESS".into(), (!args.check).then(|| String::new().into())));
 
+    config
+        .program
+        .envs
+        .push(("RUST_BACKTRACE".into(), Some("0".into())));
+
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter(r#""--out-dir"(,)? "[^"]+""#, r#""--out-dir"$1 "$$TMP"#);
     config.filter("\\.exe", b"");
