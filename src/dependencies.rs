@@ -108,11 +108,12 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
                 continue;
             }
             // Check that we only collect rmeta and rlib crates, not build script crates
-            if artifact
-                .filenames
-                .iter()
-                .any(|f| !matches!(f.extension(), Some("rlib" | "rmeta")))
-            {
+            if artifact.filenames.iter().any(|f| {
+                !matches!(
+                    f.extension(),
+                    Some("rlib" | "rmeta" | "so" | "dylib" | "dll")
+                )
+            }) {
                 continue;
             }
             for filename in &artifact.filenames {

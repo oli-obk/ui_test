@@ -13,6 +13,7 @@ Building aux file tests/actual_tests/auxiliary/derive_proc_macro.rs ... ok
 tests/actual_tests/aux_derive.rs ... ok
 Building aux file tests/actual_tests/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests/aux_proc_macro.rs ... ok
+tests/actual_tests/dep_derive.rs ... ok
 tests/actual_tests/error_above.rs ... ok
 tests/actual_tests/executable.rs ... ok
 tests/actual_tests/foomp-rustfix.rs ... ok
@@ -28,7 +29,7 @@ tests/actual_tests/unicode.rs ... ok
 tests/actual_tests/windows_paths.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 16 passed;
+test result: ok. 17 passed;
 
 
 running 0 tests
