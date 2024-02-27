@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.22.2] - 2024-02-27
+
+### Added
+
+### Fixed
+
+### Changed
+
+* `spanned` dependency bump to lower `bstr` to `1.6.0` to resolve windows linker issues with `1.7`
+
+### Removed
+
 ## [0.22.1] - 2024-02-16
 
 ### Added
