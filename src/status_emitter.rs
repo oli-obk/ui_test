@@ -2,9 +2,9 @@
 
 use annotate_snippets::{Annotation, AnnotationType, Renderer, Slice, Snippet, SourceAnnotation};
 use bstr::ByteSlice;
-use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use owo_colors::OwoColorize;
 use spanned::Span;
 
 use crate::{
@@ -213,13 +213,12 @@ impl TestStatus for TextTest {
             self.text.sender.send(Msg::Inc).unwrap();
             self.text.sender.send(Msg::Pop(self.msg(), None)).unwrap();
         } else {
-            let result = match result {
-                Ok(TestOk::Ok) => "ok".green(),
-                Err(Errored { .. }) => "FAILED".bright_red().bold(),
-                Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
-            };
             let old_msg = self.msg();
-            let msg = format!("... {result}");
+            let msg = match result {
+                Ok(TestOk::Ok) => format!("... {}", "ok".green()),
+                Err(Errored { .. }) => format!("... {}", "FAILED".bright_red().bold()),
+                Ok(TestOk::Ignored) => format!("... {}", "ignored (in-test comment)".yellow()),
+            };
             if ProgressDrawTarget::stdout().is_hidden() {
                 println!("{old_msg} {msg}");
                 std::io::stdout().flush().unwrap();
@@ -592,6 +591,8 @@ fn create_error(
     lines: &[(&[(&str, Option<Span>)], NonZeroUsize)],
     file: &Path,
 ) {
+    use supports_color::Stream;
+
     let source = std::fs::read_to_string(file).unwrap();
     let source: Vec<_> = source.split_inclusive('\n').collect();
     let file = file.display().to_string();
@@ -639,11 +640,12 @@ fn create_error(
             .collect(),
         footer: vec![],
     };
-    let renderer = if colored::control::SHOULD_COLORIZE.should_colorize() {
-        Renderer::styled()
-    } else {
-        Renderer::plain()
-    };
+    let renderer =
+        if supports_color::on_cached(Stream::Stdout).map_or(false, |support| support.has_basic) {
+            Renderer::styled()
+        } else {
+            Renderer::plain()
+        };
     println!("{}", renderer.render(msg));
 }
 
