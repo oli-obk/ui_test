@@ -173,7 +173,7 @@ pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
     let mut rendered = Vec::new();
     let mut messages = vec![];
     let mut messages_from_unknown_file_or_line = vec![];
-    for (line_number, line) in stderr.lines_with_terminator().enumerate() {
+    for line in stderr.lines_with_terminator() {
         if line.starts_with_str(b"{") {
             match serde_json::from_slice::<RustcMessage>(line) {
                 Ok(msg) => {
@@ -187,11 +187,9 @@ pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
                         None,
                     );
                 }
-                Err(err) => {
-                    panic!(
-                        "failed to parse rustc JSON output at line {line_number}: {err}: {}",
-                        line.to_str_lossy()
-                    )
+                Err(_) => {
+                    // FIXME: add a way to swap out the `process` function, so that cargo can use a different one from rustc
+                    // The RustcMessage json just happens to match between the two
                 }
             }
         } else {
