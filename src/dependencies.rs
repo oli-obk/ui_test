@@ -100,21 +100,11 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
             continue;
         };
         if let cargo_metadata::Message::CompilerArtifact(artifact) = message {
-            if artifact
-                .filenames
-                .iter()
-                .any(|f| f.ends_with("build-script-build"))
-            {
-                continue;
-            }
-            // Check that we only collect rmeta and rlib crates, not build script crates
-            if artifact.filenames.iter().any(|f| {
-                !matches!(
-                    f.extension(),
-                    Some("rlib" | "rmeta" | "so" | "dylib" | "dll")
-                )
-            }) {
-                continue;
+            for ctype in artifact.target.crate_types {
+                match ctype.as_str() {
+                    "proc-macro" | "lib" => {}
+                    _ => continue,
+                }
             }
             for filename in &artifact.filenames {
                 import_paths.insert(filename.parent().unwrap().into());
