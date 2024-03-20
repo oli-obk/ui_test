@@ -17,6 +17,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
     config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
 
+    if let Ok(target) = std::env::var("UITEST_TEST_TARGET") {
+        config.target = Some(target);
+        config.output_conflict_handling = OutputConflictHandling::Ignore;
+    }
+
     // hide binaries generated for successfully passing tests
     let tmp_dir = tempfile::tempdir_in(path)?;
     let tmp_dir = tmp_dir.path();

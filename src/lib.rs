@@ -170,18 +170,44 @@ pub fn default_any_file_filter(path: &Path, config: &Config) -> bool {
 
 /// The default per-file config used by `run_tests`.
 pub fn default_per_file_config(config: &mut Config, _path: &Path, file_contents: &[u8]) {
-    // Heuristic:
-    // * if the file contains `#[test]`, automatically pass `--cfg test`.
-    // * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
-    // This avoids having to spam `fn main() {}` in almost every test.
+    config.program.args.push(
+        match crate_type(file_contents) {
+            CrateType::ProcMacro => "--crate-type=proc-macro",
+            CrateType::Test => "--test",
+            CrateType::Bin => return,
+            CrateType::Lib => "--crate-type=lib",
+        }
+        .into(),
+    )
+}
+
+/// The kind of crate we're building here. Corresponds to `--crate-type` flags of rustc
+pub enum CrateType {
+    /// A proc macro
+    ProcMacro,
+    /// A file containing unit tests
+    Test,
+    /// A binary file containing a main function or start function
+    Bin,
+    /// A library crate
+    Lib,
+}
+
+/// Heuristic:
+/// * if the file contains `#[test]`, automatically pass `--cfg test`.
+/// * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
+/// This avoids having to spam `fn main() {}` in almost every test.
+pub fn crate_type(file_contents: &[u8]) -> CrateType {
     if file_contents.find(b"#[proc_macro").is_some() {
-        config.program.args.push("--crate-type=proc-macro".into())
+        CrateType::ProcMacro
     } else if file_contents.find(b"#[test]").is_some() {
-        config.program.args.push("--test".into());
+        CrateType::Test
     } else if file_contents.find(b"fn main()").is_none()
         && file_contents.find(b"#[start]").is_none()
     {
-        config.program.args.push("--crate-type=lib".into());
+        CrateType::Lib
+    } else {
+        CrateType::Bin
     }
 }
 
@@ -582,6 +608,12 @@ fn build_aux(
     });
 
     default_per_file_config(&mut config, aux_file, &file_contents);
+
+    match crate_type(&file_contents) {
+        // Proc macros must be run on the host
+        CrateType::ProcMacro => config.target = config.host.clone(),
+        CrateType::Test | CrateType::Bin | CrateType::Lib => {}
+    }
 
     // Put aux builds into a separate directory per path so that multiple aux files
     // from different directories (but with the same file name) don't collide.

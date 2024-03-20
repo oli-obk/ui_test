@@ -13,11 +13,6 @@ fn main() -> Result<()> {
     let args = Args::test()?;
     config.with_args(&args);
 
-    if let Ok(target) = std::env::var("UITEST_TEST_TARGET") {
-        config.target = Some(target);
-        config.output_conflict_handling = OutputConflictHandling::Ignore;
-    }
-
     config.program.args = vec![
         "test".into(),
         "--color".into(),
