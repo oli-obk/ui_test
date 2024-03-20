@@ -13,6 +13,11 @@ fn main() -> Result<()> {
     let args = Args::test()?;
     config.with_args(&args);
 
+    if let Ok(target) = std::env::var("UITEST_TEST_TARGET") {
+        config.target = Some(target);
+        config.output_conflict_handling = OutputConflictHandling::Ignore;
+    }
+
     config.program.args = vec![
         "test".into(),
         "--color".into(),
@@ -82,6 +87,11 @@ fn main() -> Result<()> {
     config.filter("program not found", "No such file or directory");
     config.filter(" \\(os error [0-9]+\\)", "");
     config.filter("note: rustc 1\\..*", "");
+    // Cross compilation paths contain an additional target directory name
+    config.stderr_filter(
+        "(/target/ui/tests/integrations/[^/]+).*debug/deps",
+        "$1/debug/deps",
+    );
 
     let text = ui_test::status_emitter::Text::from(args.format);
 
