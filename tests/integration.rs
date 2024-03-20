@@ -82,6 +82,11 @@ fn main() -> Result<()> {
     config.filter("program not found", "No such file or directory");
     config.filter(" \\(os error [0-9]+\\)", "");
     config.filter("note: rustc 1\\..*", "");
+    // Cross compilation paths contain an additional target directory name
+    config.stderr_filter(
+        "(/target/ui/tests/integrations/[^/]+).*debug/deps",
+        "$1/debug/deps",
+    );
 
     let text = ui_test::status_emitter::Text::from(args.format);
 
