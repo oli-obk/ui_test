@@ -19,6 +19,13 @@ impl RustfixMode {
     }
 }
 
+/// What kind of annotations to write back to the test file.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum WriteBackLevel {
+    /// Write annotations only with a diagnostic code.
+    Code,
+}
+
 #[derive(Copy, Clone, Debug)]
 /// Decides what is expected of each test's exit status.
 pub enum Mode {
@@ -42,6 +49,8 @@ pub enum Mode {
     Yolo {
         /// When to run rustfix on the test
         rustfix: RustfixMode,
+        /// Whether to write back missing annotations to the test file.
+        write_back: Option<WriteBackLevel>,
     },
 }
 
@@ -77,7 +86,10 @@ impl Display for Mode {
                 require_patterns: _,
                 rustfix: _,
             } => write!(f, "fail"),
-            Mode::Yolo { rustfix: _ } => write!(f, "yolo"),
+            Mode::Yolo {
+                rustfix: _,
+                write_back: _,
+            } => write!(f, "yolo"),
         }
     }
 }
