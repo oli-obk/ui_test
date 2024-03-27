@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use ui_test::color_eyre::Result;
-use ui_test::{spanned::Spanned, *};
+use ui_test::{filter::Match, spanned::Spanned, *};
 
 fn main() -> Result<()> {
     let path = Path::new(file!()).parent().unwrap();

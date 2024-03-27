@@ -2,8 +2,8 @@ use regex::bytes::Regex;
 use spanned::{Span, Spanned};
 
 use crate::{
-    dependencies::build_dependencies, per_test_config::Comments, CommandBuilder, Match, Mode,
-    RustfixMode,
+    dependencies::build_dependencies, filter::Match, per_test_config::Comments, CommandBuilder,
+    Mode, RustfixMode,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
