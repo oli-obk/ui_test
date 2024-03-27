@@ -25,7 +25,7 @@ use std::process::{Command, ExitStatus, Output};
 use std::thread;
 use test_result::{Errored, TestOk, TestResult, TestRun};
 
-use crate::parser::{Comments, Condition};
+use crate::parser::Comments;
 
 mod cmd;
 mod config;
@@ -1211,16 +1211,6 @@ fn output_path(
     path.with_extension(kind)
 }
 
-fn test_condition(condition: &Condition, config: &Config) -> bool {
-    let target = config.target.as_ref().unwrap();
-    match condition {
-        Condition::Bitwidth(bits) => get_pointer_width(target) == *bits,
-        Condition::Target(t) => target.contains(t),
-        Condition::Host(t) => config.host.as_ref().unwrap().contains(t),
-        Condition::OnHost => config.host_matches(target),
-    }
-}
-
 impl dyn TestStatus {
     /// Returns whether according to the in-file conditions, this file should be run.
     fn test_file_conditions(&self, comments: &Comments, config: &Config) -> bool {
@@ -1228,7 +1218,7 @@ impl dyn TestStatus {
         if comments
             .for_revision(revision)
             .flat_map(|r| r.ignore.iter())
-            .any(|c| test_condition(c, config))
+            .any(|c| config.test_condition(c))
         {
             return config.run_only_ignored;
         }
@@ -1241,7 +1231,7 @@ impl dyn TestStatus {
         comments
             .for_revision(revision)
             .flat_map(|r| r.only.iter())
-            .all(|c| test_condition(c, config))
+            .all(|c| config.test_condition(c))
             ^ config.run_only_ignored
     }
 }

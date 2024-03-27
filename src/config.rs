@@ -2,8 +2,10 @@ use regex::bytes::Regex;
 use spanned::{Span, Spanned};
 
 use crate::{
-    dependencies::build_dependencies, filter::Match, per_test_config::Comments, CommandBuilder,
-    Mode, RustfixMode,
+    dependencies::build_dependencies,
+    filter::Match,
+    per_test_config::{Comments, Condition},
+    CommandBuilder, Mode, RustfixMode,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
@@ -273,6 +275,16 @@ impl Config {
         ASM_SUPPORTED_ARCHS
             .iter()
             .any(|arch| self.target.as_ref().unwrap().contains(arch))
+    }
+
+    pub(crate) fn test_condition(&self, condition: &Condition) -> bool {
+        let target = self.target.as_ref().unwrap();
+        match condition {
+            Condition::Bitwidth(bits) => crate::get_pointer_width(target) == *bits,
+            Condition::Target(t) => target.contains(t),
+            Condition::Host(t) => self.host.as_ref().unwrap().contains(t),
+            Condition::OnHost => self.host_matches(target),
+        }
     }
 }
 
