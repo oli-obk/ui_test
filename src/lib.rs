@@ -21,7 +21,7 @@ use std::collections::{HashSet, VecDeque};
 use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::path::{Component, Path, PathBuf, Prefix};
-use std::process::{Command, ExitStatus, Output};
+use std::process::{Command, Output};
 use std::thread;
 use test_result::{Errored, TestOk, TestResult, TestRun};
 
@@ -602,7 +602,7 @@ impl dyn TestStatus {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
         }
 
-        let (cmd, status, stderr, stdout) = run_command(cmd)?;
+        let (cmd, output) = run_command(cmd)?;
 
         let mode = comments.mode(revision)?;
         let cmd = check_test_result(
@@ -615,9 +615,7 @@ impl dyn TestStatus {
             &config,
             revision,
             comments,
-            status,
-            &stdout,
-            &stderr,
+            &output,
         )?;
 
         if let Mode::Run { .. } = *mode {
@@ -625,13 +623,13 @@ impl dyn TestStatus {
         }
 
         run_rustfix(
-            &stderr, &stdout, path, comments, revision, &config, *mode, extra_args,
+            &output, path, comments, revision, &config, *mode, extra_args,
         )?;
         Ok(TestOk::Ok)
     }
 }
 
-fn run_command(mut cmd: Command) -> Result<(Command, ExitStatus, Vec<u8>, Vec<u8>), Errored> {
+fn run_command(mut cmd: Command) -> Result<(Command, Output), Errored> {
     match cmd.output() {
         Err(err) => Err(Errored {
             errors: vec![],
@@ -639,11 +637,7 @@ fn run_command(mut cmd: Command) -> Result<(Command, ExitStatus, Vec<u8>, Vec<u8
             stdout: format!("could not spawn `{:?}` as a process", cmd.get_program()).into_bytes(),
             command: cmd,
         }),
-        Ok(Output {
-            status,
-            stdout,
-            stderr,
-        }) => Ok((cmd, status, stderr, stdout)),
+        Ok(output) => Ok((cmd, output)),
     }
 }
 
@@ -764,8 +758,7 @@ fn run_test_binary(
 }
 
 fn run_rustfix(
-    stderr: &[u8],
-    stdout: &[u8],
+    output: &Output,
     path: &Path,
     comments: &Comments,
     revision: &str,
@@ -786,7 +779,7 @@ fn run_rustfix(
     let fixed_code = (no_run_rustfix.is_none() && global_rustfix.enabled())
         .then_some(())
         .and_then(|()| {
-            let suggestions = std::str::from_utf8(stderr)
+            let suggestions = std::str::from_utf8(&output.stderr)
                 .unwrap()
                 .lines()
                 .flat_map(|line| {
@@ -828,8 +821,8 @@ fn run_rustfix(
         .map_err(|err| Errored {
             command: Command::new(format!("rustfix {}", path.display())),
             errors: vec![Error::Rustfix(err)],
-            stderr: stderr.into(),
-            stdout: stdout.into(),
+            stderr: output.stderr.clone(),
+            stdout: output.stdout.clone(),
         })?;
 
     let edition = comments.edition(revision)?.into();
@@ -936,12 +929,14 @@ fn check_test_result(
     config: &Config,
     revision: &str,
     comments: &Comments,
-    status: ExitStatus,
-    stdout: &[u8],
-    stderr: &[u8],
+    Output {
+        status,
+        stdout,
+        stderr,
+    }: &Output,
 ) -> Result<Command, Errored> {
     let mut errors = vec![];
-    errors.extend(mode.ok(status).err());
+    errors.extend(mode.ok(*status).err());
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, stderr);
     check_test_output(
@@ -969,7 +964,7 @@ fn check_test_result(
             command,
             errors,
             stderr: diagnostics.rendered,
-            stdout: stdout.into(),
+            stdout: stdout.clone(),
         })
     }
 }
