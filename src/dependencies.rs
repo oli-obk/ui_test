@@ -11,7 +11,8 @@ use std::{
 };
 
 use crate::{
-    build_aux, status_emitter::StatusEmitter, Config, Errored, Mode, OutputConflictHandling,
+    build_aux, status_emitter::StatusEmitter, test_result::Errored, Config, Mode,
+    OutputConflictHandling,
 };
 
 #[derive(Default, Debug)]
@@ -300,7 +301,7 @@ impl<'a> BuildManager<'a> {
             };
             build.done(
                 &res.as_ref()
-                    .map(|_| crate::TestOk::Ok)
+                    .map(|_| crate::test_result::TestOk::Ok)
                     .map_err(|()| Errored {
                         command: Command::new(what.description()),
                         errors: vec![],

@@ -8,8 +8,8 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use spanned::Span;
 
 use crate::{
-    github_actions, parser::Pattern, rustc_stderr::Level, Error, Errored, Errors, Format, Message,
-    TestOk, TestResult,
+    github_actions, parser::Pattern, rustc_stderr::Level, test_result::Errored,
+    test_result::TestOk, test_result::TestResult, Error, Errors, Format, Message,
 };
 use std::{
     collections::HashMap,

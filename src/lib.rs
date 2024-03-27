@@ -23,6 +23,7 @@ use std::num::NonZeroUsize;
 use std::path::{Component, Path, PathBuf, Prefix};
 use std::process::{Command, ExitStatus, Output};
 use std::thread;
+use test_result::{Errored, TestOk, TestResult, TestRun};
 
 use crate::parser::{Comments, Condition};
 
@@ -38,6 +39,7 @@ mod parser;
 pub mod per_test_config;
 mod rustc_stderr;
 pub mod status_emitter;
+pub mod test_result;
 
 #[cfg(test)]
 mod tests;
@@ -159,35 +161,6 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     result.args(extra_args);
 
     Ok(result)
-}
-
-/// The possible non-failure results a single test can have.
-pub enum TestOk {
-    /// The test passed
-    Ok,
-    /// The test was ignored due to a rule (`//@only-*` or `//@ignore-*`)
-    Ignored,
-}
-
-/// The possible results a single test can have.
-pub type TestResult = Result<TestOk, Errored>;
-
-/// Information about a test failure.
-#[derive(Debug)]
-pub struct Errored {
-    /// Command that failed
-    command: Command,
-    /// The errors that were encountered.
-    errors: Vec<Error>,
-    /// The full stderr of the test run.
-    stderr: Vec<u8>,
-    /// The full stdout of the test run.
-    stdout: Vec<u8>,
-}
-
-struct TestRun {
-    result: TestResult,
-    status: Box<dyn status_emitter::TestStatus>,
 }
 
 /// A version of `run_tests` that allows more fine-grained control over running tests.
