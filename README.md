@@ -65,7 +65,8 @@ their command specifies, or the test will fail without even being run.
 
 * `ignore-target-xxx` and `only-target-xxx` requires the `target-` prefix before the `xxx` substring
   to be matched against target triples, whereas compiletest allows plain `ignore-xxx` without the
-  `target-` prefix.
+  `target-` prefix. The substring `xxx` must also be a substring of target triples, and special
+  collections such as `macos`/`unix` in compiletest is not supported.
 * only supports `ui` tests
 * tests are run in named order, so you can prefix slow tests with `0` in order to make them get run first
 * `aux-build`s require specifying nested aux builds explicitly and will not allow you to reference sibling `aux-build`s' artifacts.
