@@ -602,7 +602,7 @@ impl dyn TestStatus {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
         }
 
-        let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
+        let (cmd, status, stderr, stdout) = run_command(cmd)?;
 
         let mode = comments.mode(revision)?;
         let cmd = check_test_result(
@@ -629,27 +629,21 @@ impl dyn TestStatus {
         )?;
         Ok(TestOk::Ok)
     }
+}
 
-    /// Run a command, and if it takes more than 100ms, start appending the last stderr/stdout
-    /// line to the current status spinner.
-    fn run_command(
-        &self,
-        mut cmd: Command,
-    ) -> Result<(Command, ExitStatus, Vec<u8>, Vec<u8>), Errored> {
-        match cmd.output() {
-            Err(err) => Err(Errored {
-                errors: vec![],
-                stderr: err.to_string().into_bytes(),
-                stdout: format!("could not spawn `{:?}` as a process", cmd.get_program())
-                    .into_bytes(),
-                command: cmd,
-            }),
-            Ok(Output {
-                status,
-                stdout,
-                stderr,
-            }) => Ok((cmd, status, stderr, stdout)),
-        }
+fn run_command(mut cmd: Command) -> Result<(Command, ExitStatus, Vec<u8>, Vec<u8>), Errored> {
+    match cmd.output() {
+        Err(err) => Err(Errored {
+            errors: vec![],
+            stderr: err.to_string().into_bytes(),
+            stdout: format!("could not spawn `{:?}` as a process", cmd.get_program()).into_bytes(),
+            command: cmd,
+        }),
+        Ok(Output {
+            status,
+            stdout,
+            stderr,
+        }) => Ok((cmd, status, stderr, stdout)),
     }
 }
 
