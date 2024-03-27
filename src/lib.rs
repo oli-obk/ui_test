@@ -14,6 +14,7 @@ use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use dependencies::{Build, BuildManager};
 use parser::{ErrorMatch, ErrorMatchKind, OptWithLine, Revisioned, Spanned};
+use per_test_config::TestConfig;
 use rustc_stderr::{Level, Message};
 use spanned::Span;
 use status_emitter::{StatusEmitter, TestStatus};
@@ -411,7 +412,14 @@ fn parse_and_test_file(
                 built_deps = true;
             }
 
-            let result = status.run_test(build_manager, &config, &comments);
+            let test_config = TestConfig {
+                config: config.clone(),
+                revision,
+                comments: &comments,
+                path: status.path(),
+            };
+
+            let result = run_test(build_manager, test_config);
             TestRun { result, status }
         })
         .collect())
@@ -565,66 +573,62 @@ fn build_aux(
     Ok(extra_args)
 }
 
-impl dyn TestStatus {
-    fn run_test(
-        &self,
-        build_manager: &BuildManager<'_>,
-        config: &Config,
-        comments: &Comments,
-    ) -> TestResult {
-        let path = self.path();
-        let revision = self.revision();
+fn run_test(
+    build_manager: &BuildManager<'_>,
+    TestConfig {
+        mut config,
+        revision,
+        comments,
+        path,
+    }: TestConfig<'_>,
+) -> TestResult {
+    let extra_args = build_aux_files(
+        &path.parent().unwrap().join("auxiliary"),
+        comments,
+        revision,
+        &config,
+        build_manager,
+    )?;
 
-        let extra_args = build_aux_files(
-            &path.parent().unwrap().join("auxiliary"),
-            comments,
-            revision,
-            config,
-            build_manager,
-        )?;
+    // Put aux builds into a separate directory per path so that multiple aux files
+    // from different directories (but with the same file name) don't collide.
+    let relative = strip_path_prefix(path.parent().unwrap(), &config.out_dir);
 
-        let mut config = config.clone();
+    config.out_dir.extend(relative);
 
-        // Put aux builds into a separate directory per path so that multiple aux files
-        // from different directories (but with the same file name) don't collide.
-        let relative = strip_path_prefix(path.parent().unwrap(), &config.out_dir);
-
-        config.out_dir.extend(relative);
-
-        let mut cmd = build_command(path, &config, revision, comments)?;
-        cmd.args(&extra_args);
-        let stdin = path.with_extension(if revision.is_empty() {
-            "stdin".into()
-        } else {
-            format!("{revision}.stdin")
-        });
-        if stdin.exists() {
-            cmd.stdin(std::fs::File::open(stdin).unwrap());
-        }
-
-        let (cmd, output) = run_command(cmd)?;
-
-        let mode = comments.mode(revision)?;
-        let (cmd, output) = check_test_result(
-            cmd,
-            match *mode {
-                Mode::Run { .. } => Mode::Pass,
-                _ => *mode,
-            },
-            path,
-            &config,
-            revision,
-            comments,
-            output,
-        )?;
-
-        if let Mode::Run { .. } = *mode {
-            return run_test_binary(mode, path, revision, comments, cmd, &config);
-        }
-
-        run_rustfix(output, path, comments, revision, &config, *mode, extra_args)?;
-        Ok(TestOk::Ok)
+    let mut cmd = build_command(path, &config, revision, comments)?;
+    cmd.args(&extra_args);
+    let stdin = path.with_extension(if revision.is_empty() {
+        "stdin".into()
+    } else {
+        format!("{revision}.stdin")
+    });
+    if stdin.exists() {
+        cmd.stdin(std::fs::File::open(stdin).unwrap());
     }
+
+    let (cmd, output) = run_command(cmd)?;
+
+    let mode = comments.mode(revision)?;
+    let (cmd, output) = check_test_result(
+        cmd,
+        match *mode {
+            Mode::Run { .. } => Mode::Pass,
+            _ => *mode,
+        },
+        path,
+        &config,
+        revision,
+        comments,
+        output,
+    )?;
+
+    if let Mode::Run { .. } = *mode {
+        return run_test_binary(mode, path, revision, comments, cmd, &config);
+    }
+
+    run_rustfix(output, path, comments, revision, &config, *mode, extra_args)?;
+    Ok(TestOk::Ok)
 }
 
 fn run_command(mut cmd: Command) -> Result<(Command, Output), Errored> {
