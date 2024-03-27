@@ -605,7 +605,7 @@ impl dyn TestStatus {
         let (cmd, output) = run_command(cmd)?;
 
         let mode = comments.mode(revision)?;
-        let cmd = check_test_result(
+        let (cmd, output) = check_test_result(
             cmd,
             match *mode {
                 Mode::Run { .. } => Mode::Pass,
@@ -615,16 +615,14 @@ impl dyn TestStatus {
             &config,
             revision,
             comments,
-            &output,
+            output,
         )?;
 
         if let Mode::Run { .. } = *mode {
             return run_test_binary(mode, path, revision, comments, cmd, &config);
         }
 
-        run_rustfix(
-            &output, path, comments, revision, &config, *mode, extra_args,
-        )?;
+        run_rustfix(output, path, comments, revision, &config, *mode, extra_args)?;
         Ok(TestOk::Ok)
     }
 }
@@ -758,7 +756,7 @@ fn run_test_binary(
 }
 
 fn run_rustfix(
-    output: &Output,
+    output: Output,
     path: &Path,
     comments: &Comments,
     revision: &str,
@@ -821,8 +819,8 @@ fn run_rustfix(
         .map_err(|err| Errored {
             command: Command::new(format!("rustfix {}", path.display())),
             errors: vec![Error::Rustfix(err)],
-            stderr: output.stderr.clone(),
-            stdout: output.stdout.clone(),
+            stderr: output.stderr,
+            stdout: output.stdout,
         })?;
 
     let edition = comments.edition(revision)?.into();
@@ -929,23 +927,19 @@ fn check_test_result(
     config: &Config,
     revision: &str,
     comments: &Comments,
-    Output {
-        status,
-        stdout,
-        stderr,
-    }: &Output,
-) -> Result<Command, Errored> {
+    output: Output,
+) -> Result<(Command, Output), Errored> {
     let mut errors = vec![];
-    errors.extend(mode.ok(*status).err());
+    errors.extend(mode.ok(output.status).err());
     // Always remove annotation comments from stderr.
-    let diagnostics = rustc_stderr::process(path, stderr);
+    let diagnostics = rustc_stderr::process(path, &output.stderr);
     check_test_output(
         path,
         &mut errors,
         revision,
         config,
         comments,
-        stdout,
+        &output.stdout,
         &diagnostics.rendered,
     );
     // Check error annotations in the source against output
@@ -958,13 +952,13 @@ fn check_test_result(
         comments,
     )?;
     if errors.is_empty() {
-        Ok(command)
+        Ok((command, output))
     } else {
         Err(Errored {
             command,
             errors,
             stderr: diagnostics.rendered,
-            stdout: stdout.clone(),
+            stdout: output.stdout,
         })
     }
 }
