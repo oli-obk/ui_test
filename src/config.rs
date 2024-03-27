@@ -286,6 +286,28 @@ impl Config {
             Condition::OnHost => self.host_matches(target),
         }
     }
+
+    /// Returns whether according to the in-file conditions, this file should be run.
+    pub fn test_file_conditions(&self, comments: &Comments, revision: &str) -> bool {
+        if comments
+            .for_revision(revision)
+            .flat_map(|r| r.ignore.iter())
+            .any(|c| self.test_condition(c))
+        {
+            return self.run_only_ignored;
+        }
+        if comments
+            .for_revision(revision)
+            .any(|r| r.needs_asm_support && !self.has_asm_support())
+        {
+            return self.run_only_ignored;
+        }
+        comments
+            .for_revision(revision)
+            .flat_map(|r| r.only.iter())
+            .all(|c| self.test_condition(c))
+            ^ self.run_only_ignored
+    }
 }
 
 #[derive(Debug, Clone)]

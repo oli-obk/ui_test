@@ -389,7 +389,7 @@ fn parse_and_test_file(
         .map(|revision| {
             let status = status.for_revision(revision);
             // Ignore file if only/ignore rules do (not) apply
-            if !status.test_file_conditions(&comments, &config) {
+            if !config.test_file_conditions(&comments, revision) {
                 return TestRun {
                     result: Ok(TestOk::Ignored),
                     status,
@@ -1209,31 +1209,6 @@ fn output_path(
         return path.with_extension(format!("{}bit.{kind}", get_pointer_width(target)));
     }
     path.with_extension(kind)
-}
-
-impl dyn TestStatus {
-    /// Returns whether according to the in-file conditions, this file should be run.
-    fn test_file_conditions(&self, comments: &Comments, config: &Config) -> bool {
-        let revision = self.revision();
-        if comments
-            .for_revision(revision)
-            .flat_map(|r| r.ignore.iter())
-            .any(|c| config.test_condition(c))
-        {
-            return config.run_only_ignored;
-        }
-        if comments
-            .for_revision(revision)
-            .any(|r| r.needs_asm_support && !config.has_asm_support())
-        {
-            return config.run_only_ignored;
-        }
-        comments
-            .for_revision(revision)
-            .flat_map(|r| r.only.iter())
-            .all(|c| config.test_condition(c))
-            ^ config.run_only_ignored
-    }
 }
 
 // Taken 1:1 from compiletest-rs
