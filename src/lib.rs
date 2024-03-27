@@ -374,11 +374,12 @@ fn parse_and_test_file(
     mut config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
-    let comments = parse_comments(
+    let comments = Comments::parse(
         &file_contents,
         config.comment_defaults.clone(),
         status.path(),
-    )?;
+    )
+    .map_err(|errors| Errored::new(errors, "parse comments"))?;
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
@@ -414,22 +415,6 @@ fn parse_and_test_file(
             TestRun { result, status }
         })
         .collect())
-}
-
-fn parse_comments(
-    file_contents: &[u8],
-    comments: Comments,
-    file: &Path,
-) -> Result<Comments, Errored> {
-    match Comments::parse(file_contents, comments, file) {
-        Ok(comments) => Ok(comments),
-        Err(errors) => Err(Errored {
-            command: Command::new("parse comments"),
-            errors,
-            stderr: vec![],
-            stdout: vec![],
-        }),
-    }
 }
 
 fn build_command(
@@ -488,7 +473,8 @@ fn build_aux(
         stderr: err.to_string().into_bytes(),
         stdout: vec![],
     })?;
-    let comments = parse_comments(&file_contents, config.comment_defaults.clone(), aux_file)?;
+    let comments = Comments::parse(&file_contents, config.comment_defaults.clone(), aux_file)
+        .map_err(|errors| Errored::new(errors, "parse aux comments"))?;
     assert_eq!(
         comments.revisions, None,
         "aux builds cannot specify revisions"

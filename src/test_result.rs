@@ -28,6 +28,18 @@ pub struct Errored {
     pub(crate) stdout: Vec<u8>,
 }
 
+impl Errored {
+    /// If no command was executed for this error, use a message instead.
+    pub fn new(errors: Vec<Error>, message: &str) -> Self {
+        Self {
+            errors,
+            stderr: vec![],
+            stdout: vec![],
+            command: Command::new(message),
+        }
+    }
+}
+
 pub(crate) struct TestRun {
     pub(crate) result: TestResult,
     pub(crate) status: Box<dyn TestStatus>,
