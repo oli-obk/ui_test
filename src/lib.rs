@@ -573,61 +573,47 @@ fn build_aux(
     Ok(extra_args)
 }
 
-fn run_test(
-    build_manager: &BuildManager<'_>,
-    TestConfig {
-        mut config,
-        revision,
-        comments,
-        path,
-    }: TestConfig<'_>,
-) -> TestResult {
+fn run_test(build_manager: &BuildManager<'_>, mut config: TestConfig<'_>) -> TestResult {
     let extra_args = build_aux_files(
-        &path.parent().unwrap().join("auxiliary"),
-        comments,
-        revision,
-        &config,
+        &config.path.parent().unwrap().join("auxiliary"),
+        config.comments,
+        config.revision,
+        &config.config,
         build_manager,
     )?;
 
-    // Put aux builds into a separate directory per path so that multiple aux files
-    // from different directories (but with the same file name) don't collide.
-    let relative = strip_path_prefix(path.parent().unwrap(), &config.out_dir);
+    config.patch_out_dir();
 
-    config.out_dir.extend(relative);
-
-    let mut cmd = build_command(path, &config, revision, comments)?;
+    let mut cmd = build_command(
+        config.path,
+        &config.config,
+        config.revision,
+        config.comments,
+    )?;
     cmd.args(&extra_args);
-    let stdin = path.with_extension(if revision.is_empty() {
-        "stdin".into()
-    } else {
-        format!("{revision}.stdin")
-    });
+    let stdin = config.path.with_extension(config.extension("stdin"));
     if stdin.exists() {
         cmd.stdin(std::fs::File::open(stdin).unwrap());
     }
 
     let (cmd, output) = run_command(cmd)?;
 
-    let mode = comments.mode(revision)?;
+    let mode = config.mode()?;
     let (cmd, output) = check_test_result(
         cmd,
         match *mode {
             Mode::Run { .. } => Mode::Pass,
             _ => *mode,
         },
-        path,
         &config,
-        revision,
-        comments,
         output,
     )?;
 
     if let Mode::Run { .. } = *mode {
-        return run_test_binary(mode, path, revision, comments, cmd, &config);
+        return run_test_binary(mode, cmd, &config);
     }
 
-    run_rustfix(output, path, comments, revision, &config, *mode, extra_args)?;
+    run_rustfix(output, &config, *mode, extra_args)?;
     Ok(TestOk::Ok)
 }
 
@@ -703,19 +689,8 @@ fn build_aux_files(
     Ok(extra_args)
 }
 
-fn run_test_binary(
-    mode: Spanned<Mode>,
-    path: &Path,
-    revision: &str,
-    comments: &Comments,
-    mut cmd: Command,
-    config: &Config,
-) -> TestResult {
-    let revision = if revision.is_empty() {
-        "run".to_string()
-    } else {
-        format!("run.{revision}")
-    };
+fn run_test_binary(mode: Spanned<Mode>, mut cmd: Command, config: &TestConfig) -> TestResult {
+    let revision = config.extension("run");
     cmd.arg("--print").arg("file-names");
     let output = cmd.output().unwrap();
     assert!(output.status.success());
@@ -724,9 +699,9 @@ fn run_test_binary(
     let file = files.next().unwrap();
     assert_eq!(files.next(), None);
     let file = std::str::from_utf8(file).unwrap();
-    let exe_file = config.out_dir.join(file);
+    let exe_file = config.config.out_dir.join(file);
     let mut exe = Command::new(&exe_file);
-    let stdin = path.with_extension(format!("{revision}.stdin"));
+    let stdin = config.path.with_extension(format!("{revision}.stdin"));
     if stdin.exists() {
         exe.stdin(std::fs::File::open(stdin).unwrap());
     }
@@ -737,11 +712,11 @@ fn run_test_binary(
     let mut errors = vec![];
 
     check_test_output(
-        path,
+        config.path,
         &mut errors,
         &revision,
-        config,
-        comments,
+        &config.config,
+        config.comments,
         &output.stdout,
         &output.stderr,
     );
@@ -761,17 +736,11 @@ fn run_test_binary(
 
 fn run_rustfix(
     output: Output,
-    path: &Path,
-    comments: &Comments,
-    revision: &str,
-    config: &Config,
+    config: &TestConfig,
     mode: Mode,
     extra_args: Vec<OsString>,
 ) -> Result<(), Errored> {
-    let no_run_rustfix =
-        comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| {
-            r.no_rustfix.clone()
-        })?;
+    let no_run_rustfix = config.find_one("`no-rustfix` annotations", |r| r.no_rustfix.clone())?;
 
     let global_rustfix = match mode {
         Mode::Pass | Mode::Run { .. } | Mode::Panic => RustfixMode::Disabled,
@@ -805,7 +774,7 @@ fn run_rustfix(
             if suggestions.is_empty() {
                 None
             } else {
-                let path_str = path.display().to_string();
+                let path_str = config.path.display().to_string();
                 for sugg in &suggestions {
                     for snip in &sugg.snippets {
                         if snip.file_name != path_str {
@@ -814,20 +783,20 @@ fn run_rustfix(
                     }
                 }
                 Some(rustfix::apply_suggestions(
-                    &std::fs::read_to_string(path).unwrap(),
+                    &std::fs::read_to_string(config.path).unwrap(),
                     &suggestions,
                 ))
             }
         })
         .transpose()
         .map_err(|err| Errored {
-            command: Command::new(format!("rustfix {}", path.display())),
+            command: Command::new(format!("rustfix {}", config.path.display())),
             errors: vec![Error::Rustfix(err)],
             stderr: output.stderr,
             stdout: output.stdout,
         })?;
 
-    let edition = comments.edition(revision)?.into();
+    let edition = config.edition()?.into();
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((
@@ -837,23 +806,14 @@ fn run_rustfix(
                 ignore: vec![],
                 only: vec![],
                 stderr_per_bitwidth: false,
-                compile_flags: comments
-                    .for_revision(revision)
-                    .flat_map(|r| r.compile_flags.iter().cloned())
-                    .collect(),
-                env_vars: comments
-                    .for_revision(revision)
-                    .flat_map(|r| r.env_vars.iter().cloned())
-                    .collect(),
+                compile_flags: config.collect(|r| r.compile_flags.iter().cloned()),
+                env_vars: config.collect(|r| r.env_vars.iter().cloned()),
                 normalize_stderr: vec![],
                 normalize_stdout: vec![],
                 error_in_other_files: vec![],
                 error_matches: vec![],
                 require_annotations_for_level: Default::default(),
-                aux_builds: comments
-                    .for_revision(revision)
-                    .flat_map(|r| r.aux_builds.iter().cloned())
-                    .collect(),
+                aux_builds: config.collect(|r| r.aux_builds.iter().cloned()),
                 edition,
                 mode: OptWithLine::new(Mode::Pass, Span::default()),
                 no_rustfix: OptWithLine::new((), Span::default()),
@@ -870,16 +830,16 @@ fn run_rustfix(
         // Always check for `.fixed` files, even if there were reasons not to run rustfix.
         // We don't want to leave around stray `.fixed` files
         fixed_code.unwrap_or_default().as_bytes(),
-        path,
+        config.path,
         &mut errors,
         "fixed",
-        config,
+        &config.config,
         &rustfix_comments,
-        revision,
+        config.revision,
     );
     if !errors.is_empty() {
         return Err(Errored {
-            command: Command::new(format!("checking {}", path.display())),
+            command: Command::new(format!("checking {}", config.path.display())),
             errors,
             stderr: vec![],
             stdout: vec![],
@@ -890,11 +850,18 @@ fn run_rustfix(
         return Ok(());
     }
 
-    let mut cmd = build_command(&rustfix_path, config, revision, &rustfix_comments)?;
+    let mut cmd = build_command(
+        &rustfix_path,
+        &config.config,
+        config.revision,
+        &rustfix_comments,
+    )?;
     cmd.args(extra_args);
     // picking the crate name from the file name is problematic when `.revision_name` is inserted
     cmd.arg("--crate-name").arg(
-        path.file_stem()
+        config
+            .path
+            .file_stem()
             .unwrap()
             .to_str()
             .unwrap()
@@ -927,21 +894,21 @@ fn revised(revision: &str, extension: &str) -> String {
 fn check_test_result(
     command: Command,
     mode: Mode,
-    path: &Path,
-    config: &Config,
-    revision: &str,
-    comments: &Comments,
+    config: &TestConfig,
     output: Output,
 ) -> Result<(Command, Output), Errored> {
     let mut errors = vec![];
     errors.extend(mode.ok(output.status).err());
+    let path = config.path;
+    let comments = config.comments;
+    let revision = config.revision;
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
     check_test_output(
         path,
         &mut errors,
         revision,
-        config,
+        &config.config,
         comments,
         &output.stdout,
         &diagnostics.rendered,
