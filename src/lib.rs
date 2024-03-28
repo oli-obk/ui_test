@@ -158,7 +158,13 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
 
     let comments = Comments::parse_file(config.comment_defaults.clone(), path)?
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
-    let mut result = build_command(path, &config, "", &comments).unwrap();
+    let config = TestConfig {
+        config,
+        revision: "",
+        comments: &comments,
+        path,
+    };
+    let mut result = build_command(&config).unwrap();
     result.args(extra_args);
 
     Ok(result)
@@ -425,12 +431,13 @@ fn parse_and_test_file(
         .collect())
 }
 
-fn build_command(
-    path: &Path,
-    config: &Config,
-    revision: &str,
-    comments: &Comments,
-) -> Result<Command, Errored> {
+fn build_command(config: &TestConfig) -> Result<Command, Errored> {
+    let TestConfig {
+        config,
+        revision,
+        comments,
+        path,
+    } = config;
     let mut cmd = config.program.build(&config.out_dir);
     cmd.arg(path);
     if !revision.is_empty() {
@@ -518,19 +525,22 @@ fn build_aux(
         CrateType::Test | CrateType::Bin | CrateType::Lib => {}
     }
 
-    // Put aux builds into a separate directory per path so that multiple aux files
-    // from different directories (but with the same file name) don't collide.
-    let relative = strip_path_prefix(aux_file.parent().unwrap(), &config.out_dir);
+    let mut config = TestConfig {
+        config,
+        revision: "",
+        comments: &comments,
+        path: aux_file,
+    };
 
-    config.out_dir.extend(relative);
+    config.patch_out_dir();
 
-    let mut aux_cmd = build_command(aux_file, &config, "", &comments)?;
+    let mut aux_cmd = build_command(&config)?;
 
     let mut extra_args = build_aux_files(
         aux_file.parent().unwrap(),
         &comments,
         "",
-        &config,
+        &config.config,
         build_manager,
     )?;
     // Make sure we see our dependencies
@@ -560,7 +570,7 @@ fn build_aux(
     for file in output.stdout.lines() {
         let file = std::str::from_utf8(file).unwrap();
         let crate_name = filename.replace('-', "_");
-        let path = config.out_dir.join(file);
+        let path = config.config.out_dir.join(file);
         extra_args.push("--extern".into());
         let mut cname = OsString::from(&crate_name);
         cname.push("=");
@@ -568,7 +578,7 @@ fn build_aux(
         extra_args.push(cname);
         // Help cargo find the crates added with `--extern`.
         extra_args.push("-L".into());
-        extra_args.push(config.out_dir.as_os_str().to_os_string());
+        extra_args.push(config.config.out_dir.as_os_str().to_os_string());
     }
     Ok(extra_args)
 }
@@ -584,12 +594,7 @@ fn run_test(build_manager: &BuildManager<'_>, mut config: TestConfig<'_>) -> Tes
 
     config.patch_out_dir();
 
-    let mut cmd = build_command(
-        config.path,
-        &config.config,
-        config.revision,
-        config.comments,
-    )?;
+    let mut cmd = build_command(&config)?;
     cmd.args(&extra_args);
     let stdin = config.path.with_extension(config.extension("stdin"));
     if stdin.exists() {
@@ -838,6 +843,21 @@ fn run_rustfix(
         "fixed",
         &config,
     );
+    // picking the crate name from the file name is problematic when `.revision_name` is inserted,
+    // so we compute it here before replacing the path.
+    let crate_name = config
+        .path
+        .file_stem()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .replace('-', "_");
+    let config = TestConfig {
+        config: config.config,
+        revision: config.revision,
+        comments: &rustfix_comments,
+        path: &rustfix_path,
+    };
     if !errors.is_empty() {
         return Err(Errored {
             command: Command::new(format!("checking {}", config.path.display())),
@@ -851,23 +871,9 @@ fn run_rustfix(
         return Ok(());
     }
 
-    let mut cmd = build_command(
-        &rustfix_path,
-        &config.config,
-        config.revision,
-        config.comments,
-    )?;
+    let mut cmd = build_command(&config)?;
     cmd.args(extra_args);
-    // picking the crate name from the file name is problematic when `.revision_name` is inserted
-    cmd.arg("--crate-name").arg(
-        config
-            .path
-            .file_stem()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .replace('-', "_"),
-    );
+    cmd.arg("--crate-name").arg(crate_name);
     let output = cmd.output().unwrap();
     if output.status.success() {
         Ok(())
