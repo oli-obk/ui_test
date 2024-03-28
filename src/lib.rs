@@ -610,11 +610,11 @@ fn run_test(build_manager: &BuildManager<'_>, mut config: TestConfig<'_>) -> Tes
     )?;
 
     if let Mode::Run { .. } = *mode {
-        return run_test_binary(mode, cmd, &config);
+        run_test_binary(mode, cmd, config)
+    } else {
+        run_rustfix(output, config, *mode, extra_args)?;
+        Ok(TestOk::Ok)
     }
-
-    run_rustfix(output, &config, *mode, extra_args)?;
-    Ok(TestOk::Ok)
 }
 
 fn run_command(mut cmd: Command) -> Result<(Command, Output), Errored> {
@@ -689,8 +689,14 @@ fn build_aux_files(
     Ok(extra_args)
 }
 
-fn run_test_binary(mode: Spanned<Mode>, mut cmd: Command, config: &TestConfig) -> TestResult {
+fn run_test_binary(mode: Spanned<Mode>, mut cmd: Command, config: TestConfig) -> TestResult {
     let revision = config.extension("run");
+    let config = TestConfig {
+        config: config.config,
+        revision: &revision,
+        comments: config.comments,
+        path: config.path,
+    };
     cmd.arg("--print").arg("file-names");
     let output = cmd.output().unwrap();
     assert!(output.status.success());
@@ -711,15 +717,7 @@ fn run_test_binary(mode: Spanned<Mode>, mut cmd: Command, config: &TestConfig) -
 
     let mut errors = vec![];
 
-    check_test_output(
-        config.path,
-        &mut errors,
-        &revision,
-        &config.config,
-        config.comments,
-        &output.stdout,
-        &output.stderr,
-    );
+    check_test_output(&mut errors, &config, &output.stdout, &output.stderr);
 
     errors.extend(mode.ok(output.status).err());
     if errors.is_empty() {
@@ -736,7 +734,7 @@ fn run_test_binary(mode: Spanned<Mode>, mut cmd: Command, config: &TestConfig) -
 
 fn run_rustfix(
     output: Output,
-    config: &TestConfig,
+    config: TestConfig,
     mode: Mode,
     extra_args: Vec<OsString>,
 ) -> Result<(), Errored> {
@@ -823,6 +821,12 @@ fn run_rustfix(
         ))
         .collect(),
     };
+    let config = TestConfig {
+        config: config.config,
+        revision: config.revision,
+        comments: &rustfix_comments,
+        path: config.path,
+    };
 
     let run = fixed_code.is_some();
     let mut errors = vec![];
@@ -830,12 +834,9 @@ fn run_rustfix(
         // Always check for `.fixed` files, even if there were reasons not to run rustfix.
         // We don't want to leave around stray `.fixed` files
         fixed_code.unwrap_or_default().as_bytes(),
-        config.path,
         &mut errors,
         "fixed",
-        &config.config,
-        &rustfix_comments,
-        config.revision,
+        &config,
     );
     if !errors.is_empty() {
         return Err(Errored {
@@ -854,7 +855,7 @@ fn run_rustfix(
         &rustfix_path,
         &config.config,
         config.revision,
-        &rustfix_comments,
+        config.comments,
     )?;
     cmd.args(extra_args);
     // picking the crate name from the file name is problematic when `.revision_name` is inserted
@@ -904,15 +905,7 @@ fn check_test_result(
     let revision = config.revision;
     // Always remove annotation comments from stderr.
     let diagnostics = rustc_stderr::process(path, &output.stderr);
-    check_test_output(
-        path,
-        &mut errors,
-        revision,
-        &config.config,
-        comments,
-        &output.stdout,
-        &diagnostics.rendered,
-    );
+    check_test_output(&mut errors, config, &output.stdout, &diagnostics.rendered);
     // Check error annotations in the source against output
     check_annotations(
         diagnostics.messages,
@@ -934,19 +927,11 @@ fn check_test_result(
     }
 }
 
-fn check_test_output(
-    path: &Path,
-    errors: &mut Vec<Error>,
-    revision: &str,
-    config: &Config,
-    comments: &Comments,
-    stdout: &[u8],
-    stderr: &[u8],
-) {
+fn check_test_output(errors: &mut Vec<Error>, config: &TestConfig, stdout: &[u8], stderr: &[u8]) {
     // Check output files (if any)
     // Check output files against actual output
-    check_output(stderr, path, errors, "stderr", config, comments, revision);
-    check_output(stdout, path, errors, "stdout", config, comments, revision);
+    check_output(stderr, errors, "stderr", config);
+    check_output(stdout, errors, "stdout", config);
 }
 
 fn check_annotations(
@@ -1115,17 +1100,20 @@ fn check_annotations(
 
 fn check_output(
     output: &[u8],
-    path: &Path,
     errors: &mut Errors,
     kind: &'static str,
-    config: &Config,
-    comments: &Comments,
-    revision: &str,
+    config: &TestConfig,
 ) -> PathBuf {
-    let target = config.target.as_ref().unwrap();
-    let output = normalize(output, comments, revision, kind);
-    let path = output_path(path, comments, revised(revision, kind), target, revision);
-    match &config.output_conflict_handling {
+    let target = config.config.target.as_ref().unwrap();
+    let output = normalize(output, config.comments, config.revision, kind);
+    let path = output_path(
+        config.path,
+        config.comments,
+        revised(config.revision, kind),
+        target,
+        config.revision,
+    );
+    match &config.config.output_conflict_handling {
         OutputConflictHandling::Error => {
             let expected_output = std::fs::read(&path).unwrap_or_default();
             if output != expected_output {
@@ -1133,7 +1121,7 @@ fn check_output(
                     path: path.clone(),
                     actual: output.clone(),
                     expected: expected_output,
-                    bless_command: config.bless_command.clone(),
+                    bless_command: config.config.bless_command.clone(),
                 });
             }
         }
