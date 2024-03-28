@@ -281,10 +281,28 @@ impl Config {
             .any(|arch| self.target.as_ref().unwrap().contains(arch))
     }
 
+    pub(crate) fn get_pointer_width(&self) -> u8 {
+        // Taken 1:1 from compiletest-rs
+        fn get_pointer_width(triple: &str) -> u8 {
+            if (triple.contains("64")
+                && !triple.ends_with("gnux32")
+                && !triple.ends_with("gnu_ilp32"))
+                || triple.starts_with("s390x")
+            {
+                64
+            } else if triple.starts_with("avr") {
+                16
+            } else {
+                32
+            }
+        }
+        get_pointer_width(self.target.as_ref().unwrap())
+    }
+
     pub(crate) fn test_condition(&self, condition: &Condition) -> bool {
         let target = self.target.as_ref().unwrap();
         match condition {
-            Condition::Bitwidth(bits) => crate::get_pointer_width(target) == *bits,
+            Condition::Bitwidth(bits) => self.get_pointer_width() == *bits,
             Condition::Target(t) => target.contains(t),
             Condition::Host(t) => self.host.as_ref().unwrap().contains(t),
             Condition::OnHost => self.host_matches_target(),

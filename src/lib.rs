@@ -1054,9 +1054,8 @@ fn check_output(
     kind: &'static str,
     config: &TestConfig,
 ) -> PathBuf {
-    let target = config.config.target.as_ref().unwrap();
     let output = normalize(output, config.comments, config.revision, kind);
-    let path = output_path(config, revised(config.revision, kind), target);
+    let path = output_path(config, revised(config.revision, kind));
     match &config.config.output_conflict_handling {
         OutputConflictHandling::Error => {
             let expected_output = std::fs::read(&path).unwrap_or_default();
@@ -1081,26 +1080,13 @@ fn check_output(
     path
 }
 
-fn output_path(config: &TestConfig<'_>, kind: String, target: &str) -> PathBuf {
+fn output_path(config: &TestConfig<'_>, kind: String) -> PathBuf {
     if config.comments().any(|r| r.stderr_per_bitwidth) {
         return config
             .path
-            .with_extension(format!("{}bit.{kind}", get_pointer_width(target)));
+            .with_extension(format!("{}bit.{kind}", config.config.get_pointer_width()));
     }
     config.path.with_extension(kind)
-}
-
-// Taken 1:1 from compiletest-rs
-fn get_pointer_width(triple: &str) -> u8 {
-    if (triple.contains("64") && !triple.ends_with("gnux32") && !triple.ends_with("gnu_ilp32"))
-        || triple.starts_with("s390x")
-    {
-        64
-    } else if triple.starts_with("avr") {
-        16
-    } else {
-        32
-    }
 }
 
 fn normalize(text: &[u8], comments: &Comments, revision: &str, kind: &'static str) -> Vec<u8> {
