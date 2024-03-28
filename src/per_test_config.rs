@@ -93,7 +93,7 @@ impl TestConfig<'_> {
             // Adding a `--target` arg to calls to Cargo will cause target folders
             // to create a target-specific sub-folder. We can avoid that by just
             // not passing a `--target` arg if its the same as the host.
-            if !config.host_matches(target) {
+            if !config.host_matches_target() {
                 cmd.arg("--target").arg(target);
             }
         }

@@ -261,8 +261,12 @@ impl Config {
     }
 
     /// Check whether the host is the specified string
-    pub fn host_matches(&self, target: &str) -> bool {
-        self.host.as_ref().expect("host should have been filled in") == target
+    pub fn host_matches_target(&self) -> bool {
+        self.host.as_ref().expect("host should have been filled in")
+            == self
+                .target
+                .as_ref()
+                .expect("target should have been filled in")
     }
 
     pub(crate) fn has_asm_support(&self) -> bool {
@@ -283,7 +287,7 @@ impl Config {
             Condition::Bitwidth(bits) => crate::get_pointer_width(target) == *bits,
             Condition::Target(t) => target.contains(t),
             Condition::Host(t) => self.host.as_ref().unwrap().contains(t),
-            Condition::OnHost => self.host_matches(target),
+            Condition::OnHost => self.host_matches_target(),
         }
     }
 
