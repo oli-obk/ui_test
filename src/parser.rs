@@ -8,7 +8,7 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{rustc_stderr::Level, Error, Errored, Match, Mode};
+use crate::{filter::Match, rustc_stderr::Level, test_result::Errored, Error, Mode};
 
 use color_eyre::eyre::{Context, Result};
 

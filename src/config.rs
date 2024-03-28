@@ -2,8 +2,10 @@ use regex::bytes::Regex;
 use spanned::{Span, Spanned};
 
 use crate::{
-    dependencies::build_dependencies, per_test_config::Comments, CommandBuilder, Match, Mode,
-    RustfixMode,
+    dependencies::build_dependencies,
+    filter::Match,
+    per_test_config::{Comments, Condition},
+    CommandBuilder, Mode, RustfixMode,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
@@ -259,8 +261,12 @@ impl Config {
     }
 
     /// Check whether the host is the specified string
-    pub fn host_matches(&self, target: &str) -> bool {
-        self.host.as_ref().expect("host should have been filled in") == target
+    pub fn host_matches_target(&self) -> bool {
+        self.host.as_ref().expect("host should have been filled in")
+            == self
+                .target
+                .as_ref()
+                .expect("target should have been filled in")
     }
 
     pub(crate) fn has_asm_support(&self) -> bool {
@@ -273,6 +279,56 @@ impl Config {
         ASM_SUPPORTED_ARCHS
             .iter()
             .any(|arch| self.target.as_ref().unwrap().contains(arch))
+    }
+
+    pub(crate) fn get_pointer_width(&self) -> u8 {
+        // Taken 1:1 from compiletest-rs
+        fn get_pointer_width(triple: &str) -> u8 {
+            if (triple.contains("64")
+                && !triple.ends_with("gnux32")
+                && !triple.ends_with("gnu_ilp32"))
+                || triple.starts_with("s390x")
+            {
+                64
+            } else if triple.starts_with("avr") {
+                16
+            } else {
+                32
+            }
+        }
+        get_pointer_width(self.target.as_ref().unwrap())
+    }
+
+    pub(crate) fn test_condition(&self, condition: &Condition) -> bool {
+        let target = self.target.as_ref().unwrap();
+        match condition {
+            Condition::Bitwidth(bits) => self.get_pointer_width() == *bits,
+            Condition::Target(t) => target.contains(t),
+            Condition::Host(t) => self.host.as_ref().unwrap().contains(t),
+            Condition::OnHost => self.host_matches_target(),
+        }
+    }
+
+    /// Returns whether according to the in-file conditions, this file should be run.
+    pub fn test_file_conditions(&self, comments: &Comments, revision: &str) -> bool {
+        if comments
+            .for_revision(revision)
+            .flat_map(|r| r.ignore.iter())
+            .any(|c| self.test_condition(c))
+        {
+            return self.run_only_ignored;
+        }
+        if comments
+            .for_revision(revision)
+            .any(|r| r.needs_asm_support && !self.has_asm_support())
+        {
+            return self.run_only_ignored;
+        }
+        comments
+            .for_revision(revision)
+            .flat_map(|r| r.only.iter())
+            .all(|c| self.test_condition(c))
+            ^ self.run_only_ignored
     }
 }
 
