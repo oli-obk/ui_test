@@ -13,6 +13,20 @@ fn config() -> Config {
     }
 }
 
+macro_rules! config {
+    ($config:ident = $s:expr) => {
+        let path = Path::new("moobar");
+        let comments = Comments::parse($s, $config.comment_defaults.clone(), path).unwrap();
+        #[allow(unused_mut)]
+        let mut $config = TestConfig {
+            config: $config,
+            path,
+            comments: &comments,
+            revision: "",
+        };
+    };
+}
+
 #[test]
 fn issue_2156() {
     let s = r"
@@ -23,7 +37,7 @@ fn main() {
 }
     ";
     let config = config();
-    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    config!(config = s);
     let mut errors = vec![];
     let messages = vec![
         vec![], vec![], vec![], vec![], vec![],
@@ -42,7 +56,7 @@ fn main() {
         Path::new("moobar"),
         &mut errors,
         "",
-        &comments,
+        config.comments,
     )
     .unwrap();
     match &errors[..] {
@@ -62,7 +76,7 @@ fn main() {
 }
     ";
     let config = config();
-    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    config!(config = s);
     {
         let messages = vec![vec![], vec![], vec![], vec![], vec![], vec![
                 Message {
@@ -80,7 +94,7 @@ fn main() {
             Path::new("moobar"),
             &mut errors,
             "",
-            &comments,
+            config.comments,
         )
         .unwrap();
         match &errors[..] {
@@ -107,7 +121,7 @@ fn main() {
             Path::new("moobar"),
             &mut errors,
             "",
-            &comments,
+            config.comments,
         )
         .unwrap();
         match &errors[..] {
@@ -138,7 +152,7 @@ fn main() {
             Path::new("moobar"),
             &mut errors,
             "",
-            &comments,
+            config.comments,
         )
         .unwrap();
         match &errors[..] {
@@ -160,7 +174,7 @@ fn main() {
 }
     ";
     let config = config();
-    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    config!(config = s);
     let messages = vec![
         vec![], vec![], vec![], vec![], vec![],
         vec![
@@ -179,7 +193,7 @@ fn main() {
         Path::new("moobar"),
         &mut errors,
         "",
-        &comments,
+        config.comments,
     )
     .unwrap();
     match &errors[..] {
@@ -198,7 +212,7 @@ fn main() {
 }
     ";
     let config = config();
-    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    config!(config = s);
     let messages = vec![
         vec![], vec![], vec![], vec![], vec![],
         vec![
@@ -223,7 +237,7 @@ fn main() {
         Path::new("moobar"),
         &mut errors,
         "",
-        &comments,
+        config.comments,
     )
     .unwrap();
     match &errors[..] {
@@ -244,7 +258,7 @@ fn main() {
 }
     ";
     let config = config();
-    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    config!(config = s);
     let messages= vec![
         vec![],
         vec![],
@@ -279,7 +293,7 @@ fn main() {
         Path::new("moobar"),
         &mut errors,
         "",
-        &comments,
+        config.comments,
     )
     .unwrap();
     match &errors[..] {
@@ -311,7 +325,7 @@ fn main() {
 }
     ";
     let config = config();
-    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    config!(config = s);
     let messages = vec![
         vec![],
         vec![],
@@ -346,7 +360,7 @@ fn main() {
         Path::new("moobar"),
         &mut errors,
         "",
-        &comments,
+        config.comments,
     )
     .unwrap();
     match &errors[..] {
@@ -363,7 +377,7 @@ fn main() {
 }
     ";
     let config = config();
-    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    config!(config = s);
     {
         let messages = vec![
             vec![],
@@ -383,7 +397,7 @@ fn main() {
             Path::new("moobar"),
             &mut errors,
             "",
-            &comments,
+            config.comments,
         )
         .unwrap();
         match &errors[..] {
@@ -412,7 +426,7 @@ fn main() {
             Path::new("moobar"),
             &mut errors,
             "",
-            &comments,
+            config.comments,
         )
         .unwrap();
         match &errors[..] {
@@ -442,7 +456,7 @@ fn main() {
             Path::new("moobar"),
             &mut errors,
             "",
-            &comments,
+            config.comments,
         )
         .unwrap();
         match &errors[..] {
@@ -462,7 +476,7 @@ fn main() {
     let mut config = config();
     config.comment_defaults.base().diagnostic_code_prefix =
         Spanned::dummy("prefix::".to_string()).into();
-    let comments = Comments::parse(s, config.comment_defaults.clone(), Path::new("")).unwrap();
+    config!(config = s);
     {
         let messages = vec![
             vec![],
@@ -482,7 +496,7 @@ fn main() {
             Path::new("moobar"),
             &mut errors,
             "",
-            &comments,
+            config.comments,
         )
         .unwrap();
         match &errors[..] {
@@ -511,7 +525,7 @@ fn main() {
             Path::new("moobar"),
             &mut errors,
             "",
-            &comments,
+            config.comments,
         )
         .unwrap();
         match &errors[..] {
