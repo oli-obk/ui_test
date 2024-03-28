@@ -834,14 +834,6 @@ fn run_rustfix(
     }
 }
 
-fn revised(revision: &str, extension: &str) -> String {
-    if revision.is_empty() {
-        extension.to_string()
-    } else {
-        format!("{revision}.{extension}")
-    }
-}
-
 fn check_test_result(
     command: Command,
     mode: Mode,
@@ -1055,7 +1047,7 @@ fn check_output(
     config: &TestConfig,
 ) -> PathBuf {
     let output = normalize(output, config.comments, config.revision, kind);
-    let path = output_path(config, revised(config.revision, kind));
+    let path = output_path(config, kind);
     match &config.config.output_conflict_handling {
         OutputConflictHandling::Error => {
             let expected_output = std::fs::read(&path).unwrap_or_default();
@@ -1080,13 +1072,14 @@ fn check_output(
     path
 }
 
-fn output_path(config: &TestConfig<'_>, kind: String) -> PathBuf {
+fn output_path(config: &TestConfig<'_>, kind: &str) -> PathBuf {
+    let ext = config.extension(kind);
     if config.comments().any(|r| r.stderr_per_bitwidth) {
         return config
             .path
-            .with_extension(format!("{}bit.{kind}", config.config.get_pointer_width()));
+            .with_extension(format!("{}bit.{ext}", config.config.get_pointer_width()));
     }
-    config.path.with_extension(kind)
+    config.path.with_extension(ext)
 }
 
 fn normalize(text: &[u8], comments: &Comments, revision: &str, kind: &'static str) -> Vec<u8> {
