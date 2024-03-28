@@ -586,7 +586,7 @@ fn build_aux_files(
     build_manager: &BuildManager<'_>,
 ) -> Result<Vec<OsString>, Errored> {
     let mut extra_args = vec![];
-    for rev in config.all() {
+    for rev in config.comments() {
         for aux in &rev.aux_builds {
             let line = aux.line();
             let aux = &**aux;
@@ -1056,13 +1056,7 @@ fn check_output(
 ) -> PathBuf {
     let target = config.config.target.as_ref().unwrap();
     let output = normalize(output, config.comments, config.revision, kind);
-    let path = output_path(
-        config.path,
-        config.comments,
-        revised(config.revision, kind),
-        target,
-        config.revision,
-    );
+    let path = output_path(config, revised(config.revision, kind), target);
     match &config.config.output_conflict_handling {
         OutputConflictHandling::Error => {
             let expected_output = std::fs::read(&path).unwrap_or_default();
@@ -1087,20 +1081,13 @@ fn check_output(
     path
 }
 
-fn output_path(
-    path: &Path,
-    comments: &Comments,
-    kind: String,
-    target: &str,
-    revision: &str,
-) -> PathBuf {
-    if comments
-        .for_revision(revision)
-        .any(|r| r.stderr_per_bitwidth)
-    {
-        return path.with_extension(format!("{}bit.{kind}", get_pointer_width(target)));
+fn output_path(config: &TestConfig<'_>, kind: String, target: &str) -> PathBuf {
+    if config.comments().any(|r| r.stderr_per_bitwidth) {
+        return config
+            .path
+            .with_extension(format!("{}bit.{kind}", get_pointer_width(target)));
     }
-    path.with_extension(kind)
+    config.path.with_extension(kind)
 }
 
 // Taken 1:1 from compiletest-rs

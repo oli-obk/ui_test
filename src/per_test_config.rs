@@ -54,7 +54,7 @@ impl TestConfig<'_> {
         self.comments.find_one_for_revision(self.revision, kind, f)
     }
 
-    pub fn all(&self) -> impl Iterator<Item = &'_ Revisioned> {
+    pub fn comments(&self) -> impl Iterator<Item = &'_ Revisioned> {
         self.comments.for_revision(self.revision)
     }
 
@@ -62,10 +62,7 @@ impl TestConfig<'_> {
         &'a self,
         f: impl Fn(&'a Revisioned) -> I,
     ) -> R {
-        self.comments
-            .for_revision(self.revision)
-            .flat_map(f)
-            .collect()
+        self.comments().flat_map(f).collect()
     }
 
     pub fn build_command(&self) -> Result<Command, Errored> {
