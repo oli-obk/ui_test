@@ -12,7 +12,7 @@ use std::{
 };
 
 use crate::{
-    crate_type, default_per_file_config,
+    default_per_file_config,
     per_test_config::{Comments, TestConfig},
     rustc_stderr,
     status_emitter::StatusEmitter,
@@ -369,7 +369,7 @@ impl<'a> BuildManager<'a> {
 
         default_per_file_config(&mut config, aux_file, &file_contents);
 
-        match crate_type(&file_contents) {
+        match CrateType::from_file_contents(&file_contents) {
             // Proc macros must be run on the host
             CrateType::ProcMacro => config.target = config.host.clone(),
             CrateType::Test | CrateType::Bin | CrateType::Lib => {}
