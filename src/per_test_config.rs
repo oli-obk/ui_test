@@ -4,6 +4,7 @@
 //! some boolean settings have no way to disable them.
 
 use std::path::Path;
+use std::process::Command;
 
 use spanned::Spanned;
 
@@ -61,5 +62,51 @@ impl TestConfig<'_> {
             .for_revision(self.revision)
             .flat_map(f)
             .collect()
+    }
+
+    pub fn build_command(&self) -> Result<Command, Errored> {
+        let TestConfig {
+            config,
+            revision,
+            comments,
+            path,
+        } = self;
+        let mut cmd = config.program.build(&config.out_dir);
+        cmd.arg(path);
+        if !revision.is_empty() {
+            cmd.arg(format!("--cfg={revision}"));
+        }
+        for arg in comments
+            .for_revision(revision)
+            .flat_map(|r| r.compile_flags.iter())
+        {
+            cmd.arg(arg);
+        }
+        let edition = comments.edition(revision)?;
+
+        if let Some(edition) = edition {
+            cmd.arg("--edition").arg(&*edition);
+        }
+
+        if let Some(target) = &config.target {
+            // Adding a `--target` arg to calls to Cargo will cause target folders
+            // to create a target-specific sub-folder. We can avoid that by just
+            // not passing a `--target` arg if its the same as the host.
+            if !config.host_matches(target) {
+                cmd.arg("--target").arg(target);
+            }
+        }
+
+        // False positive in miri, our `map` uses a ref pattern to get the references to the tuple fields instead
+        // of a reference to a tuple
+        #[allow(clippy::map_identity)]
+        cmd.envs(
+            comments
+                .for_revision(revision)
+                .flat_map(|r| r.env_vars.iter())
+                .map(|(k, v)| (k, v)),
+        );
+
+        Ok(cmd)
     }
 }

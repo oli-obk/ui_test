@@ -164,7 +164,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
         comments: &comments,
         path,
     };
-    let mut result = build_command(&config).unwrap();
+    let mut result = config.build_command().unwrap();
     result.args(extra_args);
 
     Ok(result)
@@ -431,52 +431,6 @@ fn parse_and_test_file(
         .collect())
 }
 
-fn build_command(config: &TestConfig) -> Result<Command, Errored> {
-    let TestConfig {
-        config,
-        revision,
-        comments,
-        path,
-    } = config;
-    let mut cmd = config.program.build(&config.out_dir);
-    cmd.arg(path);
-    if !revision.is_empty() {
-        cmd.arg(format!("--cfg={revision}"));
-    }
-    for arg in comments
-        .for_revision(revision)
-        .flat_map(|r| r.compile_flags.iter())
-    {
-        cmd.arg(arg);
-    }
-    let edition = comments.edition(revision)?;
-
-    if let Some(edition) = edition {
-        cmd.arg("--edition").arg(&*edition);
-    }
-
-    if let Some(target) = &config.target {
-        // Adding a `--target` arg to calls to Cargo will cause target folders
-        // to create a target-specific sub-folder. We can avoid that by just
-        // not passing a `--target` arg if its the same as the host.
-        if !config.host_matches(target) {
-            cmd.arg("--target").arg(target);
-        }
-    }
-
-    // False positive in miri, our `map` uses a ref pattern to get the references to the tuple fields instead
-    // of a reference to a tuple
-    #[allow(clippy::map_identity)]
-    cmd.envs(
-        comments
-            .for_revision(revision)
-            .flat_map(|r| r.env_vars.iter())
-            .map(|(k, v)| (k, v)),
-    );
-
-    Ok(cmd)
-}
-
 fn build_aux(
     aux_file: &Path,
     config: &Config,
@@ -534,7 +488,7 @@ fn build_aux(
 
     config.patch_out_dir();
 
-    let mut aux_cmd = build_command(&config)?;
+    let mut aux_cmd = config.build_command()?;
 
     let mut extra_args = build_aux_files(
         aux_file.parent().unwrap(),
@@ -594,7 +548,7 @@ fn run_test(build_manager: &BuildManager<'_>, mut config: TestConfig<'_>) -> Tes
 
     config.patch_out_dir();
 
-    let mut cmd = build_command(&config)?;
+    let mut cmd = config.build_command()?;
     cmd.args(&extra_args);
     let stdin = config.path.with_extension(config.extension("stdin"));
     if stdin.exists() {
@@ -871,7 +825,7 @@ fn run_rustfix(
         return Ok(());
     }
 
-    let mut cmd = build_command(&config)?;
+    let mut cmd = config.build_command()?;
     cmd.args(extra_args);
     cmd.arg("--crate-name").arg(crate_name);
     let output = cmd.output().unwrap();
