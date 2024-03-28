@@ -1037,7 +1037,7 @@ fn check_output(
     kind: &'static str,
     config: &TestConfig,
 ) -> PathBuf {
-    let output = normalize(output, config.comments, config.revision, kind);
+    let output = normalize(output, config, kind);
     let path = output_path(config, kind);
     match &config.config.output_conflict_handling {
         OutputConflictHandling::Error => {
@@ -1073,10 +1073,10 @@ fn output_path(config: &TestConfig<'_>, kind: &str) -> PathBuf {
     config.path.with_extension(ext)
 }
 
-fn normalize(text: &[u8], comments: &Comments, revision: &str, kind: &'static str) -> Vec<u8> {
+fn normalize(text: &[u8], config: &TestConfig, kind: &'static str) -> Vec<u8> {
     let mut text = text.to_owned();
 
-    for (from, to) in comments.for_revision(revision).flat_map(|r| match kind {
+    for (from, to) in config.comments().flat_map(|r| match kind {
         "fixed" => &[] as &[_],
         "stderr" => &r.normalize_stderr,
         "stdout" => &r.normalize_stdout,
