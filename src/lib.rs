@@ -17,7 +17,6 @@ use per_test_config::TestConfig;
 use rustc_stderr::Message;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
-use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::path::{Component, Path, Prefix};
 use std::process::{Command, Output};
@@ -427,106 +426,6 @@ fn parse_and_test_file(
             TestRun { result, status }
         })
         .collect())
-}
-
-fn build_aux(
-    aux_file: &Path,
-    config: &Config,
-    build_manager: &BuildManager<'_>,
-) -> std::result::Result<Vec<OsString>, Errored> {
-    let file_contents = std::fs::read(aux_file).map_err(|err| Errored {
-        command: Command::new(format!("reading aux file `{}`", aux_file.display())),
-        errors: vec![],
-        stderr: err.to_string().into_bytes(),
-        stdout: vec![],
-    })?;
-    let comments = Comments::parse(&file_contents, config.comment_defaults.clone(), aux_file)
-        .map_err(|errors| Errored::new(errors, "parse aux comments"))?;
-    assert_eq!(
-        comments.revisions, None,
-        "aux builds cannot specify revisions"
-    );
-
-    let mut config = config.clone();
-
-    // Strip any `crate-type` flags from the args, as we need to set our own,
-    // and they may conflict (e.g. `lib` vs `proc-macro`);
-    let mut prev_was_crate_type = false;
-    config.program.args.retain(|arg| {
-        if prev_was_crate_type {
-            prev_was_crate_type = false;
-            return false;
-        }
-        if arg == "--test" {
-            false
-        } else if arg == "--crate-type" {
-            prev_was_crate_type = true;
-            false
-        } else if let Some(arg) = arg.to_str() {
-            !arg.starts_with("--crate-type=")
-        } else {
-            true
-        }
-    });
-
-    default_per_file_config(&mut config, aux_file, &file_contents);
-
-    match crate_type(&file_contents) {
-        // Proc macros must be run on the host
-        CrateType::ProcMacro => config.target = config.host.clone(),
-        CrateType::Test | CrateType::Bin | CrateType::Lib => {}
-    }
-
-    let mut config = TestConfig {
-        config,
-        revision: "",
-        comments: &comments,
-        path: aux_file,
-    };
-
-    config.patch_out_dir();
-
-    let mut aux_cmd = config.build_command()?;
-
-    let mut extra_args = config.build_aux_files(aux_file.parent().unwrap(), build_manager)?;
-    // Make sure we see our dependencies
-    aux_cmd.args(extra_args.iter());
-
-    aux_cmd.arg("--emit=link");
-    let filename = aux_file.file_stem().unwrap().to_str().unwrap();
-    let output = aux_cmd.output().unwrap();
-    if !output.status.success() {
-        let error = Error::Command {
-            kind: "compilation of aux build failed".to_string(),
-            status: output.status,
-        };
-        return Err(Errored {
-            command: aux_cmd,
-            errors: vec![error],
-            stderr: rustc_stderr::process(aux_file, &output.stderr).rendered,
-            stdout: output.stdout,
-        });
-    }
-
-    // Now run the command again to fetch the output filenames
-    aux_cmd.arg("--print").arg("file-names");
-    let output = aux_cmd.output().unwrap();
-    assert!(output.status.success());
-
-    for file in output.stdout.lines() {
-        let file = std::str::from_utf8(file).unwrap();
-        let crate_name = filename.replace('-', "_");
-        let path = config.config.out_dir.join(file);
-        extra_args.push("--extern".into());
-        let mut cname = OsString::from(&crate_name);
-        cname.push("=");
-        cname.push(path);
-        extra_args.push(cname);
-        // Help cargo find the crates added with `--extern`.
-        extra_args.push("-L".into());
-        extra_args.push(config.config.out_dir.as_os_str().to_os_string());
-    }
-    Ok(extra_args)
 }
 
 fn run_command(mut cmd: Command) -> Result<(Command, Output), Errored> {
