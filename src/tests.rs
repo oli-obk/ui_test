@@ -50,15 +50,7 @@ fn main() {
             }
         ]
     ];
-    check_annotations(
-        messages,
-        vec![],
-        Path::new("moobar"),
-        &mut errors,
-        "",
-        config.comments,
-    )
-    .unwrap();
+    check_annotations(messages, vec![], &config, &mut errors).unwrap();
     match &errors[..] {
         [Error::PatternNotFound { pattern, .. }, Error::ErrorsWithoutPattern { path, .. }]
             if path.as_ref().is_some_and(|p| p.line().get() == 5) && pattern.line().get() == 5 => {}
@@ -88,15 +80,7 @@ fn main() {
             ]
         ];
         let mut errors = vec![];
-        check_annotations(
-            messages,
-            vec![],
-            Path::new("moobar"),
-            &mut errors,
-            "",
-            config.comments,
-        )
-        .unwrap();
+        check_annotations(messages, vec![], &config, &mut errors).unwrap();
         match &errors[..] {
             [] => {}
             _ => panic!("{:#?}", errors),
@@ -115,15 +99,7 @@ fn main() {
             ]
         ];
         let mut errors = vec![];
-        check_annotations(
-            messages,
-            vec![],
-            Path::new("moobar"),
-            &mut errors,
-            "",
-            config.comments,
-        )
-        .unwrap();
+        check_annotations(messages, vec![], &config, &mut errors).unwrap();
         match &errors[..] {
             [Error::PatternNotFound { pattern, .. }, Error::ErrorsWithoutPattern { path, .. }]
                 if path.as_ref().is_some_and(|p| p.line().get() == 4)
@@ -146,15 +122,7 @@ fn main() {
             ]
         ];
         let mut errors = vec![];
-        check_annotations(
-            messages,
-            vec![],
-            Path::new("moobar"),
-            &mut errors,
-            "",
-            config.comments,
-        )
-        .unwrap();
+        check_annotations(messages, vec![], &config, &mut errors).unwrap();
         match &errors[..] {
             // Note no `ErrorsWithoutPattern`, because there are no `//~NOTE` in the test file, so we ignore them
             [Error::PatternNotFound { pattern, .. }] if pattern.line().get() == 5 => {}
@@ -187,15 +155,7 @@ fn main() {
         ]
     ];
     let mut errors = vec![];
-    check_annotations(
-        messages,
-        vec![],
-        Path::new("moobar"),
-        &mut errors,
-        "",
-        config.comments,
-    )
-    .unwrap();
+    check_annotations(messages, vec![], &config, &mut errors).unwrap();
     match &errors[..] {
         [Error::PatternNotFound { pattern, .. }] if pattern.line().get() == 6 => {}
         _ => panic!("{:#?}", errors),
@@ -231,15 +191,7 @@ fn main() {
         ]
     ];
     let mut errors = vec![];
-    check_annotations(
-        messages,
-        vec![],
-        Path::new("moobar"),
-        &mut errors,
-        "",
-        config.comments,
-    )
-    .unwrap();
+    check_annotations(messages, vec![], &config, &mut errors).unwrap();
     match &errors[..] {
         [Error::ErrorsWithoutPattern { path, .. }]
             if path.as_ref().is_some_and(|p| p.line().get() == 5) => {}
@@ -287,15 +239,7 @@ fn main() {
         ],
     ];
     let mut errors = vec![];
-    check_annotations(
-        messages,
-        vec![],
-        Path::new("moobar"),
-        &mut errors,
-        "",
-        config.comments,
-    )
-    .unwrap();
+    check_annotations(messages, vec![], &config, &mut errors).unwrap();
     match &errors[..] {
         [Error::ErrorsWithoutPattern { path, msgs, .. }]
             if path.as_ref().is_some_and(|p| p.line().get() == 5) =>
@@ -354,15 +298,7 @@ fn main() {
         ],
     ];
     let mut errors = vec![];
-    check_annotations(
-        messages,
-        vec![],
-        Path::new("moobar"),
-        &mut errors,
-        "",
-        config.comments,
-    )
-    .unwrap();
+    check_annotations(messages, vec![], &config, &mut errors).unwrap();
     match &errors[..] {
         [] => {}
         _ => panic!("{:#?}", errors),
@@ -391,15 +327,7 @@ fn main() {
             }],
         ];
         let mut errors = vec![];
-        check_annotations(
-            messages,
-            vec![],
-            Path::new("moobar"),
-            &mut errors,
-            "",
-            config.comments,
-        )
-        .unwrap();
+        check_annotations(messages, vec![], &config, &mut errors).unwrap();
         match &errors[..] {
             [] => {}
             _ => panic!("{:#?}", errors),
@@ -420,15 +348,7 @@ fn main() {
             }],
         ];
         let mut errors = vec![];
-        check_annotations(
-            messages,
-            vec![],
-            Path::new("moobar"),
-            &mut errors,
-            "",
-            config.comments,
-        )
-        .unwrap();
+        check_annotations(messages, vec![], &config, &mut errors).unwrap();
         match &errors[..] {
             [Error::CodeNotFound { code, .. }, Error::ErrorsWithoutPattern { msgs, .. }]
                 if **code == "E0308" && code.line().get() == 3 && msgs.len() == 1 => {}
@@ -450,15 +370,7 @@ fn main() {
             }],
         ];
         let mut errors = vec![];
-        check_annotations(
-            messages,
-            vec![],
-            Path::new("moobar"),
-            &mut errors,
-            "",
-            config.comments,
-        )
-        .unwrap();
+        check_annotations(messages, vec![], &config, &mut errors).unwrap();
         match &errors[..] {
             [Error::CodeNotFound { code, .. }] if **code == "E0308" && code.line().get() == 3 => {}
             _ => panic!("{:#?}", errors),
@@ -490,15 +402,7 @@ fn main() {
             }],
         ];
         let mut errors = vec![];
-        check_annotations(
-            messages,
-            vec![],
-            Path::new("moobar"),
-            &mut errors,
-            "",
-            config.comments,
-        )
-        .unwrap();
+        check_annotations(messages, vec![], &config, &mut errors).unwrap();
         match &errors[..] {
             [] => {}
             _ => panic!("{:#?}", errors),
@@ -519,15 +423,7 @@ fn main() {
             }],
         ];
         let mut errors = vec![];
-        check_annotations(
-            messages,
-            vec![],
-            Path::new("moobar"),
-            &mut errors,
-            "",
-            config.comments,
-        )
-        .unwrap();
+        check_annotations(messages, vec![], &config, &mut errors).unwrap();
         match &errors[..] {
             [Error::CodeNotFound { code, .. }, Error::ErrorsWithoutPattern { msgs, .. }]
                 if **code == "prefix::E0308" && code.line().get() == 3 && msgs.len() == 1 => {}

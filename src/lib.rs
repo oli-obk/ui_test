@@ -842,20 +842,15 @@ fn check_test_result(
 ) -> Result<(Command, Output), Errored> {
     let mut errors = vec![];
     errors.extend(mode.ok(output.status).err());
-    let path = config.path;
-    let comments = config.comments;
-    let revision = config.revision;
     // Always remove annotation comments from stderr.
-    let diagnostics = rustc_stderr::process(path, &output.stderr);
+    let diagnostics = rustc_stderr::process(config.path, &output.stderr);
     check_test_output(&mut errors, config, &output.stdout, &diagnostics.rendered);
     // Check error annotations in the source against output
     check_annotations(
         diagnostics.messages,
         diagnostics.messages_from_unknown_file_or_line,
-        path,
+        config,
         &mut errors,
-        revision,
-        comments,
     )?;
     if errors.is_empty() {
         Ok((command, output))
@@ -879,13 +874,11 @@ fn check_test_output(errors: &mut Vec<Error>, config: &TestConfig, stdout: &[u8]
 fn check_annotations(
     mut messages: Vec<Vec<Message>>,
     mut messages_from_unknown_file_or_line: Vec<Message>,
-    path: &Path,
+    config: &TestConfig,
     errors: &mut Errors,
-    revision: &str,
-    comments: &Comments,
 ) -> Result<(), Errored> {
-    let error_patterns = comments
-        .for_revision(revision)
+    let error_patterns = config
+        .comments()
         .flat_map(|r| r.error_in_other_files.iter());
 
     let mut seen_error_match = None;
@@ -906,8 +899,8 @@ fn check_annotations(
             });
         }
     }
-    let diagnostic_code_prefix = comments
-        .find_one_for_revision(revision, "diagnostic_code_prefix", |r| {
+    let diagnostic_code_prefix = config
+        .find_one("diagnostic_code_prefix", |r| {
             r.diagnostic_code_prefix.clone()
         })?
         .into_inner()
@@ -918,9 +911,8 @@ fn check_annotations(
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
     let mut lowest_annotation_level = Level::Error;
-    'err: for &ErrorMatch { ref kind, line } in comments
-        .for_revision(revision)
-        .flat_map(|r| r.error_matches.iter())
+    'err: for &ErrorMatch { ref kind, line } in
+        config.comments().flat_map(|r| r.error_matches.iter())
     {
         match kind {
             ErrorMatchKind::Code(code) => {
@@ -978,11 +970,10 @@ fn check_annotations(
         });
     }
 
-    let required_annotation_level = comments.find_one_for_revision(
-        revision,
-        "`require_annotations_for_level` annotations",
-        |r| r.require_annotations_for_level.clone(),
-    )?;
+    let required_annotation_level = config
+        .find_one("`require_annotations_for_level` annotations", |r| {
+            r.require_annotations_for_level.clone()
+        })?;
 
     let required_annotation_level = required_annotation_level
         .into_inner()
@@ -992,7 +983,7 @@ fn check_annotations(
         msgs
     };
 
-    let mode = comments.mode(revision)?;
+    let mode = config.mode()?;
 
     if !matches!(*mode, Mode::Yolo { .. }) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
@@ -1009,7 +1000,7 @@ fn check_annotations(
                 let line = NonZeroUsize::new(line).expect("line 0 is always empty");
                 errors.push(Error::ErrorsWithoutPattern {
                     path: Some(Spanned::new(
-                        path.to_path_buf(),
+                        config.path.to_path_buf(),
                         spanned::Span {
                             line_start: line,
                             ..spanned::Span::default()
