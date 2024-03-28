@@ -490,13 +490,7 @@ fn build_aux(
 
     let mut aux_cmd = config.build_command()?;
 
-    let mut extra_args = build_aux_files(
-        aux_file.parent().unwrap(),
-        &comments,
-        "",
-        &config.config,
-        build_manager,
-    )?;
+    let mut extra_args = build_aux_files(aux_file.parent().unwrap(), &config, build_manager)?;
     // Make sure we see our dependencies
     aux_cmd.args(extra_args.iter());
 
@@ -540,9 +534,7 @@ fn build_aux(
 fn run_test(build_manager: &BuildManager<'_>, mut config: TestConfig<'_>) -> TestResult {
     let extra_args = build_aux_files(
         &config.path.parent().unwrap().join("auxiliary"),
-        config.comments,
-        config.revision,
-        &config.config,
+        &config,
         build_manager,
     )?;
 
@@ -590,13 +582,11 @@ fn run_command(mut cmd: Command) -> Result<(Command, Output), Errored> {
 
 fn build_aux_files(
     aux_dir: &Path,
-    comments: &Comments,
-    revision: &str,
-    config: &Config,
+    config: &TestConfig,
     build_manager: &BuildManager<'_>,
 ) -> Result<Vec<OsString>, Errored> {
     let mut extra_args = vec![];
-    for rev in comments.for_revision(revision) {
+    for rev in config.all() {
         for aux in &rev.aux_builds {
             let line = aux.line();
             let aux = &**aux;
@@ -623,7 +613,7 @@ fn build_aux_files(
                             )
                             .collect(),
                         },
-                        config,
+                        &config.config,
                     )
                     .map_err(
                         |Errored {

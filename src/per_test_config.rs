@@ -54,6 +54,10 @@ impl TestConfig<'_> {
         self.comments.find_one_for_revision(self.revision, kind, f)
     }
 
+    pub fn all(&self) -> impl Iterator<Item = &'_ Revisioned> {
+        self.comments.for_revision(self.revision)
+    }
+
     pub fn collect<'a, T, I: Iterator<Item = T>, R: FromIterator<T>>(
         &'a self,
         f: impl Fn(&'a Revisioned) -> I,
