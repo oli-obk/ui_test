@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* Reexporting `eyre::Result` at the root level
+
 ### Fixed
 
 * Passing `--target` to build command when cross-compiling.

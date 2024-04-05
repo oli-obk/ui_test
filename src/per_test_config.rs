@@ -19,7 +19,7 @@ pub use crate::rustc_stderr::Level;
 use crate::rustc_stderr::Message;
 use crate::test_result::{Errored, TestOk, TestResult};
 use crate::{
-    rustc_stderr, strip_path_prefix, Config, Error, Errors, Mode, OutputConflictHandling,
+    core::strip_path_prefix, rustc_stderr, Config, Error, Errors, Mode, OutputConflictHandling,
     RustfixMode,
 };
 
@@ -441,7 +441,7 @@ impl TestConfig<'_> {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
         }
 
-        let (cmd, output) = crate::run_command(cmd)?;
+        let (cmd, output) = crate::core::run_command(cmd)?;
 
         let mode = self.mode()?;
         let (cmd, output) = self.check_test_result(
