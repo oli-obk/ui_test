@@ -10,7 +10,7 @@ use regex::bytes::Regex;
 
 use crate::{filter::Match, rustc_stderr::Level, test_result::Errored, Error, Mode};
 
-use color_eyre::eyre::{Context, Result};
+use color_eyre::eyre::Result;
 
 pub(crate) use spanned::*;
 
@@ -279,15 +279,6 @@ enum ParsePatternResult {
 }
 
 impl Comments {
-    pub(crate) fn parse_file(
-        comments: Comments,
-        path: &Path,
-    ) -> Result<std::result::Result<Self, Vec<Error>>> {
-        let content =
-            std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
-        Ok(Self::parse(&content, comments, path))
-    }
-
     /// Parse comments in `content`.
     /// `path` is only used to emit diagnostics if parsing fails.
     pub(crate) fn parse(
