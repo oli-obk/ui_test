@@ -110,14 +110,13 @@ impl Config {
                 config: &TestConfig<'_>,
                 cmd: Command,
                 output: &Output,
-                extra_args: &[OsString],
             ) -> Result<Option<Command>, Errored> {
                 let global_rustfix = match *config.mode()? {
                     Mode::Pass | Mode::Panic => RustfixMode::Disabled,
                     Mode::Fail { .. } | Mode::Yolo => *self,
                 };
 
-                if config.run_rustfix(output.clone(), extra_args, global_rustfix)? {
+                if config.run_rustfix(output.clone(), global_rustfix)? {
                     Ok(None)
                 } else {
                     Ok(Some(cmd))

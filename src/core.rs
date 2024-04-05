@@ -8,7 +8,6 @@ use color_eyre::eyre::Result;
 use crossbeam_channel::unbounded;
 use crossbeam_channel::Receiver;
 use crossbeam_channel::Sender;
-use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::panic::UnwindSafe;
 use std::path::Component;
@@ -144,7 +143,6 @@ pub trait Flag: Send + Sync + UnwindSafe + std::fmt::Debug {
         _config: &TestConfig<'_>,
         cmd: Command,
         _output: &Output,
-        _extra_args: &[OsString],
     ) -> Result<Option<Command>, Errored> {
         Ok(Some(cmd))
     }

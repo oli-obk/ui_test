@@ -438,8 +438,9 @@ impl TestConfig<'_> {
 
         self.patch_out_dir();
 
+        self.config.program.args.extend(extra_args);
+
         let mut cmd = self.build_command()?;
-        cmd.args(&extra_args);
         let stdin = self.path.with_extension(self.extension("stdin"));
         if stdin.exists() {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
@@ -451,11 +452,7 @@ impl TestConfig<'_> {
 
         for rev in self.comments() {
             for custom in rev.custom.values() {
-                if let Some(c) =
-                    custom
-                        .content
-                        .post_test_action(&self, cmd, &output, &extra_args)?
-                {
+                if let Some(c) = custom.content.post_test_action(&self, cmd, &output)? {
                     cmd = c;
                 } else {
                     return Ok(TestOk::Ok);
@@ -518,7 +515,6 @@ impl TestConfig<'_> {
     pub(crate) fn run_rustfix(
         &self,
         output: Output,
-        extra_args: &[OsString],
         global_rustfix: RustfixMode,
     ) -> Result<bool, Errored> {
         let no_run_rustfix = self.find_one_custom("no-rustfix")?;
@@ -645,7 +641,6 @@ impl TestConfig<'_> {
         }
 
         let mut cmd = config.build_command()?;
-        cmd.args(extra_args);
         cmd.arg("--crate-name").arg(crate_name);
         let output = cmd.output().unwrap();
         if output.status.success() {
@@ -682,7 +677,6 @@ impl Flag for Run {
         config: &TestConfig<'_>,
         cmd: Command,
         _output: &Output,
-        _extra_args: &[OsString],
     ) -> Result<Option<Command>, Errored> {
         config.run_test_binary(cmd, self.exit_code)?;
         Ok(None)
