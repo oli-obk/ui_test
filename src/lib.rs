@@ -9,7 +9,8 @@
 //! A crate to run the Rust compiler (or other binaries) and test their command line output.
 
 pub use color_eyre;
-use color_eyre::eyre::{eyre, Result};
+use color_eyre::eyre::eyre;
+pub use color_eyre::eyre::Result;
 pub use core::CrateType;
 use dependencies::{Build, BuildManager};
 use per_test_config::TestConfig;
