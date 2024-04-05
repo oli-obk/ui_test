@@ -19,7 +19,8 @@ use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
 use std::path::Path;
 use std::process::Command;
-use test_result::{Errored, TestOk, TestRun};
+use test_result::TestRun;
+pub use test_result::{Errored, TestOk};
 
 use crate::parser::Comments;
 
