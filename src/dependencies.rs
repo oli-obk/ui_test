@@ -338,7 +338,7 @@ impl<'a> BuildManager<'a> {
             stderr: err.to_string().into_bytes(),
             stdout: vec![],
         })?;
-        let comments = Comments::parse(&file_contents, config.comment_defaults.clone(), aux_file)
+        let comments = Comments::parse(&file_contents, config, aux_file)
             .map_err(|errors| Errored::new(errors, "parse aux comments"))?;
         assert_eq!(
             comments.revisions, None,

@@ -127,7 +127,7 @@ fn main() -> Result<()> {
                         // multiple [[test]]s exist. If there's only one test, it returns
                         // 1 on failure.
                         Mode::Panic => fail,
-                        Mode::Run { .. } | Mode::Yolo { .. } | Mode::Fail { .. } => unreachable!(),
+                        Mode::Yolo { .. } | Mode::Fail { .. } => unreachable!(),
                     }
                     && default_any_file_filter(path, config),
             )

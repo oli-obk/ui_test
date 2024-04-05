@@ -1,18 +1,22 @@
 use regex::bytes::Regex;
-use spanned::{Span, Spanned};
+use spanned::Spanned;
 
 use crate::{
+    core::Flag,
     dependencies::build_dependencies,
     filter::Match,
-    per_test_config::{Comments, Condition},
-    CommandBuilder, Mode, RustfixMode,
+    parser::CommandParserFunc,
+    per_test_config::{Comments, Condition, Run, TestConfig},
+    CommandBuilder, Errored, Mode, RustfixMode,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
+    collections::HashMap,
     ffi::OsString,
     num::NonZeroUsize,
     path::{Path, PathBuf},
+    process::{Command, Output},
 };
 
 mod args;
@@ -55,6 +59,8 @@ pub struct Config {
     pub filter_exact: bool,
     /// The default settings settable via `@` comments
     pub comment_defaults: Comments,
+    /// Custom comment parsers
+    pub custom_comments: HashMap<&'static str, CommandParserFunc>,
 }
 
 impl Config {
@@ -62,10 +68,70 @@ impl Config {
     /// `rustc` on the test files.
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
         let mut comment_defaults = Comments::default();
+
+        #[derive(Debug)]
+        struct Edition(String);
+
+        impl Flag for Edition {
+            fn clone_inner(&self) -> Box<dyn Flag> {
+                Box::new(Edition(self.0.clone()))
+            }
+
+            fn apply(&self, cmd: &mut std::process::Command) {
+                cmd.arg("--edition").arg(&self.0);
+            }
+        }
+
+        #[derive(Debug)]
+        struct NeedsAsmSupport;
+
+        impl Flag for NeedsAsmSupport {
+            fn clone_inner(&self) -> Box<dyn Flag> {
+                Box::new(NeedsAsmSupport)
+            }
+            fn test_condition(&self, config: &Config) -> bool {
+                let target = config.target.as_ref().unwrap();
+                static ASM_SUPPORTED_ARCHS: &[&str] = &[
+                    "x86", "x86_64", "arm", "aarch64", "riscv32",
+                    "riscv64",
+                    // These targets require an additional asm_experimental_arch feature.
+                    // "nvptx64", "hexagon", "mips", "mips64", "spirv", "wasm32",
+                ];
+                !ASM_SUPPORTED_ARCHS.iter().any(|arch| target.contains(arch))
+            }
+        }
+
+        impl Flag for RustfixMode {
+            fn clone_inner(&self) -> Box<dyn Flag> {
+                Box::new(*self)
+            }
+            fn post_test_action(
+                &self,
+                config: &TestConfig<'_>,
+                cmd: Command,
+                output: &Output,
+            ) -> Result<Option<Command>, Errored> {
+                let global_rustfix = match *config.mode()? {
+                    Mode::Pass | Mode::Panic => RustfixMode::Disabled,
+                    Mode::Fail { .. } | Mode::Yolo => *self,
+                };
+
+                if config.run_rustfix(output.clone(), global_rustfix)? {
+                    Ok(None)
+                } else {
+                    Ok(Some(cmd))
+                }
+            }
+        }
+
         let _ = comment_defaults
             .base()
-            .edition
-            .set("2021".into(), Span::default());
+            .custom
+            .insert("edition", Spanned::dummy(Box::new(Edition("2021".into()))));
+        let _ = comment_defaults.base().custom.insert(
+            "rustfix",
+            Spanned::dummy(Box::new(RustfixMode::MachineApplicable)),
+        );
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
             #[cfg(windows)]
@@ -77,10 +143,9 @@ impl Config {
         comment_defaults.base().normalize_stdout = filters;
         comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
             require_patterns: true,
-            rustfix: RustfixMode::MachineApplicable,
         })
         .into();
-        Self {
+        let mut config = Self {
             host: None,
             target: None,
             root_dir: root_dir.into(),
@@ -100,7 +165,72 @@ impl Config {
             run_only_ignored: false,
             filter_exact: false,
             comment_defaults,
-        }
+            custom_comments: Default::default(),
+        };
+        config
+            .custom_comments
+            .insert("no-rustfix", |parser, _args, span| {
+                // args are ignored (can be used as comment)
+                let prev = parser
+                    .custom
+                    .insert("no-rustfix", Spanned::new(Box::new(()), span.clone()));
+                parser.check(span, prev.is_none(), "cannot specify `no-rustfix` twice");
+            });
+
+        config
+            .custom_comments
+            .insert("edition", |parser, args, span| {
+                let prev = parser.custom.insert(
+                    "edition",
+                    Spanned::new(Box::new(Edition((*args).into())), args.span()),
+                );
+                parser.check(span, prev.is_none(), "cannot specify `edition` twice");
+            });
+
+        config
+            .custom_comments
+            .insert("needs-asm-support", |parser, args, span| {
+                let prev = parser.custom.insert(
+                    "needs-asm-support",
+                    Spanned::new(Box::new(NeedsAsmSupport), args.span()),
+                );
+                parser.check(
+                    span,
+                    prev.is_none(),
+                    "cannot specify `needs-asm-support` twice",
+                );
+            });
+
+        config.custom_comments.insert("run", |parser, args, span| {
+            parser.check(
+                span.clone(),
+                parser.mode.is_none(),
+                "cannot specify test mode changes twice",
+            );
+            let set = |exit_code| {
+                parser.custom.insert(
+                    "run",
+                    Spanned::new(Box::new(Run { exit_code }), args.span()),
+                );
+                parser.mode = Spanned::new(Mode::Pass, args.span()).into();
+
+                let prev = parser
+                    .custom
+                    .insert("no-rustfix", Spanned::new(Box::new(()), span.clone()));
+                parser.check(span, prev.is_none(), "`run` implies `no-rustfix`");
+            };
+            if args.is_empty() {
+                set(0);
+            } else {
+                match args.content.parse() {
+                    Ok(exit_code) => {
+                        set(exit_code);
+                    }
+                    Err(err) => parser.error(args.span(), err.to_string()),
+                }
+            }
+        });
+        config
     }
 
     /// Create a configuration for testing the output of running
@@ -108,14 +238,10 @@ impl Config {
     pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
         let mut this = Self {
             program: CommandBuilder::cargo(),
+            custom_comments: Default::default(),
             ..Self::rustc(root_dir)
         };
-        this.comment_defaults.base().edition = Default::default();
-        this.comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
-            require_patterns: true,
-            rustfix: RustfixMode::Disabled,
-        })
-        .into();
+        this.comment_defaults.base().custom.clear();
         this
     }
 
@@ -269,18 +395,6 @@ impl Config {
                 .expect("target should have been filled in")
     }
 
-    pub(crate) fn has_asm_support(&self) -> bool {
-        static ASM_SUPPORTED_ARCHS: &[&str] = &[
-            "x86", "x86_64", "arm", "aarch64", "riscv32",
-            "riscv64",
-            // These targets require an additional asm_experimental_arch feature.
-            // "nvptx64", "hexagon", "mips", "mips64", "spirv", "wasm32",
-        ];
-        ASM_SUPPORTED_ARCHS
-            .iter()
-            .any(|arch| self.target.as_ref().unwrap().contains(arch))
-    }
-
     pub(crate) fn get_pointer_width(&self) -> u8 {
         // Taken 1:1 from compiletest-rs
         fn get_pointer_width(triple: &str) -> u8 {
@@ -320,7 +434,7 @@ impl Config {
         }
         if comments
             .for_revision(revision)
-            .any(|r| r.needs_asm_support && !self.has_asm_support())
+            .any(|r| r.custom.values().any(|flag| flag.test_condition(self)))
         {
             return self.run_only_ignored;
         }

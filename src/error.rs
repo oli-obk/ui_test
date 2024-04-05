@@ -1,7 +1,6 @@
 use crate::{
     parser::{Pattern, Span, Spanned},
     rustc_stderr::Message,
-    Mode,
 };
 use std::{num::NonZeroUsize, path::PathBuf, process::ExitStatus};
 
@@ -12,7 +11,7 @@ pub enum Error {
     /// Got an invalid exit status for the given mode.
     ExitStatus {
         /// The expected mode.
-        mode: Mode,
+        mode: String,
         /// The exit status of the command.
         status: ExitStatus,
         /// The expected exit status as set in the file or derived from the mode.

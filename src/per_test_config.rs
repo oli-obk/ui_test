@@ -12,6 +12,7 @@ use std::process::{Command, Output};
 
 use spanned::{Span, Spanned};
 
+use crate::core::Flag;
 use crate::dependencies::{Build, BuildManager};
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
@@ -23,15 +24,18 @@ use crate::{
     RustfixMode,
 };
 
-pub(crate) struct TestConfig<'a> {
+/// All information needed to run a single test
+pub struct TestConfig<'a> {
+    /// The generic config for all tests
     pub config: Config,
-    pub revision: &'a str,
-    pub comments: &'a Comments,
+    pub(crate) revision: &'a str,
+    pub(crate) comments: &'a Comments,
+    /// The path to the current file
     pub path: &'a Path,
 }
 
 impl TestConfig<'_> {
-    pub fn patch_out_dir(&mut self) {
+    pub(crate) fn patch_out_dir(&mut self) {
         // Put aux builds into a separate directory per path so that multiple aux files
         // from different directories (but with the same file name) don't collide.
         let relative = strip_path_prefix(self.path.parent().unwrap(), &self.config.out_dir);
@@ -39,6 +43,7 @@ impl TestConfig<'_> {
         self.config.out_dir.extend(relative);
     }
 
+    /// Create a file extension that includes the current revision if necessary.
     pub fn extension(&self, extension: &str) -> String {
         if self.revision.is_empty() {
             extension.to_string()
@@ -47,15 +52,12 @@ impl TestConfig<'_> {
         }
     }
 
+    /// The test's mode after applying all comments
     pub fn mode(&self) -> Result<Spanned<Mode>, Errored> {
         self.comments.mode(self.revision)
     }
 
-    pub fn edition(&self) -> Result<Option<Spanned<String>>, Errored> {
-        self.comments.edition(self.revision)
-    }
-
-    pub fn find_one<'a, T: 'a>(
+    pub(crate) fn find_one<'a, T: 'a>(
         &'a self,
         kind: &str,
         f: impl Fn(&'a Revisioned) -> OptWithLine<T>,
@@ -63,18 +65,19 @@ impl TestConfig<'_> {
         self.comments.find_one_for_revision(self.revision, kind, f)
     }
 
+    /// All comments that apply to the current test.
     pub fn comments(&self) -> impl Iterator<Item = &'_ Revisioned> {
         self.comments.for_revision(self.revision)
     }
 
-    pub fn collect<'a, T, I: Iterator<Item = T>, R: FromIterator<T>>(
+    pub(crate) fn collect<'a, T, I: Iterator<Item = T>, R: FromIterator<T>>(
         &'a self,
         f: impl Fn(&'a Revisioned) -> I,
     ) -> R {
         self.comments().flat_map(f).collect()
     }
 
-    pub fn build_command(&self) -> Result<Command, Errored> {
+    pub(crate) fn build_command(&self) -> Result<Command, Errored> {
         let TestConfig {
             config,
             revision,
@@ -92,11 +95,8 @@ impl TestConfig<'_> {
         {
             cmd.arg(arg);
         }
-        let edition = comments.edition(revision)?;
 
-        if let Some(edition) = edition {
-            cmd.arg("--edition").arg(&*edition);
-        }
+        comments.apply_custom(revision, &mut cmd);
 
         if let Some(target) = &config.target {
             // Adding a `--target` arg to calls to Cargo will cause target folders
@@ -120,7 +120,7 @@ impl TestConfig<'_> {
         Ok(cmd)
     }
 
-    pub fn output_path(&self, kind: &str) -> PathBuf {
+    pub(crate) fn output_path(&self, kind: &str) -> PathBuf {
         let ext = self.extension(kind);
         if self.comments().any(|r| r.stderr_per_bitwidth) {
             return self
@@ -130,7 +130,7 @@ impl TestConfig<'_> {
         self.path.with_extension(ext)
     }
 
-    pub fn normalize(&self, text: &[u8], kind: &'static str) -> Vec<u8> {
+    pub(crate) fn normalize(&self, text: &[u8], kind: &'static str) -> Vec<u8> {
         let mut text = text.to_owned();
 
         for (from, to) in self.comments().flat_map(|r| match kind {
@@ -144,14 +144,19 @@ impl TestConfig<'_> {
         text
     }
 
-    pub fn check_test_output(&self, errors: &mut Errors, stdout: &[u8], stderr: &[u8]) {
+    pub(crate) fn check_test_output(&self, errors: &mut Errors, stdout: &[u8], stderr: &[u8]) {
         // Check output files (if any)
         // Check output files against actual output
         self.check_output(stderr, errors, "stderr");
         self.check_output(stdout, errors, "stdout");
     }
 
-    pub fn check_output(&self, output: &[u8], errors: &mut Errors, kind: &'static str) -> PathBuf {
+    pub(crate) fn check_output(
+        &self,
+        output: &[u8],
+        errors: &mut Errors,
+        kind: &'static str,
+    ) -> PathBuf {
         let output = self.normalize(output, kind);
         let path = self.output_path(kind);
         match &self.config.output_conflict_handling {
@@ -178,14 +183,13 @@ impl TestConfig<'_> {
         path
     }
 
-    pub fn check_test_result(
+    fn check_test_result(
         &self,
         command: Command,
-        mode: Mode,
         output: Output,
     ) -> Result<(Command, Output), Errored> {
         let mut errors = vec![];
-        errors.extend(mode.ok(output.status).err());
+        errors.extend(self.mode()?.ok(output.status).err());
         // Always remove annotation comments from stderr.
         let diagnostics = rustc_stderr::process(self.path, &output.stderr);
         self.check_test_output(&mut errors, &output.stdout, &diagnostics.rendered);
@@ -207,7 +211,7 @@ impl TestConfig<'_> {
         }
     }
 
-    pub fn check_annotations(
+    pub(crate) fn check_annotations(
         &self,
         mut messages: Vec<Vec<Message>>,
         mut messages_from_unknown_file_or_line: Vec<Message>,
@@ -368,7 +372,7 @@ impl TestConfig<'_> {
         Ok(())
     }
 
-    pub fn build_aux_files(
+    pub(crate) fn build_aux_files(
         &self,
         aux_dir: &Path,
         build_manager: &BuildManager<'_>,
@@ -426,7 +430,7 @@ impl TestConfig<'_> {
         Ok(extra_args)
     }
 
-    pub fn run_test(mut self, build_manager: &BuildManager<'_>) -> TestResult {
+    pub(crate) fn run_test(mut self, build_manager: &BuildManager<'_>) -> TestResult {
         let extra_args = self.build_aux_files(
             &self.path.parent().unwrap().join("auxiliary"),
             build_manager,
@@ -434,8 +438,9 @@ impl TestConfig<'_> {
 
         self.patch_out_dir();
 
+        self.config.program.args.extend(extra_args);
+
         let mut cmd = self.build_command()?;
-        cmd.args(&extra_args);
         let stdin = self.path.with_extension(self.extension("stdin"));
         if stdin.exists() {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
@@ -443,28 +448,24 @@ impl TestConfig<'_> {
 
         let (cmd, output) = crate::core::run_command(cmd)?;
 
-        let mode = self.mode()?;
-        let (cmd, output) = self.check_test_result(
-            cmd,
-            match *mode {
-                Mode::Run { .. } => Mode::Pass,
-                _ => *mode,
-            },
-            output,
-        )?;
+        let (mut cmd, output) = self.check_test_result(cmd, output)?;
 
-        if let Mode::Run { .. } = *mode {
-            self.run_test_binary(mode, cmd)
-        } else {
-            self.run_rustfix(output, *mode, extra_args)?;
-            Ok(TestOk::Ok)
+        for rev in self.comments() {
+            for custom in rev.custom.values() {
+                if let Some(c) = custom.content.post_test_action(&self, cmd, &output)? {
+                    cmd = c;
+                } else {
+                    return Ok(TestOk::Ok);
+                }
+            }
         }
+        Ok(TestOk::Ok)
     }
 
-    fn run_test_binary(self, mode: Spanned<Mode>, mut cmd: Command) -> TestResult {
+    fn run_test_binary(&self, mut cmd: Command, exit_code: i32) -> TestResult {
         let revision = self.extension("run");
         let config = TestConfig {
-            config: self.config,
+            config: self.config.clone(),
             revision: &revision,
             comments: self.comments,
             path: self.path,
@@ -491,7 +492,14 @@ impl TestConfig<'_> {
 
         config.check_test_output(&mut errors, &output.stdout, &output.stderr);
 
-        errors.extend(mode.ok(output.status).err());
+        let status = output.status;
+        if status.code() != Some(exit_code) {
+            errors.push(Error::ExitStatus {
+                mode: format!("run({exit_code})"),
+                status,
+                expected: exit_code,
+            })
+        }
         if errors.is_empty() {
             Ok(TestOk::Ok)
         } else {
@@ -504,18 +512,12 @@ impl TestConfig<'_> {
         }
     }
 
-    fn run_rustfix(
-        self,
+    pub(crate) fn run_rustfix(
+        &self,
         output: Output,
-        mode: Mode,
-        extra_args: Vec<OsString>,
-    ) -> Result<(), Errored> {
-        let no_run_rustfix = self.find_one("`no-rustfix` annotations", |r| r.no_rustfix.clone())?;
-
-        let global_rustfix = match mode {
-            Mode::Pass | Mode::Run { .. } | Mode::Panic => RustfixMode::Disabled,
-            Mode::Fail { rustfix, .. } | Mode::Yolo { rustfix } => rustfix,
-        };
+        global_rustfix: RustfixMode,
+    ) -> Result<bool, Errored> {
+        let no_run_rustfix = self.find_one_custom("no-rustfix")?;
 
         let fixed_code = (no_run_rustfix.is_none() && global_rustfix.enabled())
             .then_some(())
@@ -566,7 +568,6 @@ impl TestConfig<'_> {
                 stdout: output.stdout,
             })?;
 
-        let edition = self.edition()?.into();
         let rustfix_comments = Comments {
             revisions: None,
             revisioned: std::iter::once((
@@ -584,17 +585,19 @@ impl TestConfig<'_> {
                     error_matches: vec![],
                     require_annotations_for_level: Default::default(),
                     aux_builds: self.collect(|r| r.aux_builds.iter().cloned()),
-                    edition,
                     mode: OptWithLine::new(Mode::Pass, Span::default()),
-                    no_rustfix: OptWithLine::new((), Span::default()),
                     diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
-                    needs_asm_support: false,
+                    custom: self
+                        .comments
+                        .for_revision(self.revision)
+                        .flat_map(|r| r.custom.clone())
+                        .collect(),
                 },
             ))
             .collect(),
         };
         let config = TestConfig {
-            config: self.config,
+            config: self.config.clone(),
             revision: self.revision,
             comments: &rustfix_comments,
             path: self.path,
@@ -634,15 +637,14 @@ impl TestConfig<'_> {
         }
 
         if !run {
-            return Ok(());
+            return Ok(false);
         }
 
         let mut cmd = config.build_command()?;
-        cmd.args(extra_args);
         cmd.arg("--crate-name").arg(crate_name);
         let output = cmd.output().unwrap();
         if output.status.success() {
-            Ok(())
+            Ok(true)
         } else {
             Err(Errored {
                 command: cmd,
@@ -654,5 +656,29 @@ impl TestConfig<'_> {
                 stdout: output.stdout,
             })
         }
+    }
+
+    fn find_one_custom(&self, arg: &str) -> Result<OptWithLine<&dyn Flag>, Errored> {
+        self.find_one(arg, |r| r.custom.get(arg).map(|s| s.as_ref()).into())
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct Run {
+    pub exit_code: i32,
+}
+
+impl Flag for Run {
+    fn clone_inner(&self) -> Box<dyn Flag> {
+        Box::new(*self)
+    }
+    fn post_test_action(
+        &self,
+        config: &TestConfig<'_>,
+        cmd: Command,
+        _output: &Output,
+    ) -> Result<Option<Command>, Errored> {
+        config.run_test_binary(cmd, self.exit_code)?;
+        Ok(None)
     }
 }

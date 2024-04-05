@@ -8,9 +8,11 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{filter::Match, rustc_stderr::Level, test_result::Errored, Error, Mode};
+use crate::{
+    core::Flag, filter::Match, rustc_stderr::Level, test_result::Errored, Config, Error, Mode,
+};
 
-use color_eyre::eyre::{Context, Result};
+use color_eyre::eyre::Result;
 
 pub(crate) use spanned::*;
 
@@ -94,13 +96,6 @@ impl Comments {
         })
     }
 
-    pub(crate) fn edition(&self, revision: &str) -> Result<Option<Spanned<String>>, Errored> {
-        let edition = self
-            .find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?
-            .into_inner();
-        Ok(edition)
-    }
-
     /// The comments set for all revisions
     pub fn base(&mut self) -> &mut Revisioned {
         self.revisioned.get_mut(&[][..]).unwrap()
@@ -124,6 +119,14 @@ impl Comments {
                 stdout: vec![],
             })?;
         Ok(mode)
+    }
+
+    pub(crate) fn apply_custom(&self, revision: &str, cmd: &mut Command) {
+        for rev in self.for_revision(revision) {
+            for flag in rev.custom.values() {
+                flag.content.apply(cmd);
+            }
+        }
     }
 }
 
@@ -157,20 +160,21 @@ pub struct Revisioned {
     pub require_annotations_for_level: OptWithLine<Level>,
     /// Files that get built and exposed as dependencies to the current test.
     pub aux_builds: Vec<Spanned<PathBuf>>,
-    /// Set the `--edition` flag on the test.
-    pub edition: OptWithLine<String>,
     /// The mode this test is being run in.
     pub mode: OptWithLine<Mode>,
-    pub(crate) needs_asm_support: bool,
-    /// Don't run [`rustfix`] for this test
-    pub no_rustfix: OptWithLine<()>,
     /// Prefix added to all diagnostic code matchers. Note this will make it impossible
     /// match codes which do not contain this prefix.
     pub diagnostic_code_prefix: OptWithLine<String>,
+    /// Tester-specific flags.
+    /// The keys are just labels for overwriting or retrieving the value later.
+    /// They are mostly used by `Config::custom_comments` handlers,
+    /// `ui_test` itself only ever looks at the values, not the keys.
+    pub custom: HashMap<&'static str, Spanned<Box<dyn Flag>>>,
 }
 
+/// Main entry point to parsing comments and handling parsing errors.
 #[derive(Debug)]
-struct CommentParser<T> {
+pub struct CommentParser<T> {
     /// The comments being built.
     comments: T,
     /// Any errors that ocurred during comment parsing.
@@ -179,7 +183,8 @@ struct CommentParser<T> {
     commands: HashMap<&'static str, CommandParserFunc>,
 }
 
-type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: Spanned<&str>, span: Span);
+pub type CommandParserFunc =
+    fn(&mut CommentParser<&mut Revisioned>, args: Spanned<&str>, span: Span);
 
 impl<T> std::ops::Deref for CommentParser<T> {
     type Target = T;
@@ -279,29 +284,35 @@ enum ParsePatternResult {
 }
 
 impl Comments {
-    pub(crate) fn parse_file(
-        comments: Comments,
-        path: &Path,
-    ) -> Result<std::result::Result<Self, Vec<Error>>> {
-        let content =
-            std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
-        Ok(Self::parse(&content, comments, path))
-    }
-
     /// Parse comments in `content`.
     /// `path` is only used to emit diagnostics if parsing fails.
     pub(crate) fn parse(
         content: &(impl AsRef<[u8]> + ?Sized),
-        comments: Comments,
+        config: &Config,
         file: &Path,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let mut parser = CommentParser {
-            comments,
-            errors: vec![],
-            commands: CommentParser::<_>::commands(),
-        };
+        CommentParser::new(config).parse(content, file)
+    }
+}
 
-        let defaults = std::mem::take(parser.comments.revisioned.get_mut(&[][..]).unwrap());
+impl CommentParser<Comments> {
+    fn new(config: &Config) -> Self {
+        let mut this = Self {
+            comments: config.comment_defaults.clone(),
+            errors: vec![],
+            commands: Self::commands(),
+        };
+        this.commands
+            .extend(config.custom_comments.iter().map(|(&k, &v)| (k, v)));
+        this
+    }
+
+    fn parse(
+        mut self,
+        content: &(impl AsRef<[u8]> + ?Sized),
+        file: &Path,
+    ) -> std::result::Result<Comments, Vec<Error>> {
+        let defaults = std::mem::take(self.comments.revisioned.get_mut(&[][..]).unwrap());
 
         let mut delayed_fallthrough = Vec::new();
         let mut fallthrough_to = None; // The line that a `|` will refer to.
@@ -316,7 +327,7 @@ impl Comments {
                 col_start: NonZeroUsize::new(1).unwrap(),
                 col_end: NonZeroUsize::new(line.chars().count() + 1).unwrap(),
             };
-            match parser.parse_checked_line(fallthrough_to, Spanned::new(line, span)) {
+            match self.parse_checked_line(fallthrough_to, Spanned::new(line, span)) {
                 Ok(ParsePatternResult::Other) => {
                     fallthrough_to = None;
                 }
@@ -328,14 +339,14 @@ impl Comments {
                 }
                 Ok(ParsePatternResult::ErrorBelow { span, match_line }) => {
                     if fallthrough_to.is_some() {
-                        parser.error(
+                        self.error(
                             span,
                             "`//~v` comment immediately following a `//~^` comment chain",
                         );
                     }
 
                     for (span, line, idx) in delayed_fallthrough.drain(..) {
-                        if let Some(rev) = parser
+                        if let Some(rev) = self
                             .comments
                             .revisioned
                             .values_mut()
@@ -343,18 +354,18 @@ impl Comments {
                         {
                             rev.error_matches[idx].line = match_line;
                         } else {
-                            parser.error(span, "`//~|` comment not attached to anchoring matcher");
+                            self.error(span, "`//~|` comment not attached to anchoring matcher");
                         }
                     }
                 }
-                Err(e) => parser.error(e.span, format!("Comment is not utf8: {:?}", e.content)),
+                Err(e) => self.error(e.span, format!("Comment is not utf8: {:?}", e.content)),
             }
         }
-        if let Some(revisions) = &parser.comments.revisions {
-            for (key, revisioned) in &parser.comments.revisioned {
+        if let Some(revisions) = &self.comments.revisions {
+            for (key, revisioned) in &self.comments.revisioned {
                 for rev in key {
                     if !revisions.contains(rev) {
-                        parser.errors.push(Error::InvalidComment {
+                        self.errors.push(Error::InvalidComment {
                             msg: format!("the revision `{rev}` is not known"),
                             span: revisioned.span.clone(),
                         })
@@ -362,9 +373,9 @@ impl Comments {
                 }
             }
         } else {
-            for (key, revisioned) in &parser.comments.revisioned {
+            for (key, revisioned) in &self.comments.revisioned {
                 if !key.is_empty() {
-                    parser.errors.push(Error::InvalidComment {
+                    self.errors.push(Error::InvalidComment {
                         msg: "there are no revisions in this test".into(),
                         span: revisioned.span.clone(),
                     })
@@ -372,14 +383,14 @@ impl Comments {
             }
         }
 
-        for revisioned in parser.comments.revisioned.values() {
+        for revisioned in self.comments.revisioned.values() {
             for m in &revisioned.error_matches {
                 if m.line.get() > last_line {
                     let span = match &m.kind {
                         ErrorMatchKind::Pattern { pattern, .. } => pattern.span(),
                         ErrorMatchKind::Code(code) => code.span(),
                     };
-                    parser.errors.push(Error::InvalidComment {
+                    self.errors.push(Error::InvalidComment {
                         msg: format!(
                             "//~v pattern is trying to refer to line {}, but the file only has {} lines",
                             m.line.get(),
@@ -392,7 +403,7 @@ impl Comments {
         }
 
         for (span, ..) in delayed_fallthrough {
-            parser.error(span, "`//~|` comment not attached to anchoring matcher");
+            self.error(span, "`//~|` comment not attached to anchoring matcher");
         }
 
         let Revisioned {
@@ -408,12 +419,10 @@ impl Comments {
             error_matches,
             require_annotations_for_level,
             aux_builds,
-            edition,
             mode,
-            needs_asm_support,
-            no_rustfix,
             diagnostic_code_prefix,
-        } = parser.comments.base();
+            custom,
+        } = self.comments.base();
         if span.is_dummy() {
             *span = defaults.span;
         }
@@ -430,24 +439,21 @@ impl Comments {
         if require_annotations_for_level.is_none() {
             *require_annotations_for_level = defaults.require_annotations_for_level;
         }
-        if edition.is_none() {
-            *edition = defaults.edition;
-        }
         if mode.is_none() {
             *mode = defaults.mode;
-        }
-        if no_rustfix.is_none() {
-            *no_rustfix = defaults.no_rustfix;
         }
         if diagnostic_code_prefix.is_none() {
             *diagnostic_code_prefix = defaults.diagnostic_code_prefix;
         }
-        *needs_asm_support |= defaults.needs_asm_support;
 
-        if parser.errors.is_empty() {
-            Ok(parser.comments)
+        for (k, v) in defaults.custom {
+            custom.entry(k).or_insert(v);
+        }
+
+        if self.errors.is_empty() {
+            Ok(self.comments)
         } else {
-            Err(parser.errors)
+            Err(self.errors)
         }
     }
 }
@@ -511,14 +517,14 @@ impl CommentParser<Comments> {
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
-    fn error(&mut self, span: Span, s: impl Into<String>) {
+    pub fn error(&mut self, span: Span, s: impl Into<String>) {
         self.errors.push(Error::InvalidComment {
             msg: s.into(),
             span,
         });
     }
 
-    fn check(&mut self, span: Span, cond: bool, s: impl Into<String>) {
+    pub fn check(&mut self, span: Span, cond: bool, s: impl Into<String>) {
         if !cond {
             self.error(span, s);
         }
@@ -638,7 +644,9 @@ impl CommentParser<&mut Revisioned> {
         let regex = self.parse_regex(from)?.content;
         Some((regex, to.as_bytes().to_owned()))
     }
+}
 
+impl CommentParser<Comments> {
     fn commands() -> HashMap<&'static str, CommandParserFunc> {
         let mut commands = HashMap::<_, CommandParserFunc>::new();
         macro_rules! commands {
@@ -697,24 +705,6 @@ impl CommentParser<&mut Revisioned> {
             "run-rustfix" => (this, _args, span){
                 this.error(span, "rustfix is now ran by default when applicable suggestions are found");
             }
-            "no-rustfix" => (this, _args, span){
-                // args are ignored (can be used as comment)
-                let prev = this.no_rustfix.set((), span.clone());
-                this.check(
-                    span,
-                    prev.is_none(),
-                    "cannot specify `no-rustfix` twice",
-                );
-            }
-            "needs-asm-support" => (this, _args, span){
-                // args are ignored (can be used as comment)
-                this.check(
-                    span,
-                    !this.needs_asm_support,
-                    "cannot specify `needs-asm-support` twice",
-                );
-                this.needs_asm_support = true;
-            }
             "aux-build" => (this, args, _span){
                 let name = match args.split_once(":") {
                     Some((name, rest)) => {
@@ -725,10 +715,6 @@ impl CommentParser<&mut Revisioned> {
                 };
                 this.aux_builds.push(name.map(Into::into));
             }
-            "edition" => (this, args, span){
-                let prev = this.edition.set((*args).into(), args.span());
-                this.check(span, prev.is_none(), "cannot specify `edition` twice");
-            }
             "check-pass" => (this, _args, span){
                 let prev = this.mode.set(Mode::Pass, span.clone());
                 // args are ignored (can be used as comment)
@@ -737,22 +723,6 @@ impl CommentParser<&mut Revisioned> {
                     prev.is_none(),
                     "cannot specify test mode changes twice",
                 );
-            }
-            "run" => (this, args, span){
-                this.check(
-                    span,
-                    this.mode.is_none(),
-                    "cannot specify test mode changes twice",
-                );
-                let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, args.span());
-                if args.is_empty() {
-                    set(0);
-                } else {
-                    match args.content.parse() {
-                        Ok(exit_code) => {set(exit_code);},
-                        Err(err) => this.error(args.span(), err.to_string()),
-                    }
-                }
             }
             "require-annotations-for-level" => (this, args, span){
                 let args = args.trim();
@@ -773,7 +743,9 @@ impl CommentParser<&mut Revisioned> {
         }
         commands
     }
+}
 
+impl CommentParser<&mut Revisioned> {
     fn parse_command(&mut self, command: Spanned<&str>, args: Spanned<&str>) {
         if let Some(command_handler) = self.commands.get(*command) {
             command_handler(self, args, command.span());
