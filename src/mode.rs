@@ -30,14 +30,9 @@ pub enum Mode {
     Fail {
         /// Whether failing tests must have error patterns. Set to false if you just care about .stderr output.
         require_patterns: bool,
-        /// When to run rustfix on the test
-        rustfix: RustfixMode,
     },
     /// Run the tests, but always pass them as long as all annotations are satisfied and stderr files match.
-    Yolo {
-        /// When to run rustfix on the test
-        rustfix: RustfixMode,
-    },
+    Yolo,
 }
 
 impl Mode {
@@ -68,9 +63,8 @@ impl Display for Mode {
             Mode::Panic => write!(f, "panic"),
             Mode::Fail {
                 require_patterns: _,
-                rustfix: _,
             } => write!(f, "fail"),
-            Mode::Yolo { rustfix: _ } => write!(f, "yolo"),
+            Mode::Yolo => write!(f, "yolo"),
         }
     }
 }

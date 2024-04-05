@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * removed `Revisioned::needs_asm_support` in favor of turning that into a rustc-specific custom flag
 * replaced `Mode::Run` with a rustc-specific run flag
 * replaced rustfix with a rustc-specific rustfix flag
+* replaced `rustfix` fields of `Mode::Fail` and `Mode::Yolo` by instead overwriting the rustc-specific custom flag
 
 ### Removed
 

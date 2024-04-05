@@ -1,19 +1,19 @@
 use ui_test::{spanned::Spanned, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
-    for mode in [
-        Mode::Fail {
-            require_patterns: true,
-            rustfix: RustfixMode::MachineApplicable,
-        },
-        Mode::Yolo {
-            rustfix: RustfixMode::Everything,
-        },
+    for (mode, rustfix) in [
+        (
+            Mode::Fail {
+                require_patterns: true,
+            },
+            RustfixMode::MachineApplicable,
+        ),
+        (Mode::Yolo, RustfixMode::Everything),
     ] {
         let path = "../../../target";
 
         let root_dir = match mode {
-            Mode::Yolo { .. } => "tests/actual_tests_bless_yolo",
+            Mode::Yolo => "tests/actual_tests_bless_yolo",
             Mode::Fail { .. } => "tests/actual_tests_bless",
             _ => unreachable!(),
         };
@@ -29,6 +29,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
             ..Config::rustc(root_dir)
         };
         config.comment_defaults.base().mode = Spanned::dummy(mode).into();
+        config
+            .comment_defaults
+            .base()
+            .custom
+            .insert("rustfix", Spanned::dummy(Box::new(rustfix)));
 
         // hide binaries generated for successfully passing tests
         let tmp_dir = tempfile::tempdir_in(path)?;

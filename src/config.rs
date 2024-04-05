@@ -101,11 +101,9 @@ impl Config {
             }
         }
 
-        #[derive(Debug)]
-        struct Rustfix;
-        impl Flag for Rustfix {
+        impl Flag for RustfixMode {
             fn clone_inner(&self) -> Box<dyn Flag> {
-                Box::new(Rustfix)
+                Box::new(*self)
             }
             fn post_test_action(
                 &self,
@@ -114,7 +112,12 @@ impl Config {
                 output: &Output,
                 extra_args: &[OsString],
             ) -> Result<Option<Command>, Errored> {
-                if config.run_rustfix(output.clone(), *config.mode()?, extra_args)? {
+                let global_rustfix = match *config.mode()? {
+                    Mode::Pass | Mode::Panic => RustfixMode::Disabled,
+                    Mode::Fail { .. } | Mode::Yolo => *self,
+                };
+
+                if config.run_rustfix(output.clone(), extra_args, global_rustfix)? {
                     Ok(None)
                 } else {
                     Ok(Some(cmd))
@@ -126,10 +129,10 @@ impl Config {
             .base()
             .custom
             .insert("edition", Spanned::dummy(Box::new(Edition("2021".into()))));
-        let _ = comment_defaults
-            .base()
-            .custom
-            .insert("rustfix", Spanned::dummy(Box::new(Rustfix)));
+        let _ = comment_defaults.base().custom.insert(
+            "rustfix",
+            Spanned::dummy(Box::new(RustfixMode::MachineApplicable)),
+        );
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
             #[cfg(windows)]
@@ -141,7 +144,6 @@ impl Config {
         comment_defaults.base().normalize_stdout = filters;
         comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
             require_patterns: true,
-            rustfix: RustfixMode::MachineApplicable,
         })
         .into();
         let mut config = Self {
@@ -241,11 +243,6 @@ impl Config {
             ..Self::rustc(root_dir)
         };
         this.comment_defaults.base().custom.clear();
-        this.comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
-            require_patterns: true,
-            rustfix: RustfixMode::Disabled,
-        })
-        .into();
         this
     }
 

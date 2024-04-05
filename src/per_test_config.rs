@@ -518,15 +518,10 @@ impl TestConfig<'_> {
     pub(crate) fn run_rustfix(
         &self,
         output: Output,
-        mode: Mode,
         extra_args: &[OsString],
+        global_rustfix: RustfixMode,
     ) -> Result<bool, Errored> {
         let no_run_rustfix = self.find_one_custom("no-rustfix")?;
-
-        let global_rustfix = match mode {
-            Mode::Pass | Mode::Panic => RustfixMode::Disabled,
-            Mode::Fail { rustfix, .. } | Mode::Yolo { rustfix } => rustfix,
-        };
 
         let fixed_code = (no_run_rustfix.is_none() && global_rustfix.enabled())
             .then_some(())

@@ -15,7 +15,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
     };
     config.comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
         require_patterns: true,
-        rustfix: RustfixMode::MachineApplicable,
     })
     .into();
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
