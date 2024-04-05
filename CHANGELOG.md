@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * removed `Revisioned::no_rustfix` in favor of turning that into a rustc-specific custom flag
+* removed `Revisioned::edition` in favor of turning that into a rustc-specific custom flag
+* removed `Revisioned::needs_asm_support` in favor of turning that into a rustc-specific custom flag
 
 ### Removed
 
