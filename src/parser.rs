@@ -286,13 +286,25 @@ impl Comments {
         config: &Config,
         file: &Path,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let mut parser = CommentParser {
+        CommentParser::new(config).parse(content, file)
+    }
+}
+
+impl CommentParser<Comments> {
+    fn new(config: &Config) -> Self {
+        Self {
             comments: config.comment_defaults.clone(),
             errors: vec![],
-            commands: CommentParser::<_>::commands(),
-        };
+            commands: Self::commands(),
+        }
+    }
 
-        let defaults = std::mem::take(parser.comments.revisioned.get_mut(&[][..]).unwrap());
+    fn parse(
+        mut self,
+        content: &(impl AsRef<[u8]> + ?Sized),
+        file: &Path,
+    ) -> std::result::Result<Comments, Vec<Error>> {
+        let defaults = std::mem::take(self.comments.revisioned.get_mut(&[][..]).unwrap());
 
         let mut delayed_fallthrough = Vec::new();
         let mut fallthrough_to = None; // The line that a `|` will refer to.
@@ -307,7 +319,7 @@ impl Comments {
                 col_start: NonZeroUsize::new(1).unwrap(),
                 col_end: NonZeroUsize::new(line.chars().count() + 1).unwrap(),
             };
-            match parser.parse_checked_line(fallthrough_to, Spanned::new(line, span)) {
+            match self.parse_checked_line(fallthrough_to, Spanned::new(line, span)) {
                 Ok(ParsePatternResult::Other) => {
                     fallthrough_to = None;
                 }
@@ -319,14 +331,14 @@ impl Comments {
                 }
                 Ok(ParsePatternResult::ErrorBelow { span, match_line }) => {
                     if fallthrough_to.is_some() {
-                        parser.error(
+                        self.error(
                             span,
                             "`//~v` comment immediately following a `//~^` comment chain",
                         );
                     }
 
                     for (span, line, idx) in delayed_fallthrough.drain(..) {
-                        if let Some(rev) = parser
+                        if let Some(rev) = self
                             .comments
                             .revisioned
                             .values_mut()
@@ -334,18 +346,18 @@ impl Comments {
                         {
                             rev.error_matches[idx].line = match_line;
                         } else {
-                            parser.error(span, "`//~|` comment not attached to anchoring matcher");
+                            self.error(span, "`//~|` comment not attached to anchoring matcher");
                         }
                     }
                 }
-                Err(e) => parser.error(e.span, format!("Comment is not utf8: {:?}", e.content)),
+                Err(e) => self.error(e.span, format!("Comment is not utf8: {:?}", e.content)),
             }
         }
-        if let Some(revisions) = &parser.comments.revisions {
-            for (key, revisioned) in &parser.comments.revisioned {
+        if let Some(revisions) = &self.comments.revisions {
+            for (key, revisioned) in &self.comments.revisioned {
                 for rev in key {
                     if !revisions.contains(rev) {
-                        parser.errors.push(Error::InvalidComment {
+                        self.errors.push(Error::InvalidComment {
                             msg: format!("the revision `{rev}` is not known"),
                             span: revisioned.span.clone(),
                         })
@@ -353,9 +365,9 @@ impl Comments {
                 }
             }
         } else {
-            for (key, revisioned) in &parser.comments.revisioned {
+            for (key, revisioned) in &self.comments.revisioned {
                 if !key.is_empty() {
-                    parser.errors.push(Error::InvalidComment {
+                    self.errors.push(Error::InvalidComment {
                         msg: "there are no revisions in this test".into(),
                         span: revisioned.span.clone(),
                     })
@@ -363,14 +375,14 @@ impl Comments {
             }
         }
 
-        for revisioned in parser.comments.revisioned.values() {
+        for revisioned in self.comments.revisioned.values() {
             for m in &revisioned.error_matches {
                 if m.line.get() > last_line {
                     let span = match &m.kind {
                         ErrorMatchKind::Pattern { pattern, .. } => pattern.span(),
                         ErrorMatchKind::Code(code) => code.span(),
                     };
-                    parser.errors.push(Error::InvalidComment {
+                    self.errors.push(Error::InvalidComment {
                         msg: format!(
                             "//~v pattern is trying to refer to line {}, but the file only has {} lines",
                             m.line.get(),
@@ -383,7 +395,7 @@ impl Comments {
         }
 
         for (span, ..) in delayed_fallthrough {
-            parser.error(span, "`//~|` comment not attached to anchoring matcher");
+            self.error(span, "`//~|` comment not attached to anchoring matcher");
         }
 
         let Revisioned {
@@ -404,7 +416,7 @@ impl Comments {
             needs_asm_support,
             no_rustfix,
             diagnostic_code_prefix,
-        } = parser.comments.base();
+        } = self.comments.base();
         if span.is_dummy() {
             *span = defaults.span;
         }
@@ -435,10 +447,10 @@ impl Comments {
         }
         *needs_asm_support |= defaults.needs_asm_support;
 
-        if parser.errors.is_empty() {
-            Ok(parser.comments)
+        if self.errors.is_empty() {
+            Ok(self.comments)
         } else {
-            Err(parser.errors)
+            Err(self.errors)
         }
     }
 }
@@ -629,7 +641,9 @@ impl CommentParser<&mut Revisioned> {
         let regex = self.parse_regex(from)?.content;
         Some((regex, to.as_bytes().to_owned()))
     }
+}
 
+impl CommentParser<Comments> {
     fn commands() -> HashMap<&'static str, CommandParserFunc> {
         let mut commands = HashMap::<_, CommandParserFunc>::new();
         macro_rules! commands {
@@ -764,7 +778,9 @@ impl CommentParser<&mut Revisioned> {
         }
         commands
     }
+}
 
+impl CommentParser<&mut Revisioned> {
     fn parse_command(&mut self, command: Spanned<&str>, args: Spanned<&str>) {
         if let Some(command_handler) = self.commands.get(*command) {
             command_handler(self, args, command.span());
