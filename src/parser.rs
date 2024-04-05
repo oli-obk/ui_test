@@ -165,7 +165,10 @@ pub struct Revisioned {
     /// Prefix added to all diagnostic code matchers. Note this will make it impossible
     /// match codes which do not contain this prefix.
     pub diagnostic_code_prefix: OptWithLine<String>,
-    /// Tester-specific flags
+    /// Tester-specific flags.
+    /// The keys are just labels for overwriting or retrieving the value later.
+    /// They are mostly used by `Config::custom_comments` handlers,
+    /// `ui_test` itself only ever looks at the values, not the keys.
     pub custom: HashMap<&'static str, Spanned<Box<dyn Flag>>>,
 }
 
