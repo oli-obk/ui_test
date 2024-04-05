@@ -89,7 +89,14 @@ impl Config {
                 Box::new(NeedsAsmSupport)
             }
             fn test_condition(&self, config: &Config) -> bool {
-                !config.has_asm_support()
+                let target = config.target.as_ref().unwrap();
+                static ASM_SUPPORTED_ARCHS: &[&str] = &[
+                    "x86", "x86_64", "arm", "aarch64", "riscv32",
+                    "riscv64",
+                    // These targets require an additional asm_experimental_arch feature.
+                    // "nvptx64", "hexagon", "mips", "mips64", "spirv", "wasm32",
+                ];
+                !ASM_SUPPORTED_ARCHS.iter().any(|arch| target.contains(arch))
             }
         }
 
@@ -334,18 +341,6 @@ impl Config {
                 .target
                 .as_ref()
                 .expect("target should have been filled in")
-    }
-
-    pub(crate) fn has_asm_support(&self) -> bool {
-        static ASM_SUPPORTED_ARCHS: &[&str] = &[
-            "x86", "x86_64", "arm", "aarch64", "riscv32",
-            "riscv64",
-            // These targets require an additional asm_experimental_arch feature.
-            // "nvptx64", "hexagon", "mips", "mips64", "spirv", "wasm32",
-        ];
-        ASM_SUPPORTED_ARCHS
-            .iter()
-            .any(|arch| self.target.as_ref().unwrap().contains(arch))
     }
 
     pub(crate) fn get_pointer_width(&self) -> u8 {
