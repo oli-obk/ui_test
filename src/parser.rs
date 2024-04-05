@@ -96,13 +96,6 @@ impl Comments {
         })
     }
 
-    pub(crate) fn edition(&self, revision: &str) -> Result<Option<Spanned<String>>, Errored> {
-        let edition = self
-            .find_one_for_revision(revision, "`edition` annotations", |r| r.edition.clone())?
-            .into_inner();
-        Ok(edition)
-    }
-
     /// The comments set for all revisions
     pub fn base(&mut self) -> &mut Revisioned {
         self.revisioned.get_mut(&[][..]).unwrap()
@@ -126,6 +119,14 @@ impl Comments {
                 stdout: vec![],
             })?;
         Ok(mode)
+    }
+
+    pub(crate) fn apply_custom(&self, revision: &str, cmd: &mut Command) {
+        for rev in self.for_revision(revision) {
+            for flag in rev.custom.values() {
+                flag.content.apply(cmd);
+            }
+        }
     }
 }
 
@@ -159,8 +160,6 @@ pub struct Revisioned {
     pub require_annotations_for_level: OptWithLine<Level>,
     /// Files that get built and exposed as dependencies to the current test.
     pub aux_builds: Vec<Spanned<PathBuf>>,
-    /// Set the `--edition` flag on the test.
-    pub edition: OptWithLine<String>,
     /// The mode this test is being run in.
     pub mode: OptWithLine<Mode>,
     pub(crate) needs_asm_support: bool,
@@ -418,7 +417,6 @@ impl CommentParser<Comments> {
             error_matches,
             require_annotations_for_level,
             aux_builds,
-            edition,
             mode,
             needs_asm_support,
             diagnostic_code_prefix,
@@ -439,9 +437,6 @@ impl CommentParser<Comments> {
         aux_builds.extend(defaults.aux_builds);
         if require_annotations_for_level.is_none() {
             *require_annotations_for_level = defaults.require_annotations_for_level;
-        }
-        if edition.is_none() {
-            *edition = defaults.edition;
         }
         if mode.is_none() {
             *mode = defaults.mode;
@@ -728,10 +723,6 @@ impl CommentParser<Comments> {
                     None => args,
                 };
                 this.aux_builds.push(name.map(Into::into));
-            }
-            "edition" => (this, args, span){
-                let prev = this.edition.set((*args).into(), args.span());
-                this.check(span, prev.is_none(), "cannot specify `edition` twice");
             }
             "check-pass" => (this, _args, span){
                 let prev = this.mode.set(Mode::Pass, span.clone());

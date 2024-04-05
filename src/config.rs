@@ -1,7 +1,8 @@
 use regex::bytes::Regex;
-use spanned::{Span, Spanned};
+use spanned::Spanned;
 
 use crate::{
+    core::Flag,
     dependencies::build_dependencies,
     filter::Match,
     parser::CommandParserFunc,
@@ -66,10 +67,24 @@ impl Config {
     /// `rustc` on the test files.
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
         let mut comment_defaults = Comments::default();
+
+        #[derive(Debug)]
+        struct Edition(String);
+
+        impl Flag for Edition {
+            fn clone_inner(&self) -> Box<dyn Flag> {
+                Box::new(Edition(self.0.clone()))
+            }
+
+            fn apply(&self, cmd: &mut std::process::Command) {
+                cmd.arg("--edition").arg(&self.0);
+            }
+        }
+
         let _ = comment_defaults
             .base()
-            .edition
-            .set("2021".into(), Span::default());
+            .custom
+            .insert("edition", Spanned::dummy(Box::new(Edition("2021".into()))));
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
             #[cfg(windows)]
@@ -115,6 +130,16 @@ impl Config {
                     .insert("no-rustfix", Spanned::new(Box::new(()), span.clone()));
                 parser.check(span, prev.is_none(), "cannot specify `no-rustfix` twice");
             });
+
+        config
+            .custom_comments
+            .insert("edition", |parser, args, span| {
+                let prev = parser.custom.insert(
+                    "edition",
+                    Spanned::new(Box::new(Edition((*args).into())), args.span()),
+                );
+                parser.check(span, prev.is_none(), "cannot specify `edition` twice");
+            });
         config
     }
 
@@ -126,7 +151,7 @@ impl Config {
             custom_comments: Default::default(),
             ..Self::rustc(root_dir)
         };
-        this.comment_defaults.base().edition = Default::default();
+        this.comment_defaults.base().custom.clear();
         this.comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
             require_patterns: true,
             rustfix: RustfixMode::Disabled,

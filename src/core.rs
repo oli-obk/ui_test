@@ -125,12 +125,17 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
 pub trait Flag: Send + Sync + UnwindSafe + std::fmt::Debug {
     /// Clone the boxed value and create a new box.
     fn clone_inner(&self) -> Box<dyn Flag>;
+
+    /// Modify a command to what the flag specifies
+    fn apply(&self, cmd: &mut Command);
 }
 
 impl Flag for () {
     fn clone_inner(&self) -> Box<dyn Flag> {
         Box::new(())
     }
+
+    fn apply(&self, _cmd: &mut Command) {}
 }
 
 impl Clone for Box<dyn Flag> {

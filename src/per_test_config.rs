@@ -52,10 +52,6 @@ impl TestConfig<'_> {
         self.comments.mode(self.revision)
     }
 
-    pub fn edition(&self) -> Result<Option<Spanned<String>>, Errored> {
-        self.comments.edition(self.revision)
-    }
-
     pub fn find_one<'a, T: 'a>(
         &'a self,
         kind: &str,
@@ -93,11 +89,8 @@ impl TestConfig<'_> {
         {
             cmd.arg(arg);
         }
-        let edition = comments.edition(revision)?;
 
-        if let Some(edition) = edition {
-            cmd.arg("--edition").arg(&*edition);
-        }
+        comments.apply_custom(revision, &mut cmd);
 
         if let Some(target) = &config.target {
             // Adding a `--target` arg to calls to Cargo will cause target folders
@@ -567,7 +560,6 @@ impl TestConfig<'_> {
                 stdout: output.stdout,
             })?;
 
-        let edition = self.edition()?.into();
         let rustfix_comments = Comments {
             revisions: None,
             revisioned: std::iter::once((
@@ -585,11 +577,14 @@ impl TestConfig<'_> {
                     error_matches: vec![],
                     require_annotations_for_level: Default::default(),
                     aux_builds: self.collect(|r| r.aux_builds.iter().cloned()),
-                    edition,
                     mode: OptWithLine::new(Mode::Pass, Span::default()),
                     diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
                     needs_asm_support: false,
-                    custom: Default::default(),
+                    custom: self
+                        .comments
+                        .for_revision(self.revision)
+                        .flat_map(|r| r.custom.clone())
+                        .collect(),
                 },
             ))
             .collect(),
