@@ -11,8 +11,10 @@
 pub use color_eyre;
 use color_eyre::eyre::eyre;
 pub use color_eyre::eyre::Result;
+pub use core::run_and_collect;
 pub use core::CrateType;
 use dependencies::{Build, BuildManager};
+pub use filter::Match;
 use per_test_config::TestConfig;
 use rustc_stderr::Message;
 use status_emitter::{StatusEmitter, TestStatus};
