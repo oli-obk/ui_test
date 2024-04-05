@@ -81,6 +81,18 @@ impl Config {
             }
         }
 
+        #[derive(Debug)]
+        struct NeedsAsmSupport;
+
+        impl Flag for NeedsAsmSupport {
+            fn clone_inner(&self) -> Box<dyn Flag> {
+                Box::new(NeedsAsmSupport)
+            }
+            fn test_condition(&self, config: &Config) -> bool {
+                !config.has_asm_support()
+            }
+        }
+
         let _ = comment_defaults
             .base()
             .custom
@@ -139,6 +151,20 @@ impl Config {
                     Spanned::new(Box::new(Edition((*args).into())), args.span()),
                 );
                 parser.check(span, prev.is_none(), "cannot specify `edition` twice");
+            });
+
+        config
+            .custom_comments
+            .insert("needs-asm-support", |parser, args, span| {
+                let prev = parser.custom.insert(
+                    "needs-asm-support",
+                    Spanned::new(Box::new(NeedsAsmSupport), args.span()),
+                );
+                parser.check(
+                    span,
+                    prev.is_none(),
+                    "cannot specify `needs-asm-support` twice",
+                );
             });
         config
     }
@@ -361,7 +387,7 @@ impl Config {
         }
         if comments
             .for_revision(revision)
-            .any(|r| r.needs_asm_support && !self.has_asm_support())
+            .any(|r| r.custom.values().any(|flag| flag.test_condition(self)))
         {
             return self.run_only_ignored;
         }

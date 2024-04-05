@@ -579,7 +579,6 @@ impl TestConfig<'_> {
                     aux_builds: self.collect(|r| r.aux_builds.iter().cloned()),
                     mode: OptWithLine::new(Mode::Pass, Span::default()),
                     diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
-                    needs_asm_support: false,
                     custom: self
                         .comments
                         .for_revision(self.revision)

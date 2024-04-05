@@ -1,6 +1,7 @@
 //! Basic operations useful for building a testsuite
 
 use crate::test_result::Errored;
+use crate::Config;
 use bstr::ByteSlice as _;
 use color_eyre::eyre::Result;
 use crossbeam_channel::unbounded;
@@ -127,15 +128,18 @@ pub trait Flag: Send + Sync + UnwindSafe + std::fmt::Debug {
     fn clone_inner(&self) -> Box<dyn Flag>;
 
     /// Modify a command to what the flag specifies
-    fn apply(&self, cmd: &mut Command);
+    fn apply(&self, _cmd: &mut Command) {}
+
+    /// Whether this flag causes a test to be filtered out
+    fn test_condition(&self, _config: &Config) -> bool {
+        false
+    }
 }
 
 impl Flag for () {
     fn clone_inner(&self) -> Box<dyn Flag> {
         Box::new(())
     }
-
-    fn apply(&self, _cmd: &mut Command) {}
 }
 
 impl Clone for Box<dyn Flag> {

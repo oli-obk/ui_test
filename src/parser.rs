@@ -162,7 +162,6 @@ pub struct Revisioned {
     pub aux_builds: Vec<Spanned<PathBuf>>,
     /// The mode this test is being run in.
     pub mode: OptWithLine<Mode>,
-    pub(crate) needs_asm_support: bool,
     /// Prefix added to all diagnostic code matchers. Note this will make it impossible
     /// match codes which do not contain this prefix.
     pub diagnostic_code_prefix: OptWithLine<String>,
@@ -418,7 +417,6 @@ impl CommentParser<Comments> {
             require_annotations_for_level,
             aux_builds,
             mode,
-            needs_asm_support,
             diagnostic_code_prefix,
             custom,
         } = self.comments.base();
@@ -444,7 +442,6 @@ impl CommentParser<Comments> {
         if diagnostic_code_prefix.is_none() {
             *diagnostic_code_prefix = defaults.diagnostic_code_prefix;
         }
-        *needs_asm_support |= defaults.needs_asm_support;
 
         for (k, v) in defaults.custom {
             custom.entry(k).or_insert(v);
@@ -704,15 +701,6 @@ impl CommentParser<Comments> {
             }
             "run-rustfix" => (this, _args, span){
                 this.error(span, "rustfix is now ran by default when applicable suggestions are found");
-            }
-            "needs-asm-support" => (this, _args, span){
-                // args are ignored (can be used as comment)
-                this.check(
-                    span,
-                    !this.needs_asm_support,
-                    "cannot specify `needs-asm-support` twice",
-                );
-                this.needs_asm_support = true;
             }
             "aux-build" => (this, args, _span){
                 let name = match args.split_once(":") {
