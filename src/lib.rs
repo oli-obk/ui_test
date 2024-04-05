@@ -31,6 +31,7 @@ mod error;
 pub mod filter;
 pub mod github_actions;
 mod mode;
+pub mod nextest;
 mod parser;
 pub mod per_test_config;
 mod rustc_stderr;
@@ -149,21 +150,8 @@ pub fn run_tests_generic(
     per_file_config: impl Fn(&mut Config, &Path, &[u8]) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
-    // Nexttest emulation: we act as if we are one single test.
-    if configs.iter().any(|c| c.list) {
-        if configs.iter().any(|c| !c.run_only_ignored) {
-            println!("ui_test: test");
-        }
+    if nextest::emulate(&mut configs) {
         return Ok(());
-    }
-    for config in &mut configs {
-        if config.filter_exact
-            && config.filter_files.len() == 1
-            && config.filter_files[0] == "ui_test"
-        {
-            config.filter_exact = false;
-            config.filter_files.clear();
-        }
     }
 
     for config in &mut configs {
