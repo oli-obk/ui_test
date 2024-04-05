@@ -171,8 +171,9 @@ pub struct Revisioned {
     pub custom: HashMap<&'static str, Spanned<Box<dyn Flag>>>,
 }
 
+/// Main entry point to parsing comments and handling parsing errors.
 #[derive(Debug)]
-pub(crate) struct CommentParser<T> {
+pub struct CommentParser<T> {
     /// The comments being built.
     comments: T,
     /// Any errors that ocurred during comment parsing.
@@ -181,7 +182,8 @@ pub(crate) struct CommentParser<T> {
     commands: HashMap<&'static str, CommandParserFunc>,
 }
 
-type CommandParserFunc = fn(&mut CommentParser<&mut Revisioned>, args: Spanned<&str>, span: Span);
+pub type CommandParserFunc =
+    fn(&mut CommentParser<&mut Revisioned>, args: Spanned<&str>, span: Span);
 
 impl<T> std::ops::Deref for CommentParser<T> {
     type Target = T;
@@ -294,11 +296,14 @@ impl Comments {
 
 impl CommentParser<Comments> {
     fn new(config: &Config) -> Self {
-        Self {
+        let mut this = Self {
             comments: config.comment_defaults.clone(),
             errors: vec![],
             commands: Self::commands(),
-        }
+        };
+        this.commands
+            .extend(config.custom_comments.iter().map(|(&k, &v)| (k, v)));
+        this
     }
 
     fn parse(
@@ -524,7 +529,7 @@ impl<CommentsType> CommentParser<CommentsType> {
         });
     }
 
-    fn check(&mut self, span: Span, cond: bool, s: impl Into<String>) {
+    pub fn check(&mut self, span: Span, cond: bool, s: impl Into<String>) {
         if !cond {
             self.error(span, s);
         }
@@ -704,15 +709,6 @@ impl CommentParser<Comments> {
             }
             "run-rustfix" => (this, _args, span){
                 this.error(span, "rustfix is now ran by default when applicable suggestions are found");
-            }
-            "no-rustfix" => (this, _args, span){
-                // args are ignored (can be used as comment)
-                let prev = this.custom.insert("no-rustfix", Spanned::new(Box::new(()), span.clone()));
-                this.check(
-                    span,
-                    prev.is_none(),
-                    "cannot specify `no-rustfix` twice",
-                );
             }
             "needs-asm-support" => (this, _args, span){
                 // args are ignored (can be used as comment)

@@ -4,12 +4,14 @@ use spanned::{Span, Spanned};
 use crate::{
     dependencies::build_dependencies,
     filter::Match,
+    parser::CommandParserFunc,
     per_test_config::{Comments, Condition},
     CommandBuilder, Mode, RustfixMode,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
+    collections::HashMap,
     ffi::OsString,
     num::NonZeroUsize,
     path::{Path, PathBuf},
@@ -55,6 +57,8 @@ pub struct Config {
     pub filter_exact: bool,
     /// The default settings settable via `@` comments
     pub comment_defaults: Comments,
+    /// Custom comment parsers
+    pub custom_comments: HashMap<&'static str, CommandParserFunc>,
 }
 
 impl Config {
@@ -80,7 +84,7 @@ impl Config {
             rustfix: RustfixMode::MachineApplicable,
         })
         .into();
-        Self {
+        let mut config = Self {
             host: None,
             target: None,
             root_dir: root_dir.into(),
@@ -100,7 +104,18 @@ impl Config {
             run_only_ignored: false,
             filter_exact: false,
             comment_defaults,
-        }
+            custom_comments: Default::default(),
+        };
+        config
+            .custom_comments
+            .insert("no-rustfix", |parser, _args, span| {
+                // args are ignored (can be used as comment)
+                let prev = parser
+                    .custom
+                    .insert("no-rustfix", Spanned::new(Box::new(()), span.clone()));
+                parser.check(span, prev.is_none(), "cannot specify `no-rustfix` twice");
+            });
+        config
     }
 
     /// Create a configuration for testing the output of running
@@ -108,6 +123,7 @@ impl Config {
     pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
         let mut this = Self {
             program: CommandBuilder::cargo(),
+            custom_comments: Default::default(),
             ..Self::rustc(root_dir)
         };
         this.comment_defaults.base().edition = Default::default();

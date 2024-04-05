@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* `Config::custom_comments`
+* `Revisioned::custom`
+
+### Fixed
+
+### Changed
+
+* removed `Revisioned::no_rustfix` in favor of turning that into a rustc-specific custom flag
+
+### Removed
+
+## [0.22.3] - 2024-04-05
+
+### Added
+
 * Reexporting `eyre::Result` at the root level
 
 ### Fixed
