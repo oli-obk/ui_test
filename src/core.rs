@@ -7,6 +7,7 @@ use crossbeam_channel::unbounded;
 use crossbeam_channel::Receiver;
 use crossbeam_channel::Sender;
 use std::num::NonZeroUsize;
+use std::panic::UnwindSafe;
 use std::path::Component;
 use std::path::Path;
 use std::path::Prefix;
@@ -118,4 +119,22 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
         }
         Ok(())
     })
+}
+
+/// Tester-specific flag that gets parsed from `//@` comments.
+pub trait Flag: Send + Sync + UnwindSafe + std::fmt::Debug {
+    /// Clone the boxed value and create a new box.
+    fn clone_inner(&self) -> Box<dyn Flag>;
+}
+
+impl Flag for () {
+    fn clone_inner(&self) -> Box<dyn Flag> {
+        Box::new(())
+    }
+}
+
+impl Clone for Box<dyn Flag> {
+    fn clone(&self) -> Self {
+        self.clone_inner()
+    }
 }

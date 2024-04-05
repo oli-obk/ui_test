@@ -12,6 +12,7 @@ use std::process::{Command, Output};
 
 use spanned::{Span, Spanned};
 
+use crate::core::Flag;
 use crate::dependencies::{Build, BuildManager};
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
@@ -510,7 +511,7 @@ impl TestConfig<'_> {
         mode: Mode,
         extra_args: Vec<OsString>,
     ) -> Result<(), Errored> {
-        let no_run_rustfix = self.find_one("`no-rustfix` annotations", |r| r.no_rustfix.clone())?;
+        let no_run_rustfix = self.find_one_custom("no-rustfix")?;
 
         let global_rustfix = match mode {
             Mode::Pass | Mode::Run { .. } | Mode::Panic => RustfixMode::Disabled,
@@ -586,9 +587,9 @@ impl TestConfig<'_> {
                     aux_builds: self.collect(|r| r.aux_builds.iter().cloned()),
                     edition,
                     mode: OptWithLine::new(Mode::Pass, Span::default()),
-                    no_rustfix: OptWithLine::new((), Span::default()),
                     diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
                     needs_asm_support: false,
+                    custom: Default::default(),
                 },
             ))
             .collect(),
@@ -654,5 +655,9 @@ impl TestConfig<'_> {
                 stdout: output.stdout,
             })
         }
+    }
+
+    fn find_one_custom(&self, arg: &str) -> Result<OptWithLine<&dyn Flag>, Errored> {
+        self.find_one(arg, |r| r.custom.get(arg).map(|s| s.as_ref()).into())
     }
 }

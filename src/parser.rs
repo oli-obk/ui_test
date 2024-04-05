@@ -8,7 +8,9 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{filter::Match, rustc_stderr::Level, test_result::Errored, Config, Error, Mode};
+use crate::{
+    core::Flag, filter::Match, rustc_stderr::Level, test_result::Errored, Config, Error, Mode,
+};
 
 use color_eyre::eyre::Result;
 
@@ -162,15 +164,15 @@ pub struct Revisioned {
     /// The mode this test is being run in.
     pub mode: OptWithLine<Mode>,
     pub(crate) needs_asm_support: bool,
-    /// Don't run [`rustfix`] for this test
-    pub no_rustfix: OptWithLine<()>,
     /// Prefix added to all diagnostic code matchers. Note this will make it impossible
     /// match codes which do not contain this prefix.
     pub diagnostic_code_prefix: OptWithLine<String>,
+    /// Tester-specific flags
+    pub custom: HashMap<&'static str, Spanned<Box<dyn Flag>>>,
 }
 
 #[derive(Debug)]
-struct CommentParser<T> {
+pub(crate) struct CommentParser<T> {
     /// The comments being built.
     comments: T,
     /// Any errors that ocurred during comment parsing.
@@ -414,8 +416,8 @@ impl CommentParser<Comments> {
             edition,
             mode,
             needs_asm_support,
-            no_rustfix,
             diagnostic_code_prefix,
+            custom,
         } = self.comments.base();
         if span.is_dummy() {
             *span = defaults.span;
@@ -439,13 +441,14 @@ impl CommentParser<Comments> {
         if mode.is_none() {
             *mode = defaults.mode;
         }
-        if no_rustfix.is_none() {
-            *no_rustfix = defaults.no_rustfix;
-        }
         if diagnostic_code_prefix.is_none() {
             *diagnostic_code_prefix = defaults.diagnostic_code_prefix;
         }
         *needs_asm_support |= defaults.needs_asm_support;
+
+        for (k, v) in defaults.custom {
+            custom.entry(k).or_insert(v);
+        }
 
         if self.errors.is_empty() {
             Ok(self.comments)
@@ -704,7 +707,7 @@ impl CommentParser<Comments> {
             }
             "no-rustfix" => (this, _args, span){
                 // args are ignored (can be used as comment)
-                let prev = this.no_rustfix.set((), span.clone());
+                let prev = this.custom.insert("no-rustfix", Spanned::new(Box::new(()), span.clone()));
                 this.check(
                     span,
                     prev.is_none(),
