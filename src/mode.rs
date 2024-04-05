@@ -24,11 +24,6 @@ impl RustfixMode {
 pub enum Mode {
     /// The test passes a full execution of the rustc driver
     Pass,
-    /// The test produces an executable binary that can get executed on the host
-    Run {
-        /// The expected exit code
-        exit_code: i32,
-    },
     /// The rustc driver panicked
     Panic,
     /// The rustc driver emitted an error
@@ -49,7 +44,6 @@ impl Mode {
     #[allow(clippy::result_large_err)]
     pub(crate) fn ok(self, status: ExitStatus) -> Result<(), Error> {
         let expected = match self {
-            Mode::Run { exit_code } => exit_code,
             Mode::Pass => 0,
             Mode::Panic => 101,
             Mode::Fail { .. } => 1,
@@ -59,7 +53,7 @@ impl Mode {
             Ok(())
         } else {
             Err(Error::ExitStatus {
-                mode: self,
+                mode: self.to_string(),
                 status,
                 expected,
             })
@@ -70,7 +64,6 @@ impl Mode {
 impl Display for Mode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Mode::Run { exit_code } => write!(f, "run({exit_code})"),
             Mode::Pass => write!(f, "pass"),
             Mode::Panic => write!(f, "panic"),
             Mode::Fail {

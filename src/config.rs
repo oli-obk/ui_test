@@ -6,8 +6,8 @@ use crate::{
     dependencies::build_dependencies,
     filter::Match,
     parser::CommandParserFunc,
-    per_test_config::{Comments, Condition},
-    CommandBuilder, Mode, RustfixMode,
+    per_test_config::{Comments, Condition, Run, TestConfig},
+    CommandBuilder, Errored, Mode, RustfixMode,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
@@ -16,6 +16,7 @@ use std::{
     ffi::OsString,
     num::NonZeroUsize,
     path::{Path, PathBuf},
+    process::{Command, Output},
 };
 
 mod args;
@@ -100,10 +101,35 @@ impl Config {
             }
         }
 
+        #[derive(Debug)]
+        struct Rustfix;
+        impl Flag for Rustfix {
+            fn clone_inner(&self) -> Box<dyn Flag> {
+                Box::new(Rustfix)
+            }
+            fn post_test_action(
+                &self,
+                config: &TestConfig<'_>,
+                cmd: Command,
+                output: &Output,
+                extra_args: &[OsString],
+            ) -> Result<Option<Command>, Errored> {
+                if config.run_rustfix(output.clone(), *config.mode()?, extra_args)? {
+                    Ok(None)
+                } else {
+                    Ok(Some(cmd))
+                }
+            }
+        }
+
         let _ = comment_defaults
             .base()
             .custom
             .insert("edition", Spanned::dummy(Box::new(Edition("2021".into()))));
+        let _ = comment_defaults
+            .base()
+            .custom
+            .insert("rustfix", Spanned::dummy(Box::new(Rustfix)));
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
             #[cfg(windows)]
@@ -173,6 +199,36 @@ impl Config {
                     "cannot specify `needs-asm-support` twice",
                 );
             });
+
+        config.custom_comments.insert("run", |parser, args, span| {
+            parser.check(
+                span.clone(),
+                parser.mode.is_none(),
+                "cannot specify test mode changes twice",
+            );
+            let set = |exit_code| {
+                parser.custom.insert(
+                    "run",
+                    Spanned::new(Box::new(Run { exit_code }), args.span()),
+                );
+                parser.mode = Spanned::new(Mode::Pass, args.span()).into();
+
+                let prev = parser
+                    .custom
+                    .insert("no-rustfix", Spanned::new(Box::new(()), span.clone()));
+                parser.check(span, prev.is_none(), "`run` implies `no-rustfix`");
+            };
+            if args.is_empty() {
+                set(0);
+            } else {
+                match args.content.parse() {
+                    Ok(exit_code) => {
+                        set(exit_code);
+                    }
+                    Err(err) => parser.error(args.span(), err.to_string()),
+                }
+            }
+        });
         config
     }
 

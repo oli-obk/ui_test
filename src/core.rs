@@ -1,5 +1,6 @@
 //! Basic operations useful for building a testsuite
 
+use crate::per_test_config::TestConfig;
 use crate::test_result::Errored;
 use crate::Config;
 use bstr::ByteSlice as _;
@@ -7,6 +8,7 @@ use color_eyre::eyre::Result;
 use crossbeam_channel::unbounded;
 use crossbeam_channel::Receiver;
 use crossbeam_channel::Sender;
+use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::panic::UnwindSafe;
 use std::path::Component;
@@ -133,6 +135,18 @@ pub trait Flag: Send + Sync + UnwindSafe + std::fmt::Debug {
     /// Whether this flag causes a test to be filtered out
     fn test_condition(&self, _config: &Config) -> bool {
         false
+    }
+
+    /// Run an action after a test is finished.
+    /// Returns the `cmd` back if no action was taken.
+    fn post_test_action(
+        &self,
+        _config: &TestConfig<'_>,
+        cmd: Command,
+        _output: &Output,
+        _extra_args: &[OsString],
+    ) -> Result<Option<Command>, Errored> {
+        Ok(Some(cmd))
     }
 }
 

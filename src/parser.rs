@@ -514,7 +514,7 @@ impl CommentParser<Comments> {
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
-    fn error(&mut self, span: Span, s: impl Into<String>) {
+    pub fn error(&mut self, span: Span, s: impl Into<String>) {
         self.errors.push(Error::InvalidComment {
             msg: s.into(),
             span,
@@ -720,22 +720,6 @@ impl CommentParser<Comments> {
                     prev.is_none(),
                     "cannot specify test mode changes twice",
                 );
-            }
-            "run" => (this, args, span){
-                this.check(
-                    span,
-                    this.mode.is_none(),
-                    "cannot specify test mode changes twice",
-                );
-                let mut set = |exit_code| this.mode.set(Mode::Run { exit_code }, args.span());
-                if args.is_empty() {
-                    set(0);
-                } else {
-                    match args.content.parse() {
-                        Ok(exit_code) => {set(exit_code);},
-                        Err(err) => this.error(args.span(), err.to_string()),
-                    }
-                }
             }
             "require-annotations-for-level" => (this, args, span){
                 let args = args.trim();
