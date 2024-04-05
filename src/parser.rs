@@ -8,7 +8,7 @@ use std::{
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
-use crate::{filter::Match, rustc_stderr::Level, test_result::Errored, Error, Mode};
+use crate::{filter::Match, rustc_stderr::Level, test_result::Errored, Config, Error, Mode};
 
 use color_eyre::eyre::Result;
 
@@ -283,11 +283,11 @@ impl Comments {
     /// `path` is only used to emit diagnostics if parsing fails.
     pub(crate) fn parse(
         content: &(impl AsRef<[u8]> + ?Sized),
-        comments: Comments,
+        config: &Config,
         file: &Path,
     ) -> std::result::Result<Self, Vec<Error>> {
         let mut parser = CommentParser {
-            comments,
+            comments: config.comment_defaults.clone(),
             errors: vec![],
             commands: CommentParser::<_>::commands(),
         };

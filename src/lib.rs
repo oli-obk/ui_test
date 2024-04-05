@@ -129,7 +129,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
 
     let content =
         std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
-    let comments = Comments::parse(&content, config.comment_defaults.clone(), path)
+    let comments = Comments::parse(&content, &config, path)
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
         config,
@@ -304,12 +304,8 @@ fn parse_and_test_file(
     mut config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
-    let comments = Comments::parse(
-        &file_contents,
-        config.comment_defaults.clone(),
-        status.path(),
-    )
-    .map_err(|errors| Errored::new(errors, "parse comments"))?;
+    let comments = Comments::parse(&file_contents, &config, status.path())
+        .map_err(|errors| Errored::new(errors, "parse comments"))?;
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);

@@ -18,7 +18,7 @@ fn config() -> Config {
 macro_rules! config {
     ($config:ident = $s:expr) => {
         let path = Path::new("moobar");
-        let comments = Comments::parse($s, $config.comment_defaults.clone(), path).unwrap();
+        let comments = Comments::parse($s, &$config, path).unwrap();
         #[allow(unused_mut)]
         let mut $config = TestConfig {
             config: $config,
