@@ -12,7 +12,7 @@ use std::process::{Command, Output};
 
 use spanned::{Span, Spanned};
 
-use crate::core::Flag;
+use crate::custom_flags::Flag;
 use crate::dependencies::{Build, BuildManager};
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
@@ -462,7 +462,7 @@ impl TestConfig<'_> {
         Ok(TestOk::Ok)
     }
 
-    fn run_test_binary(&self, mut cmd: Command, exit_code: i32) -> TestResult {
+    pub(crate) fn run_test_binary(&self, mut cmd: Command, exit_code: i32) -> TestResult {
         let revision = self.extension("run");
         let config = TestConfig {
             config: self.config.clone(),
@@ -660,25 +660,5 @@ impl TestConfig<'_> {
 
     fn find_one_custom(&self, arg: &str) -> Result<OptWithLine<&dyn Flag>, Errored> {
         self.find_one(arg, |r| r.custom.get(arg).map(|s| s.as_ref()).into())
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct Run {
-    pub exit_code: i32,
-}
-
-impl Flag for Run {
-    fn clone_inner(&self) -> Box<dyn Flag> {
-        Box::new(*self)
-    }
-    fn post_test_action(
-        &self,
-        config: &TestConfig<'_>,
-        cmd: Command,
-        _output: &Output,
-    ) -> Result<Option<Command>, Errored> {
-        config.run_test_binary(cmd, self.exit_code)?;
-        Ok(None)
     }
 }

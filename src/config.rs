@@ -2,11 +2,11 @@ use regex::bytes::Regex;
 use spanned::Spanned;
 
 use crate::{
-    core::Flag,
+    custom_flags::{run::Run, Flag},
     dependencies::build_dependencies,
     filter::Match,
     parser::CommandParserFunc,
-    per_test_config::{Comments, Condition, Run, TestConfig},
+    per_test_config::{Comments, Condition, TestConfig},
     CommandBuilder, Errored, Mode, RustfixMode,
 };
 pub use color_eyre;

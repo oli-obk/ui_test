@@ -9,7 +9,8 @@ use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
 use crate::{
-    core::Flag, filter::Match, rustc_stderr::Level, test_result::Errored, Config, Error, Mode,
+    custom_flags::Flag, filter::Match, rustc_stderr::Level, test_result::Errored, Config, Error,
+    Mode,
 };
 
 use color_eyre::eyre::Result;

@@ -30,6 +30,7 @@ use crate::parser::Comments;
 mod cmd;
 mod config;
 pub mod core;
+pub mod custom_flags;
 mod dependencies;
 mod diff;
 mod error;
