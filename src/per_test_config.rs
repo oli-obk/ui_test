@@ -386,24 +386,21 @@ impl TestConfig<'_> {
                 };
                 extra_args.extend(
                     build_manager
-                        .build(
-                            Build::Aux {
-                                aux_file: strip_path_prefix(
-                                    &aux_file.canonicalize().map_err(|err| Errored {
-                                        command: Command::new(format!(
-                                            "canonicalizing path `{}`",
-                                            aux_file.display()
-                                        )),
-                                        errors: vec![],
-                                        stderr: err.to_string().into_bytes(),
-                                        stdout: vec![],
-                                    })?,
-                                    &std::env::current_dir().unwrap(),
-                                )
-                                .collect(),
-                            },
-                            &self.config,
-                        )
+                        .build(Build::Aux {
+                            aux_file: strip_path_prefix(
+                                &aux_file.canonicalize().map_err(|err| Errored {
+                                    command: Command::new(format!(
+                                        "canonicalizing path `{}`",
+                                        aux_file.display()
+                                    )),
+                                    errors: vec![],
+                                    stderr: err.to_string().into_bytes(),
+                                    stdout: vec![],
+                                })?,
+                                &std::env::current_dir().unwrap(),
+                            )
+                            .collect(),
+                        })
                         .map_err(
                             |Errored {
                                  command,

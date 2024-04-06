@@ -1,7 +1,7 @@
 //! Define custom test flags not natively supported by ui_test
 
 use std::{
-    panic::UnwindSafe,
+    panic::{RefUnwindSafe, UnwindSafe},
     process::{Command, Output},
 };
 
@@ -11,7 +11,7 @@ pub mod run;
 pub mod rustfix;
 
 /// Tester-specific flag that gets parsed from `//@` comments.
-pub trait Flag: Send + Sync + UnwindSafe + std::fmt::Debug {
+pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
     /// Clone the boxed value and create a new box.
     fn clone_inner(&self) -> Box<dyn Flag>;
 

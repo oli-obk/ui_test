@@ -233,20 +233,22 @@ pub struct BuildManager<'a> {
     #[allow(clippy::type_complexity)]
     cache: RwLock<HashMap<Build, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
     status_emitter: &'a dyn StatusEmitter,
+    config: Config,
 }
 
 impl<'a> BuildManager<'a> {
-    pub fn new(status_emitter: &'a dyn StatusEmitter) -> Self {
+    pub fn new(status_emitter: &'a dyn StatusEmitter, config: Config) -> Self {
         Self {
             cache: Default::default(),
             status_emitter,
+            config,
         }
     }
     /// This function will block until the build is done and then return the arguments
     /// that need to be passed in order to build the dependencies.
     /// The error is only reported once, all follow up invocations of the same build will
     /// have a generic error about a previous build failing.
-    pub fn build(&self, what: Build, config: &Config) -> Result<Vec<OsString>, Errored> {
+    pub fn build(&self, what: Build) -> Result<Vec<OsString>, Errored> {
         // Fast path without much contention.
         if let Some(res) = self.cache.read().unwrap().get(&what).and_then(|o| o.get()) {
             return res.clone().map_err(|()| Errored {
@@ -284,7 +286,7 @@ impl<'a> BuildManager<'a> {
                 .register_test(what.description().into())
                 .for_revision("");
             let res = match &what {
-                Build::Dependencies => match config.build_dependencies() {
+                Build::Dependencies => match self.config.build_dependencies() {
                     Ok(args) => Ok(args),
                     Err(e) => {
                         err = Some(Errored {
@@ -296,7 +298,7 @@ impl<'a> BuildManager<'a> {
                         Err(())
                     }
                 },
-                Build::Aux { aux_file } => match self.build_aux(aux_file, config) {
+                Build::Aux { aux_file } => match self.build_aux(aux_file, self.config.clone()) {
                     Ok(args) => Ok(args.iter().map(Into::into).collect()),
                     Err(e) => {
                         err = Some(e);
@@ -330,7 +332,7 @@ impl<'a> BuildManager<'a> {
     fn build_aux(
         &self,
         aux_file: &Path,
-        config: &Config,
+        mut config: Config,
     ) -> std::result::Result<Vec<OsString>, Errored> {
         let file_contents = std::fs::read(aux_file).map_err(|err| Errored {
             command: Command::new(format!("reading aux file `{}`", aux_file.display())),
@@ -338,34 +340,12 @@ impl<'a> BuildManager<'a> {
             stderr: err.to_string().into_bytes(),
             stdout: vec![],
         })?;
-        let comments = Comments::parse(&file_contents, config, aux_file)
+        let comments = Comments::parse(&file_contents, &config, aux_file)
             .map_err(|errors| Errored::new(errors, "parse aux comments"))?;
         assert_eq!(
             comments.revisions, None,
             "aux builds cannot specify revisions"
         );
-
-        let mut config = config.clone();
-
-        // Strip any `crate-type` flags from the args, as we need to set our own,
-        // and they may conflict (e.g. `lib` vs `proc-macro`);
-        let mut prev_was_crate_type = false;
-        config.program.args.retain(|arg| {
-            if prev_was_crate_type {
-                prev_was_crate_type = false;
-                return false;
-            }
-            if arg == "--test" {
-                false
-            } else if arg == "--crate-type" {
-                prev_was_crate_type = true;
-                false
-            } else if let Some(arg) = arg.to_str() {
-                !arg.starts_with("--crate-type=")
-            } else {
-                true
-            }
-        });
 
         default_per_file_config(&mut config, aux_file, &file_contents);
 
@@ -425,5 +405,9 @@ impl<'a> BuildManager<'a> {
             extra_args.push(config.config.out_dir.as_os_str().to_os_string());
         }
         Ok(extra_args)
+    }
+
+    pub fn config(&self) -> &Config {
+        &self.config
     }
 }
