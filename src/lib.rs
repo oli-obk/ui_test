@@ -28,6 +28,7 @@ pub use test_result::{Errored, TestOk};
 use crate::dependencies::DependencyBuilder;
 use crate::parser::Comments;
 
+pub mod aux_builds;
 mod cmd;
 mod config;
 pub mod core;
