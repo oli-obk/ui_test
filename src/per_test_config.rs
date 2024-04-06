@@ -11,8 +11,8 @@ use std::process::{Command, Output};
 use spanned::Spanned;
 
 use crate::aux_builds::AuxBuilder;
+use crate::build_manager::BuildManager;
 use crate::custom_flags::Flag;
-use crate::dependencies::BuildManager;
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 pub use crate::rustc_stderr::Level;

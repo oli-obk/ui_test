@@ -8,13 +8,13 @@
 
 //! A crate to run the Rust compiler (or other binaries) and test their command line output.
 
+use build_manager::BuildManager;
 pub use color_eyre;
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context as _;
 pub use color_eyre::eyre::Result;
 pub use core::run_and_collect;
 pub use core::CrateType;
-use dependencies::BuildManager;
 pub use filter::Match;
 use per_test_config::TestConfig;
 use rustc_stderr::Message;
@@ -29,6 +29,7 @@ use crate::dependencies::DependencyBuilder;
 use crate::parser::Comments;
 
 pub mod aux_builds;
+pub mod build_manager;
 mod cmd;
 mod config;
 pub mod core;

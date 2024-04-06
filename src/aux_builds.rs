@@ -5,8 +5,8 @@ use bstr::ByteSlice;
 use std::{ffi::OsString, path::PathBuf, process::Command};
 
 use crate::{
+    build_manager::{Build, BuildManager},
     default_per_file_config,
-    dependencies::{Build, BuildManager},
     per_test_config::{Comments, TestConfig},
     rustc_stderr, CrateType, Error, Errored,
 };

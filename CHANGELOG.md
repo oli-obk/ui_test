@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `Config::custom_comments`
 * `Revisioned::custom`
+* `Flag` trait for custom `//@` flags
+* `Build` trait for custom aux/dep build
+    * `BuildManager` for deduplicating these builds on a per-`Config` basis
 
 ### Fixed
 
