@@ -14,7 +14,7 @@ use color_eyre::eyre::Context as _;
 pub use color_eyre::eyre::Result;
 pub use core::run_and_collect;
 pub use core::CrateType;
-use dependencies::{Build, BuildManager};
+use dependencies::BuildManager;
 pub use filter::Match;
 use per_test_config::TestConfig;
 use rustc_stderr::Message;
@@ -25,6 +25,7 @@ use std::process::Command;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
 
+use crate::dependencies::DependencyBuilder;
 use crate::parser::Comments;
 
 mod cmd;
@@ -328,7 +329,7 @@ fn parse_and_test_file(
 
             if !built_deps {
                 status.update_status("waiting for dependencies to finish building".into());
-                match build_manager.build(Build::Dependencies) {
+                match build_manager.build(DependencyBuilder) {
                     Ok(extra_args) => config.program.args.extend(extra_args),
                     Err(err) => {
                         return TestRun {

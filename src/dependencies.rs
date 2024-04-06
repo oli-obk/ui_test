@@ -213,25 +213,55 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
     bail!("no json found in cargo-metadata output")
 }
 
-#[derive(PartialEq, Eq, Debug, Hash, Clone)]
-pub enum Build {
-    /// Build the dependencies.
-    Dependencies,
-    /// Build an aux-build.
-    Aux { aux_file: PathBuf },
+pub trait Build {
+    /// Runs the build and returns command line args to add to the test so it can find
+    /// the built things.
+    fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored>;
+    /// Must uniquely describe the build, as it is used for checking that a value
+    /// has already been cached.
+    fn description(&self) -> String;
 }
-impl Build {
+
+/// Build the dependencies.
+pub struct DependencyBuilder;
+
+impl Build for DependencyBuilder {
+    fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
+        build_manager
+            .config()
+            .build_dependencies()
+            .map_err(|e| Errored {
+                command: Command::new(format!("{:?}", self.description())),
+                errors: vec![],
+                stderr: format!("{e:?}").into_bytes(),
+                stdout: vec![],
+            })
+    }
+
     fn description(&self) -> String {
-        match self {
-            Build::Dependencies => "Building dependencies".into(),
-            Build::Aux { aux_file } => format!("Building aux file {}", aux_file.display()),
-        }
+        "Building dependencies".into()
+    }
+}
+
+/// Build an aux-build.
+pub struct AuxBuilder {
+    pub aux_file: PathBuf,
+}
+
+impl Build for AuxBuilder {
+    fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
+        let args = build_manager.build_aux(&self.aux_file, build_manager.config().clone())?;
+        Ok(args.iter().map(Into::into).collect())
+    }
+
+    fn description(&self) -> String {
+        format!("Building aux file {}", self.aux_file.display())
     }
 }
 
 pub struct BuildManager<'a> {
     #[allow(clippy::type_complexity)]
-    cache: RwLock<HashMap<Build, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
+    cache: RwLock<HashMap<String, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
     status_emitter: &'a dyn StatusEmitter,
     config: Config,
 }
@@ -248,22 +278,29 @@ impl<'a> BuildManager<'a> {
     /// that need to be passed in order to build the dependencies.
     /// The error is only reported once, all follow up invocations of the same build will
     /// have a generic error about a previous build failing.
-    pub fn build(&self, what: Build) -> Result<Vec<OsString>, Errored> {
+    pub fn build(&self, what: impl Build) -> Result<Vec<OsString>, Errored> {
+        let description = what.description();
         // Fast path without much contention.
-        if let Some(res) = self.cache.read().unwrap().get(&what).and_then(|o| o.get()) {
+        if let Some(res) = self
+            .cache
+            .read()
+            .unwrap()
+            .get(&description)
+            .and_then(|o| o.get())
+        {
             return res.clone().map_err(|()| Errored {
-                command: Command::new(format!("{what:?}")),
+                command: Command::new(format!("{description:?}")),
                 errors: vec![],
                 stderr: b"previous build failed".to_vec(),
                 stdout: vec![],
             });
         }
         let mut lock = self.cache.write().unwrap();
-        let once = match lock.entry(what.clone()) {
+        let once = match lock.entry(description) {
             Entry::Occupied(entry) => {
                 if let Some(res) = entry.get().get() {
                     return res.clone().map_err(|()| Errored {
-                        command: Command::new(format!("{what:?}")),
+                        command: Command::new(format!("{:?}", what.description())),
                         errors: vec![],
                         stderr: b"previous build failed".to_vec(),
                         stdout: vec![],
@@ -285,27 +322,7 @@ impl<'a> BuildManager<'a> {
                 .status_emitter
                 .register_test(what.description().into())
                 .for_revision("");
-            let res = match &what {
-                Build::Dependencies => match self.config.build_dependencies() {
-                    Ok(args) => Ok(args),
-                    Err(e) => {
-                        err = Some(Errored {
-                            command: Command::new(format!("{what:?}")),
-                            errors: vec![],
-                            stderr: format!("{e:?}").into_bytes(),
-                            stdout: vec![],
-                        });
-                        Err(())
-                    }
-                },
-                Build::Aux { aux_file } => match self.build_aux(aux_file, self.config.clone()) {
-                    Ok(args) => Ok(args.iter().map(Into::into).collect()),
-                    Err(e) => {
-                        err = Some(e);
-                        Err(())
-                    }
-                },
-            };
+            let res = what.build(self).map_err(|e| err = Some(e));
             build.done(
                 &res.as_ref()
                     .map(|_| crate::test_result::TestOk::Ok)

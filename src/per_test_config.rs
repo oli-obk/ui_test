@@ -11,7 +11,7 @@ use std::process::{Command, Output};
 use spanned::Spanned;
 
 use crate::custom_flags::Flag;
-use crate::dependencies::{Build, BuildManager};
+use crate::dependencies::{AuxBuilder, BuildManager};
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 pub use crate::rustc_stderr::Level;
@@ -386,7 +386,7 @@ impl TestConfig<'_> {
                 };
                 extra_args.extend(
                     build_manager
-                        .build(Build::Aux {
+                        .build(AuxBuilder {
                             aux_file: strip_path_prefix(
                                 &aux_file.canonicalize().map_err(|err| Errored {
                                     command: Command::new(format!(
