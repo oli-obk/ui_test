@@ -2,12 +2,12 @@ use regex::bytes::Regex;
 use spanned::Spanned;
 
 use crate::{
-    custom_flags::{run::Run, Flag},
+    custom_flags::{run::Run, rustfix::RustfixMode, Flag},
     dependencies::build_dependencies,
     filter::Match,
     parser::CommandParserFunc,
-    per_test_config::{Comments, Condition, TestConfig},
-    CommandBuilder, Errored, Mode, RustfixMode,
+    per_test_config::{Comments, Condition},
+    CommandBuilder, Mode,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
@@ -16,7 +16,6 @@ use std::{
     ffi::OsString,
     num::NonZeroUsize,
     path::{Path, PathBuf},
-    process::{Command, Output},
 };
 
 mod args;
@@ -98,29 +97,6 @@ impl Config {
                     // "nvptx64", "hexagon", "mips", "mips64", "spirv", "wasm32",
                 ];
                 !ASM_SUPPORTED_ARCHS.iter().any(|arch| target.contains(arch))
-            }
-        }
-
-        impl Flag for RustfixMode {
-            fn clone_inner(&self) -> Box<dyn Flag> {
-                Box::new(*self)
-            }
-            fn post_test_action(
-                &self,
-                config: &TestConfig<'_>,
-                cmd: Command,
-                output: &Output,
-            ) -> Result<Option<Command>, Errored> {
-                let global_rustfix = match *config.mode()? {
-                    Mode::Pass | Mode::Panic => RustfixMode::Disabled,
-                    Mode::Fail { .. } | Mode::Yolo => *self,
-                };
-
-                if config.run_rustfix(output.clone(), global_rustfix)? {
-                    Ok(None)
-                } else {
-                    Ok(Some(cmd))
-                }
             }
         }
 

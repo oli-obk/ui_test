@@ -8,6 +8,7 @@ use std::{
 use crate::{per_test_config::TestConfig, Config, Errored};
 
 pub mod run;
+pub mod rustfix;
 
 /// Tester-specific flag that gets parsed from `//@` comments.
 pub trait Flag: Send + Sync + UnwindSafe + std::fmt::Debug {

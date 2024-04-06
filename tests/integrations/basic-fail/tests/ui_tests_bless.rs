@@ -1,4 +1,4 @@
-use ui_test::{spanned::Spanned, *};
+use ui_test::{custom_flags::rustfix::RustfixMode, spanned::Spanned, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     for (mode, rustfix) in [
