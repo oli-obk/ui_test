@@ -3,7 +3,6 @@
 //! in the files. These comments still overwrite the defaults, although
 //! some boolean settings have no way to disable them.
 
-use bstr::ByteSlice;
 use std::collections::HashSet;
 use std::ffi::OsString;
 use std::num::NonZeroUsize;
@@ -460,56 +459,6 @@ impl TestConfig<'_> {
             }
         }
         Ok(TestOk::Ok)
-    }
-
-    pub(crate) fn run_test_binary(&self, mut cmd: Command, exit_code: i32) -> TestResult {
-        let revision = self.extension("run");
-        let config = TestConfig {
-            config: self.config.clone(),
-            revision: &revision,
-            comments: self.comments,
-            path: self.path,
-        };
-        cmd.arg("--print").arg("file-names");
-        let output = cmd.output().unwrap();
-        assert!(output.status.success());
-
-        let mut files = output.stdout.lines();
-        let file = files.next().unwrap();
-        assert_eq!(files.next(), None);
-        let file = std::str::from_utf8(file).unwrap();
-        let exe_file = config.config.out_dir.join(file);
-        let mut exe = Command::new(&exe_file);
-        let stdin = config.path.with_extension(format!("{revision}.stdin"));
-        if stdin.exists() {
-            exe.stdin(std::fs::File::open(stdin).unwrap());
-        }
-        let output = exe
-            .output()
-            .unwrap_or_else(|err| panic!("exe file: {}: {err}", exe_file.display()));
-
-        let mut errors = vec![];
-
-        config.check_test_output(&mut errors, &output.stdout, &output.stderr);
-
-        let status = output.status;
-        if status.code() != Some(exit_code) {
-            errors.push(Error::ExitStatus {
-                mode: format!("run({exit_code})"),
-                status,
-                expected: exit_code,
-            })
-        }
-        if errors.is_empty() {
-            Ok(TestOk::Ok)
-        } else {
-            Err(Errored {
-                command: exe,
-                errors,
-                stderr: vec![],
-                stdout: vec![],
-            })
-        }
     }
 
     pub(crate) fn run_rustfix(
