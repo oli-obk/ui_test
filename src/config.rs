@@ -6,7 +6,7 @@ use crate::{
     dependencies::build_dependencies,
     filter::Match,
     parser::CommandParserFunc,
-    per_test_config::{Comments, Condition},
+    per_test_config::{Comments, Condition, TestConfig},
     CommandBuilder, Mode,
 };
 pub use color_eyre;
@@ -76,7 +76,7 @@ impl Config {
                 Box::new(Edition(self.0.clone()))
             }
 
-            fn apply(&self, cmd: &mut std::process::Command) {
+            fn apply(&self, cmd: &mut std::process::Command, _config: &TestConfig<'_>) {
                 cmd.arg("--edition").arg(&self.0);
             }
         }

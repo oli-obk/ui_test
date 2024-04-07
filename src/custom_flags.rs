@@ -16,7 +16,7 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
     fn clone_inner(&self) -> Box<dyn Flag>;
 
     /// Modify a command to what the flag specifies
-    fn apply(&self, _cmd: &mut Command) {}
+    fn apply(&self, _cmd: &mut Command, _config: &TestConfig<'_>) {}
 
     /// Whether this flag causes a test to be filtered out
     fn test_condition(&self, _config: &Config) -> bool {

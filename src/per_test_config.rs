@@ -78,7 +78,7 @@ impl TestConfig<'_> {
     fn apply_custom(&self, cmd: &mut Command) {
         for rev in self.comments.for_revision(self.revision) {
             for flag in rev.custom.values() {
-                flag.content.apply(cmd);
+                flag.content.apply(cmd, self);
             }
         }
     }
