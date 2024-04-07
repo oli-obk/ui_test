@@ -9,7 +9,6 @@ use crate::{
     per_test_config::TestConfig, Errored, Mode,
 };
 use crate::{
-    dependencies::build_dependencies,
     parser::CommandParserFunc,
     per_test_config::{Comments, Condition},
     CommandBuilder,
@@ -18,7 +17,6 @@ pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
     collections::BTreeMap,
-    ffi::OsString,
     num::NonZeroUsize,
     path::{Path, PathBuf},
 };
@@ -346,27 +344,6 @@ impl Config {
             Regex::new(pattern).unwrap().into(),
             replacement.as_ref().to_owned(),
         ));
-    }
-
-    /// Compile dependencies and return the right flags
-    /// to find the dependencies.
-    pub fn build_dependencies(&self) -> Result<Vec<OsString>> {
-        let dependencies = build_dependencies(self)?;
-        let mut args = vec![];
-        for (name, artifacts) in dependencies.dependencies {
-            for dependency in artifacts {
-                args.push("--extern".into());
-                let mut dep = OsString::from(&name);
-                dep.push("=");
-                dep.push(dependency);
-                args.push(dep);
-            }
-        }
-        for import_path in dependencies.import_paths {
-            args.push("-L".into());
-            args.push(import_path.into());
-        }
-        Ok(args)
     }
 
     /// Make sure we have the host and target triples.

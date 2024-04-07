@@ -50,7 +50,7 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
 }
 
 /// Compiles dependencies and returns the crate names and corresponding rmeta files.
-pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
+fn build_dependencies_inner(config: &Config) -> Result<Dependencies> {
     let manifest_path = match &config.dependencies_crate_manifest_path {
         Some(path) => path.to_owned(),
         None => return Ok(Default::default()),
@@ -213,18 +213,36 @@ pub struct DependencyBuilder;
 
 impl Build for DependencyBuilder {
     fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
-        build_manager
-            .config()
-            .build_dependencies()
-            .map_err(|e| Errored {
-                command: Command::new(format!("{:?}", self.description())),
-                errors: vec![],
-                stderr: format!("{e:?}").into_bytes(),
-                stdout: vec![],
-            })
+        build_dependencies(build_manager.config()).map_err(|e| Errored {
+            command: Command::new(format!("{:?}", self.description())),
+            errors: vec![],
+            stderr: format!("{e:?}").into_bytes(),
+            stdout: vec![],
+        })
     }
 
     fn description(&self) -> String {
         "Building dependencies".into()
     }
+}
+
+/// Compile dependencies and return the right flags
+/// to find the dependencies.
+pub fn build_dependencies(config: &Config) -> Result<Vec<OsString>> {
+    let dependencies = build_dependencies_inner(config)?;
+    let mut args = vec![];
+    for (name, artifacts) in dependencies.dependencies {
+        for dependency in artifacts {
+            args.push("--extern".into());
+            let mut dep = OsString::from(&name);
+            dep.push("=");
+            dep.push(dependency);
+            args.push(dep);
+        }
+    }
+    for import_path in dependencies.import_paths {
+        args.push("-L".into());
+        args.push(import_path.into());
+    }
+    Ok(args)
 }

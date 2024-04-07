@@ -11,6 +11,7 @@
 use build_manager::BuildManager;
 pub use color_eyre;
 use color_eyre::eyre::eyre;
+#[cfg(feature = "rustc")]
 use color_eyre::eyre::Context as _;
 pub use color_eyre::eyre::Result;
 pub use core::run_and_collect;
@@ -25,7 +26,6 @@ use std::process::Command;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
 
-use crate::dependencies::DependencyBuilder;
 use crate::parser::Comments;
 
 pub mod aux_builds;
@@ -34,6 +34,8 @@ mod cmd;
 mod config;
 pub mod core;
 pub mod custom_flags;
+
+#[cfg(feature = "rustc")]
 mod dependencies;
 mod diff;
 mod error;
@@ -127,9 +129,10 @@ pub fn default_per_file_config(config: &mut Config, _path: &Path, file_contents:
 
 /// Create a command for running a single file, with the settings from the `config` argument.
 /// Ignores various settings from `Config` that relate to finding test files.
+#[cfg(feature = "rustc")]
 pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
-    let extra_args = config.build_dependencies()?;
+    let extra_args = dependencies::build_dependencies(&config)?;
 
     let content =
         std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
@@ -310,7 +313,7 @@ pub fn run_tests_generic(
 fn parse_and_test_file(
     build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
-    mut config: Config,
+    #[allow(unused_mut)] mut config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = Comments::parse(&file_contents, &config, status.path())
@@ -318,6 +321,7 @@ fn parse_and_test_file(
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
+    #[cfg(feature = "rustc")]
     let mut built_deps = false;
     Ok(revisions
         .iter()
@@ -331,9 +335,11 @@ fn parse_and_test_file(
                 };
             }
 
+            #[cfg(feature = "rustc")]
+            // FIXME: move this into custom comments
             if !built_deps {
                 status.update_status("waiting for dependencies to finish building".into());
-                match build_manager.build(DependencyBuilder) {
+                match build_manager.build(dependencies::DependencyBuilder) {
                     Ok(extra_args) => config.program.args.extend(extra_args),
                     Err(err) => {
                         return TestRun {
