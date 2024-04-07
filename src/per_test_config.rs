@@ -11,10 +11,10 @@ use spanned::Spanned;
 
 use crate::build_manager::BuildManager;
 use crate::custom_flags::Flag;
+pub use crate::diagnostics::Level;
+use crate::diagnostics::Message;
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
-pub use crate::rustc_stderr::Level;
-use crate::rustc_stderr::Message;
 use crate::status_emitter::TestStatus;
 use crate::test_result::{Errored, TestOk, TestResult};
 use crate::{

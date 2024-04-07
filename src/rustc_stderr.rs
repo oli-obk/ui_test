@@ -5,6 +5,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::diagnostics::{Diagnostics, Message};
+
 #[derive(serde::Deserialize, Debug)]
 struct RustcDiagnosticCode {
     code: String,
@@ -18,32 +20,6 @@ struct RustcMessage {
     message: String,
     children: Vec<RustcMessage>,
     code: Option<RustcDiagnosticCode>,
-}
-
-#[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
-/// The different levels of diagnostic messages and their relative ranking.
-pub enum Level {
-    /// internal compiler errors
-    Ice = 5,
-    /// ´error´ level messages
-    Error = 4,
-    /// ´warn´ level messages
-    Warn = 3,
-    /// ´help´ level messages
-    Help = 2,
-    /// ´note´ level messages
-    Note = 1,
-    /// Only used for "For more information about this error, try `rustc --explain EXXXX`".
-    FailureNote = 0,
-}
-
-#[derive(Debug)]
-/// A diagnostic message.
-pub struct Message {
-    pub(crate) level: Level,
-    pub(crate) message: String,
-    pub(crate) line_col: Option<spanned::Span>,
-    pub(crate) code: Option<String>,
 }
 
 /// Information about macro expansion.
@@ -67,32 +43,6 @@ struct Span {
     column_start: NonZeroUsize,
     line_end: NonZeroUsize,
     column_end: NonZeroUsize,
-}
-
-impl std::str::FromStr for Level {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "ERROR" | "error" => Ok(Self::Error),
-            "WARN" | "warning" => Ok(Self::Warn),
-            "HELP" | "help" => Ok(Self::Help),
-            "NOTE" | "note" => Ok(Self::Note),
-            "failure-note" => Ok(Self::FailureNote),
-            "error: internal compiler error" => Ok(Self::Ice),
-            _ => Err(format!("unknown level `{s}`")),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct Diagnostics {
-    /// Rendered and concatenated version of all diagnostics.
-    /// This is equivalent to non-json diagnostics.
-    pub rendered: Vec<u8>,
-    /// Per line, a list of messages for that line.
-    pub messages: Vec<Vec<Message>>,
-    /// Messages not on any line (usually because they are from libstd)
-    pub messages_from_unknown_file_or_line: Vec<Message>,
 }
 
 impl RustcMessage {
@@ -164,7 +114,7 @@ impl RustcSpan {
     }
 }
 
-pub(crate) fn filter_annotations_from_rendered(rendered: &str) -> std::borrow::Cow<'_, str> {
+fn filter_annotations_from_rendered(rendered: &str) -> std::borrow::Cow<'_, str> {
     let annotations = Regex::new(r" *//(\[[a-z,]+\])?~.*").unwrap();
     annotations.replace_all(rendered, "")
 }

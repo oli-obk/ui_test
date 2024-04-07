@@ -1,6 +1,6 @@
 use crate::{
+    diagnostics::Message,
     parser::{Pattern, Span, Spanned},
-    rustc_stderr::Message,
 };
 use std::{num::NonZeroUsize, path::PathBuf, process::ExitStatus};
 

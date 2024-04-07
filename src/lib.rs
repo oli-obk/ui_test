@@ -18,7 +18,6 @@ pub use core::run_and_collect;
 pub use core::CrateType;
 pub use filter::Match;
 use per_test_config::TestConfig;
-use rustc_stderr::Message;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
 use std::path::Path;
@@ -34,9 +33,9 @@ mod cmd;
 mod config;
 pub mod core;
 pub mod custom_flags;
-
 #[cfg(feature = "rustc")]
 mod dependencies;
+pub mod diagnostics;
 mod diff;
 mod error;
 pub mod filter;
