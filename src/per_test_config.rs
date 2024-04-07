@@ -94,32 +94,22 @@ impl TestConfig<'_> {
         &self,
         build_manager: &BuildManager<'_>,
     ) -> Result<Command, Errored> {
-        let TestConfig {
-            config,
-            revision,
-            comments,
-            path,
-            aux_dir: _,
-        } = self;
-        let mut cmd = config.program.build(&config.out_dir);
-        cmd.arg(path);
-        if !revision.is_empty() {
-            cmd.arg(format!("--cfg={revision}"));
+        let mut cmd = self.config.program.build(&self.config.out_dir);
+        cmd.arg(self.path);
+        if !self.revision.is_empty() {
+            cmd.arg(format!("--cfg={}", self.revision));
         }
-        for arg in comments
-            .for_revision(revision)
-            .flat_map(|r| r.compile_flags.iter())
-        {
-            cmd.arg(arg);
+        for r in self.comments() {
+            cmd.args(&r.compile_flags);
         }
 
         self.apply_custom(&mut cmd, build_manager)?;
 
-        if let Some(target) = &config.target {
+        if let Some(target) = &self.config.target {
             // Adding a `--target` arg to calls to Cargo will cause target folders
             // to create a target-specific sub-folder. We can avoid that by just
             // not passing a `--target` arg if its the same as the host.
-            if !config.host_matches_target() {
+            if !self.config.host_matches_target() {
                 cmd.arg("--target").arg(target);
             }
         }
@@ -128,8 +118,7 @@ impl TestConfig<'_> {
         // of a reference to a tuple
         #[allow(clippy::map_identity)]
         cmd.envs(
-            comments
-                .for_revision(revision)
+            self.comments()
                 .flat_map(|r| r.env_vars.iter())
                 .map(|(k, v)| (k, v)),
         );
