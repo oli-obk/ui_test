@@ -14,7 +14,7 @@ use crate::{
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     ffi::OsString,
     num::NonZeroUsize,
     path::{Path, PathBuf},
@@ -61,7 +61,7 @@ pub struct Config {
     /// The default settings settable via `@` comments
     pub comment_defaults: Comments,
     /// Custom comment parsers
-    pub custom_comments: HashMap<&'static str, CommandParserFunc>,
+    pub custom_comments: BTreeMap<&'static str, CommandParserFunc>,
 }
 
 impl Config {

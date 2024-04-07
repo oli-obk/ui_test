@@ -1,4 +1,9 @@
-use std::{collections::HashMap, num::NonZeroUsize, path::Path, process::Command};
+use std::{
+    collections::{BTreeMap, HashMap},
+    num::NonZeroUsize,
+    path::Path,
+    process::Command,
+};
 
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
@@ -25,7 +30,7 @@ pub struct Comments {
     pub revisions: Option<Vec<String>>,
     /// Comments that are only available under specific revisions.
     /// The defaults are in key `vec![]`
-    pub revisioned: HashMap<Vec<String>, Revisioned>,
+    pub revisioned: BTreeMap<Vec<String>, Revisioned>,
 }
 
 impl Default for Comments {
@@ -155,7 +160,7 @@ pub struct Revisioned {
     /// The keys are just labels for overwriting or retrieving the value later.
     /// They are mostly used by `Config::custom_comments` handlers,
     /// `ui_test` itself only ever looks at the values, not the keys.
-    pub custom: HashMap<&'static str, Spanned<Vec<Box<dyn Flag>>>>,
+    pub custom: BTreeMap<&'static str, Spanned<Vec<Box<dyn Flag>>>>,
 }
 
 /// Main entry point to parsing comments and handling parsing errors.
