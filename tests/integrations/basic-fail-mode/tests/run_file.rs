@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 use ui_test::color_eyre::{eyre::ensure, Result};
+use ui_test::dependencies::DependencyBuilder;
+use ui_test::spanned::Spanned;
 use ui_test::*;
 
 #[test]
@@ -53,7 +55,13 @@ fn run_file_no_deps() -> Result<()> {
 
     // Don't build a binary, we only provide .rmeta dependencies for now
     config.program.args.push("--emit=metadata".into());
-    config.dependencies_crate_manifest_path = Some("Cargo.toml".into());
+    config.comment_defaults.base().custom.insert(
+        "dependencies",
+        Spanned::dummy(vec![Box::new(DependencyBuilder {
+            crate_manifest_path: Some("Cargo.toml".into()),
+            ..Default::default()
+        })]),
+    );
 
     let mut result = ui_test::test_command(
         config,

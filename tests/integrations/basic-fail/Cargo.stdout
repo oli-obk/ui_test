@@ -1028,7 +1028,6 @@ FAILURES:
 
 test result: FAIL. 1 failed; 2 passed;
 
-Building dependencies ... ok
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED
 tests/actual_tests/executable_compile_err.rs ... FAILED

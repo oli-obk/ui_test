@@ -40,11 +40,6 @@ pub struct Config {
     pub output_conflict_handling: OutputConflictHandling,
     /// The recommended command to bless failing tests.
     pub bless_command: Option<String>,
-    /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
-    pub dependencies_crate_manifest_path: Option<PathBuf>,
-    /// The command to run can be changed from `cargo` to any custom command to build the
-    /// dependencies in `dependencies_crate_manifest_path`.
-    pub dependency_builder: CommandBuilder,
     /// Where to dump files like the binaries compiled from tests.
     /// Defaults to `target/ui` in the current directory.
     pub out_dir: PathBuf,
@@ -123,10 +118,6 @@ impl Config {
             "rustfix",
             Spanned::dummy(vec![Box::new(RustfixMode::MachineApplicable)]),
         );
-        let _ = comment_defaults.base().custom.insert(
-            "dependencies",
-            Spanned::dummy(vec![Box::new(crate::dependencies::DependencyBuilder)]),
-        );
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
             #[cfg(windows)]
@@ -147,8 +138,6 @@ impl Config {
             program: CommandBuilder::rustc(),
             output_conflict_handling: OutputConflictHandling::Bless,
             bless_command: None,
-            dependencies_crate_manifest_path: None,
-            dependency_builder: CommandBuilder::cargo(),
             out_dir: std::env::var_os("CARGO_TARGET_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"))

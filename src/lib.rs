@@ -34,7 +34,7 @@ mod config;
 pub mod core;
 pub mod custom_flags;
 #[cfg(feature = "rustc")]
-mod dependencies;
+pub mod dependencies;
 pub mod diagnostics;
 mod diff;
 mod error;

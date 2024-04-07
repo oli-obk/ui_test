@@ -1,14 +1,21 @@
-use ui_test::*;
+use ui_test::{dependencies::DependencyBuilder, spanned::Spanned, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
     let mut config = Config {
-        dependencies_crate_manifest_path: Some("Cargo.toml".into()),
         // Never bless integrations-fail tests, we want to see stderr mismatches
         output_conflict_handling: OutputConflictHandling::Error,
         bless_command: Some("DO NOT BLESS. These are meant to fail".to_string()),
         ..Config::rustc("tests/actual_tests")
     };
+
+    config.comment_defaults.base().custom.insert(
+        "dependencies",
+        Spanned::dummy(vec![Box::new(DependencyBuilder {
+            crate_manifest_path: Some("Cargo.toml".into()),
+            ..Default::default()
+        })]),
+    );
 
     // hide binaries generated for successfully passing tests
     let tmp_dir = tempfile::tempdir_in(path)?;
