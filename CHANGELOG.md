@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * replaced `rustfix` fields of `Mode::Fail` and `Mode::Yolo` by instead overwriting the rustc-specific custom flag
 * aux builds and dependencies are now built *per* `Config` instead of being built just for the first `Config` and the result shared by the others
     * the configs could be different enough that aux builds built with a different config are incompatible (e.g. different targets).
+* replaced `Revisioned::aux_builds` with a rustc-specific custom flag
 
 ### Removed
 
