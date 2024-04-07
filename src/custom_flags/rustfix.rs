@@ -8,6 +8,7 @@ use std::{
 use spanned::Span;
 
 use crate::{
+    build_manager::BuildManager,
     parser::OptWithLine,
     per_test_config::{Comments, Revisioned, TestConfig},
     rustc_stderr, Error, Errored, Mode,
@@ -41,6 +42,7 @@ impl Flag for RustfixMode {
         config: &TestConfig<'_>,
         cmd: Command,
         output: &Output,
+        build_manager: &BuildManager<'_>,
     ) -> Result<Option<Command>, Errored> {
         let global_rustfix = match *config.mode()? {
             Mode::Pass | Mode::Panic => RustfixMode::Disabled,
@@ -132,6 +134,7 @@ impl Flag for RustfixMode {
             revision: config.revision,
             comments: &rustfix_comments,
             path: config.path,
+            aux_dir: config.aux_dir,
         };
 
         let run = fixed_code.is_some();
@@ -157,6 +160,7 @@ impl Flag for RustfixMode {
             revision: config.revision,
             comments: &rustfix_comments,
             path: &rustfix_path,
+            aux_dir: config.aux_dir,
         };
         if !errors.is_empty() {
             return Err(Errored {
@@ -171,7 +175,7 @@ impl Flag for RustfixMode {
             return Ok(Some(cmd));
         }
 
-        let mut cmd = config.build_command()?;
+        let mut cmd = config.build_command(build_manager)?;
         cmd.arg("--crate-name").arg(crate_name);
         let output = cmd.output().unwrap();
         if output.status.success() {

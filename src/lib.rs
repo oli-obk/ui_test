@@ -139,9 +139,11 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
         config,
         revision: "",
         comments: &comments,
+        aux_dir: &path.parent().unwrap().join("auxiliary"),
         path,
     };
-    let mut result = config.build_command().unwrap();
+    let build_manager = BuildManager::new(&(), config.config.clone());
+    let mut result = config.build_command(&build_manager).unwrap();
     result.args(extra_args);
 
     Ok(result)
@@ -349,6 +351,7 @@ fn parse_and_test_file(
                 revision,
                 comments: &comments,
                 path: status.path(),
+                aux_dir: &status.path().parent().unwrap().join("auxiliary"),
             };
 
             let result = test_config.run_test(build_manager);

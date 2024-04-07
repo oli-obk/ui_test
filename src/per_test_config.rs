@@ -30,6 +30,8 @@ pub struct TestConfig<'a> {
     pub(crate) comments: &'a Comments,
     /// The path to the current file
     pub path: &'a Path,
+    /// The path to the folder where to look for aux files
+    pub aux_dir: &'a Path,
 }
 
 impl TestConfig<'_> {
@@ -83,14 +85,20 @@ impl TestConfig<'_> {
         }
     }
 
-    pub(crate) fn build_command(&self) -> Result<Command, Errored> {
+    pub(crate) fn build_command(
+        &self,
+        build_manager: &BuildManager<'_>,
+    ) -> Result<Command, Errored> {
         let TestConfig {
             config,
             revision,
             comments,
             path,
+            aux_dir,
         } = self;
         let mut cmd = config.program.build(&config.out_dir);
+        let extra_args = self.build_aux_files(aux_dir, build_manager)?;
+        cmd.args(extra_args);
         cmd.arg(path);
         if !revision.is_empty() {
             cmd.arg(format!("--cfg={revision}"));
@@ -393,16 +401,9 @@ impl TestConfig<'_> {
     }
 
     pub(crate) fn run_test(mut self, build_manager: &BuildManager<'_>) -> TestResult {
-        let extra_args = self.build_aux_files(
-            &self.path.parent().unwrap().join("auxiliary"),
-            build_manager,
-        )?;
-
         self.patch_out_dir();
 
-        self.config.program.args.extend(extra_args);
-
-        let mut cmd = self.build_command()?;
+        let mut cmd = self.build_command(build_manager)?;
         let stdin = self.path.with_extension(self.extension("stdin"));
         if stdin.exists() {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
@@ -414,7 +415,11 @@ impl TestConfig<'_> {
 
         for rev in self.comments() {
             for custom in rev.custom.values() {
-                if let Some(c) = custom.content.post_test_action(&self, cmd, &output)? {
+                if let Some(c) =
+                    custom
+                        .content
+                        .post_test_action(&self, cmd, &output, build_manager)?
+                {
                     cmd = c;
                 } else {
                     return Ok(TestOk::Ok);

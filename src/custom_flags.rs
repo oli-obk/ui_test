@@ -5,7 +5,7 @@ use std::{
     process::{Command, Output},
 };
 
-use crate::{per_test_config::TestConfig, Config, Errored};
+use crate::{build_manager::BuildManager, per_test_config::TestConfig, Config, Errored};
 
 pub mod run;
 pub mod rustfix;
@@ -30,6 +30,7 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
         _config: &TestConfig<'_>,
         cmd: Command,
         _output: &Output,
+        _build_manager: &BuildManager<'_>,
     ) -> Result<Option<Command>, Errored> {
         Ok(Some(cmd))
     }

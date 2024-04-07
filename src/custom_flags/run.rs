@@ -3,7 +3,7 @@
 use bstr::ByteSlice;
 use std::process::{Command, Output};
 
-use crate::{per_test_config::TestConfig, Error, Errored};
+use crate::{build_manager::BuildManager, per_test_config::TestConfig, Error, Errored};
 
 use super::Flag;
 
@@ -22,6 +22,7 @@ impl Flag for Run {
         config: &TestConfig<'_>,
         cmd: Command,
         _output: &Output,
+        _build_manager: &BuildManager<'_>,
     ) -> Result<Option<Command>, Errored> {
         let mut cmd = cmd;
         let exit_code = self.exit_code;
@@ -31,6 +32,7 @@ impl Flag for Run {
             revision: &revision,
             comments: config.comments,
             path: config.path,
+            aux_dir: config.aux_dir,
         };
         cmd.arg("--print").arg("file-names");
         let output = cmd.output().unwrap();

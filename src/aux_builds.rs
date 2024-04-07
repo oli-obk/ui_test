@@ -46,11 +46,12 @@ impl Build for AuxBuilder {
             revision: "",
             comments: &comments,
             path: &self.aux_file,
+            aux_dir: self.aux_file.parent().unwrap(),
         };
 
         config.patch_out_dir();
 
-        let mut aux_cmd = config.build_command()?;
+        let mut aux_cmd = config.build_command(build_manager)?;
 
         let mut extra_args =
             config.build_aux_files(self.aux_file.parent().unwrap(), build_manager)?;
