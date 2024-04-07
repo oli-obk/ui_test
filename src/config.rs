@@ -1,15 +1,18 @@
 use regex::bytes::Regex;
+#[cfg(feature = "rustc")]
 use spanned::Spanned;
 
+#[cfg(feature = "rustc")]
 use crate::{
-    aux_builds::AuxBuilder,
-    build_manager::BuildManager,
-    custom_flags::{run::Run, rustfix::RustfixMode, Flag},
+    aux_builds::AuxBuilder, build_manager::BuildManager, custom_flags::run::Run,
+    custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
+    per_test_config::TestConfig, Errored, Mode,
+};
+use crate::{
     dependencies::build_dependencies,
-    filter::Match,
     parser::CommandParserFunc,
-    per_test_config::{Comments, Condition, TestConfig},
-    CommandBuilder, Errored, Mode,
+    per_test_config::{Comments, Condition},
+    CommandBuilder,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
@@ -67,6 +70,7 @@ pub struct Config {
 impl Config {
     /// Create a configuration for testing the output of running
     /// `rustc` on the test files.
+    #[cfg(feature = "rustc")]
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
         let mut comment_defaults = Comments::default();
 
@@ -235,6 +239,7 @@ impl Config {
 
     /// Create a configuration for testing the output of running
     /// `cargo` on the test `Cargo.toml` files.
+    #[cfg(feature = "rustc")]
     pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
         let mut this = Self {
             program: CommandBuilder::cargo(),

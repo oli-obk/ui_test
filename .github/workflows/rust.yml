@@ -58,3 +58,5 @@ jobs:
       run: cargo test --verbose --test integration -- --check
     - name: Run unit tests
       run: cargo test --verbose
+    - name: Test no-rustc mode
+      run: cargo check --no-default-features
