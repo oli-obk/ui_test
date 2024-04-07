@@ -23,54 +23,50 @@ impl Flag for AuxBuilder {
         config: &TestConfig<'_>,
         build_manager: &BuildManager<'_>,
     ) -> Result<(), Errored> {
-        let mut extra_args = vec![];
         let aux = &self.aux_file;
         let aux_dir = config.aux_dir;
-        let extra_args: &mut Vec<OsString> = &mut extra_args;
         let line = aux.line();
         let aux_file = if aux.starts_with("..") {
             aux_dir.parent().unwrap().join(&aux.content)
         } else {
             aux_dir.join(&aux.content)
         };
-        extra_args.extend(
-            build_manager
-                .build(AuxBuilder {
-                    aux_file: Spanned::new(
-                        crate::core::strip_path_prefix(
-                            &aux_file.canonicalize().map_err(|err| Errored {
-                                command: Command::new(format!(
-                                    "canonicalizing path `{}`",
-                                    aux_file.display()
-                                )),
-                                errors: vec![],
-                                stderr: err.to_string().into_bytes(),
-                                stdout: vec![],
-                            })?,
-                            &std::env::current_dir().unwrap(),
-                        )
-                        .collect(),
-                        aux.span(),
-                    ),
-                })
-                .map_err(
-                    |Errored {
-                         command,
-                         errors,
-                         stderr,
-                         stdout,
-                     }| Errored {
-                        command,
-                        errors: vec![Error::Aux {
-                            path: aux_file.to_path_buf(),
-                            errors,
-                            line,
-                        }],
-                        stderr,
-                        stdout,
-                    },
-                )?,
-        );
+        let extra_args = build_manager
+            .build(AuxBuilder {
+                aux_file: Spanned::new(
+                    crate::core::strip_path_prefix(
+                        &aux_file.canonicalize().map_err(|err| Errored {
+                            command: Command::new(format!(
+                                "canonicalizing path `{}`",
+                                aux_file.display()
+                            )),
+                            errors: vec![],
+                            stderr: err.to_string().into_bytes(),
+                            stdout: vec![],
+                        })?,
+                        &std::env::current_dir().unwrap(),
+                    )
+                    .collect(),
+                    aux.span(),
+                ),
+            })
+            .map_err(
+                |Errored {
+                     command,
+                     errors,
+                     stderr,
+                     stdout,
+                 }| Errored {
+                    command,
+                    errors: vec![Error::Aux {
+                        path: aux_file.to_path_buf(),
+                        errors,
+                        line,
+                    }],
+                    stderr,
+                    stdout,
+                },
+            )?;
         cmd.args(extra_args);
         Ok(())
     }
