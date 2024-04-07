@@ -117,7 +117,6 @@ impl Flag for RustfixMode {
                     error_in_other_files: vec![],
                     error_matches: vec![],
                     require_annotations_for_level: Default::default(),
-                    aux_builds: config.collect(|r| r.aux_builds.iter().cloned()),
                     mode: OptWithLine::new(Mode::Pass, Span::default()),
                     diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
                     custom: config

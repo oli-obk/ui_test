@@ -3,14 +3,12 @@
 //! in the files. These comments still overwrite the defaults, although
 //! some boolean settings have no way to disable them.
 
-use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 use spanned::Spanned;
 
-use crate::aux_builds::AuxBuilder;
 use crate::build_manager::BuildManager;
 use crate::custom_flags::Flag;
 pub use crate::parser::{Comments, Condition, Revisioned};
@@ -77,12 +75,19 @@ impl TestConfig<'_> {
         self.comments().flat_map(f).collect()
     }
 
-    fn apply_custom(&self, cmd: &mut Command) {
+    fn apply_custom(
+        &self,
+        cmd: &mut Command,
+        build_manager: &BuildManager<'_>,
+    ) -> Result<(), Errored> {
         for rev in self.comments.for_revision(self.revision) {
-            for flag in rev.custom.values() {
-                flag.content.apply(cmd, self);
+            for flags in rev.custom.values() {
+                for flag in &flags.content {
+                    flag.apply(cmd, self, build_manager)?;
+                }
             }
         }
+        Ok(())
     }
 
     pub(crate) fn build_command(
@@ -94,11 +99,9 @@ impl TestConfig<'_> {
             revision,
             comments,
             path,
-            aux_dir,
+            aux_dir: _,
         } = self;
         let mut cmd = config.program.build(&config.out_dir);
-        let extra_args = self.build_aux_files(aux_dir, build_manager)?;
-        cmd.args(extra_args);
         cmd.arg(path);
         if !revision.is_empty() {
             cmd.arg(format!("--cfg={revision}"));
@@ -110,7 +113,7 @@ impl TestConfig<'_> {
             cmd.arg(arg);
         }
 
-        self.apply_custom(&mut cmd);
+        self.apply_custom(&mut cmd, build_manager)?;
 
         if let Some(target) = &config.target {
             // Adding a `--target` arg to calls to Cargo will cause target folders
@@ -386,20 +389,6 @@ impl TestConfig<'_> {
         Ok(())
     }
 
-    pub(crate) fn build_aux_files(
-        &self,
-        aux_dir: &Path,
-        build_manager: &BuildManager<'_>,
-    ) -> Result<Vec<OsString>, Errored> {
-        let mut extra_args = vec![];
-        for rev in self.comments() {
-            for aux in &rev.aux_builds {
-                build_aux_file(aux, aux_dir, &mut extra_args, build_manager)?;
-            }
-        }
-        Ok(extra_args)
-    }
-
     pub(crate) fn run_test(mut self, build_manager: &BuildManager<'_>) -> TestResult {
         self.patch_out_dir();
 
@@ -415,14 +404,12 @@ impl TestConfig<'_> {
 
         for rev in self.comments() {
             for custom in rev.custom.values() {
-                if let Some(c) =
-                    custom
-                        .content
-                        .post_test_action(&self, cmd, &output, build_manager)?
-                {
-                    cmd = c;
-                } else {
-                    return Ok(TestOk::Ok);
+                for flag in &custom.content {
+                    if let Some(c) = flag.post_test_action(&self, cmd, &output, build_manager)? {
+                        cmd = c;
+                    } else {
+                        return Ok(TestOk::Ok);
+                    }
                 }
             }
         }
@@ -430,57 +417,14 @@ impl TestConfig<'_> {
     }
 
     pub(crate) fn find_one_custom(&self, arg: &str) -> Result<OptWithLine<&dyn Flag>, Errored> {
-        self.find_one(arg, |r| r.custom.get(arg).map(|s| s.as_ref()).into())
+        self.find_one(arg, |r| {
+            r.custom
+                .get(arg)
+                .map(|s| {
+                    assert_eq!(s.len(), 1);
+                    Spanned::new(&*s[0], s.span())
+                })
+                .into()
+        })
     }
-}
-
-fn build_aux_file(
-    aux: &Spanned<PathBuf>,
-    aux_dir: &Path,
-    extra_args: &mut Vec<OsString>,
-    build_manager: &BuildManager<'_>,
-) -> Result<(), Errored> {
-    let line = aux.line();
-    let aux = &**aux;
-    let aux_file = if aux.starts_with("..") {
-        aux_dir.parent().unwrap().join(aux)
-    } else {
-        aux_dir.join(aux)
-    };
-    extra_args.extend(
-        build_manager
-            .build(AuxBuilder {
-                aux_file: strip_path_prefix(
-                    &aux_file.canonicalize().map_err(|err| Errored {
-                        command: Command::new(format!(
-                            "canonicalizing path `{}`",
-                            aux_file.display()
-                        )),
-                        errors: vec![],
-                        stderr: err.to_string().into_bytes(),
-                        stdout: vec![],
-                    })?,
-                    &std::env::current_dir().unwrap(),
-                )
-                .collect(),
-            })
-            .map_err(
-                |Errored {
-                     command,
-                     errors,
-                     stderr,
-                     stdout,
-                 }| Errored {
-                    command,
-                    errors: vec![Error::Aux {
-                        path: aux_file,
-                        errors,
-                        line,
-                    }],
-                    stderr,
-                    stdout,
-                },
-            )?,
-    );
-    Ok(())
 }

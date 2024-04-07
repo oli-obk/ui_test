@@ -2,25 +2,92 @@
 // lol we can't name this file `aux.rs` on windows
 
 use bstr::ByteSlice;
+use spanned::Spanned;
 use std::{ffi::OsString, path::PathBuf, process::Command};
 
 use crate::{
     build_manager::{Build, BuildManager},
+    custom_flags::Flag,
     default_per_file_config,
     per_test_config::{Comments, TestConfig},
     rustc_stderr, CrateType, Error, Errored,
 };
 
+impl Flag for AuxBuilder {
+    fn clone_inner(&self) -> Box<dyn Flag> {
+        Box::new(self.clone())
+    }
+    fn apply(
+        &self,
+        cmd: &mut Command,
+        config: &TestConfig<'_>,
+        build_manager: &BuildManager<'_>,
+    ) -> Result<(), Errored> {
+        let mut extra_args = vec![];
+        let aux = &self.aux_file;
+        let aux_dir = config.aux_dir;
+        let extra_args: &mut Vec<OsString> = &mut extra_args;
+        let line = aux.line();
+        let aux_file = if aux.starts_with("..") {
+            aux_dir.parent().unwrap().join(&aux.content)
+        } else {
+            aux_dir.join(&aux.content)
+        };
+        extra_args.extend(
+            build_manager
+                .build(AuxBuilder {
+                    aux_file: Spanned::new(
+                        crate::core::strip_path_prefix(
+                            &aux_file.canonicalize().map_err(|err| Errored {
+                                command: Command::new(format!(
+                                    "canonicalizing path `{}`",
+                                    aux_file.display()
+                                )),
+                                errors: vec![],
+                                stderr: err.to_string().into_bytes(),
+                                stdout: vec![],
+                            })?,
+                            &std::env::current_dir().unwrap(),
+                        )
+                        .collect(),
+                        aux.span(),
+                    ),
+                })
+                .map_err(
+                    |Errored {
+                         command,
+                         errors,
+                         stderr,
+                         stdout,
+                     }| Errored {
+                        command,
+                        errors: vec![Error::Aux {
+                            path: aux_file.to_path_buf(),
+                            errors,
+                            line,
+                        }],
+                        stderr,
+                        stdout,
+                    },
+                )?,
+        );
+        cmd.args(extra_args);
+        Ok(())
+    }
+}
+
 /// Build an aux-build.
+/// Custom `//@aux-build` flag handler.
+#[derive(Clone, Debug)]
 pub struct AuxBuilder {
     /// Full path to the file (including `auxiliary` folder prefix)
-    pub aux_file: PathBuf,
+    pub aux_file: Spanned<PathBuf>,
 }
 
 impl Build for AuxBuilder {
     fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
         let mut config = build_manager.config().clone();
-        let file_contents = std::fs::read(&self.aux_file).map_err(|err| Errored {
+        let file_contents = std::fs::read(&self.aux_file.content).map_err(|err| Errored {
             command: Command::new(format!("reading aux file `{}`", self.aux_file.display())),
             errors: vec![],
             stderr: err.to_string().into_bytes(),
@@ -53,11 +120,6 @@ impl Build for AuxBuilder {
 
         let mut aux_cmd = config.build_command(build_manager)?;
 
-        let mut extra_args =
-            config.build_aux_files(self.aux_file.parent().unwrap(), build_manager)?;
-        // Make sure we see our dependencies
-        aux_cmd.args(extra_args.iter());
-
         aux_cmd.arg("--emit=link");
         let filename = self.aux_file.file_stem().unwrap().to_str().unwrap();
         let output = aux_cmd.output().unwrap();
@@ -79,6 +141,7 @@ impl Build for AuxBuilder {
         let output = aux_cmd.output().unwrap();
         assert!(output.status.success());
 
+        let mut extra_args = vec![];
         for file in output.stdout.lines() {
             let file = std::str::from_utf8(file).unwrap();
             let crate_name = filename.replace('-', "_");

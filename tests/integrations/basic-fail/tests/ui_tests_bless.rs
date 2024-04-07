@@ -33,7 +33,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
             .comment_defaults
             .base()
             .custom
-            .insert("rustfix", Spanned::dummy(Box::new(rustfix)));
+            .insert("rustfix", Spanned::dummy(vec![Box::new(rustfix)]));
 
         // hide binaries generated for successfully passing tests
         let tmp_dir = tempfile::tempdir_in(path)?;

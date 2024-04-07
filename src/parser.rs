@@ -1,9 +1,4 @@
-use std::{
-    collections::HashMap,
-    num::NonZeroUsize,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{collections::HashMap, num::NonZeroUsize, path::Path, process::Command};
 
 use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
@@ -151,8 +146,6 @@ pub struct Revisioned {
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: OptWithLine<Level>,
-    /// Files that get built and exposed as dependencies to the current test.
-    pub aux_builds: Vec<Spanned<PathBuf>>,
     /// The mode this test is being run in.
     pub mode: OptWithLine<Mode>,
     /// Prefix added to all diagnostic code matchers. Note this will make it impossible
@@ -162,7 +155,7 @@ pub struct Revisioned {
     /// The keys are just labels for overwriting or retrieving the value later.
     /// They are mostly used by `Config::custom_comments` handlers,
     /// `ui_test` itself only ever looks at the values, not the keys.
-    pub custom: HashMap<&'static str, Spanned<Box<dyn Flag>>>,
+    pub custom: HashMap<&'static str, Spanned<Vec<Box<dyn Flag>>>>,
 }
 
 /// Main entry point to parsing comments and handling parsing errors.
@@ -411,7 +404,6 @@ impl CommentParser<Comments> {
             error_in_other_files,
             error_matches,
             require_annotations_for_level,
-            aux_builds,
             mode,
             diagnostic_code_prefix,
             custom,
@@ -428,7 +420,6 @@ impl CommentParser<Comments> {
         normalize_stdout.extend(defaults.normalize_stdout);
         error_in_other_files.extend(defaults.error_in_other_files);
         error_matches.extend(defaults.error_matches);
-        aux_builds.extend(defaults.aux_builds);
         if require_annotations_for_level.is_none() {
             *require_annotations_for_level = defaults.require_annotations_for_level;
         }
@@ -697,16 +688,6 @@ impl CommentParser<Comments> {
             }
             "run-rustfix" => (this, _args, span){
                 this.error(span, "rustfix is now ran by default when applicable suggestions are found");
-            }
-            "aux-build" => (this, args, _span){
-                let name = match args.split_once(":") {
-                    Some((name, rest)) => {
-                        this.error(rest.span(), "proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
-                        name
-                    },
-                    None => args,
-                };
-                this.aux_builds.push(name.map(Into::into));
             }
             "check-pass" => (this, _args, span){
                 let prev = this.mode.set(Mode::Pass, span.clone());

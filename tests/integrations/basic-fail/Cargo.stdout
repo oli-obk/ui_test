@@ -519,7 +519,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/aux_proc_macro_no_main.rs
-command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "--extern" "the_proc_macro=$DIR/tests/integrations/basic-fail/../../../target/$TMP/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/tests/actual_tests_bless/auxiliary" "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021"
+command: "rustc" "--error-format=json" "--crate-type=lib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--edition" "2021" "--extern" "the_proc_macro=$DIR/tests/integrations/basic-fail/../../../target/$TMP/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/tests/actual_tests_bless/auxiliary"
 
 error: there were 1 unmatched diagnostics
  --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:8

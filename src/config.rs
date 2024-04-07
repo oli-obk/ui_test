@@ -2,12 +2,7 @@ use regex::bytes::Regex;
 use spanned::Spanned;
 
 use crate::{
-    custom_flags::{run::Run, rustfix::RustfixMode, Flag},
-    dependencies::build_dependencies,
-    filter::Match,
-    parser::CommandParserFunc,
-    per_test_config::{Comments, Condition, TestConfig},
-    CommandBuilder, Mode,
+    aux_builds::AuxBuilder, build_manager::BuildManager, custom_flags::{run::Run, rustfix::RustfixMode, Flag}, dependencies::build_dependencies, filter::Match, parser::CommandParserFunc, per_test_config::{Comments, Condition, TestConfig}, CommandBuilder, Errored, Mode
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
@@ -76,8 +71,9 @@ impl Config {
                 Box::new(Edition(self.0.clone()))
             }
 
-            fn apply(&self, cmd: &mut std::process::Command, _config: &TestConfig<'_>) {
+            fn apply(&self, cmd: &mut std::process::Command, _config: &TestConfig<'_>, _build_manager: &BuildManager<'_>) -> Result<(), Errored> {
                 cmd.arg("--edition").arg(&self.0);
+                Ok(())
             }
         }
 
@@ -100,13 +96,13 @@ impl Config {
             }
         }
 
-        let _ = comment_defaults
-            .base()
-            .custom
-            .insert("edition", Spanned::dummy(Box::new(Edition("2021".into()))));
+        let _ = comment_defaults.base().custom.insert(
+            "edition",
+            Spanned::dummy(vec![Box::new(Edition("2021".into()))]),
+        );
         let _ = comment_defaults.base().custom.insert(
             "rustfix",
-            Spanned::dummy(Box::new(RustfixMode::MachineApplicable)),
+            Spanned::dummy(vec![Box::new(RustfixMode::MachineApplicable)]),
         );
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
@@ -149,7 +145,7 @@ impl Config {
                 // args are ignored (can be used as comment)
                 let prev = parser
                     .custom
-                    .insert("no-rustfix", Spanned::new(Box::new(()), span.clone()));
+                    .insert("no-rustfix", Spanned::new(vec![Box::new(())], span.clone()));
                 parser.check(span, prev.is_none(), "cannot specify `no-rustfix` twice");
             });
 
@@ -158,7 +154,7 @@ impl Config {
             .insert("edition", |parser, args, span| {
                 let prev = parser.custom.insert(
                     "edition",
-                    Spanned::new(Box::new(Edition((*args).into())), args.span()),
+                    Spanned::new(vec![Box::new(Edition((*args).into()))], args.span()),
                 );
                 parser.check(span, prev.is_none(), "cannot specify `edition` twice");
             });
@@ -168,7 +164,7 @@ impl Config {
             .insert("needs-asm-support", |parser, args, span| {
                 let prev = parser.custom.insert(
                     "needs-asm-support",
-                    Spanned::new(Box::new(NeedsAsmSupport), args.span()),
+                    Spanned::new(vec![Box::new(NeedsAsmSupport)], args.span()),
                 );
                 parser.check(
                     span,
@@ -186,13 +182,13 @@ impl Config {
             let set = |exit_code| {
                 parser.custom.insert(
                     "run",
-                    Spanned::new(Box::new(Run { exit_code }), args.span()),
+                    Spanned::new(vec![Box::new(Run { exit_code })], args.span()),
                 );
                 parser.mode = Spanned::new(Mode::Pass, args.span()).into();
 
                 let prev = parser
                     .custom
-                    .insert("no-rustfix", Spanned::new(Box::new(()), span.clone()));
+                    .insert("no-rustfix", Spanned::new(vec![Box::new(())], span.clone()));
                 parser.check(span, prev.is_none(), "`run` implies `no-rustfix`");
             };
             if args.is_empty() {
@@ -205,6 +201,22 @@ impl Config {
                     Err(err) => parser.error(args.span(), err.to_string()),
                 }
             }
+        });
+        config.custom_comments.insert("aux-build", |parser, args, span| {
+            let name = match args.split_once(":") {
+                Some((name, rest)) => {
+                    parser.error(rest.span(), "proc macros are now auto-detected, you can remove the `:proc-macro` after the file name");
+                    name
+                },
+                None => args,
+            };
+            
+            parser
+                .custom
+                .entry("aux-build")
+                .or_insert_with(|| Spanned::new(vec![], span))
+                .content
+                .push(Box::new(AuxBuilder { aux_file: name.map(|n| n.into())}));
         });
         config
     }
@@ -408,10 +420,11 @@ impl Config {
         {
             return self.run_only_ignored;
         }
-        if comments
-            .for_revision(revision)
-            .any(|r| r.custom.values().any(|flag| flag.test_condition(self)))
-        {
+        if comments.for_revision(revision).any(|r| {
+            r.custom
+                .values()
+                .any(|flags| flags.content.iter().any(|flag| flag.test_condition(self)))
+        }) {
             return self.run_only_ignored;
         }
         comments
