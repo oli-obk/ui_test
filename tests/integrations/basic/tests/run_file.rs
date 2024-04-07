@@ -39,10 +39,7 @@ fn run_file_with_deps() -> Result<()> {
     config.program.args.push("--emit=metadata".into());
     config.comment_defaults.base().custom.insert(
         "dependencies",
-        Spanned::dummy(vec![Box::new(DependencyBuilder {
-            crate_manifest_path: Some("Cargo.toml".into()),
-            ..Default::default()
-        })]),
+        Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
     );
 
     let mut result = ui_test::test_command(

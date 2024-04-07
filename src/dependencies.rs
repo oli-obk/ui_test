@@ -56,13 +56,8 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
 
 /// Compiles dependencies and returns the crate names and corresponding rmeta files.
 fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result<Dependencies> {
-    let manifest_path = match &info.crate_manifest_path {
-        Some(path) => path.to_owned(),
-        None => return Ok(Default::default()),
-    };
-    let manifest_path = &manifest_path;
     let mut build = info.program.build(&config.out_dir);
-    build.arg(manifest_path);
+    build.arg(&info.crate_manifest_path);
 
     if let Some(target) = &config.target {
         build.arg(format!("--target={target}"));
@@ -127,7 +122,9 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
 
     // Check which crates are mentioned in the crate itself
     let mut metadata = cargo_metadata::MetadataCommand::new().cargo_command();
-    metadata.arg("--manifest-path").arg(manifest_path);
+    metadata
+        .arg("--manifest-path")
+        .arg(&info.crate_manifest_path);
     info.program.apply_env(&mut metadata);
     set_locking(&mut metadata);
     let output = metadata.output()?;
@@ -156,7 +153,7 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
             .iter()
             .find(|package| {
                 package.manifest_path.as_std_path().canonicalize().unwrap()
-                    == manifest_path.canonicalize().unwrap()
+                    == info.crate_manifest_path.canonicalize().unwrap()
             })
             .unwrap();
 
@@ -217,7 +214,7 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
 #[derive(Debug, Clone)]
 pub struct DependencyBuilder {
     /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
-    pub crate_manifest_path: Option<PathBuf>,
+    pub crate_manifest_path: PathBuf,
     /// The command to run can be changed from `cargo` to any custom command to build the
     /// dependencies in `crate_manifest_path`.
     pub program: CommandBuilder,
@@ -226,7 +223,7 @@ pub struct DependencyBuilder {
 impl Default for DependencyBuilder {
     fn default() -> Self {
         Self {
-            crate_manifest_path: None,
+            crate_manifest_path: PathBuf::from("Cargo.toml"),
             program: CommandBuilder::cargo(),
         }
     }

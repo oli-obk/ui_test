@@ -17,10 +17,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
     config.comment_defaults.base().custom.insert(
         "dependencies",
-        Spanned::dummy(vec![Box::new(DependencyBuilder {
-            crate_manifest_path: Some("Cargo.toml".into()),
-            ..Default::default()
-        })]),
+        Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
     );
 
     if let Ok(target) = std::env::var("UITEST_TEST_TARGET") {

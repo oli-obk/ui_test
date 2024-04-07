@@ -17,10 +17,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     .into();
     config.comment_defaults.base().custom.insert(
         "dependencies",
-        Spanned::dummy(vec![Box::new(DependencyBuilder {
-            crate_manifest_path: Some("Cargo.toml".into()),
-            ..Default::default()
-        })]),
+        Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
     );
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
