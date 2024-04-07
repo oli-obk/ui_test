@@ -134,7 +134,6 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     use status_emitter::SilentStatus;
 
     config.fill_host_and_target()?;
-    let extra_args = dependencies::build_dependencies(&config)?;
 
     let content =
         std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
@@ -150,10 +149,8 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
         },
     };
     let build_manager = BuildManager::new(&(), config.config.clone());
-    let mut result = config.build_command(&build_manager).unwrap();
-    result.args(extra_args);
 
-    Ok(result)
+    Ok(config.build_command(&build_manager).unwrap())
 }
 
 /// A version of `run_tests` that allows more fine-grained control over running tests.
