@@ -11,13 +11,13 @@
 use build_manager::BuildManager;
 pub use color_eyre;
 use color_eyre::eyre::eyre;
+#[cfg(feature = "rustc")]
 use color_eyre::eyre::Context as _;
 pub use color_eyre::eyre::Result;
 pub use core::run_and_collect;
 pub use core::CrateType;
 pub use filter::Match;
 use per_test_config::TestConfig;
-use rustc_stderr::Message;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
 use std::path::Path;
@@ -25,7 +25,6 @@ use std::process::Command;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
 
-use crate::dependencies::DependencyBuilder;
 use crate::parser::Comments;
 
 pub mod aux_builds;
@@ -34,7 +33,9 @@ mod cmd;
 mod config;
 pub mod core;
 pub mod custom_flags;
-mod dependencies;
+#[cfg(feature = "rustc")]
+pub mod dependencies;
+pub mod diagnostics;
 mod diff;
 mod error;
 pub mod filter;
@@ -43,6 +44,7 @@ mod mode;
 pub mod nextest;
 mod parser;
 pub mod per_test_config;
+#[cfg(feature = "rustc")]
 mod rustc_stderr;
 pub mod status_emitter;
 pub mod test_result;
@@ -127,9 +129,11 @@ pub fn default_per_file_config(config: &mut Config, _path: &Path, file_contents:
 
 /// Create a command for running a single file, with the settings from the `config` argument.
 /// Ignores various settings from `Config` that relate to finding test files.
+#[cfg(feature = "rustc")]
 pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
+    use status_emitter::SilentStatus;
+
     config.fill_host_and_target()?;
-    let extra_args = config.build_dependencies()?;
 
     let content =
         std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
@@ -137,16 +141,16 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
         config,
-        revision: "",
         comments: &comments,
         aux_dir: &path.parent().unwrap().join("auxiliary"),
-        path,
+        status: &SilentStatus {
+            revision: String::new(),
+            path: path.to_path_buf(),
+        },
     };
     let build_manager = BuildManager::new(&(), config.config.clone());
-    let mut result = config.build_command(&build_manager).unwrap();
-    result.args(extra_args);
 
-    Ok(result)
+    Ok(config.build_command(&build_manager).unwrap())
 }
 
 /// A version of `run_tests` that allows more fine-grained control over running tests.
@@ -310,7 +314,7 @@ pub fn run_tests_generic(
 fn parse_and_test_file(
     build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
-    mut config: Config,
+    config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = Comments::parse(&file_contents, &config, status.path())
@@ -318,7 +322,6 @@ fn parse_and_test_file(
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
-    let mut built_deps = false;
     Ok(revisions
         .iter()
         .map(|revision| {
@@ -331,27 +334,11 @@ fn parse_and_test_file(
                 };
             }
 
-            if !built_deps {
-                status.update_status("waiting for dependencies to finish building".into());
-                match build_manager.build(DependencyBuilder) {
-                    Ok(extra_args) => config.program.args.extend(extra_args),
-                    Err(err) => {
-                        return TestRun {
-                            result: Err(err),
-                            status,
-                        }
-                    }
-                }
-                status.update_status(String::new());
-                built_deps = true;
-            }
-
             let test_config = TestConfig {
                 config: config.clone(),
-                revision,
                 comments: &comments,
-                path: status.path(),
                 aux_dir: &status.path().parent().unwrap().join("auxiliary"),
+                status: &status,
             };
 
             let result = test_config.run_test(build_manager);

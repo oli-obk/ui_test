@@ -8,8 +8,11 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use spanned::Span;
 
 use crate::{
-    github_actions, parser::Pattern, rustc_stderr::Level, test_result::Errored,
-    test_result::TestOk, test_result::TestResult, Error, Errors, Format, Message,
+    diagnostics::{Level, Message},
+    github_actions,
+    parser::Pattern,
+    test_result::{Errored, TestOk, TestResult},
+    Error, Errors, Format,
 };
 use std::{
     collections::HashMap,
@@ -44,6 +47,9 @@ pub trait StatusEmitter: Sync + RefUnwindSafe {
 pub trait TestStatus: Send + Sync + RefUnwindSafe {
     /// Create a copy of this test for a new revision.
     fn for_revision(&self, revision: &str) -> Box<dyn TestStatus>;
+
+    /// Create a copy of this test for a new path.
+    fn for_path(&self, path: &Path) -> Box<dyn TestStatus>;
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
     /// gets invoked afterwards.
@@ -96,9 +102,12 @@ impl StatusEmitter for () {
     }
 }
 
-struct SilentStatus {
-    revision: String,
-    path: PathBuf,
+/// When you need a dummy value that doesn't actually print anything
+pub struct SilentStatus {
+    /// Forwarded to `TestStatus::revision`
+    pub revision: String,
+    /// Forwarded to `TestStatus::path`
+    pub path: PathBuf,
 }
 
 impl TestStatus for SilentStatus {
@@ -106,6 +115,13 @@ impl TestStatus for SilentStatus {
         Box::new(SilentStatus {
             revision: revision.into(),
             path: self.path.clone(),
+        })
+    }
+
+    fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
+        Box::new(SilentStatus {
+            revision: self.revision.clone(),
+            path: path.to_path_buf(),
         })
     }
 
@@ -324,7 +340,6 @@ impl TestStatus for TextTest {
     }
 
     fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
-        assert_eq!(self.revision, "");
         if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) && self.text.progress {
             self.text.sender.send(Msg::IncLength).unwrap();
         }
@@ -333,6 +348,17 @@ impl TestStatus for TextTest {
             text: self.text.clone(),
             path: self.path.clone(),
             revision: revision.to_owned(),
+            first: AtomicBool::new(false),
+        };
+        self.text.sender.send(Msg::Push(text.msg())).unwrap();
+        Box::new(text)
+    }
+
+    fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
+        let text = Self {
+            text: self.text.clone(),
+            path: path.to_path_buf(),
+            revision: self.revision.clone(),
             first: AtomicBool::new(false),
         };
         self.text.sender.send(Msg::Push(text.msg())).unwrap();
@@ -885,10 +911,16 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
     }
 
     fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
-        assert_eq!(self.revision, "");
         Box::new(Self {
             path: self.path.clone(),
             revision: revision.to_owned(),
+        })
+    }
+
+    fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
+        Box::new(Self {
+            path: path.to_path_buf(),
+            revision: self.revision.clone(),
         })
     }
 
@@ -1015,6 +1047,10 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
         Box::new((self.0.for_revision(revision), self.1.for_revision(revision)))
     }
 
+    fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
+        Box::new((self.0.for_path(path), self.1.for_path(path)))
+    }
+
     fn update_status(&self, msg: String) {
         self.0.update_status(msg.clone());
         self.1.update_status(msg)
@@ -1058,6 +1094,10 @@ impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
 
     fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
         (**self).for_revision(revision)
+    }
+
+    fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
+        (**self).for_path(path)
     }
 
     fn failed_test<'a>(

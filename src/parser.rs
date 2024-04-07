@@ -9,7 +9,7 @@ use bstr::{ByteSlice, Utf8Error};
 use regex::bytes::Regex;
 
 use crate::{
-    custom_flags::Flag, filter::Match, rustc_stderr::Level, test_result::Errored, Config, Error,
+    custom_flags::Flag, diagnostics::Level, filter::Match, test_result::Errored, Config, Error,
     Mode,
 };
 

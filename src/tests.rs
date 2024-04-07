@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use spanned::Spanned;
 
-use crate::rustc_stderr::Level;
-use crate::rustc_stderr::Message;
+use crate::diagnostics::Level;
+use crate::diagnostics::Message;
 
 use super::*;
 
@@ -22,10 +22,12 @@ macro_rules! config {
         #[allow(unused_mut)]
         let mut $config = TestConfig {
             config: $config,
-            path,
             comments: &comments,
-            revision: "",
             aux_dir: Path::new("unused_doesnt_exist"),
+            status: &crate::status_emitter::SilentStatus {
+                path: path.to_path_buf(),
+                revision: String::new(),
+            },
         };
     };
 }

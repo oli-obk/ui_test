@@ -1,4 +1,6 @@
-use ui_test::{custom_flags::rustfix::RustfixMode, spanned::Spanned, *};
+use ui_test::{
+    custom_flags::rustfix::RustfixMode, dependencies::DependencyBuilder, spanned::Spanned, *,
+};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     for (mode, rustfix) in [
@@ -19,7 +21,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
         };
 
         let mut config = Config {
-            dependencies_crate_manifest_path: Some("Cargo.toml".into()),
             output_conflict_handling: if std::env::var_os("BLESS").is_some() {
                 OutputConflictHandling::Bless
             } else {
@@ -34,6 +35,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
             .base()
             .custom
             .insert("rustfix", Spanned::dummy(vec![Box::new(rustfix)]));
+
+        config.comment_defaults.base().custom.insert(
+            "dependencies",
+            Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
+        );
 
         // hide binaries generated for successfully passing tests
         let tmp_dir = tempfile::tempdir_in(path)?;

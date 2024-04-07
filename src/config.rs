@@ -1,21 +1,23 @@
 use regex::bytes::Regex;
+#[cfg(feature = "rustc")]
 use spanned::Spanned;
 
+#[cfg(feature = "rustc")]
 use crate::{
-    aux_builds::AuxBuilder,
-    build_manager::BuildManager,
-    custom_flags::{run::Run, rustfix::RustfixMode, Flag},
-    dependencies::build_dependencies,
-    filter::Match,
+    aux_builds::AuxBuilder, build_manager::BuildManager, custom_flags::run::Run,
+    custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
+    per_test_config::TestConfig, rustc_stderr, Errored, Mode,
+};
+use crate::{
+    diagnostics::Diagnostics,
     parser::CommandParserFunc,
-    per_test_config::{Comments, Condition, TestConfig},
-    CommandBuilder, Errored, Mode,
+    per_test_config::{Comments, Condition},
+    CommandBuilder,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
     collections::BTreeMap,
-    ffi::OsString,
     num::NonZeroUsize,
     path::{Path, PathBuf},
 };
@@ -38,11 +40,6 @@ pub struct Config {
     pub output_conflict_handling: OutputConflictHandling,
     /// The recommended command to bless failing tests.
     pub bless_command: Option<String>,
-    /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
-    pub dependencies_crate_manifest_path: Option<PathBuf>,
-    /// The command to run can be changed from `cargo` to any custom command to build the
-    /// dependencies in `dependencies_crate_manifest_path`.
-    pub dependency_builder: CommandBuilder,
     /// Where to dump files like the binaries compiled from tests.
     /// Defaults to `target/ui` in the current directory.
     pub out_dir: PathBuf,
@@ -62,11 +59,14 @@ pub struct Config {
     pub comment_defaults: Comments,
     /// Custom comment parsers
     pub custom_comments: BTreeMap<&'static str, CommandParserFunc>,
+    /// Custom diagnostic extractor (invoked on the output of tests)
+    pub diagnostic_extractor: fn(&Path, &[u8]) -> Diagnostics,
 }
 
 impl Config {
     /// Create a configuration for testing the output of running
     /// `rustc` on the test files.
+    #[cfg(feature = "rustc")]
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
         let mut comment_defaults = Comments::default();
 
@@ -136,8 +136,6 @@ impl Config {
             program: CommandBuilder::rustc(),
             output_conflict_handling: OutputConflictHandling::Bless,
             bless_command: None,
-            dependencies_crate_manifest_path: None,
-            dependency_builder: CommandBuilder::cargo(),
             out_dir: std::env::var_os("CARGO_TARGET_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"))
@@ -150,6 +148,7 @@ impl Config {
             filter_exact: false,
             comment_defaults,
             custom_comments: Default::default(),
+            diagnostic_extractor: rustc_stderr::process,
         };
         config
             .custom_comments
@@ -235,10 +234,12 @@ impl Config {
 
     /// Create a configuration for testing the output of running
     /// `cargo` on the test `Cargo.toml` files.
+    #[cfg(feature = "rustc")]
     pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
         let mut this = Self {
             program: CommandBuilder::cargo(),
             custom_comments: Default::default(),
+            diagnostic_extractor: rustc_stderr::process_cargo,
             ..Self::rustc(root_dir)
         };
         this.comment_defaults.base().custom.clear();
@@ -341,27 +342,6 @@ impl Config {
             Regex::new(pattern).unwrap().into(),
             replacement.as_ref().to_owned(),
         ));
-    }
-
-    /// Compile dependencies and return the right flags
-    /// to find the dependencies.
-    pub fn build_dependencies(&self) -> Result<Vec<OsString>> {
-        let dependencies = build_dependencies(self)?;
-        let mut args = vec![];
-        for (name, artifacts) in dependencies.dependencies {
-            for dependency in artifacts {
-                args.push("--extern".into());
-                let mut dep = OsString::from(&name);
-                dep.push("=");
-                dep.push(dependency);
-                args.push(dep);
-            }
-        }
-        for import_path in dependencies.import_paths {
-            args.push("-L".into());
-            args.push(import_path.into());
-        }
-        Ok(args)
     }
 
     /// Make sure we have the host and target triples.

@@ -11,7 +11,7 @@ use crate::{
     build_manager::BuildManager,
     parser::OptWithLine,
     per_test_config::{Comments, Revisioned, TestConfig},
-    rustc_stderr, Error, Errored, Mode,
+    Error, Errored, Mode,
 };
 
 use super::Flag;
@@ -79,7 +79,7 @@ impl Flag for RustfixMode {
                 if suggestions.is_empty() {
                     None
                 } else {
-                    let path_str = config.path.display().to_string();
+                    let path_str = config.status.path().display().to_string();
                     for sugg in &suggestions {
                         for snip in &sugg.snippets {
                             if snip.file_name != path_str {
@@ -88,14 +88,14 @@ impl Flag for RustfixMode {
                         }
                     }
                     Some(rustfix::apply_suggestions(
-                        &std::fs::read_to_string(config.path).unwrap(),
+                        &std::fs::read_to_string(config.status.path()).unwrap(),
                         &suggestions,
                     ))
                 }
             })
             .transpose()
             .map_err(|err| Errored {
-                command: Command::new(format!("rustfix {}", config.path.display())),
+                command: Command::new(format!("rustfix {}", config.status.path().display())),
                 errors: vec![Error::Rustfix(err)],
                 stderr: output.stderr,
                 stdout: output.stdout,
@@ -119,21 +119,16 @@ impl Flag for RustfixMode {
                     require_annotations_for_level: Default::default(),
                     mode: OptWithLine::new(Mode::Pass, Span::default()),
                     diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
-                    custom: config
-                        .comments
-                        .for_revision(config.revision)
-                        .flat_map(|r| r.custom.clone())
-                        .collect(),
+                    custom: config.comments().flat_map(|r| r.custom.clone()).collect(),
                 },
             ))
             .collect(),
         };
         let config = TestConfig {
             config: config.config.clone(),
-            revision: config.revision,
             comments: &rustfix_comments,
-            path: config.path,
             aux_dir: config.aux_dir,
+            status: config.status,
         };
 
         let run = fixed_code.is_some();
@@ -148,7 +143,8 @@ impl Flag for RustfixMode {
         // picking the crate name from the file name is problematic when `.revision_name` is inserted,
         // so we compute it here before replacing the path.
         let crate_name = config
-            .path
+            .status
+            .path()
             .file_stem()
             .unwrap()
             .to_str()
@@ -156,14 +152,13 @@ impl Flag for RustfixMode {
             .replace('-', "_");
         let config = TestConfig {
             config: config.config,
-            revision: config.revision,
             comments: &rustfix_comments,
-            path: &rustfix_path,
             aux_dir: config.aux_dir,
+            status: &config.status.for_path(&rustfix_path),
         };
         if !errors.is_empty() {
             return Err(Errored {
-                command: Command::new(format!("checking {}", config.path.display())),
+                command: Command::new(format!("checking {}", config.status.path().display())),
                 errors,
                 stderr: vec![],
                 stdout: vec![],
@@ -186,7 +181,7 @@ impl Flag for RustfixMode {
                     kind: "rustfix".into(),
                     status: output.status,
                 }],
-                stderr: rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
+                stderr: config.process(&output.stderr).rendered,
                 stdout: output.stdout,
             })
         }

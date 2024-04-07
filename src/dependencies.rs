@@ -1,3 +1,5 @@
+//! Use `cargo` to build dependencies and make them available in your tests
+
 use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
 use cargo_platform::Cfg;
 use color_eyre::eyre::{bail, eyre, Result};
@@ -11,11 +13,14 @@ use std::{
 
 use crate::{
     build_manager::{Build, BuildManager},
+    custom_flags::Flag,
+    per_test_config::TestConfig,
     test_result::Errored,
-    Config, Mode, OutputConflictHandling,
+    CommandBuilder, Config, Mode, OutputConflictHandling,
 };
 
 #[derive(Default, Debug)]
+/// Describes where to find the binaries built for the dependencies
 pub struct Dependencies {
     /// All paths that must be imported with `-L dependency=`. This is for
     /// finding proc macros run on the host and dependencies for the target.
@@ -50,14 +55,9 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
 }
 
 /// Compiles dependencies and returns the crate names and corresponding rmeta files.
-pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
-    let manifest_path = match &config.dependencies_crate_manifest_path {
-        Some(path) => path.to_owned(),
-        None => return Ok(Default::default()),
-    };
-    let manifest_path = &manifest_path;
-    let mut build = config.dependency_builder.build(&config.out_dir);
-    build.arg(manifest_path);
+fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result<Dependencies> {
+    let mut build = info.program.build(&config.out_dir);
+    build.arg(&info.crate_manifest_path);
 
     if let Some(target) = &config.target {
         build.arg(format!("--target={target}"));
@@ -122,8 +122,10 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
 
     // Check which crates are mentioned in the crate itself
     let mut metadata = cargo_metadata::MetadataCommand::new().cargo_command();
-    metadata.arg("--manifest-path").arg(manifest_path);
-    config.dependency_builder.apply_env(&mut metadata);
+    metadata
+        .arg("--manifest-path")
+        .arg(&info.crate_manifest_path);
+    info.program.apply_env(&mut metadata);
     set_locking(&mut metadata);
     let output = metadata.output()?;
 
@@ -151,7 +153,7 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
             .iter()
             .find(|package| {
                 package.manifest_path.as_std_path().canonicalize().unwrap()
-                    == manifest_path.canonicalize().unwrap()
+                    == info.crate_manifest_path.canonicalize().unwrap()
             })
             .unwrap();
 
@@ -209,22 +211,76 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
 }
 
 /// Build the dependencies.
-pub struct DependencyBuilder;
+#[derive(Debug, Clone)]
+pub struct DependencyBuilder {
+    /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
+    pub crate_manifest_path: PathBuf,
+    /// The command to run can be changed from `cargo` to any custom command to build the
+    /// dependencies in `crate_manifest_path`.
+    pub program: CommandBuilder,
+}
+
+impl Default for DependencyBuilder {
+    fn default() -> Self {
+        Self {
+            crate_manifest_path: PathBuf::from("Cargo.toml"),
+            program: CommandBuilder::cargo(),
+        }
+    }
+}
+
+impl Flag for DependencyBuilder {
+    fn clone_inner(&self) -> Box<dyn Flag> {
+        Box::new(self.clone())
+    }
+    fn apply(
+        &self,
+        cmd: &mut Command,
+        config: &TestConfig<'_>,
+        build_manager: &BuildManager<'_>,
+    ) -> Result<(), Errored> {
+        config
+            .status
+            .update_status("waiting for dependencies to finish building".into());
+        let extra_args = build_manager.build(self.clone())?;
+        cmd.args(extra_args);
+        config.status.update_status(String::new());
+        Ok(())
+    }
+}
 
 impl Build for DependencyBuilder {
     fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
-        build_manager
-            .config()
-            .build_dependencies()
-            .map_err(|e| Errored {
-                command: Command::new(format!("{:?}", self.description())),
-                errors: vec![],
-                stderr: format!("{e:?}").into_bytes(),
-                stdout: vec![],
-            })
+        build_dependencies(build_manager.config(), self).map_err(|e| Errored {
+            command: Command::new(format!("{:?}", self.description())),
+            errors: vec![],
+            stderr: format!("{e:?}").into_bytes(),
+            stdout: vec![],
+        })
     }
 
     fn description(&self) -> String {
         "Building dependencies".into()
     }
+}
+
+/// Compile dependencies and return the right flags
+/// to find the dependencies.
+pub fn build_dependencies(config: &Config, info: &DependencyBuilder) -> Result<Vec<OsString>> {
+    let dependencies = build_dependencies_inner(config, info)?;
+    let mut args = vec![];
+    for (name, artifacts) in dependencies.dependencies {
+        for dependency in artifacts {
+            args.push("--extern".into());
+            let mut dep = OsString::from(&name);
+            dep.push("=");
+            dep.push(dependency);
+            args.push(dep);
+        }
+    }
+    for import_path in dependencies.import_paths {
+        args.push("-L".into());
+        args.push(import_path.into());
+    }
+    Ok(args)
 }

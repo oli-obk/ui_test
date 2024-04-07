@@ -10,7 +10,8 @@ use crate::{
     custom_flags::Flag,
     default_per_file_config,
     per_test_config::{Comments, TestConfig},
-    rustc_stderr, CrateType, Error, Errored,
+    status_emitter::SilentStatus,
+    CrateType, Error, Errored,
 };
 
 impl Flag for AuxBuilder {
@@ -106,10 +107,12 @@ impl Build for AuxBuilder {
 
         let mut config = TestConfig {
             config,
-            revision: "",
             comments: &comments,
-            path: &self.aux_file,
             aux_dir: self.aux_file.parent().unwrap(),
+            status: &SilentStatus {
+                revision: String::new(),
+                path: self.aux_file.content.clone(),
+            },
         };
 
         config.patch_out_dir();
@@ -127,7 +130,7 @@ impl Build for AuxBuilder {
             return Err(Errored {
                 command: aux_cmd,
                 errors: vec![error],
-                stderr: rustc_stderr::process(&self.aux_file, &output.stderr).rendered,
+                stderr: config.process(&output.stderr).rendered,
                 stdout: output.stdout,
             });
         }
