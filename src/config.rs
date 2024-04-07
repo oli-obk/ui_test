@@ -6,7 +6,7 @@ use spanned::Spanned;
 use crate::{
     aux_builds::AuxBuilder, build_manager::BuildManager, custom_flags::run::Run,
     custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
-    per_test_config::TestConfig, Errored, Mode,
+    per_test_config::TestConfig, rustc_stderr, Errored, Mode,
 };
 use crate::{
     diagnostics::Diagnostics,
@@ -68,8 +68,6 @@ impl Config {
     /// `rustc` on the test files.
     #[cfg(feature = "rustc")]
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
-        use crate::rustc_stderr;
-
         let mut comment_defaults = Comments::default();
 
         #[derive(Debug)]
@@ -241,6 +239,7 @@ impl Config {
         let mut this = Self {
             program: CommandBuilder::cargo(),
             custom_comments: Default::default(),
+            diagnostic_extractor: rustc_stderr::process_cargo,
             ..Self::rustc(root_dir)
         };
         this.comment_defaults.base().custom.clear();

@@ -1,5 +1,7 @@
 //! Data structures for handling diagnostic output from tests.
 
+use cargo_metadata::diagnostic::DiagnosticLevel;
+
 #[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 /// The different levels of diagnostic messages and their relative ranking.
 pub enum Level {
@@ -15,6 +17,20 @@ pub enum Level {
     Note = 1,
     /// Only used for "For more information about this error, try `rustc --explain EXXXX`".
     FailureNote = 0,
+}
+
+impl From<DiagnosticLevel> for Level {
+    fn from(value: DiagnosticLevel) -> Self {
+        match value {
+            DiagnosticLevel::Ice => Level::Ice,
+            DiagnosticLevel::Error => Level::Error,
+            DiagnosticLevel::Warning => Level::Warn,
+            DiagnosticLevel::FailureNote => Level::FailureNote,
+            DiagnosticLevel::Note => Level::Note,
+            DiagnosticLevel::Help => Level::Help,
+            other => panic!("rustc got a new kind of diagnostic level: {other:?}"),
+        }
+    }
 }
 
 impl std::str::FromStr for Level {
