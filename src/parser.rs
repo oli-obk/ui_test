@@ -121,14 +121,6 @@ impl Comments {
             })?;
         Ok(mode)
     }
-
-    pub(crate) fn apply_custom(&self, revision: &str, cmd: &mut Command) {
-        for rev in self.for_revision(revision) {
-            for flag in rev.custom.values() {
-                flag.content.apply(cmd);
-            }
-        }
-    }
 }
 
 #[derive(Debug, Clone, Default)]

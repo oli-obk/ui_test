@@ -75,6 +75,14 @@ impl TestConfig<'_> {
         self.comments().flat_map(f).collect()
     }
 
+    fn apply_custom(&self, cmd: &mut Command) {
+        for rev in self.comments.for_revision(self.revision) {
+            for flag in rev.custom.values() {
+                flag.content.apply(cmd);
+            }
+        }
+    }
+
     pub(crate) fn build_command(&self) -> Result<Command, Errored> {
         let TestConfig {
             config,
@@ -94,7 +102,7 @@ impl TestConfig<'_> {
             cmd.arg(arg);
         }
 
-        comments.apply_custom(revision, &mut cmd);
+        self.apply_custom(&mut cmd);
 
         if let Some(target) = &config.target {
             // Adding a `--target` arg to calls to Cargo will cause target folders
