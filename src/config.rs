@@ -2,7 +2,14 @@ use regex::bytes::Regex;
 use spanned::Spanned;
 
 use crate::{
-    aux_builds::AuxBuilder, build_manager::BuildManager, custom_flags::{run::Run, rustfix::RustfixMode, Flag}, dependencies::build_dependencies, filter::Match, parser::CommandParserFunc, per_test_config::{Comments, Condition, TestConfig}, CommandBuilder, Errored, Mode
+    aux_builds::AuxBuilder,
+    build_manager::BuildManager,
+    custom_flags::{run::Run, rustfix::RustfixMode, Flag},
+    dependencies::build_dependencies,
+    filter::Match,
+    parser::CommandParserFunc,
+    per_test_config::{Comments, Condition, TestConfig},
+    CommandBuilder, Errored, Mode,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
@@ -71,7 +78,12 @@ impl Config {
                 Box::new(Edition(self.0.clone()))
             }
 
-            fn apply(&self, cmd: &mut std::process::Command, _config: &TestConfig<'_>, _build_manager: &BuildManager<'_>) -> Result<(), Errored> {
+            fn apply(
+                &self,
+                cmd: &mut std::process::Command,
+                _config: &TestConfig<'_>,
+                _build_manager: &BuildManager<'_>,
+            ) -> Result<(), Errored> {
                 cmd.arg("--edition").arg(&self.0);
                 Ok(())
             }
@@ -210,7 +222,7 @@ impl Config {
                 },
                 None => args,
             };
-            
+
             parser
                 .custom
                 .entry("aux-build")
