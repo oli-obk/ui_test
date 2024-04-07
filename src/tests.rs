@@ -25,6 +25,7 @@ macro_rules! config {
             path,
             comments: &comments,
             revision: "",
+            aux_dir: Path::new("unused_doesnt_exist"),
         };
     };
 }

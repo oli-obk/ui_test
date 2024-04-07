@@ -1,23 +1,18 @@
-use bstr::ByteSlice;
 use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
 use cargo_platform::Cfg;
 use color_eyre::eyre::{bail, eyre, Result};
 use std::{
-    collections::{hash_map::Entry, HashMap, HashSet},
+    collections::{HashMap, HashSet},
     ffi::OsString,
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::Command,
     str::FromStr,
-    sync::{Arc, OnceLock, RwLock},
 };
 
 use crate::{
-    default_per_file_config,
-    per_test_config::{Comments, TestConfig},
-    rustc_stderr,
-    status_emitter::StatusEmitter,
+    build_manager::{Build, BuildManager},
     test_result::Errored,
-    Config, CrateType, Error, Mode, OutputConflictHandling,
+    Config, Mode, OutputConflictHandling,
 };
 
 #[derive(Default, Debug)]
@@ -213,217 +208,23 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
     bail!("no json found in cargo-metadata output")
 }
 
-#[derive(PartialEq, Eq, Debug, Hash, Clone)]
-pub enum Build {
-    /// Build the dependencies.
-    Dependencies,
-    /// Build an aux-build.
-    Aux { aux_file: PathBuf },
-}
-impl Build {
-    fn description(&self) -> String {
-        match self {
-            Build::Dependencies => "Building dependencies".into(),
-            Build::Aux { aux_file } => format!("Building aux file {}", aux_file.display()),
-        }
-    }
-}
+/// Build the dependencies.
+pub struct DependencyBuilder;
 
-pub struct BuildManager<'a> {
-    #[allow(clippy::type_complexity)]
-    cache: RwLock<HashMap<Build, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
-    status_emitter: &'a dyn StatusEmitter,
-}
-
-impl<'a> BuildManager<'a> {
-    pub fn new(status_emitter: &'a dyn StatusEmitter) -> Self {
-        Self {
-            cache: Default::default(),
-            status_emitter,
-        }
-    }
-    /// This function will block until the build is done and then return the arguments
-    /// that need to be passed in order to build the dependencies.
-    /// The error is only reported once, all follow up invocations of the same build will
-    /// have a generic error about a previous build failing.
-    pub fn build(&self, what: Build, config: &Config) -> Result<Vec<OsString>, Errored> {
-        // Fast path without much contention.
-        if let Some(res) = self.cache.read().unwrap().get(&what).and_then(|o| o.get()) {
-            return res.clone().map_err(|()| Errored {
-                command: Command::new(format!("{what:?}")),
+impl Build for DependencyBuilder {
+    fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
+        build_manager
+            .config()
+            .build_dependencies()
+            .map_err(|e| Errored {
+                command: Command::new(format!("{:?}", self.description())),
                 errors: vec![],
-                stderr: b"previous build failed".to_vec(),
-                stdout: vec![],
-            });
-        }
-        let mut lock = self.cache.write().unwrap();
-        let once = match lock.entry(what.clone()) {
-            Entry::Occupied(entry) => {
-                if let Some(res) = entry.get().get() {
-                    return res.clone().map_err(|()| Errored {
-                        command: Command::new(format!("{what:?}")),
-                        errors: vec![],
-                        stderr: b"previous build failed".to_vec(),
-                        stdout: vec![],
-                    });
-                }
-                entry.get().clone()
-            }
-            Entry::Vacant(entry) => {
-                let once = Arc::new(OnceLock::new());
-                entry.insert(once.clone());
-                once
-            }
-        };
-        drop(lock);
-
-        let mut err = None;
-        once.get_or_init(|| {
-            let build = self
-                .status_emitter
-                .register_test(what.description().into())
-                .for_revision("");
-            let res = match &what {
-                Build::Dependencies => match config.build_dependencies() {
-                    Ok(args) => Ok(args),
-                    Err(e) => {
-                        err = Some(Errored {
-                            command: Command::new(format!("{what:?}")),
-                            errors: vec![],
-                            stderr: format!("{e:?}").into_bytes(),
-                            stdout: vec![],
-                        });
-                        Err(())
-                    }
-                },
-                Build::Aux { aux_file } => match self.build_aux(aux_file, config) {
-                    Ok(args) => Ok(args.iter().map(Into::into).collect()),
-                    Err(e) => {
-                        err = Some(e);
-                        Err(())
-                    }
-                },
-            };
-            build.done(
-                &res.as_ref()
-                    .map(|_| crate::test_result::TestOk::Ok)
-                    .map_err(|()| Errored {
-                        command: Command::new(what.description()),
-                        errors: vec![],
-                        stderr: vec![],
-                        stdout: vec![],
-                    }),
-            );
-            res
-        })
-        .clone()
-        .map_err(|()| {
-            err.unwrap_or_else(|| Errored {
-                command: Command::new(what.description()),
-                errors: vec![],
-                stderr: b"previous build failed".to_vec(),
+                stderr: format!("{e:?}").into_bytes(),
                 stdout: vec![],
             })
-        })
     }
 
-    fn build_aux(
-        &self,
-        aux_file: &Path,
-        config: &Config,
-    ) -> std::result::Result<Vec<OsString>, Errored> {
-        let file_contents = std::fs::read(aux_file).map_err(|err| Errored {
-            command: Command::new(format!("reading aux file `{}`", aux_file.display())),
-            errors: vec![],
-            stderr: err.to_string().into_bytes(),
-            stdout: vec![],
-        })?;
-        let comments = Comments::parse(&file_contents, config, aux_file)
-            .map_err(|errors| Errored::new(errors, "parse aux comments"))?;
-        assert_eq!(
-            comments.revisions, None,
-            "aux builds cannot specify revisions"
-        );
-
-        let mut config = config.clone();
-
-        // Strip any `crate-type` flags from the args, as we need to set our own,
-        // and they may conflict (e.g. `lib` vs `proc-macro`);
-        let mut prev_was_crate_type = false;
-        config.program.args.retain(|arg| {
-            if prev_was_crate_type {
-                prev_was_crate_type = false;
-                return false;
-            }
-            if arg == "--test" {
-                false
-            } else if arg == "--crate-type" {
-                prev_was_crate_type = true;
-                false
-            } else if let Some(arg) = arg.to_str() {
-                !arg.starts_with("--crate-type=")
-            } else {
-                true
-            }
-        });
-
-        default_per_file_config(&mut config, aux_file, &file_contents);
-
-        match CrateType::from_file_contents(&file_contents) {
-            // Proc macros must be run on the host
-            CrateType::ProcMacro => config.target = config.host.clone(),
-            CrateType::Test | CrateType::Bin | CrateType::Lib => {}
-        }
-
-        let mut config = TestConfig {
-            config,
-            revision: "",
-            comments: &comments,
-            path: aux_file,
-        };
-
-        config.patch_out_dir();
-
-        let mut aux_cmd = config.build_command()?;
-
-        let mut extra_args = config.build_aux_files(aux_file.parent().unwrap(), self)?;
-        // Make sure we see our dependencies
-        aux_cmd.args(extra_args.iter());
-
-        aux_cmd.arg("--emit=link");
-        let filename = aux_file.file_stem().unwrap().to_str().unwrap();
-        let output = aux_cmd.output().unwrap();
-        if !output.status.success() {
-            let error = Error::Command {
-                kind: "compilation of aux build failed".to_string(),
-                status: output.status,
-            };
-            return Err(Errored {
-                command: aux_cmd,
-                errors: vec![error],
-                stderr: rustc_stderr::process(aux_file, &output.stderr).rendered,
-                stdout: output.stdout,
-            });
-        }
-
-        // Now run the command again to fetch the output filenames
-        aux_cmd.arg("--print").arg("file-names");
-        let output = aux_cmd.output().unwrap();
-        assert!(output.status.success());
-
-        for file in output.stdout.lines() {
-            let file = std::str::from_utf8(file).unwrap();
-            let crate_name = filename.replace('-', "_");
-            let path = config.config.out_dir.join(file);
-            extra_args.push("--extern".into());
-            let mut cname = OsString::from(&crate_name);
-            cname.push("=");
-            cname.push(path);
-            extra_args.push(cname);
-            // Help cargo find the crates added with `--extern`.
-            extra_args.push("-L".into());
-            extra_args.push(config.config.out_dir.as_os_str().to_os_string());
-        }
-        Ok(extra_args)
+    fn description(&self) -> String {
+        "Building dependencies".into()
     }
 }

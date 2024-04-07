@@ -8,13 +8,13 @@
 
 //! A crate to run the Rust compiler (or other binaries) and test their command line output.
 
+use build_manager::BuildManager;
 pub use color_eyre;
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context as _;
 pub use color_eyre::eyre::Result;
 pub use core::run_and_collect;
 pub use core::CrateType;
-use dependencies::{Build, BuildManager};
 pub use filter::Match;
 use per_test_config::TestConfig;
 use rustc_stderr::Message;
@@ -25,11 +25,15 @@ use std::process::Command;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
 
+use crate::dependencies::DependencyBuilder;
 use crate::parser::Comments;
 
+pub mod aux_builds;
+pub mod build_manager;
 mod cmd;
 mod config;
 pub mod core;
+pub mod custom_flags;
 mod dependencies;
 mod diff;
 mod error;
@@ -135,9 +139,11 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
         config,
         revision: "",
         comments: &comments,
+        aux_dir: &path.parent().unwrap().join("auxiliary"),
         path,
     };
-    let mut result = config.build_command().unwrap();
+    let build_manager = BuildManager::new(&(), config.config.clone());
+    let mut result = config.build_command(&build_manager).unwrap();
     result.args(extra_args);
 
     Ok(result)
@@ -165,8 +171,6 @@ pub fn run_tests_generic(
         config.fill_host_and_target()?;
     }
 
-    let build_manager = BuildManager::new(&status_emitter);
-
     let mut results = vec![];
 
     let num_threads = match configs.first().and_then(|config| config.threads) {
@@ -180,15 +184,20 @@ pub fn run_tests_generic(
         },
     };
 
+    let configs: Vec<_> = configs
+        .into_iter()
+        .map(|config| BuildManager::new(&status_emitter, config))
+        .collect();
+
     let mut filtered = 0;
     core::run_and_collect(
         num_threads,
         |submit| {
             let mut todo = VecDeque::new();
-            for config in &configs {
-                todo.push_back((config.root_dir.clone(), config));
+            for build_manager in &configs {
+                todo.push_back((build_manager.config().root_dir.clone(), build_manager));
             }
-            while let Some((path, config)) = todo.pop_front() {
+            while let Some((path, build_manager)) = todo.pop_front() {
                 if path.is_dir() {
                     if path.file_name().unwrap() == "auxiliary" {
                         continue;
@@ -201,13 +210,13 @@ pub fn run_tests_generic(
                         .collect::<Vec<_>>();
                     entries.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
                     for entry in entries {
-                        todo.push_back((entry, config));
+                        todo.push_back((entry, build_manager));
                     }
-                } else if let Some(matched) = file_filter(&path, config) {
+                } else if let Some(matched) = file_filter(&path, build_manager.config()) {
                     if matched {
                         let status = status_emitter.register_test(path);
                         // Forward .rs files to the test workers.
-                        submit.send((status, config)).unwrap();
+                        submit.send((status, build_manager)).unwrap();
                     } else {
                         filtered += 1;
                     }
@@ -215,13 +224,13 @@ pub fn run_tests_generic(
             }
         },
         |receive, finished_files_sender| -> Result<()> {
-            for (status, config) in receive {
+            for (status, build_manager) in receive {
                 let path = status.path();
                 let file_contents = std::fs::read(path).unwrap();
-                let mut config = config.clone();
+                let mut config = build_manager.config().clone();
                 per_file_config(&mut config, path, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
-                    parse_and_test_file(&build_manager, &status, config, file_contents)
+                    parse_and_test_file(build_manager, &status, config, file_contents)
                 }) {
                     Ok(Ok(res)) => res,
                     Ok(Err(err)) => {
@@ -324,7 +333,7 @@ fn parse_and_test_file(
 
             if !built_deps {
                 status.update_status("waiting for dependencies to finish building".into());
-                match build_manager.build(Build::Dependencies, &config) {
+                match build_manager.build(DependencyBuilder) {
                     Ok(extra_args) => config.program.args.extend(extra_args),
                     Err(err) => {
                         return TestRun {
@@ -342,6 +351,7 @@ fn parse_and_test_file(
                 revision,
                 comments: &comments,
                 path: status.path(),
+                aux_dir: &status.path().parent().unwrap().join("auxiliary"),
             };
 
             let result = test_config.run_test(build_manager);

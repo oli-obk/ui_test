@@ -3,17 +3,14 @@
 //! in the files. These comments still overwrite the defaults, although
 //! some boolean settings have no way to disable them.
 
-use bstr::ByteSlice;
-use std::collections::HashSet;
-use std::ffi::OsString;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-use spanned::{Span, Spanned};
+use spanned::Spanned;
 
-use crate::core::Flag;
-use crate::dependencies::{Build, BuildManager};
+use crate::build_manager::BuildManager;
+use crate::custom_flags::Flag;
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 pub use crate::rustc_stderr::Level;
@@ -21,7 +18,6 @@ use crate::rustc_stderr::Message;
 use crate::test_result::{Errored, TestOk, TestResult};
 use crate::{
     core::strip_path_prefix, rustc_stderr, Config, Error, Errors, Mode, OutputConflictHandling,
-    RustfixMode,
 };
 
 /// All information needed to run a single test
@@ -32,6 +28,8 @@ pub struct TestConfig<'a> {
     pub(crate) comments: &'a Comments,
     /// The path to the current file
     pub path: &'a Path,
+    /// The path to the folder where to look for aux files
+    pub aux_dir: &'a Path,
 }
 
 impl TestConfig<'_> {
@@ -77,32 +75,41 @@ impl TestConfig<'_> {
         self.comments().flat_map(f).collect()
     }
 
-    pub(crate) fn build_command(&self) -> Result<Command, Errored> {
-        let TestConfig {
-            config,
-            revision,
-            comments,
-            path,
-        } = self;
-        let mut cmd = config.program.build(&config.out_dir);
-        cmd.arg(path);
-        if !revision.is_empty() {
-            cmd.arg(format!("--cfg={revision}"));
+    fn apply_custom(
+        &self,
+        cmd: &mut Command,
+        build_manager: &BuildManager<'_>,
+    ) -> Result<(), Errored> {
+        for rev in self.comments.for_revision(self.revision) {
+            for flags in rev.custom.values() {
+                for flag in &flags.content {
+                    flag.apply(cmd, self, build_manager)?;
+                }
+            }
         }
-        for arg in comments
-            .for_revision(revision)
-            .flat_map(|r| r.compile_flags.iter())
-        {
-            cmd.arg(arg);
+        Ok(())
+    }
+
+    pub(crate) fn build_command(
+        &self,
+        build_manager: &BuildManager<'_>,
+    ) -> Result<Command, Errored> {
+        let mut cmd = self.config.program.build(&self.config.out_dir);
+        cmd.arg(self.path);
+        if !self.revision.is_empty() {
+            cmd.arg(format!("--cfg={}", self.revision));
+        }
+        for r in self.comments() {
+            cmd.args(&r.compile_flags);
         }
 
-        comments.apply_custom(revision, &mut cmd);
+        self.apply_custom(&mut cmd, build_manager)?;
 
-        if let Some(target) = &config.target {
+        if let Some(target) = &self.config.target {
             // Adding a `--target` arg to calls to Cargo will cause target folders
             // to create a target-specific sub-folder. We can avoid that by just
             // not passing a `--target` arg if its the same as the host.
-            if !config.host_matches_target() {
+            if !self.config.host_matches_target() {
                 cmd.arg("--target").arg(target);
             }
         }
@@ -111,8 +118,7 @@ impl TestConfig<'_> {
         // of a reference to a tuple
         #[allow(clippy::map_identity)]
         cmd.envs(
-            comments
-                .for_revision(revision)
+            self.comments()
                 .flat_map(|r| r.env_vars.iter())
                 .map(|(k, v)| (k, v)),
         );
@@ -372,75 +378,10 @@ impl TestConfig<'_> {
         Ok(())
     }
 
-    pub(crate) fn build_aux_files(
-        &self,
-        aux_dir: &Path,
-        build_manager: &BuildManager<'_>,
-    ) -> Result<Vec<OsString>, Errored> {
-        let mut extra_args = vec![];
-        for rev in self.comments() {
-            for aux in &rev.aux_builds {
-                let line = aux.line();
-                let aux = &**aux;
-                let aux_file = if aux.starts_with("..") {
-                    aux_dir.parent().unwrap().join(aux)
-                } else {
-                    aux_dir.join(aux)
-                };
-                extra_args.extend(
-                    build_manager
-                        .build(
-                            Build::Aux {
-                                aux_file: strip_path_prefix(
-                                    &aux_file.canonicalize().map_err(|err| Errored {
-                                        command: Command::new(format!(
-                                            "canonicalizing path `{}`",
-                                            aux_file.display()
-                                        )),
-                                        errors: vec![],
-                                        stderr: err.to_string().into_bytes(),
-                                        stdout: vec![],
-                                    })?,
-                                    &std::env::current_dir().unwrap(),
-                                )
-                                .collect(),
-                            },
-                            &self.config,
-                        )
-                        .map_err(
-                            |Errored {
-                                 command,
-                                 errors,
-                                 stderr,
-                                 stdout,
-                             }| Errored {
-                                command,
-                                errors: vec![Error::Aux {
-                                    path: aux_file,
-                                    errors,
-                                    line,
-                                }],
-                                stderr,
-                                stdout,
-                            },
-                        )?,
-                );
-            }
-        }
-        Ok(extra_args)
-    }
-
     pub(crate) fn run_test(mut self, build_manager: &BuildManager<'_>) -> TestResult {
-        let extra_args = self.build_aux_files(
-            &self.path.parent().unwrap().join("auxiliary"),
-            build_manager,
-        )?;
-
         self.patch_out_dir();
 
-        self.config.program.args.extend(extra_args);
-
-        let mut cmd = self.build_command()?;
+        let mut cmd = self.build_command(build_manager)?;
         let stdin = self.path.with_extension(self.extension("stdin"));
         if stdin.exists() {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
@@ -452,233 +393,27 @@ impl TestConfig<'_> {
 
         for rev in self.comments() {
             for custom in rev.custom.values() {
-                if let Some(c) = custom.content.post_test_action(&self, cmd, &output)? {
-                    cmd = c;
-                } else {
-                    return Ok(TestOk::Ok);
+                for flag in &custom.content {
+                    if let Some(c) = flag.post_test_action(&self, cmd, &output, build_manager)? {
+                        cmd = c;
+                    } else {
+                        return Ok(TestOk::Ok);
+                    }
                 }
             }
         }
         Ok(TestOk::Ok)
     }
 
-    fn run_test_binary(&self, mut cmd: Command, exit_code: i32) -> TestResult {
-        let revision = self.extension("run");
-        let config = TestConfig {
-            config: self.config.clone(),
-            revision: &revision,
-            comments: self.comments,
-            path: self.path,
-        };
-        cmd.arg("--print").arg("file-names");
-        let output = cmd.output().unwrap();
-        assert!(output.status.success());
-
-        let mut files = output.stdout.lines();
-        let file = files.next().unwrap();
-        assert_eq!(files.next(), None);
-        let file = std::str::from_utf8(file).unwrap();
-        let exe_file = config.config.out_dir.join(file);
-        let mut exe = Command::new(&exe_file);
-        let stdin = config.path.with_extension(format!("{revision}.stdin"));
-        if stdin.exists() {
-            exe.stdin(std::fs::File::open(stdin).unwrap());
-        }
-        let output = exe
-            .output()
-            .unwrap_or_else(|err| panic!("exe file: {}: {err}", exe_file.display()));
-
-        let mut errors = vec![];
-
-        config.check_test_output(&mut errors, &output.stdout, &output.stderr);
-
-        let status = output.status;
-        if status.code() != Some(exit_code) {
-            errors.push(Error::ExitStatus {
-                mode: format!("run({exit_code})"),
-                status,
-                expected: exit_code,
-            })
-        }
-        if errors.is_empty() {
-            Ok(TestOk::Ok)
-        } else {
-            Err(Errored {
-                command: exe,
-                errors,
-                stderr: vec![],
-                stdout: vec![],
-            })
-        }
-    }
-
-    pub(crate) fn run_rustfix(
-        &self,
-        output: Output,
-        global_rustfix: RustfixMode,
-    ) -> Result<bool, Errored> {
-        let no_run_rustfix = self.find_one_custom("no-rustfix")?;
-
-        let fixed_code = (no_run_rustfix.is_none() && global_rustfix.enabled())
-            .then_some(())
-            .and_then(|()| {
-                let suggestions = std::str::from_utf8(&output.stderr)
-                    .unwrap()
-                    .lines()
-                    .flat_map(|line| {
-                        if !line.starts_with('{') {
-                            return vec![];
-                        }
-                        rustfix::get_suggestions_from_json(
-                            line,
-                            &HashSet::new(),
-                            if global_rustfix == RustfixMode::Everything {
-                                rustfix::Filter::Everything
-                            } else {
-                                rustfix::Filter::MachineApplicableOnly
-                            },
-                        )
-                        .unwrap_or_else(|err| {
-                            panic!("could not deserialize diagnostics json for rustfix {err}:{line}")
-                        })
-                    })
-                    .collect::<Vec<_>>();
-                if suggestions.is_empty() {
-                    None
-                } else {
-                    let path_str = self.path.display().to_string();
-                    for sugg in &suggestions {
-                        for snip in &sugg.snippets {
-                            if snip.file_name != path_str {
-                                return Some(Err(anyhow::anyhow!("cannot apply suggestions for `{}` since main file is `{path_str}`. Please use `//@no-rustfix` to disable rustfix", snip.file_name)));
-                            }
-                        }
-                    }
-                    Some(rustfix::apply_suggestions(
-                        &std::fs::read_to_string(self.path).unwrap(),
-                        &suggestions,
-                    ))
-                }
-            })
-            .transpose()
-            .map_err(|err| Errored {
-                command: Command::new(format!("rustfix {}", self.path.display())),
-                errors: vec![Error::Rustfix(err)],
-                stderr: output.stderr,
-                stdout: output.stdout,
-            })?;
-
-        let rustfix_comments = Comments {
-            revisions: None,
-            revisioned: std::iter::once((
-                vec![],
-                Revisioned {
-                    span: Span::default(),
-                    ignore: vec![],
-                    only: vec![],
-                    stderr_per_bitwidth: false,
-                    compile_flags: self.collect(|r| r.compile_flags.iter().cloned()),
-                    env_vars: self.collect(|r| r.env_vars.iter().cloned()),
-                    normalize_stderr: vec![],
-                    normalize_stdout: vec![],
-                    error_in_other_files: vec![],
-                    error_matches: vec![],
-                    require_annotations_for_level: Default::default(),
-                    aux_builds: self.collect(|r| r.aux_builds.iter().cloned()),
-                    mode: OptWithLine::new(Mode::Pass, Span::default()),
-                    diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
-                    custom: self
-                        .comments
-                        .for_revision(self.revision)
-                        .flat_map(|r| r.custom.clone())
-                        .collect(),
-                },
-            ))
-            .collect(),
-        };
-        let config = TestConfig {
-            config: self.config.clone(),
-            revision: self.revision,
-            comments: &rustfix_comments,
-            path: self.path,
-        };
-
-        let run = fixed_code.is_some();
-        let mut errors = vec![];
-        let rustfix_path = config.check_output(
-            // Always check for `.fixed` files, even if there were reasons not to run rustfix.
-            // We don't want to leave around stray `.fixed` files
-            fixed_code.unwrap_or_default().as_bytes(),
-            &mut errors,
-            "fixed",
-        );
-        // picking the crate name from the file name is problematic when `.revision_name` is inserted,
-        // so we compute it here before replacing the path.
-        let crate_name = config
-            .path
-            .file_stem()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .replace('-', "_");
-        let config = TestConfig {
-            config: config.config,
-            revision: config.revision,
-            comments: &rustfix_comments,
-            path: &rustfix_path,
-        };
-        if !errors.is_empty() {
-            return Err(Errored {
-                command: Command::new(format!("checking {}", config.path.display())),
-                errors,
-                stderr: vec![],
-                stdout: vec![],
-            });
-        }
-
-        if !run {
-            return Ok(false);
-        }
-
-        let mut cmd = config.build_command()?;
-        cmd.arg("--crate-name").arg(crate_name);
-        let output = cmd.output().unwrap();
-        if output.status.success() {
-            Ok(true)
-        } else {
-            Err(Errored {
-                command: cmd,
-                errors: vec![Error::Command {
-                    kind: "rustfix".into(),
-                    status: output.status,
-                }],
-                stderr: rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
-                stdout: output.stdout,
-            })
-        }
-    }
-
-    fn find_one_custom(&self, arg: &str) -> Result<OptWithLine<&dyn Flag>, Errored> {
-        self.find_one(arg, |r| r.custom.get(arg).map(|s| s.as_ref()).into())
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct Run {
-    pub exit_code: i32,
-}
-
-impl Flag for Run {
-    fn clone_inner(&self) -> Box<dyn Flag> {
-        Box::new(*self)
-    }
-    fn post_test_action(
-        &self,
-        config: &TestConfig<'_>,
-        cmd: Command,
-        _output: &Output,
-    ) -> Result<Option<Command>, Errored> {
-        config.run_test_binary(cmd, self.exit_code)?;
-        Ok(None)
+    pub(crate) fn find_one_custom(&self, arg: &str) -> Result<OptWithLine<&dyn Flag>, Errored> {
+        self.find_one(arg, |r| {
+            r.custom
+                .get(arg)
+                .map(|s| {
+                    assert_eq!(s.len(), 1);
+                    Spanned::new(&*s[0], s.span())
+                })
+                .into()
+        })
     }
 }

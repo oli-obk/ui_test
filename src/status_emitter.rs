@@ -73,7 +73,61 @@ pub trait Summary {
     fn test_failure(&mut self, _status: &dyn TestStatus, _errors: &Errors) {}
 }
 
+/// Report no summary
 impl Summary for () {}
+
+/// Emit nothing
+impl StatusEmitter for () {
+    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
+        Box::new(SilentStatus {
+            path,
+            revision: String::new(),
+        })
+    }
+
+    fn finalize(
+        &self,
+        _failed: usize,
+        _succeeded: usize,
+        _ignored: usize,
+        _filtered: usize,
+    ) -> Box<dyn Summary> {
+        Box::new(())
+    }
+}
+
+struct SilentStatus {
+    revision: String,
+    path: PathBuf,
+}
+
+impl TestStatus for SilentStatus {
+    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+        Box::new(SilentStatus {
+            revision: revision.into(),
+            path: self.path.clone(),
+        })
+    }
+
+    fn failed_test<'a>(
+        &'a self,
+        _cmd: &'a Command,
+        _stderr: &'a [u8],
+        _stdout: &'a [u8],
+    ) -> Box<dyn Debug + 'a> {
+        Box::new(())
+    }
+
+    fn update_status(&self, _msg: String) {}
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+
+    fn revision(&self) -> &str {
+        &self.revision
+    }
+}
 
 /// A human readable output emitter.
 #[derive(Clone)]
