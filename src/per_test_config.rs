@@ -386,48 +386,7 @@ impl TestConfig<'_> {
         let mut extra_args = vec![];
         for rev in self.comments() {
             for aux in &rev.aux_builds {
-                let line = aux.line();
-                let aux = &**aux;
-                let aux_file = if aux.starts_with("..") {
-                    aux_dir.parent().unwrap().join(aux)
-                } else {
-                    aux_dir.join(aux)
-                };
-                extra_args.extend(
-                    build_manager
-                        .build(AuxBuilder {
-                            aux_file: strip_path_prefix(
-                                &aux_file.canonicalize().map_err(|err| Errored {
-                                    command: Command::new(format!(
-                                        "canonicalizing path `{}`",
-                                        aux_file.display()
-                                    )),
-                                    errors: vec![],
-                                    stderr: err.to_string().into_bytes(),
-                                    stdout: vec![],
-                                })?,
-                                &std::env::current_dir().unwrap(),
-                            )
-                            .collect(),
-                        })
-                        .map_err(
-                            |Errored {
-                                 command,
-                                 errors,
-                                 stderr,
-                                 stdout,
-                             }| Errored {
-                                command,
-                                errors: vec![Error::Aux {
-                                    path: aux_file,
-                                    errors,
-                                    line,
-                                }],
-                                stderr,
-                                stdout,
-                            },
-                        )?,
-                );
+                build_aux_file(aux, aux_dir, &mut extra_args, build_manager)?;
             }
         }
         Ok(extra_args)
@@ -468,4 +427,55 @@ impl TestConfig<'_> {
     pub(crate) fn find_one_custom(&self, arg: &str) -> Result<OptWithLine<&dyn Flag>, Errored> {
         self.find_one(arg, |r| r.custom.get(arg).map(|s| s.as_ref()).into())
     }
+}
+
+fn build_aux_file(
+    aux: &Spanned<PathBuf>,
+    aux_dir: &Path,
+    extra_args: &mut Vec<OsString>,
+    build_manager: &BuildManager<'_>,
+) -> Result<(), Errored> {
+    let line = aux.line();
+    let aux = &**aux;
+    let aux_file = if aux.starts_with("..") {
+        aux_dir.parent().unwrap().join(aux)
+    } else {
+        aux_dir.join(aux)
+    };
+    extra_args.extend(
+        build_manager
+            .build(AuxBuilder {
+                aux_file: strip_path_prefix(
+                    &aux_file.canonicalize().map_err(|err| Errored {
+                        command: Command::new(format!(
+                            "canonicalizing path `{}`",
+                            aux_file.display()
+                        )),
+                        errors: vec![],
+                        stderr: err.to_string().into_bytes(),
+                        stdout: vec![],
+                    })?,
+                    &std::env::current_dir().unwrap(),
+                )
+                .collect(),
+            })
+            .map_err(
+                |Errored {
+                     command,
+                     errors,
+                     stderr,
+                     stdout,
+                 }| Errored {
+                    command,
+                    errors: vec![Error::Aux {
+                        path: aux_file,
+                        errors,
+                        line,
+                    }],
+                    stderr,
+                    stdout,
+                },
+            )?,
+    );
+    Ok(())
 }
