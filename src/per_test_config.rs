@@ -15,6 +15,7 @@ pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 pub use crate::rustc_stderr::Level;
 use crate::rustc_stderr::Message;
+use crate::status_emitter::TestStatus;
 use crate::test_result::{Errored, TestOk, TestResult};
 use crate::{
     core::strip_path_prefix, rustc_stderr, Config, Error, Errors, Mode, OutputConflictHandling,
@@ -24,35 +25,35 @@ use crate::{
 pub struct TestConfig<'a> {
     /// The generic config for all tests
     pub config: Config,
-    pub(crate) revision: &'a str,
     pub(crate) comments: &'a Comments,
-    /// The path to the current file
-    pub path: &'a Path,
     /// The path to the folder where to look for aux files
     pub aux_dir: &'a Path,
+    /// When doing long-running operations, you can inform the user about it here.
+    pub status: &'a dyn TestStatus,
 }
 
 impl TestConfig<'_> {
     pub(crate) fn patch_out_dir(&mut self) {
         // Put aux builds into a separate directory per path so that multiple aux files
         // from different directories (but with the same file name) don't collide.
-        let relative = strip_path_prefix(self.path.parent().unwrap(), &self.config.out_dir);
+        let relative =
+            strip_path_prefix(self.status.path().parent().unwrap(), &self.config.out_dir);
 
         self.config.out_dir.extend(relative);
     }
 
     /// Create a file extension that includes the current revision if necessary.
     pub fn extension(&self, extension: &str) -> String {
-        if self.revision.is_empty() {
+        if self.status.revision().is_empty() {
             extension.to_string()
         } else {
-            format!("{}.{extension}", self.revision)
+            format!("{}.{extension}", self.status.revision())
         }
     }
 
     /// The test's mode after applying all comments
     pub fn mode(&self) -> Result<Spanned<Mode>, Errored> {
-        self.comments.mode(self.revision)
+        self.comments.mode(self.status.revision())
     }
 
     pub(crate) fn find_one<'a, T: 'a>(
@@ -60,12 +61,13 @@ impl TestConfig<'_> {
         kind: &str,
         f: impl Fn(&'a Revisioned) -> OptWithLine<T>,
     ) -> Result<OptWithLine<T>, Errored> {
-        self.comments.find_one_for_revision(self.revision, kind, f)
+        self.comments
+            .find_one_for_revision(self.status.revision(), kind, f)
     }
 
     /// All comments that apply to the current test.
     pub fn comments(&self) -> impl Iterator<Item = &'_ Revisioned> {
-        self.comments.for_revision(self.revision)
+        self.comments.for_revision(self.status.revision())
     }
 
     pub(crate) fn collect<'a, T, I: Iterator<Item = T>, R: FromIterator<T>>(
@@ -80,7 +82,7 @@ impl TestConfig<'_> {
         cmd: &mut Command,
         build_manager: &BuildManager<'_>,
     ) -> Result<(), Errored> {
-        for rev in self.comments.for_revision(self.revision) {
+        for rev in self.comments.for_revision(self.status.revision()) {
             for flags in rev.custom.values() {
                 for flag in &flags.content {
                     flag.apply(cmd, self, build_manager)?;
@@ -95,9 +97,9 @@ impl TestConfig<'_> {
         build_manager: &BuildManager<'_>,
     ) -> Result<Command, Errored> {
         let mut cmd = self.config.program.build(&self.config.out_dir);
-        cmd.arg(self.path);
-        if !self.revision.is_empty() {
-            cmd.arg(format!("--cfg={}", self.revision));
+        cmd.arg(self.status.path());
+        if !self.status.revision().is_empty() {
+            cmd.arg(format!("--cfg={}", self.status.revision()));
         }
         for r in self.comments() {
             cmd.args(&r.compile_flags);
@@ -130,10 +132,11 @@ impl TestConfig<'_> {
         let ext = self.extension(kind);
         if self.comments().any(|r| r.stderr_per_bitwidth) {
             return self
-                .path
+                .status
+                .path()
                 .with_extension(format!("{}bit.{ext}", self.config.get_pointer_width()));
         }
-        self.path.with_extension(ext)
+        self.status.path().with_extension(ext)
     }
 
     pub(crate) fn normalize(&self, text: &[u8], kind: &'static str) -> Vec<u8> {
@@ -197,7 +200,7 @@ impl TestConfig<'_> {
         let mut errors = vec![];
         errors.extend(self.mode()?.ok(output.status).err());
         // Always remove annotation comments from stderr.
-        let diagnostics = rustc_stderr::process(self.path, &output.stderr);
+        let diagnostics = rustc_stderr::process(self.status.path(), &output.stderr);
         self.check_test_output(&mut errors, &output.stdout, &diagnostics.rendered);
         // Check error annotations in the source against output
         self.check_annotations(
@@ -347,7 +350,7 @@ impl TestConfig<'_> {
                     let line = NonZeroUsize::new(line).expect("line 0 is always empty");
                     errors.push(Error::ErrorsWithoutPattern {
                         path: Some(Spanned::new(
-                            self.path.to_path_buf(),
+                            self.status.path().to_path_buf(),
                             spanned::Span {
                                 line_start: line,
                                 ..spanned::Span::default()
@@ -382,7 +385,7 @@ impl TestConfig<'_> {
         self.patch_out_dir();
 
         let mut cmd = self.build_command(build_manager)?;
-        let stdin = self.path.with_extension(self.extension("stdin"));
+        let stdin = self.status.path().with_extension(self.extension("stdin"));
         if stdin.exists() {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
         }

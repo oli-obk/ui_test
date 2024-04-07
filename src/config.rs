@@ -118,6 +118,10 @@ impl Config {
             "rustfix",
             Spanned::dummy(vec![Box::new(RustfixMode::MachineApplicable)]),
         );
+        let _ = comment_defaults.base().custom.insert(
+            "dependencies",
+            Spanned::dummy(vec![Box::new(crate::dependencies::DependencyBuilder)]),
+        );
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
             #[cfg(windows)]

@@ -11,6 +11,8 @@ use std::{
 
 use crate::{
     build_manager::{Build, BuildManager},
+    custom_flags::Flag,
+    per_test_config::TestConfig,
     test_result::Errored,
     Config, Mode, OutputConflictHandling,
 };
@@ -209,7 +211,28 @@ fn build_dependencies_inner(config: &Config) -> Result<Dependencies> {
 }
 
 /// Build the dependencies.
+#[derive(Debug)]
 pub struct DependencyBuilder;
+
+impl Flag for DependencyBuilder {
+    fn clone_inner(&self) -> Box<dyn Flag> {
+        Box::new(DependencyBuilder)
+    }
+    fn apply(
+        &self,
+        cmd: &mut Command,
+        config: &TestConfig<'_>,
+        build_manager: &BuildManager<'_>,
+    ) -> Result<(), Errored> {
+        config
+            .status
+            .update_status("waiting for dependencies to finish building".into());
+        let extra_args = build_manager.build(DependencyBuilder)?;
+        cmd.args(extra_args);
+        config.status.update_status(String::new());
+        Ok(())
+    }
+}
 
 impl Build for DependencyBuilder {
     fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {

@@ -29,10 +29,9 @@ impl Flag for Run {
         let revision = config.extension("run");
         let config = TestConfig {
             config: config.config.clone(),
-            revision: &revision,
             comments: config.comments,
-            path: config.path,
             aux_dir: config.aux_dir,
+            status: &config.status.for_revision(&revision),
         };
         cmd.arg("--print").arg("file-names");
         let output = cmd.output().unwrap();
@@ -44,7 +43,10 @@ impl Flag for Run {
         let file = std::str::from_utf8(file).unwrap();
         let exe_file = config.config.out_dir.join(file);
         let mut exe = Command::new(&exe_file);
-        let stdin = config.path.with_extension(format!("{revision}.stdin"));
+        let stdin = config
+            .status
+            .path()
+            .with_extension(format!("{revision}.stdin"));
         if stdin.exists() {
             exe.stdin(std::fs::File::open(stdin).unwrap());
         }

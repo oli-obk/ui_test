@@ -131,6 +131,8 @@ pub fn default_per_file_config(config: &mut Config, _path: &Path, file_contents:
 /// Ignores various settings from `Config` that relate to finding test files.
 #[cfg(feature = "rustc")]
 pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
+    use status_emitter::SilentStatus;
+
     config.fill_host_and_target()?;
     let extra_args = dependencies::build_dependencies(&config)?;
 
@@ -140,10 +142,12 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
         config,
-        revision: "",
         comments: &comments,
         aux_dir: &path.parent().unwrap().join("auxiliary"),
-        path,
+        status: &SilentStatus {
+            revision: String::new(),
+            path: path.to_path_buf(),
+        },
     };
     let build_manager = BuildManager::new(&(), config.config.clone());
     let mut result = config.build_command(&build_manager).unwrap();
@@ -313,7 +317,7 @@ pub fn run_tests_generic(
 fn parse_and_test_file(
     build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
-    #[allow(unused_mut)] mut config: Config,
+    config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = Comments::parse(&file_contents, &config, status.path())
@@ -321,8 +325,6 @@ fn parse_and_test_file(
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
-    #[cfg(feature = "rustc")]
-    let mut built_deps = false;
     Ok(revisions
         .iter()
         .map(|revision| {
@@ -335,29 +337,11 @@ fn parse_and_test_file(
                 };
             }
 
-            #[cfg(feature = "rustc")]
-            // FIXME: move this into custom comments
-            if !built_deps {
-                status.update_status("waiting for dependencies to finish building".into());
-                match build_manager.build(dependencies::DependencyBuilder) {
-                    Ok(extra_args) => config.program.args.extend(extra_args),
-                    Err(err) => {
-                        return TestRun {
-                            result: Err(err),
-                            status,
-                        }
-                    }
-                }
-                status.update_status(String::new());
-                built_deps = true;
-            }
-
             let test_config = TestConfig {
                 config: config.clone(),
-                revision,
                 comments: &comments,
-                path: status.path(),
                 aux_dir: &status.path().parent().unwrap().join("auxiliary"),
+                status: &status,
             };
 
             let result = test_config.run_test(build_manager);
