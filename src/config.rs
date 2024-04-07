@@ -9,6 +9,7 @@ use crate::{
     per_test_config::TestConfig, Errored, Mode,
 };
 use crate::{
+    diagnostics::Diagnostics,
     parser::CommandParserFunc,
     per_test_config::{Comments, Condition},
     CommandBuilder,
@@ -63,6 +64,8 @@ pub struct Config {
     pub comment_defaults: Comments,
     /// Custom comment parsers
     pub custom_comments: BTreeMap<&'static str, CommandParserFunc>,
+    /// Custom diagnostic extractor (invoked on the output of tests)
+    pub diagnostic_extractor: fn(&Path, &[u8]) -> Diagnostics,
 }
 
 impl Config {
@@ -70,6 +73,8 @@ impl Config {
     /// `rustc` on the test files.
     #[cfg(feature = "rustc")]
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
+        use crate::rustc_stderr;
+
         let mut comment_defaults = Comments::default();
 
         #[derive(Debug)]
@@ -156,6 +161,7 @@ impl Config {
             filter_exact: false,
             comment_defaults,
             custom_comments: Default::default(),
+            diagnostic_extractor: rustc_stderr::process,
         };
         config
             .custom_comments

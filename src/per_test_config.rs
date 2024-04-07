@@ -12,14 +12,12 @@ use spanned::Spanned;
 use crate::build_manager::BuildManager;
 use crate::custom_flags::Flag;
 pub use crate::diagnostics::Level;
-use crate::diagnostics::Message;
+use crate::diagnostics::{Diagnostics, Message};
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::TestStatus;
 use crate::test_result::{Errored, TestOk, TestResult};
-use crate::{
-    core::strip_path_prefix, rustc_stderr, Config, Error, Errors, Mode, OutputConflictHandling,
-};
+use crate::{core::strip_path_prefix, Config, Error, Errors, Mode, OutputConflictHandling};
 
 /// All information needed to run a single test
 pub struct TestConfig<'a> {
@@ -192,6 +190,11 @@ impl TestConfig<'_> {
         path
     }
 
+    /// Read diagnostics from a test's output.
+    pub fn process(&self, stderr: &[u8]) -> Diagnostics {
+        (self.config.diagnostic_extractor)(self.status.path(), stderr)
+    }
+
     fn check_test_result(
         &self,
         command: Command,
@@ -200,7 +203,7 @@ impl TestConfig<'_> {
         let mut errors = vec![];
         errors.extend(self.mode()?.ok(output.status).err());
         // Always remove annotation comments from stderr.
-        let diagnostics = rustc_stderr::process(self.status.path(), &output.stderr);
+        let diagnostics = self.process(&output.stderr);
         self.check_test_output(&mut errors, &output.stdout, &diagnostics.rendered);
         // Check error annotations in the source against output
         self.check_annotations(

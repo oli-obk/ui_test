@@ -11,7 +11,7 @@ use crate::{
     build_manager::BuildManager,
     parser::OptWithLine,
     per_test_config::{Comments, Revisioned, TestConfig},
-    rustc_stderr, Error, Errored, Mode,
+    Error, Errored, Mode,
 };
 
 use super::Flag;
@@ -181,7 +181,7 @@ impl Flag for RustfixMode {
                     kind: "rustfix".into(),
                     status: output.status,
                 }],
-                stderr: rustc_stderr::process(&rustfix_path, &output.stderr).rendered,
+                stderr: config.process(&output.stderr).rendered,
                 stdout: output.stdout,
             })
         }

@@ -44,6 +44,7 @@ mod mode;
 pub mod nextest;
 mod parser;
 pub mod per_test_config;
+#[cfg(feature = "rustc")]
 mod rustc_stderr;
 pub mod status_emitter;
 pub mod test_result;

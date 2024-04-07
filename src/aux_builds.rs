@@ -10,7 +10,6 @@ use crate::{
     custom_flags::Flag,
     default_per_file_config,
     per_test_config::{Comments, TestConfig},
-    rustc_stderr,
     status_emitter::SilentStatus,
     CrateType, Error, Errored,
 };
@@ -131,7 +130,7 @@ impl Build for AuxBuilder {
             return Err(Errored {
                 command: aux_cmd,
                 errors: vec![error],
-                stderr: rustc_stderr::process(&self.aux_file, &output.stderr).rendered,
+                stderr: config.process(&output.stderr).rendered,
                 stdout: output.stdout,
             });
         }

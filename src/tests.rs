@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use spanned::Spanned;
 
-use crate::rustc_stderr::Level;
-use crate::rustc_stderr::Message;
+use crate::diagnostics::Level;
+use crate::diagnostics::Message;
 
 use super::*;
 
