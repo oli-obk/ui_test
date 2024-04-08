@@ -33,13 +33,12 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config
             .comment_defaults
             .base()
-            .custom
-            .insert("rustfix", Spanned::dummy(vec![Box::new(rustfix)]));
+            .set_custom("rustfix", rustfix);
 
-        config.comment_defaults.base().custom.insert(
-            "dependencies",
-            Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
-        );
+        config
+            .comment_defaults
+            .base()
+            .set_custom("dependencies", DependencyBuilder::default());
 
         // hide binaries generated for successfully passing tests
         let tmp_dir = tempfile::tempdir_in(path)?;

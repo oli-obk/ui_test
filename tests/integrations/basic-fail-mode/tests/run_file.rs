@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 use ui_test::color_eyre::{eyre::ensure, Result};
 use ui_test::dependencies::DependencyBuilder;
-use ui_test::spanned::Spanned;
 use ui_test::*;
 
 #[test]
@@ -55,10 +54,10 @@ fn run_file_no_deps() -> Result<()> {
 
     // Don't build a binary, we only provide .rmeta dependencies for now
     config.program.args.push("--emit=metadata".into());
-    config.comment_defaults.base().custom.insert(
-        "dependencies",
-        Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
-    );
+    config
+        .comment_defaults
+        .base()
+        .set_custom("dependencies", DependencyBuilder::default());
 
     let mut result = ui_test::test_command(
         config,

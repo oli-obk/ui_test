@@ -108,14 +108,12 @@ impl Config {
             }
         }
 
-        let _ = comment_defaults.base().custom.insert(
-            "edition",
-            Spanned::dummy(vec![Box::new(Edition("2021".into()))]),
-        );
-        let _ = comment_defaults.base().custom.insert(
-            "rustfix",
-            Spanned::dummy(vec![Box::new(RustfixMode::MachineApplicable)]),
-        );
+        comment_defaults
+            .base()
+            .add_custom("edition", Edition("2021".into()));
+        comment_defaults
+            .base()
+            .add_custom("rustfix", RustfixMode::MachineApplicable);
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
             #[cfg(windows)]
@@ -154,34 +152,20 @@ impl Config {
             .custom_comments
             .insert("no-rustfix", |parser, _args, span| {
                 // args are ignored (can be used as comment)
-                let prev = parser
-                    .custom
-                    .insert("no-rustfix", Spanned::new(vec![Box::new(())], span.clone()));
-                parser.check(span, prev.is_none(), "cannot specify `no-rustfix` twice");
+                parser.set_custom_once("no-rustfix", (), span);
             });
 
         config
             .custom_comments
-            .insert("edition", |parser, args, span| {
-                let prev = parser.custom.insert(
-                    "edition",
-                    Spanned::new(vec![Box::new(Edition((*args).into()))], args.span()),
-                );
-                parser.check(span, prev.is_none(), "cannot specify `edition` twice");
+            .insert("edition", |parser, args, _span| {
+                parser.set_custom_once("edition", Edition((*args).into()), args.span());
             });
 
         config
             .custom_comments
-            .insert("needs-asm-support", |parser, args, span| {
-                let prev = parser.custom.insert(
-                    "needs-asm-support",
-                    Spanned::new(vec![Box::new(NeedsAsmSupport)], args.span()),
-                );
-                parser.check(
-                    span,
-                    prev.is_none(),
-                    "cannot specify `needs-asm-support` twice",
-                );
+            .insert("needs-asm-support", |parser, _args, span| {
+                // args are ignored (can be used as comment)
+                parser.set_custom_once("needs-asm-support", NeedsAsmSupport, span);
             });
 
         config.custom_comments.insert("run", |parser, args, span| {
@@ -191,10 +175,7 @@ impl Config {
                 "cannot specify test mode changes twice",
             );
             let set = |exit_code| {
-                parser.custom.insert(
-                    "run",
-                    Spanned::new(vec![Box::new(Run { exit_code })], args.span()),
-                );
+                parser.set_custom_once("run", Run { exit_code }, args.span());
                 parser.mode = Spanned::new(Mode::Pass, args.span()).into();
 
                 let prev = parser
@@ -223,11 +204,7 @@ impl Config {
             };
 
             parser
-                .custom
-                .entry("aux-build")
-                .or_insert_with(|| Spanned::new(vec![], span))
-                .content
-                .push(Box::new(AuxBuilder { aux_file: name.map(|n| n.into())}));
+                .add_custom_spanned("aux-build", AuxBuilder { aux_file: name.map(|n| n.into())}, span);
         });
         config
     }
