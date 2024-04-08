@@ -95,7 +95,7 @@ impl TestConfig<'_> {
                                 assert_eq!(o.get().len(), 1);
                                 o.get_mut()[0] = &flag;
                             } else {
-                                o.get_mut().push(&flag);
+                                o.get_mut().push(flag);
                             }
                         }
                     }
