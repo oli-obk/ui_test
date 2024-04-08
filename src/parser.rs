@@ -160,7 +160,36 @@ pub struct Revisioned {
     /// The keys are just labels for overwriting or retrieving the value later.
     /// They are mostly used by `Config::custom_comments` handlers,
     /// `ui_test` itself only ever looks at the values, not the keys.
+    ///
+    /// You usually don't modify this directly but use the `add_custom` or `set_custom_once`
+    /// helpers.
     pub custom: BTreeMap<&'static str, Spanned<Vec<Box<dyn Flag>>>>,
+}
+
+impl Revisioned {
+    /// Append another flag to an existing or new key
+    pub fn add_custom(&mut self, key: &'static str, custom: impl Flag + 'static) {
+        self.add_custom_spanned(key, custom, Span::default())
+    }
+
+    /// Append another flag to an existing or new key
+    pub fn add_custom_spanned(
+        &mut self,
+        key: &'static str,
+        custom: impl Flag + 'static,
+        span: Span,
+    ) {
+        self.custom
+            .entry(key)
+            .or_insert_with(|| Spanned::new(vec![], span))
+            .content
+            .push(Box::new(custom));
+    }
+    /// Override or set a flag
+    pub fn set_custom(&mut self, key: &'static str, custom: impl Flag + 'static) {
+        self.custom
+            .insert(key, Spanned::dummy(vec![Box::new(custom)]));
+    }
 }
 
 /// Main entry point to parsing comments and handling parsing errors.
@@ -632,6 +661,18 @@ impl CommentParser<&mut Revisioned> {
 
         let regex = self.parse_regex(from)?.content;
         Some((regex, to.as_bytes().to_owned()))
+    }
+
+    /// Add a flag or error if it already existed
+    pub fn set_custom_once(&mut self, key: &'static str, custom: impl Flag + 'static, span: Span) {
+        let prev = self
+            .custom
+            .insert(key, Spanned::new(vec![Box::new(custom)], span.clone()));
+        self.check(
+            span,
+            prev.is_none(),
+            format!("cannot specify `{key}` twice"),
+        );
     }
 }
 

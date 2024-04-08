@@ -1,4 +1,4 @@
-use ui_test::{dependencies::DependencyBuilder, spanned::Spanned, *};
+use ui_test::{dependencies::DependencyBuilder, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
@@ -11,10 +11,10 @@ fn main() -> ui_test::color_eyre::Result<()> {
         bless_command: Some("cargo test".to_string()),
         ..Config::rustc("tests/actual_tests")
     };
-    config.comment_defaults.base().custom.insert(
-        "dependencies",
-        Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
-    );
+    config
+        .comment_defaults
+        .base()
+        .set_custom("dependencies", DependencyBuilder::default());
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");

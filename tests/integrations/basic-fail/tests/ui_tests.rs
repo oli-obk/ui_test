@@ -1,4 +1,4 @@
-use ui_test::{dependencies::DependencyBuilder, spanned::Spanned, *};
+use ui_test::{dependencies::DependencyBuilder, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
@@ -9,10 +9,10 @@ fn main() -> ui_test::color_eyre::Result<()> {
         ..Config::rustc("tests/actual_tests")
     };
 
-    config.comment_defaults.base().custom.insert(
-        "dependencies",
-        Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
-    );
+    config
+        .comment_defaults
+        .base()
+        .set_custom("dependencies", DependencyBuilder::default());
 
     // hide binaries generated for successfully passing tests
     let tmp_dir = tempfile::tempdir_in(path)?;

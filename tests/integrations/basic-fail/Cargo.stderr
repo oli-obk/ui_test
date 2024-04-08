@@ -6,7 +6,7 @@ error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/tests/integrations/basic-fail/debug/deps/ui_tests-HASH` (exit status: 1)
-thread 'main' panicked at tests/ui_tests_bless.rs:64:18:
+thread 'main' panicked at tests/ui_tests_bless.rs:63:18:
 invalid mode/result combo: yolo: Err(tests failed
 
 Location:

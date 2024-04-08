@@ -15,10 +15,10 @@ fn main() -> ui_test::color_eyre::Result<()> {
         require_patterns: true,
     })
     .into();
-    config.comment_defaults.base().custom.insert(
-        "dependencies",
-        Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
-    );
+    config
+        .comment_defaults
+        .base()
+        .set_custom("dependencies", DependencyBuilder::default());
     config.stderr_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");

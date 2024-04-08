@@ -1,4 +1,4 @@
-use ui_test::{dependencies::DependencyBuilder, spanned::Spanned, *};
+use ui_test::{dependencies::DependencyBuilder, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
@@ -15,10 +15,10 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
     config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
-    config.comment_defaults.base().custom.insert(
-        "dependencies",
-        Spanned::dummy(vec![Box::new(DependencyBuilder::default())]),
-    );
+    config
+        .comment_defaults
+        .base()
+        .set_custom("dependencies", DependencyBuilder::default());
 
     if let Ok(target) = std::env::var("UITEST_TEST_TARGET") {
         config.target = Some(target);
