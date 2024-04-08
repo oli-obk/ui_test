@@ -37,6 +37,9 @@ impl Flag for RustfixMode {
     fn clone_inner(&self) -> Box<dyn Flag> {
         Box::new(*self)
     }
+    fn must_be_unique(&self) -> bool {
+        true
+    }
     fn post_test_action(
         &self,
         config: &TestConfig<'_>,

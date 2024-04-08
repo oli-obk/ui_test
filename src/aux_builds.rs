@@ -15,6 +15,9 @@ use crate::{
 };
 
 impl Flag for AuxBuilder {
+    fn must_be_unique(&self) -> bool {
+        false
+    }
     fn clone_inner(&self) -> Box<dyn Flag> {
         Box::new(self.clone())
     }

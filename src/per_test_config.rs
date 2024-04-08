@@ -3,6 +3,8 @@
 //! in the files. These comments still overwrite the defaults, although
 //! some boolean settings have no way to disable them.
 
+use std::collections::btree_map::Entry;
+use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -80,11 +82,29 @@ impl TestConfig<'_> {
         cmd: &mut Command,
         build_manager: &BuildManager<'_>,
     ) -> Result<(), Errored> {
+        let mut all = BTreeMap::new();
         for rev in self.comments.for_revision(self.status.revision()) {
-            for flags in rev.custom.values() {
+            for (&k, flags) in &rev.custom {
                 for flag in &flags.content {
-                    flag.apply(cmd, self, build_manager)?;
+                    match all.entry(k) {
+                        Entry::Vacant(v) => _ = v.insert(vec![flag]),
+                        Entry::Occupied(mut o) => {
+                            if o.get().last().unwrap().must_be_unique() {
+                                // Overwrite previous value so that revisions overwrite default settings
+                                // FIXME: report an error if multiple revisions conflict
+                                assert_eq!(o.get().len(), 1);
+                                o.get_mut()[0] = &flag;
+                            } else {
+                                o.get_mut().push(&flag);
+                            }
+                        }
+                    }
                 }
+            }
+        }
+        for flags in all.values() {
+            for flag in flags {
+                flag.apply(cmd, self, build_manager)?;
             }
         }
         Ok(())

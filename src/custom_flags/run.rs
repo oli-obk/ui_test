@@ -13,6 +13,9 @@ pub(crate) struct Run {
 }
 
 impl Flag for Run {
+    fn must_be_unique(&self) -> bool {
+        true
+    }
     fn clone_inner(&self) -> Box<dyn Flag> {
         Box::new(*self)
     }

@@ -74,6 +74,9 @@ impl Config {
         struct Edition(String);
 
         impl Flag for Edition {
+            fn must_be_unique(&self) -> bool {
+                true
+            }
             fn clone_inner(&self) -> Box<dyn Flag> {
                 Box::new(Edition(self.0.clone()))
             }
@@ -93,6 +96,9 @@ impl Config {
         struct NeedsAsmSupport;
 
         impl Flag for NeedsAsmSupport {
+            fn must_be_unique(&self) -> bool {
+                true
+            }
             fn clone_inner(&self) -> Box<dyn Flag> {
                 Box::new(NeedsAsmSupport)
             }

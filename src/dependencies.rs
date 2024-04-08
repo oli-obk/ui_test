@@ -230,6 +230,9 @@ impl Default for DependencyBuilder {
 }
 
 impl Flag for DependencyBuilder {
+    fn must_be_unique(&self) -> bool {
+        true
+    }
     fn clone_inner(&self) -> Box<dyn Flag> {
         Box::new(self.clone())
     }

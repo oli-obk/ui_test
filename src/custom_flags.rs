@@ -42,12 +42,18 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
     ) -> Result<Option<Command>, Errored> {
         Ok(Some(cmd))
     }
+
+    /// Whether the flag gets overridden by the same flag in revisions.
+    fn must_be_unique(&self) -> bool;
 }
 
 /// Use the unit type for when you don't need any behaviour and just need to know if the flag was set or not.
 impl Flag for () {
     fn clone_inner(&self) -> Box<dyn Flag> {
         Box::new(())
+    }
+    fn must_be_unique(&self) -> bool {
+        true
     }
 }
 
