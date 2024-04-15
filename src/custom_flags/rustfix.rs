@@ -93,7 +93,7 @@ impl Flag for RustfixMode {
                     Some(rustfix::apply_suggestions(
                         &std::fs::read_to_string(config.status.path()).unwrap(),
                         &suggestions,
-                    ))
+                    ).map_err(|e| e.into()))
                 }
             })
             .transpose()
