@@ -96,15 +96,15 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
     let artifact_output = String::from_utf8(artifact_output)?;
     let mut import_paths: HashSet<PathBuf> = HashSet::new();
     let mut artifacts = HashMap::new();
-    for line in artifact_output.lines() {
+    'artifact: for line in artifact_output.lines() {
         let Ok(message) = serde_json::from_str::<cargo_metadata::Message>(line) else {
             continue;
         };
         if let cargo_metadata::Message::CompilerArtifact(artifact) = message {
-            for ctype in artifact.target.crate_types {
+            for ctype in &artifact.target.crate_types {
                 match ctype.as_str() {
                     "proc-macro" | "lib" => {}
-                    _ => continue,
+                    _ => continue 'artifact,
                 }
             }
             for filename in &artifact.filenames {
@@ -114,7 +114,10 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
             if let Some(prev) = artifacts.insert(package_id.clone(), Ok(artifact.filenames)) {
                 artifacts.insert(
                     package_id.clone(),
-                    Err(format!("{prev:#?} vs {:#?}", artifacts[&package_id])),
+                    Err(format!(
+                        "{prev:#?} vs {:#?} ({:?})",
+                        artifacts[&package_id], artifact.target.crate_types
+                    )),
                 );
             }
         }

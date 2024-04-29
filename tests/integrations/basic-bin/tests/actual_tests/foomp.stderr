@@ -1,21 +1,9 @@
-error: extern location for basic_bin is of an unknown type: $DIR/tests/integrations/basic-bin/../../../target/$TMP/$TRIPLE/debug/basic_bin
+error[E0432]: unresolved import `basic_bin`
  --> tests/actual_tests/foomp.rs:3:5
   |
 3 | use basic_bin::add;
-  |     ^^^^^^^^^
+  |     ^^^^^^^^^ use of undeclared crate or module `basic_bin`
 
-error: file name should be
- --> tests/actual_tests/foomp.rs:3:5
-  |
-3 | use basic_bin::add;
-  |     ^^^^^^^^^
+error: aborting due to 1 previous error
 
-error[E0463]: can't find crate for `basic_bin`
- --> tests/actual_tests/foomp.rs:3:5
-  |
-3 | use basic_bin::add;
-  |     ^^^^^^^^^ can't find crate
-
-error: aborting due to 3 previous errors
-
-For more information about this error, try `rustc --explain E0463`.
+For more information about this error, try `rustc --explain E0432`.
