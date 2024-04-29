@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * removed `Revisioned::no_rustfix` in favor of turning that into a rustc-specific custom flag
+    * use `config.comment_defaults.base().set_custom("rustfix", RustFixMode::Everything);` to overwrite the `MachineApplicable` default
 * removed `Revisioned::edition` in favor of turning that into a rustc-specific custom flag
 * removed `Revisioned::needs_asm_support` in favor of turning that into a rustc-specific custom flag
 * replaced `Mode::Run` with a rustc-specific run flag
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * the configs could be different enough that aux builds built with a different config are incompatible (e.g. different targets).
 * replaced `Revisioned::aux_builds` with a rustc-specific custom flag
 * replaced `dependency_builder` and `dependency_manifest_path` with `DependencyBuilder` `Flag` that you an add to the default comments.
+    * use `config.comment_defaults.base().set_custom("dependencies", DependencyBuilder::default());` to get the same behaviour as setting `Config.toml` as the `dependency_manifest_path`.
 * updated `rustfix` from 0.6.1 to 0.8.1. This may cause additional suggestions to be applied that previously weren't.
 
 ### Removed
