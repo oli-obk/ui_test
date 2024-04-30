@@ -85,8 +85,8 @@ impl Flag for Run {
             Err(Errored {
                 command: exe,
                 errors,
-                stderr: vec![],
-                stdout: vec![],
+                stderr: output.stderr,
+                stdout: output.stdout,
             })
         }
     }

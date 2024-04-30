@@ -89,6 +89,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 full stderr:
 
 full stdout:
+42
 
 
 
@@ -617,6 +618,11 @@ error: run(0) test got exit status: 101, but expected 0
   |
 
 full stderr:
+thread 'main' panicked at tests/actual_tests_bless/failing_executable.rs:
+assertion `left == right` failed
+  left: 5
+ right: 6
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 full stdout:
 
@@ -776,6 +782,9 @@ error: run(0) test got exit status: 101, but expected 0
   |
 
 full stderr:
+thread 'main' panicked at tests/actual_tests_bless/revisioned_executable_panic.rs:
+explicit panic
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 full stdout:
 
