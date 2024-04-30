@@ -96,6 +96,7 @@ FAILED TEST: tests/actual_tests/executable_compile_err.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
 error: pass test got exit status: 1, but expected 0
+ = note: compilation failed, but was expected to succeed
 
 error: actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual output
@@ -140,6 +141,7 @@ FAILED TEST: tests/actual_tests/exit_code_fail.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/exit_code_fail.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
 error: fail test got exit status: 0, but expected 1
+ = note: compilation succeeded, but was expected to fail
 
 error: no error patterns found in fail test
 
@@ -349,6 +351,7 @@ FAILED TEST: tests/actual_tests/rustc_ice.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
 error: fail test got exit status: 101, but expected 1
+ = note: the compiler panicked
 
 error: `mismatched types` not found in diagnostics on line 8
  --> tests/actual_tests/rustc_ice.rs:9:17
@@ -607,6 +610,11 @@ FAILED TEST: tests/actual_tests_bless/failing_executable.rs
 command: "$CMD"
 
 error: run(0) test got exit status: 101, but expected 0
+ --> tests/actual_tests_bless/failing_executable.rs:4:5
+  |
+4 |     assert_eq!(5, 6);
+  |     ^ assertion `left == right` failed
+  |
 
 full stderr:
 
@@ -618,6 +626,7 @@ FAILED TEST: tests/actual_tests_bless/no_main.rs
 command: "rustc" "--error-format=json" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
 error: fail test got exit status: 0, but expected 1
+ = note: compilation succeeded, but was expected to fail
 
 error: no error patterns found in fail test
 
@@ -663,6 +672,7 @@ FAILED TEST: tests/actual_tests_bless/no_test.rs
 command: "rustc" "--error-format=json" "--test" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
 error: fail test got exit status: 0, but expected 1
+ = note: compilation succeeded, but was expected to fail
 
 error: no error patterns found in fail test
 
@@ -747,6 +757,7 @@ FAILED TEST: tests/actual_tests_bless/revisioned_executable.rs (revision `panic`
 command: "$CMD"
 
 error: run(101) test got exit status: 0, but expected 101
+ = note: the test was expected to panic
 
 full stderr:
 
@@ -758,6 +769,11 @@ FAILED TEST: tests/actual_tests_bless/revisioned_executable_panic.rs (revision `
 command: "$CMD"
 
 error: run(0) test got exit status: 101, but expected 0
+ --> tests/actual_tests_bless/revisioned_executable_panic.rs
+  |
+6 |     panic!()
+  |     ^ explicit panic
+  |
 
 full stderr:
 
@@ -801,6 +817,11 @@ FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: rustfix test got exit status: 1, but expected 0
+  --> tests/actual_tests_bless/rustfix-fail-revisions.rs:11:6
+   |
+11 |     x;
+   |      ^ after rustfix is applied, all errors should be gone, but weren't
+   |
 
 full stderr:
 error[E0382]: use of moved value: `x`
@@ -831,6 +852,11 @@ FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: rustfix test got exit status: 1, but expected 0
+  --> tests/actual_tests_bless/rustfix-fail-revisions.rs:11:6
+   |
+11 |     x;
+   |      ^ after rustfix is applied, all errors should be gone, but weren't
+   |
 
 full stderr:
 error[E0382]: use of moved value: `x`
@@ -861,6 +887,11 @@ FAILED TEST: tests/actual_tests_bless/rustfix-fail.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail"
 
 error: rustfix test got exit status: 1, but expected 0
+  --> tests/actual_tests_bless/rustfix-fail.rs:10:6
+   |
+10 |     x;
+   |      ^ after rustfix is applied, all errors should be gone, but weren't
+   |
 
 full stderr:
 error[E0382]: use of moved value: `x`

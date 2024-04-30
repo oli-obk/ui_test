@@ -5,7 +5,7 @@ use std::{
     process::{Command, Output},
 };
 
-use spanned::Span;
+use spanned::{Span, Spanned};
 
 use crate::{
     build_manager::BuildManager,
@@ -178,14 +178,25 @@ impl Flag for RustfixMode {
         if output.status.success() {
             Ok(None)
         } else {
+            let diagnostics = config.process(&output.stderr);
             Err(Errored {
                 command: cmd,
                 errors: vec![Error::ExitStatus {
                     mode: "rustfix".into(),
                     expected: 0,
                     status: output.status,
+                    reason: Spanned::new(
+                        "after rustfix is applied, all errors should be gone, but weren't".into(),
+                        diagnostics
+                            .messages
+                            .iter()
+                            .flatten()
+                            .chain(diagnostics.messages_from_unknown_file_or_line.iter())
+                            .find_map(|message| message.line_col.clone())
+                            .unwrap_or_default(),
+                    ),
                 }],
-                stderr: config.process(&output.stderr).rendered,
+                stderr: diagnostics.rendered,
                 stdout: output.stdout,
             })
         }

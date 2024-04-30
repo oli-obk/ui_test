@@ -1,3 +1,5 @@
+use spanned::Spanned;
+
 use super::Error;
 use std::fmt::Display;
 use std::process::ExitStatus;
@@ -34,6 +36,15 @@ impl Mode {
                 mode: self.to_string(),
                 status,
                 expected,
+                reason: Spanned::dummy(
+                    match (expected, status.code()) {
+                        (_, Some(101)) => "the compiler panicked",
+                        (0, Some(1)) => "compilation failed, but was expected to succeed",
+                        (1, Some(0)) => "compilation succeeded, but was expected to fail",
+                        _ => "",
+                    }
+                    .into(),
+                ),
             })
         }
     }
