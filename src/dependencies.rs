@@ -1,6 +1,6 @@
 //! Use `cargo` to build dependencies and make them available in your tests
 
-use cargo_metadata::{camino::Utf8PathBuf, DependencyKind};
+use cargo_metadata::{camino::Utf8PathBuf, BuildScript, DependencyKind};
 use cargo_platform::Cfg;
 use color_eyre::eyre::{bail, eyre, Result};
 use std::{
@@ -25,6 +25,8 @@ pub struct Dependencies {
     /// All paths that must be imported with `-L dependency=`. This is for
     /// finding proc macros run on the host and dependencies for the target.
     pub import_paths: Vec<PathBuf>,
+    /// Unnamed dependencies that build scripts asked us to link
+    pub import_libs: Vec<PathBuf>,
     /// The name as chosen in the `Cargo.toml` and its corresponding rmeta file.
     pub dependencies: Vec<(String, Vec<Utf8PathBuf>)>,
 }
@@ -95,31 +97,43 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
     let artifact_output = output.stdout;
     let artifact_output = String::from_utf8(artifact_output)?;
     let mut import_paths: HashSet<PathBuf> = HashSet::new();
+    let mut import_libs: HashSet<PathBuf> = HashSet::new();
     let mut artifacts = HashMap::new();
     'artifact: for line in artifact_output.lines() {
         let Ok(message) = serde_json::from_str::<cargo_metadata::Message>(line) else {
             continue;
         };
-        if let cargo_metadata::Message::CompilerArtifact(artifact) = message {
-            for ctype in &artifact.target.crate_types {
-                match ctype.as_str() {
-                    "proc-macro" | "lib" => {}
-                    _ => continue 'artifact,
+        match message {
+            cargo_metadata::Message::CompilerArtifact(artifact) => {
+                for ctype in &artifact.target.crate_types {
+                    match ctype.as_str() {
+                        "proc-macro" | "lib" => {}
+                        _ => continue 'artifact,
+                    }
+                }
+                for filename in &artifact.filenames {
+                    import_paths.insert(filename.parent().unwrap().into());
+                }
+                let package_id = artifact.package_id;
+                if let Some(prev) = artifacts.insert(package_id.clone(), Ok(artifact.filenames)) {
+                    artifacts.insert(
+                        package_id.clone(),
+                        Err(format!(
+                            "{prev:#?} vs {:#?} ({:?})",
+                            artifacts[&package_id], artifact.target.crate_types
+                        )),
+                    );
                 }
             }
-            for filename in &artifact.filenames {
-                import_paths.insert(filename.parent().unwrap().into());
+            cargo_metadata::Message::BuildScriptExecuted(BuildScript {
+                linked_libs,
+                linked_paths,
+                ..
+            }) => {
+                import_paths.extend(linked_paths.into_iter().map(Into::into));
+                import_libs.extend(linked_libs.into_iter().map(Into::into));
             }
-            let package_id = artifact.package_id;
-            if let Some(prev) = artifacts.insert(package_id.clone(), Ok(artifact.filenames)) {
-                artifacts.insert(
-                    package_id.clone(),
-                    Err(format!(
-                        "{prev:#?} vs {:#?} ({:?})",
-                        artifacts[&package_id], artifact.target.crate_types
-                    )),
-                );
-            }
+            _ => {}
         }
     }
 
@@ -204,9 +218,11 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
             })
             .collect::<Result<Vec<_>>>()?;
         let import_paths = import_paths.into_iter().collect();
+        let import_libs = import_libs.into_iter().collect();
         return Ok(Dependencies {
             dependencies,
             import_paths,
+            import_libs,
         });
     }
 
@@ -286,6 +302,10 @@ pub fn build_dependencies(config: &Config, info: &DependencyBuilder) -> Result<V
     }
     for import_path in dependencies.import_paths {
         args.push("-L".into());
+        args.push(import_path.into());
+    }
+    for import_path in dependencies.import_libs {
+        args.push("-l".into());
         args.push(import_path.into());
     }
     Ok(args)

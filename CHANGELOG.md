@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* folders and libraries linked by build scripts were ignored, causing linker failures
+
 ### Changed
 
 * removed `Revisioned::no_rustfix` in favor of turning that into a rustc-specific custom flag
