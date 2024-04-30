@@ -86,6 +86,10 @@ fn main() -> Result<()> {
         "(/target/ui/tests/integrations/[^/]+).*debug/deps",
         "$1/debug/deps",
     );
+    // abort messages are different on macos
+    config.stdout_filter(r#" \(core dumped\)"#, "");
+    // abort messages are different on windows
+    config.stdout_filter(r#"exit status: 0xc0000409"#, "signal: 6 (SIGABRT)");
 
     let text = ui_test::status_emitter::Text::from(args.format);
 
