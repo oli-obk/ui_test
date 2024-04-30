@@ -486,11 +486,17 @@ fn print_error(error: &Error, path: &Path) {
             mode,
             status,
             expected,
+            reason,
         } => {
             // `status` prints as `exit status: N`.
-            print_error_header(format_args!(
-                "{mode} test got {status}, but expected {expected}"
-            ))
+            create_error(
+                format!("{mode} test got {status}, but expected {expected}"),
+                &[(
+                    &[(reason, Some(reason.span.clone()))],
+                    reason.span.line_start,
+                )],
+                path,
+            )
         }
         Error::Command { kind, status } => {
             // `status` prints as `exit status: N`.
@@ -683,10 +689,10 @@ fn create_error(
         }),
         slices: lines
             .iter()
-            .map(|(label, line)| {
-                let source = source[line.get() - 1];
+            .filter_map(|(label, line)| {
+                let source = source.get(line.get() - 1)?;
                 let len = source.chars().count();
-                Slice {
+                Some(Slice {
                     source,
                     line_start: line.get(),
                     origin: Some(&file),
@@ -714,10 +720,23 @@ fn create_error(
                         })
                         .collect(),
                     fold: false,
-                }
+                })
             })
             .collect(),
-        footer: vec![],
+        footer: lines
+            .iter()
+            .filter_map(|(label, line)| {
+                if source.get(line.get() - 1).is_some() {
+                    return None;
+                }
+                Some(label.iter().map(|(label, _)| Annotation {
+                    id: None,
+                    annotation_type: AnnotationType::Note,
+                    label: Some(label),
+                }))
+            })
+            .flatten()
+            .collect(),
     };
     let renderer = if colored::control::SHOULD_COLORIZE.should_colorize() {
         Renderer::styled()
@@ -733,11 +752,13 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             mode,
             status,
             expected,
+            reason,
         } => {
-            github_actions::error(
+            let mut err = github_actions::error(
                 test_path,
                 format!("{mode} test{revision} got {status}, but expected {expected}"),
             );
+            err.write_str(reason).unwrap();
         }
         Error::Command { kind, status } => {
             github_actions::error(test_path, format!("{kind}{revision} failed with {status}"));

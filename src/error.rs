@@ -16,6 +16,8 @@ pub enum Error {
         status: ExitStatus,
         /// The expected exit status as set in the file or derived from the mode.
         expected: i32,
+        /// A reason for why the expected exit status was expected
+        reason: Spanned<String>,
     },
     /// A pattern was declared but had no matching error.
     PatternNotFound {

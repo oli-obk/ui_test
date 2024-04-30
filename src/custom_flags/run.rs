@@ -1,7 +1,11 @@
 //! Types used for running tests after they pass compilation
 
 use bstr::ByteSlice;
-use std::process::{Command, Output};
+use spanned::{Span, Spanned};
+use std::{
+    path::PathBuf,
+    process::{Command, Output},
+};
 
 use crate::{build_manager::BuildManager, per_test_config::TestConfig, Error, Errored};
 
@@ -67,6 +71,12 @@ impl Flag for Run {
                 mode: format!("run({exit_code})"),
                 status,
                 expected: exit_code,
+                reason: match (exit_code, status.code()) {
+                    (_, Some(101)) => get_panic_span(&output.stderr),
+                    (0, _) => Spanned::dummy("the test was expected to run successfully".into()),
+                    (101, _) => Spanned::dummy("the test was expected to panic".into()),
+                    _ => Spanned::dummy(String::new()),
+                },
             })
         }
         if errors.is_empty() {
@@ -75,9 +85,47 @@ impl Flag for Run {
             Err(Errored {
                 command: exe,
                 errors,
-                stderr: vec![],
-                stdout: vec![],
+                stderr: output.stderr,
+                stdout: output.stdout,
             })
         }
     }
+}
+
+fn get_panic_span(stderr: &[u8]) -> Spanned<String> {
+    let mut lines = stderr.lines();
+    while let Some(line) = lines.next() {
+        if let Some((_, location)) = line.split_once_str(b"panicked at ") {
+            let mut parts = location.split(|&c| c == b':');
+            let Some(filename) = parts.next() else {
+                continue;
+            };
+            let Some(line) = parts.next() else { continue };
+            let Some(col) = parts.next() else { continue };
+            let message = lines
+                .next()
+                .and_then(|msg| msg.to_str().ok())
+                .unwrap_or("the test panicked during execution");
+            let Ok(line) = line.to_str() else { continue };
+            let Ok(col) = col.to_str() else { continue };
+            let Ok(filename) = filename.to_str() else {
+                continue;
+            };
+            let Ok(line) = line.parse() else {
+                continue;
+            };
+            let Ok(col) = col.parse() else {
+                continue;
+            };
+            let span = Span {
+                file: PathBuf::from(filename),
+                line_start: line,
+                line_end: line,
+                col_start: col,
+                col_end: col,
+            };
+            return Spanned::new(message.into(), span);
+        }
+    }
+    Spanned::dummy("".into())
 }
