@@ -180,8 +180,9 @@ impl Flag for RustfixMode {
         } else {
             Err(Errored {
                 command: cmd,
-                errors: vec![Error::Command {
-                    kind: "rustfix".into(),
+                errors: vec![Error::ExitStatus {
+                    mode: "rustfix".into(),
+                    expected: 0,
                     status: output.status,
                 }],
                 stderr: config.process(&output.stderr).rendered,

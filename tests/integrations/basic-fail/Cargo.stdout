@@ -800,7 +800,7 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
-error: rustfix failed with exit status: 1
+error: rustfix test got exit status: 1, but expected 0
 
 full stderr:
 error[E0382]: use of moved value: `x`
@@ -830,7 +830,7 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
-error: rustfix failed with exit status: 1
+error: rustfix test got exit status: 1, but expected 0
 
 full stderr:
 error[E0382]: use of moved value: `x`
@@ -860,7 +860,7 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/rustfix-fail.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail"
 
-error: rustfix failed with exit status: 1
+error: rustfix test got exit status: 1, but expected 0
 
 full stderr:
 error[E0382]: use of moved value: `x`
