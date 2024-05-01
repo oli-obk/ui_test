@@ -67,12 +67,17 @@ fn span_line(span: &DiagnosticSpan, file: &Path, primary: bool) -> Option<spanne
             };
         }
     }
-    ((!primary || span.is_primary) && file_name == file).then_some(spanned::Span {
-        file: file_name,
-        line_start: span.line_start.try_into().unwrap(),
-        line_end: span.line_end.try_into().unwrap(),
-        col_start: span.column_start.try_into().unwrap(),
-        col_end: span.column_end.try_into().unwrap(),
+    ((!primary || span.is_primary) && file_name == file).then(|| {
+        let span = || {
+            Some(spanned::Span {
+                file: file_name,
+                line_start: span.line_start.try_into().ok()?,
+                line_end: span.line_end.try_into().ok()?,
+                col_start: span.column_start.try_into().ok()?,
+                col_end: span.column_end.try_into().ok()?,
+            })
+        };
+        span().unwrap_or_default()
     })
 }
 
