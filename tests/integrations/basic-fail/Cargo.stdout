@@ -454,9 +454,10 @@ FAILURES:
 
 test result: FAIL. 15 failed;
 
+Building dependencies ... ok
+tests/actual_tests_bless/abort.rs ... FAILED
 tests/actual_tests_bless/aux_build_not_found.rs ... FAILED
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
-Building dependencies ... ok
 Building aux file tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
@@ -496,6 +497,18 @@ tests/actual_tests_bless/rustfix-fail.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 tests/actual_tests_bless/wrong_diagnostic_code.rs ... FAILED
+
+FAILED TEST: tests/actual_tests_bless/abort.rs
+command: "$CMD"
+
+error: run(0) test got signal: 6 (SIGABRT), but expected 0
+ = note: the test was expected to run successfully
+
+full stderr:
+
+full stdout:
+
+
 
 FAILED TEST: tests/actual_tests_bless/aux_build_not_found.rs
 command: "$CMD"
@@ -1010,6 +1023,7 @@ full stdout:
 
 
 FAILURES:
+    tests/actual_tests_bless/abort.rs
     tests/actual_tests_bless/aux_build_not_found.rs
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
     tests/actual_tests_bless/aux_proc_macro_no_main.rs
@@ -1032,7 +1046,7 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision2.rs
     tests/actual_tests_bless/wrong_diagnostic_code.rs
 
-test result: FAIL. 21 failed; 14 passed; 3 ignored;
+test result: FAIL. 22 failed; 14 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
