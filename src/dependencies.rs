@@ -185,15 +185,18 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
                 None => true,
             })
             .map(|dep| {
-                let package = metadata
-                    .packages
-                    .iter()
-                    .find(|&p| p.name == dep.name && dep.req.matches(&p.version))
-                    .expect("dependency does not exist");
-                (
-                    package,
-                    dep.rename.clone().unwrap_or_else(|| package.name.clone()),
-                )
+                for p in &metadata.packages {
+                    if p.name != dep.name {
+                        continue;
+                    }
+                    if dep.path.as_ref().is_some_and(|path| p.manifest_path.parent().unwrap() == path) || dep.req.matches(&p.version) {
+                        return (
+                            p,
+                            dep.rename.clone().unwrap_or_else(|| p.name.clone()),
+                        )
+                    }
+                }
+                panic!("dep not found: {dep:#?}")
             })
             // Also expose the root crate
             .chain(std::iter::once((root, root.name.clone())))
