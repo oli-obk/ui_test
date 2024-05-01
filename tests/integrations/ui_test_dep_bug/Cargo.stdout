@@ -1,0 +1,28 @@
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
+
+tests/ui/basic_test.rs ... FAILED
+
+FAILED TEST: tests/ui/basic_test.rs
+command: "<unknown>"
+
+error: a bug in `ui_test` occurred
+dependency does not exist
+
+full stderr:
+
+full stdout:
+
+
+FAILURES:
+    tests/ui/basic_test.rs
+
+test result: FAIL. 1 failed;
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
+

@@ -1,0 +1,13 @@
+thread '<unnamed>' panicked at C:/Users/oli/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ui_test-0.22.3/src/dependencies.rs:LL:CC:
+dependency does not exist
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Error: tests failed
+
+Location:
+    C:/Users/oli/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ui_test-0.22.3/src/lib.rs:LL:CC
+error: test failed, to rerun pass `--test ui`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/ui/tests/integrations/ui_test_dep_bug/debug/deps/ui-HASH` (exit status: 1)
+error: 1 target failed:
+    `--test ui`
