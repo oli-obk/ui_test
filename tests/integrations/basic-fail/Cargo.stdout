@@ -118,7 +118,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 error: there were 1 unmatched diagnostics
  --> tests/actual_tests/executable_compile_err.rs:4:1
   |
-4 | 
+4 | ...
   | ^ Error: this file contains an unclosed delimiter
   |
 

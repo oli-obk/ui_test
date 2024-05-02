@@ -345,7 +345,7 @@ impl CommentParser<Comments> {
                 line_start: l,
                 line_end: l,
                 col_start: NonZeroUsize::new(1).unwrap(),
-                col_end: NonZeroUsize::new(line.chars().count() + 1).unwrap(),
+                col_end: NonZeroUsize::new(line.len() + 1).unwrap(),
             };
             match self.parse_checked_line(fallthrough_to, Spanned::new(line, span)) {
                 Ok(ParsePatternResult::Other) => {

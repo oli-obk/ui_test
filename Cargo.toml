@@ -27,9 +27,9 @@ comma = "1.0.0"
 anyhow = "1.0.6"
 indicatif = "0.17.6"
 prettydiff = { version = "0.6.4", default_features = false }
-annotate-snippets = { version = "0.10.0" }
+annotate-snippets = { version = "0.11.2" }
 levenshtein = "1.0.5"
-spanned = "0.1.6"
+spanned = "0.2"
 
 [dependencies.regex]
 version = "1.5.5"

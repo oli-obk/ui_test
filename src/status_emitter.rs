@@ -1,6 +1,6 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
-use annotate_snippets::{Annotation, AnnotationType, Renderer, Slice, Snippet, SourceAnnotation};
+use annotate_snippets::{Renderer, Snippet};
 use bstr::ByteSlice;
 use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
@@ -681,63 +681,42 @@ fn create_error(
     let source = std::fs::read_to_string(file).unwrap();
     let source: Vec<_> = source.split_inclusive('\n').collect();
     let file = file.display().to_string();
-    let msg = Snippet {
-        title: Some(Annotation {
-            id: None,
-            annotation_type: AnnotationType::Error,
-            label: Some(s.as_ref()),
-        }),
-        slices: lines
-            .iter()
-            .filter_map(|(label, line)| {
-                let source = source.get(line.get() - 1)?;
-                let len = source.chars().count();
-                Some(Slice {
-                    source,
-                    line_start: line.get(),
-                    origin: Some(&file),
-                    annotations: label
-                        .iter()
-                        .map(|(label, lc)| SourceAnnotation {
-                            range: lc.as_ref().map_or((0, len - 1), |lc| {
-                                assert_eq!(lc.line_start, *line);
-                                if lc.line_end > lc.line_start {
-                                    (lc.col_start.get() - 1, len - 1)
-                                } else if lc.col_start == lc.col_end {
-                                    if lc.col_start.get() - 1 == len {
-                                        // rustc sometimes produces spans pointing *after* the `\n` at the end of the line,
-                                        // but we want to render an annotation at the end.
-                                        (lc.col_start.get() - 2, lc.col_start.get() - 1)
-                                    } else {
-                                        (lc.col_start.get() - 1, lc.col_start.get())
-                                    }
-                                } else {
-                                    (lc.col_start.get() - 1, lc.col_end.get() - 1)
-                                }
-                            }),
-                            label,
-                            annotation_type: AnnotationType::Error,
-                        })
-                        .collect(),
-                    fold: false,
-                })
-            })
-            .collect(),
-        footer: lines
-            .iter()
-            .filter_map(|(label, line)| {
-                if source.get(line.get() - 1).is_some() {
-                    return None;
-                }
-                Some(label.iter().map(|(label, _)| Annotation {
-                    id: None,
-                    annotation_type: AnnotationType::Note,
-                    label: Some(label),
-                }))
-            })
-            .flatten()
-            .collect(),
-    };
+    let mut msg = annotate_snippets::Level::Error.title(s.as_ref());
+    for &(label, line) in lines {
+        let Some(source) = source.get(line.get() - 1) else {
+            for (label, _) in label {
+                let footer = annotate_snippets::Level::Note.title(label);
+                msg = msg.footer(footer);
+            }
+
+            continue;
+        };
+        let len = source.len();
+        let snippet = Snippet::source(source)
+            .line_start(line.get())
+            .origin(&file)
+            .annotations(label.iter().map(|(label, lc)| {
+                annotate_snippets::Level::Error
+                    .span(lc.as_ref().map_or(0..len - 1, |lc| {
+                        assert_eq!(lc.line_start, line);
+                        if lc.line_end > lc.line_start {
+                            lc.col_start.get() - 1..len - 1
+                        } else if lc.col_start == lc.col_end {
+                            if lc.col_start.get() - 1 == len {
+                                // rustc sometimes produces spans pointing *after* the `\n` at the end of the line,
+                                // but we want to render an annotation at the end.
+                                lc.col_start.get() - 2..lc.col_start.get() - 1
+                            } else {
+                                lc.col_start.get() - 1..lc.col_start.get()
+                            }
+                        } else {
+                            lc.col_start.get() - 1..lc.col_end.get() - 1
+                        }
+                    }))
+                    .label(label)
+            }));
+        msg = msg.snippet(snippet);
+    }
     let renderer = if colored::control::SHOULD_COLORIZE.should_colorize() {
         Renderer::styled()
     } else {
