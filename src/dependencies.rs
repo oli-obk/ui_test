@@ -90,17 +90,19 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
     let mut import_paths: HashSet<PathBuf> = HashSet::new();
     let mut import_libs: HashSet<PathBuf> = HashSet::new();
     let mut artifacts = HashMap::new();
-    'artifact: for line in artifact_output.lines() {
+    for line in artifact_output.lines() {
         let Ok(message) = serde_json::from_str::<cargo_metadata::Message>(line) else {
             continue;
         };
         match message {
             cargo_metadata::Message::CompilerArtifact(artifact) => {
-                for ctype in &artifact.target.crate_types {
-                    match ctype.as_str() {
-                        "proc-macro" | "lib" => {}
-                        _ => continue 'artifact,
-                    }
+                if artifact
+                    .target
+                    .crate_types
+                    .iter()
+                    .all(|ctype| !matches!(ctype.as_str(), "proc-macro" | "lib"))
+                {
+                    continue;
                 }
                 for filename in &artifact.filenames {
                     import_paths.insert(filename.parent().unwrap().into());

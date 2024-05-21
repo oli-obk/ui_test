@@ -19,3 +19,7 @@ harness = false
 [[test]]
 name = "run_file"
 harness = true
+
+# Regression check for #225
+[lib]
+crate-type = ["staticlib", "lib"]
