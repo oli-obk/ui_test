@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Split up `Revisioned::mode` into `Revisioned::exit_status` and `Revisioned::require_annotations`
+* `Config::output_conflict_handling` is now `Error` instead of `Bless`
 
 ### Removed
 

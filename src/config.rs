@@ -136,7 +136,7 @@ impl Config {
             target: None,
             root_dir: root_dir.into(),
             program: CommandBuilder::rustc(),
-            output_conflict_handling: OutputConflictHandling::Bless,
+            output_conflict_handling: OutputConflictHandling::Error,
             bless_command: None,
             out_dir: std::env::var_os("CARGO_TARGET_DIR")
                 .map(PathBuf::from)
