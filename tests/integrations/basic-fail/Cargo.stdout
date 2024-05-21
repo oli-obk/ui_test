@@ -839,32 +839,28 @@ FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: rustfix test got exit status: 1, but expected 0
-  --> tests/actual_tests_bless/rustfix-fail-revisions.rs:11:6
-   |
-11 |     x;
-   |      ^ after rustfix is applied, all errors should be gone, but weren't
-   |
+ --> tests/actual_tests_bless/rustfix-fail-revisions.rs:2:9
+  |
+2 | #![deny(warnings)]
+  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
+  |
 
 full stderr:
-error[E0382]: use of moved value: `x`
-  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:12:5
+error: path statement drops value
+  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:11:5
    |
-5  |     let x = match 0 {
-   |         - move occurs because `x` has type `String`, which does not implement the `Copy` trait
-...
 11 |     x;
-   |     - value moved here
-12 |     x;
-   |     ^ value used here after move
+   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
    |
-help: consider cloning the value if the performance cost is acceptable
+note: the lint level is defined here
+  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
    |
-11 |     x.clone();
-   |      ++++++++
+2  | #![deny(warnings)]
+   |         ^^^^^^^^
+   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
 
 error: aborting due to 1 previous error
 
-For more information about this error, try `rustc --explain E0382`.
 
 full stdout:
 
@@ -874,32 +870,28 @@ FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: rustfix test got exit status: 1, but expected 0
-  --> tests/actual_tests_bless/rustfix-fail-revisions.rs:11:6
-   |
-11 |     x;
-   |      ^ after rustfix is applied, all errors should be gone, but weren't
-   |
+ --> tests/actual_tests_bless/rustfix-fail-revisions.rs:2:9
+  |
+2 | #![deny(warnings)]
+  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
+  |
 
 full stderr:
-error[E0382]: use of moved value: `x`
-  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:12:5
+error: path statement drops value
+  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:11:5
    |
-5  |     let x = match 0 {
-   |         - move occurs because `x` has type `String`, which does not implement the `Copy` trait
-...
 11 |     x;
-   |     - value moved here
-12 |     x;
-   |     ^ value used here after move
+   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
    |
-help: consider cloning the value if the performance cost is acceptable
+note: the lint level is defined here
+  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
    |
-11 |     x.clone();
-   |      ++++++++
+2  | #![deny(warnings)]
+   |         ^^^^^^^^
+   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
 
 error: aborting due to 1 previous error
 
-For more information about this error, try `rustc --explain E0382`.
 
 full stdout:
 
@@ -909,32 +901,28 @@ FAILED TEST: tests/actual_tests_bless/rustfix-fail.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail"
 
 error: rustfix test got exit status: 1, but expected 0
-  --> tests/actual_tests_bless/rustfix-fail.rs:10:6
-   |
-10 |     x;
-   |      ^ after rustfix is applied, all errors should be gone, but weren't
-   |
+ --> tests/actual_tests_bless/rustfix-fail.rs:1:9
+  |
+1 | #![deny(warnings)]
+  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
+  |
 
 full stderr:
-error[E0382]: use of moved value: `x`
-  --> tests/actual_tests_bless/rustfix-fail.fixed:11:5
+error: path statement drops value
+  --> tests/actual_tests_bless/rustfix-fail.fixed:10:5
    |
-4  |     let x = match 0 {
-   |         - move occurs because `x` has type `String`, which does not implement the `Copy` trait
-...
 10 |     x;
-   |     - value moved here
-11 |     x;
-   |     ^ value used here after move
+   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
    |
-help: consider cloning the value if the performance cost is acceptable
+note: the lint level is defined here
+  --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
    |
-10 |     x.clone();
-   |      ++++++++
+1  | #![deny(warnings)]
+   |         ^^^^^^^^
+   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
 
 error: aborting due to 1 previous error
 
-For more information about this error, try `rustc --explain E0382`.
 
 full stdout:
 
