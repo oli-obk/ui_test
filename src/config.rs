@@ -127,7 +127,10 @@ impl Config {
             #[cfg(windows)]
             (Match::Exact(br"\\?\".to_vec()), b"".to_vec()),
         ];
-        comment_defaults.base().normalize_stderr = filters.clone();
+        comment_defaults
+            .base()
+            .normalize_stderr
+            .clone_from(&filters);
         comment_defaults.base().normalize_stdout = filters;
         comment_defaults.base().exit_status = Spanned::dummy(1).into();
         comment_defaults.base().require_annotations = Spanned::dummy(true).into();

@@ -98,7 +98,7 @@ impl TestConfig<'_> {
                                 // Overwrite previous value so that revisions overwrite default settings
                                 // FIXME: report an error if multiple revisions conflict
                                 assert_eq!(o.get().len(), 1);
-                                o.get_mut()[0] = &flag;
+                                o.get_mut()[0] = flag;
                             } else {
                                 o.get_mut().push(flag);
                             }

@@ -91,11 +91,10 @@ fn build_dependencies_inner(
     }
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
-    let set_locking = |cmd: &mut Command| match config.output_conflict_handling {
-        OutputConflictHandling::Error => {
+    let set_locking = |cmd: &mut Command| {
+        if let OutputConflictHandling::Error = config.output_conflict_handling {
             cmd.arg("--locked");
         }
-        _ => {}
     };
 
     set_locking(&mut build);

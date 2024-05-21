@@ -744,7 +744,7 @@ impl CommentParser<Comments> {
             }
             "check-pass" => (this, _args, span){
                 _ = this.exit_status.set(0, span.clone());
-                _ = this.require_annotations = Spanned::new(false, span.clone()).into();
+                this.require_annotations = Spanned::new(false, span.clone()).into();
             }
             "require-annotations-for-level" => (this, args, span){
                 let args = args.trim();
