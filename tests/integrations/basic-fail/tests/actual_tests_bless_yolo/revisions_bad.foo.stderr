@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
- --> tests/actual_tests_bless_yolo/revisions_bad.rs:8:9
+ --> tests/actual_tests_bless_yolo/revisions_bad.rs:7:9
   |
-8 |     add("42", 3);
+7 |     add("42", 3);
   |     --- ^^^^ expected `usize`, found `&str`
   |     |
   |     arguments to this function are incorrect

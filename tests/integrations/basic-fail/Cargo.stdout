@@ -1038,37 +1038,10 @@ test result: FAIL. 22 failed; 14 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
-tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... FAILED
+tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
 
-FAILED TEST: tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`)
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
-
-error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
- --> tests/actual_tests_bless_yolo/revisions_bad.rs:4:31
-  |
-4 | //@[bar] error-in-other-file: `main` function not found in crate `revisions_bad`
-  |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
-  |
-
-full stderr:
-error[E0601]: `main` function not found in crate `revisions_bad`
-  --> tests/actual_tests_bless_yolo/revisions_bad.rs:10:2
-   |
-10 | }
-   |  ^ consider adding a `main` function to `tests/actual_tests_bless_yolo/revisions_bad.rs`
-
-error: aborting due to 1 previous error
-
-For more information about this error, try `rustc --explain E0601`.
-
-full stdout:
-
-
-FAILURES:
-    tests/actual_tests_bless_yolo/revisions_bad.rs (revision bar)
-
-test result: FAIL. 1 failed; 2 passed;
+test result: ok. 3 passed;
 
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED
