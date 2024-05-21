@@ -1,6 +1,6 @@
 [package]
 name = "ui_test"
-version = "0.23.0"
+version = "0.24.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A test framework for testing rustc diagnostics output"
@@ -29,7 +29,7 @@ indicatif = "0.17.6"
 prettydiff = { version = "0.6.4", default_features = false }
 annotate-snippets = { version = "0.11.2" }
 levenshtein = "1.0.5"
-spanned = "0.2"
+spanned = "0.2.1"
 
 [dependencies.regex]
 version = "1.5.5"

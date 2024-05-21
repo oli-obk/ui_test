@@ -9,6 +9,9 @@ fn main() -> Result<()> {
         bless_command: Some("cargo test".to_string()),
         ..Config::cargo(root_dir.clone())
     };
+
+    config.comment_defaults.base().require_annotations = Some(Spanned::dummy(false)).into();
+
     let args = Args::test()?;
     config.with_args(&args);
 
@@ -94,9 +97,9 @@ fn main() -> Result<()> {
     let text = ui_test::status_emitter::Text::from(args.format);
 
     let mut pass_config = config.clone();
-    pass_config.comment_defaults.base().mode = Spanned::dummy(Mode::Pass).into();
+    pass_config.comment_defaults.base().exit_status = Some(Spanned::dummy(0)).into();
     let mut panic_config = config;
-    panic_config.comment_defaults.base().mode = Spanned::dummy(Mode::Panic).into();
+    panic_config.comment_defaults.base().exit_status = Some(Spanned::dummy(101)).into();
 
     run_tests_generic(
         vec![pass_config, panic_config],
@@ -121,16 +124,16 @@ fn main() -> Result<()> {
                     && match config
                         .comment_defaults
                         .base_immut()
-                        .mode
+                        .exit_status
                         .as_deref()
                         .unwrap()
                     {
-                        Mode::Pass => !fail,
+                        0 => !fail,
                         // This is weird, but `cargo test` returns 101 instead of 1 when
                         // multiple [[test]]s exist. If there's only one test, it returns
                         // 1 on failure.
-                        Mode::Panic => fail,
-                        Mode::Yolo { .. } | Mode::Fail { .. } => unreachable!(),
+                        101 => fail,
+                        _ => unreachable!(),
                     }
                     && default_any_file_filter(path, config),
             )

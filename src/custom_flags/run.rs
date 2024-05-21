@@ -68,7 +68,6 @@ impl Flag for Run {
         let status = output.status;
         if status.code() != Some(exit_code) {
             errors.push(Error::ExitStatus {
-                mode: format!("run({exit_code})"),
                 status,
                 expected: exit_code,
                 reason: match (exit_code, status.code()) {

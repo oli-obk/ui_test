@@ -10,7 +10,6 @@ use regex::bytes::Regex;
 
 use crate::{
     custom_flags::Flag, diagnostics::Level, filter::Match, test_result::Errored, Config, Error,
-    Mode,
 };
 
 use color_eyre::eyre::Result;
@@ -107,19 +106,18 @@ impl Comments {
         self.revisioned.get(&[][..]).unwrap()
     }
 
-    pub(crate) fn mode(&self, revision: &str) -> Result<Spanned<Mode>, Errored> {
-        let mode = self
-            .find_one_for_revision(revision, "`mode` annotations", |r| r.mode.clone())?
-            .into_inner()
-            .ok_or_else(|| Errored {
-                command: Command::new(format!("<finding mode for revision `{revision}`>")),
-                errors: vec![Error::ConfigError(
-                    "no mode set up in Config::comment_defaults".into(),
-                )],
-                stderr: vec![],
-                stdout: vec![],
-            })?;
-        Ok(mode)
+    pub(crate) fn exit_status(&self, revision: &str) -> Result<Option<Spanned<i32>>, Errored> {
+        Ok(self
+            .find_one_for_revision(revision, "`exit_status` annotations", |r| {
+                r.exit_status.clone()
+            })?
+            .into_inner())
+    }
+
+    pub(crate) fn require_annotations(&self, revision: &str) -> Option<Spanned<bool>> {
+        self.for_revision(revision).fold(None, |acc, elem| {
+            elem.require_annotations.as_ref().cloned().or(acc)
+        })
     }
 }
 
@@ -151,8 +149,13 @@ pub struct Revisioned {
     /// Ignore diagnostics below this level.
     /// `None` means pick the lowest level from the `error_pattern`s.
     pub require_annotations_for_level: OptWithLine<Level>,
-    /// The mode this test is being run in.
-    pub mode: OptWithLine<Mode>,
+    /// The exit status that the driver is expected to emit.
+    /// If `None`, any exit status is accepted.
+    pub exit_status: OptWithLine<i32>,
+    /// `Some(true)` means annotations are required
+    /// `Some(false)` means annotations are forbidden
+    /// `None` means this revision does not change the base annoatation requirement.
+    pub require_annotations: OptWithLine<bool>,
     /// Prefix added to all diagnostic code matchers. Note this will make it impossible
     /// match codes which do not contain this prefix.
     pub diagnostic_code_prefix: OptWithLine<String>,
@@ -438,7 +441,8 @@ impl CommentParser<Comments> {
             error_in_other_files,
             error_matches,
             require_annotations_for_level,
-            mode,
+            exit_status,
+            require_annotations,
             diagnostic_code_prefix,
             custom,
         } = self.comments.base();
@@ -457,8 +461,11 @@ impl CommentParser<Comments> {
         if require_annotations_for_level.is_none() {
             *require_annotations_for_level = defaults.require_annotations_for_level;
         }
-        if mode.is_none() {
-            *mode = defaults.mode;
+        if exit_status.is_none() {
+            *exit_status = defaults.exit_status;
+        }
+        if require_annotations.is_none() {
+            *require_annotations = defaults.require_annotations;
         }
         if diagnostic_code_prefix.is_none() {
             *diagnostic_code_prefix = defaults.diagnostic_code_prefix;
@@ -736,13 +743,8 @@ impl CommentParser<Comments> {
                 this.error(span, "rustfix is now ran by default when applicable suggestions are found");
             }
             "check-pass" => (this, _args, span){
-                let prev = this.mode.set(Mode::Pass, span.clone());
-                // args are ignored (can be used as comment)
-                this.check(
-                    span,
-                    prev.is_none(),
-                    "cannot specify test mode changes twice",
-                );
+                _ = this.exit_status.set(0, span.clone());
+                _ = this.require_annotations = Spanned::new(false, span.clone()).into();
             }
             "require-annotations-for-level" => (this, args, span){
                 let args = args.trim();

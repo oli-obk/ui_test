@@ -6,7 +6,7 @@ use spanned::Spanned;
 use crate::{
     aux_builds::AuxBuilder, build_manager::BuildManager, custom_flags::run::Run,
     custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
-    per_test_config::TestConfig, rustc_stderr, Errored, Mode,
+    per_test_config::TestConfig, rustc_stderr, Errored,
 };
 use crate::{
     diagnostics::Diagnostics,
@@ -129,10 +129,8 @@ impl Config {
         ];
         comment_defaults.base().normalize_stderr = filters.clone();
         comment_defaults.base().normalize_stdout = filters;
-        comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
-            require_patterns: true,
-        })
-        .into();
+        comment_defaults.base().exit_status = Spanned::dummy(1).into();
+        comment_defaults.base().require_annotations = Spanned::dummy(true).into();
         let mut config = Self {
             host: None,
             target: None,
@@ -175,14 +173,10 @@ impl Config {
             });
 
         config.custom_comments.insert("run", |parser, args, span| {
-            parser.check(
-                span.clone(),
-                parser.mode.is_none(),
-                "cannot specify test mode changes twice",
-            );
             let set = |exit_code| {
                 parser.set_custom_once("run", Run { exit_code }, args.span());
-                parser.mode = Spanned::new(Mode::Pass, args.span()).into();
+                parser.exit_status = Spanned::new(0, span.clone()).into();
+                parser.require_annotations = Spanned::new(false, span.clone()).into();
 
                 let prev = parser
                     .custom

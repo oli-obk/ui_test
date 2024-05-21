@@ -16,7 +16,7 @@ use crate::{
     custom_flags::Flag,
     per_test_config::TestConfig,
     test_result::Errored,
-    CommandBuilder, Config, Mode, OutputConflictHandling,
+    CommandBuilder, Config, OutputConflictHandling,
 };
 
 #[derive(Default, Debug)]
@@ -66,17 +66,8 @@ fn build_dependencies_inner(config: &Config, info: &DependencyBuilder) -> Result
     }
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
-    let set_locking = |cmd: &mut Command| match (
-        &config.output_conflict_handling,
-        config
-            .comment_defaults
-            .base_immut()
-            .mode
-            .as_deref()
-            .unwrap(),
-    ) {
-        (_, Mode::Yolo { .. }) => {}
-        (OutputConflictHandling::Error, _) => {
+    let set_locking = |cmd: &mut Command| match config.output_conflict_handling {
+        OutputConflictHandling::Error => {
             cmd.arg("--locked");
         }
         _ => {}
