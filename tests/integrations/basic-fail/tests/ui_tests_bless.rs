@@ -3,20 +3,12 @@ use ui_test::{
 };
 
 fn main() -> ui_test::color_eyre::Result<()> {
-    for (mode, rustfix) in [
-        (
-            Mode::Fail {
-                require_patterns: true,
-            },
-            RustfixMode::MachineApplicable,
-        ),
-        (Mode::Yolo, RustfixMode::Everything),
-    ] {
+    for rustfix in [RustfixMode::MachineApplicable, RustfixMode::Everything] {
         let path = "../../../target";
 
-        let root_dir = match mode {
-            Mode::Yolo => "tests/actual_tests_bless_yolo",
-            Mode::Fail { .. } => "tests/actual_tests_bless",
+        let root_dir = match rustfix {
+            RustfixMode::Everything => "tests/actual_tests_bless_yolo",
+            RustfixMode::MachineApplicable { .. } => "tests/actual_tests_bless",
             _ => unreachable!(),
         };
 
@@ -29,7 +21,11 @@ fn main() -> ui_test::color_eyre::Result<()> {
             bless_command: Some("cargo test".to_string()),
             ..Config::rustc(root_dir)
         };
-        config.comment_defaults.base().mode = Spanned::dummy(mode).into();
+        config.comment_defaults.base().exit_status = match rustfix {
+            RustfixMode::Everything => None.into(),
+            RustfixMode::MachineApplicable { .. } => Spanned::dummy(1).into(),
+            _ => unreachable!(),
+        };
         config
             .comment_defaults
             .base()
@@ -57,10 +53,10 @@ fn main() -> ui_test::color_eyre::Result<()> {
             // Avoid github actions, as these would end up showing up in `Cargo.stderr`
             status_emitter::Text::verbose(),
         );
-        match (&result, mode) {
-            (Ok(_), Mode::Yolo { .. }) => {}
-            (Err(_), Mode::Fail { .. }) => {}
-            _ => panic!("invalid mode/result combo: {mode}: {result:?}"),
+        match (&result, rustfix) {
+            (Ok(_), RustfixMode::Everything) => {}
+            (Err(_), RustfixMode::MachineApplicable) => {}
+            _ => panic!("invalid mode/result combo: {rustfix:?}: {result:?}"),
         }
     }
     Ok(())

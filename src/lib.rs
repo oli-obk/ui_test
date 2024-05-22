@@ -55,7 +55,6 @@ mod tests;
 pub use cmd::*;
 pub use config::*;
 pub use error::*;
-pub use mode::*;
 
 pub use spanned;
 

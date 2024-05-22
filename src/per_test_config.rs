@@ -19,7 +19,7 @@ pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::TestStatus;
 use crate::test_result::{Errored, TestOk, TestResult};
-use crate::{core::strip_path_prefix, Config, Error, Errors, Mode, OutputConflictHandling};
+use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling};
 
 /// All information needed to run a single test
 pub struct TestConfig<'a> {
@@ -51,9 +51,14 @@ impl TestConfig<'_> {
         }
     }
 
-    /// The test's mode after applying all comments
-    pub fn mode(&self) -> Result<Spanned<Mode>, Errored> {
-        self.comments.mode(self.status.revision())
+    /// The test's expected exit status after applying all comments
+    pub fn exit_status(&self) -> Result<Option<Spanned<i32>>, Errored> {
+        self.comments.exit_status(self.status.revision())
+    }
+
+    /// Whether compiler messages require annotations
+    pub fn require_annotations(&self) -> Option<Spanned<bool>> {
+        self.comments.require_annotations(self.status.revision())
     }
 
     pub(crate) fn find_one<'a, T: 'a>(
@@ -93,7 +98,7 @@ impl TestConfig<'_> {
                                 // Overwrite previous value so that revisions overwrite default settings
                                 // FIXME: report an error if multiple revisions conflict
                                 assert_eq!(o.get().len(), 1);
-                                o.get_mut()[0] = &flag;
+                                o.get_mut()[0] = flag;
                             } else {
                                 o.get_mut().push(flag);
                             }
@@ -221,7 +226,7 @@ impl TestConfig<'_> {
         output: Output,
     ) -> Result<(Command, Output), Errored> {
         let mut errors = vec![];
-        errors.extend(self.mode()?.ok(output.status).err());
+        errors.extend(self.ok(output.status)?);
         // Always remove annotation comments from stderr.
         let diagnostics = self.process(&output.stderr);
         self.check_test_output(&mut errors, &output.stdout, &diagnostics.rendered);
@@ -356,9 +361,9 @@ impl TestConfig<'_> {
             msgs
         };
 
-        let mode = self.mode()?;
+        let require_annotations = self.require_annotations();
 
-        if !matches!(*mode, Mode::Yolo { .. }) {
+        if let Some(Spanned { content: true, .. }) = require_annotations {
             let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
             if !messages_from_unknown_file_or_line.is_empty() {
                 errors.push(Error::ErrorsWithoutPattern {
@@ -385,20 +390,15 @@ impl TestConfig<'_> {
             }
         }
 
-        match (*mode, seen_error_match) {
-            (Mode::Pass, Some(span)) | (Mode::Panic, Some(span)) => {
-                errors.push(Error::PatternFoundInPassTest {
-                    mode: mode.span(),
-                    span,
-                })
-            }
+        match (require_annotations, seen_error_match) {
             (
-                Mode::Fail {
-                    require_patterns: true,
-                    ..
-                },
-                None,
-            ) => errors.push(Error::NoPatternsFound),
+                Some(Spanned {
+                    content: false,
+                    span: mode,
+                }),
+                Some(span),
+            ) => errors.push(Error::PatternFoundInPassTest { mode, span }),
+            (Some(Spanned { content: true, .. }), None) => errors.push(Error::NoPatternsFound),
             _ => {}
         }
         Ok(())

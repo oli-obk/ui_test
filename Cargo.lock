@@ -504,9 +504,9 @@ dependencies = [
 
 [[package]]
 name = "spanned"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccdf4f5590b7e6fbd4f2e80d442789079a6fff7c12ef921a9de358b7b353098e"
+checksum = "ed14ba8b4b82241bd5daba2c49185d4a0581a0058355fe96537338f002b8605d"
 dependencies = [
  "bstr",
  "color-eyre",
@@ -620,7 +620,7 @@ dependencies = [
 
 [[package]]
 name = "ui_test"
-version = "0.23.0"
+version = "0.24.0"
 dependencies = [
  "annotate-snippets",
  "anyhow",

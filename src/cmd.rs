@@ -29,7 +29,13 @@ impl CommandBuilder {
     pub fn cargo() -> Self {
         Self {
             program: PathBuf::from(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into())),
-            args: vec!["build".into()],
+            args: vec![
+                "build".into(),
+                "--color=never".into(),
+                "--quiet".into(),
+                "--jobs".into(),
+                "1".into(),
+            ],
             out_dir_flag: Some("--target-dir".into()),
             input_file_flag: Some("--manifest-path".into()),
             envs: vec![],

@@ -1,4 +1,4 @@
-use ui_test::{dependencies::DependencyBuilder, spanned::Spanned, *};
+use ui_test::{dependencies::DependencyBuilder, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
@@ -11,10 +11,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
         bless_command: Some("cargo test".to_string()),
         ..Config::rustc("tests/actual_tests")
     };
-    config.comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
-        require_patterns: true,
-    })
-    .into();
     config
         .comment_defaults
         .base()

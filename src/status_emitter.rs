@@ -483,14 +483,13 @@ fn print_error(error: &Error, path: &Path) {
 
     match error {
         Error::ExitStatus {
-            mode,
             status,
             expected,
             reason,
         } => {
             // `status` prints as `exit status: N`.
             create_error(
-                format!("{mode} test got {status}, but expected {expected}"),
+                format!("test got {status}, but expected {expected}"),
                 &[(
                     &[(reason, Some(reason.span.clone()))],
                     reason.span.line_start,
@@ -546,7 +545,7 @@ fn print_error(error: &Error, path: &Path) {
             );
         }
         Error::NoPatternsFound => {
-            print_error_header("no error patterns found in fail test");
+            print_error_header("expected error patterns, but found none");
         }
         Error::PatternFoundInPassTest { mode, span } => {
             let annot = [("expected because of this annotation", Some(span.clone()))];
@@ -728,14 +727,13 @@ fn create_error(
 fn gha_error(error: &Error, test_path: &str, revision: &str) {
     match error {
         Error::ExitStatus {
-            mode,
             status,
             expected,
             reason,
         } => {
             let mut err = github_actions::error(
                 test_path,
-                format!("{mode} test{revision} got {status}, but expected {expected}"),
+                format!("test{revision} got {status}, but expected {expected}"),
             );
             err.write_str(reason).unwrap();
         }
@@ -753,7 +751,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
         Error::NoPatternsFound => {
             github_actions::error(
                 test_path,
-                format!("no error patterns found in fail test{revision}"),
+                format!("expexted error patterns, but found none{revision}"),
             );
         }
         Error::PatternFoundInPassTest { .. } => {

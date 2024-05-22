@@ -96,8 +96,12 @@ full stdout:
 FAILED TEST: tests/actual_tests/executable_compile_err.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/executable_compile_err.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: pass test got exit status: 1, but expected 0
- = note: compilation failed, but was expected to succeed
+error: test got exit status: 1, but expected 0
+ --> tests/actual_tests/executable_compile_err.rs:1:4
+  |
+1 | //@run
+  |    ^^^ compilation failed, but was expected to succeed
+  |
 
 error: actual output differed from expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual output
@@ -114,13 +118,6 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 +error: aborting due to 1 previous error
 +
 
-
-error: there were 1 unmatched diagnostics
- --> tests/actual_tests/executable_compile_err.rs:4:1
-  |
-4 | ...
-  | ^ Error: this file contains an unclosed delimiter
-  |
 
 full stderr:
 error: this file contains an unclosed delimiter
@@ -141,10 +138,10 @@ full stdout:
 FAILED TEST: tests/actual_tests/exit_code_fail.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/exit_code_fail.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: fail test got exit status: 0, but expected 1
+error: test got exit status: 0, but expected 1
  = note: compilation succeeded, but was expected to fail
 
-error: no error patterns found in fail test
+error: expected error patterns, but found none
 
 full stderr:
 
@@ -351,7 +348,7 @@ full stdout:
 FAILED TEST: tests/actual_tests/rustc_ice.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: fail test got exit status: 101, but expected 1
+error: test got exit status: 101, but expected 1
  = note: the compiler panicked
 
 error: `mismatched types` not found in diagnostics on line 8
@@ -501,7 +498,7 @@ tests/actual_tests_bless/wrong_diagnostic_code.rs ... FAILED
 FAILED TEST: tests/actual_tests_bless/abort.rs
 command: "$CMD"
 
-error: run(0) test got signal: 6 (SIGABRT), but expected 0
+error: test got signal: 6 (SIGABRT), but expected 0
  = note: the test was expected to run successfully
 
 full stderr:
@@ -545,7 +542,7 @@ error: there were 1 unmatched diagnostics
   |        ^^^^ Error: expected one of `!` or `::`, found `<eof>`
   |
 
-error: no error patterns found in fail test
+error: expected error patterns, but found none
 
 full stderr:
 error: expected one of `!` or `::`, found `<eof>`
@@ -623,7 +620,7 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/failing_executable.rs
 command: "$CMD"
 
-error: run(0) test got exit status: 101, but expected 0
+error: test got exit status: 101, but expected 0
  --> tests/actual_tests_bless/failing_executable.rs:4:5
   |
 4 |     assert_eq!(5, 6);
@@ -644,10 +641,10 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/no_main.rs
 command: "rustc" "--error-format=json" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: fail test got exit status: 0, but expected 1
+error: test got exit status: 0, but expected 1
  = note: compilation succeeded, but was expected to fail
 
-error: no error patterns found in fail test
+error: expected error patterns, but found none
 
 full stderr:
 
@@ -668,7 +665,7 @@ error: there were 1 unmatched diagnostics
   |                ^ Error[E0601]: `main` function not found in crate `no_main_manual`
   |
 
-error: no error patterns found in fail test
+error: expected error patterns, but found none
 
 full stderr:
 error: cannot mix `bin` crate type with others
@@ -690,10 +687,10 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/no_test.rs
 command: "rustc" "--error-format=json" "--test" "--out-dir" "$TMP "tests/actual_tests_bless/no_test.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: fail test got exit status: 0, but expected 1
+error: test got exit status: 0, but expected 1
  = note: compilation succeeded, but was expected to fail
 
-error: no error patterns found in fail test
+error: expected error patterns, but found none
 
 full stderr:
 
@@ -775,7 +772,7 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/revisioned_executable.rs (revision `panic`)
 command: "$CMD"
 
-error: run(101) test got exit status: 0, but expected 101
+error: test got exit status: 0, but expected 101
  = note: the test was expected to panic
 
 full stderr:
@@ -787,7 +784,7 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`)
 command: "$CMD"
 
-error: run(0) test got exit status: 101, but expected 0
+error: test got exit status: 101, but expected 0
  --> tests/actual_tests_bless/revisioned_executable_panic.rs
   |
 6 |     panic!()
@@ -838,33 +835,29 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
-error: rustfix test got exit status: 1, but expected 0
-  --> tests/actual_tests_bless/rustfix-fail-revisions.rs:11:6
-   |
-11 |     x;
-   |      ^ after rustfix is applied, all errors should be gone, but weren't
-   |
+error: test got exit status: 1, but expected 0
+ --> tests/actual_tests_bless/rustfix-fail-revisions.rs:2:9
+  |
+2 | #![deny(warnings)]
+  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
+  |
 
 full stderr:
-error[E0382]: use of moved value: `x`
-  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:12:5
+error: path statement drops value
+  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:11:5
    |
-5  |     let x = match 0 {
-   |         - move occurs because `x` has type `String`, which does not implement the `Copy` trait
-...
 11 |     x;
-   |     - value moved here
-12 |     x;
-   |     ^ value used here after move
+   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
    |
-help: consider cloning the value if the performance cost is acceptable
+note: the lint level is defined here
+  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
    |
-11 |     x.clone();
-   |      ++++++++
+2  | #![deny(warnings)]
+   |         ^^^^^^^^
+   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
 
 error: aborting due to 1 previous error
 
-For more information about this error, try `rustc --explain E0382`.
 
 full stdout:
 
@@ -873,33 +866,29 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
-error: rustfix test got exit status: 1, but expected 0
-  --> tests/actual_tests_bless/rustfix-fail-revisions.rs:11:6
-   |
-11 |     x;
-   |      ^ after rustfix is applied, all errors should be gone, but weren't
-   |
+error: test got exit status: 1, but expected 0
+ --> tests/actual_tests_bless/rustfix-fail-revisions.rs:2:9
+  |
+2 | #![deny(warnings)]
+  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
+  |
 
 full stderr:
-error[E0382]: use of moved value: `x`
-  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:12:5
+error: path statement drops value
+  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:11:5
    |
-5  |     let x = match 0 {
-   |         - move occurs because `x` has type `String`, which does not implement the `Copy` trait
-...
 11 |     x;
-   |     - value moved here
-12 |     x;
-   |     ^ value used here after move
+   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
    |
-help: consider cloning the value if the performance cost is acceptable
+note: the lint level is defined here
+  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
    |
-11 |     x.clone();
-   |      ++++++++
+2  | #![deny(warnings)]
+   |         ^^^^^^^^
+   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
 
 error: aborting due to 1 previous error
 
-For more information about this error, try `rustc --explain E0382`.
 
 full stdout:
 
@@ -908,33 +897,29 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/rustfix-fail.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail"
 
-error: rustfix test got exit status: 1, but expected 0
-  --> tests/actual_tests_bless/rustfix-fail.rs:10:6
-   |
-10 |     x;
-   |      ^ after rustfix is applied, all errors should be gone, but weren't
-   |
+error: test got exit status: 1, but expected 0
+ --> tests/actual_tests_bless/rustfix-fail.rs:1:9
+  |
+1 | #![deny(warnings)]
+  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
+  |
 
 full stderr:
-error[E0382]: use of moved value: `x`
-  --> tests/actual_tests_bless/rustfix-fail.fixed:11:5
+error: path statement drops value
+  --> tests/actual_tests_bless/rustfix-fail.fixed:10:5
    |
-4  |     let x = match 0 {
-   |         - move occurs because `x` has type `String`, which does not implement the `Copy` trait
-...
 10 |     x;
-   |     - value moved here
-11 |     x;
-   |     ^ value used here after move
+   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
    |
-help: consider cloning the value if the performance cost is acceptable
+note: the lint level is defined here
+  --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
    |
-10 |     x.clone();
-   |      ++++++++
+1  | #![deny(warnings)]
+   |         ^^^^^^^^
+   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
 
 error: aborting due to 1 previous error
 
-For more information about this error, try `rustc --explain E0382`.
 
 full stdout:
 
@@ -1050,37 +1035,10 @@ test result: FAIL. 22 failed; 14 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
-tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... FAILED
+tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
 
-FAILED TEST: tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`)
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/revisions_bad.rs" "--cfg=bar" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
-
-error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
- --> tests/actual_tests_bless_yolo/revisions_bad.rs:4:31
-  |
-4 | //@[bar] error-in-other-file: `main` function not found in crate `revisions_bad`
-  |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
-  |
-
-full stderr:
-error[E0601]: `main` function not found in crate `revisions_bad`
-  --> tests/actual_tests_bless_yolo/revisions_bad.rs:10:2
-   |
-10 | }
-   |  ^ consider adding a `main` function to `tests/actual_tests_bless_yolo/revisions_bad.rs`
-
-error: aborting due to 1 previous error
-
-For more information about this error, try `rustc --explain E0601`.
-
-full stdout:
-
-
-FAILURES:
-    tests/actual_tests_bless_yolo/revisions_bad.rs (revision bar)
-
-test result: FAIL. 1 failed; 2 passed;
+test result: ok. 3 passed;
 
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED

@@ -1,0 +1,40 @@
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
+
+Building dependencies ... FAILED
+tests/ui/basic_test.rs ... FAILED
+
+FAILED TEST: tests/ui/basic_test.rs
+command: "$CMD" "build" "--color=never" "--quiet" "--jobs" "1" "--target-dir" "$DIR/tests/integrations/dep-fail/target/ui" "--manifest-path" "tested_crate/Cargo.toml"  "--message-format=json"
+
+full stderr:
+error: could not compile `tested_crate` (lib) due to 2 previous errors
+
+full stdout:
+$DIR/tests/integrations/dep-fail/tested_crate/src/lib.rs
+error: this file contains an unclosed delimiter
+ --> src/lib.rs:LL:CC
+  |
+1 | pub trait A {
+  |             - ^
+  |             |
+  |             unclosed delimiter
+
+$DIR/tests/integrations/dep-fail/tested_crate/src/lib.rs
+error: aborting due to 1 previous error
+
+BuildFinished { success: false }
+
+
+FAILURES:
+    tests/ui/basic_test.rs
+
+test result: FAIL. 1 failed;
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
+

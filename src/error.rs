@@ -8,10 +8,8 @@ use std::{num::NonZeroUsize, path::PathBuf, process::ExitStatus};
 #[derive(Debug)]
 #[must_use]
 pub enum Error {
-    /// Got an invalid exit status for the given mode.
+    /// Got an invalid exit status.
     ExitStatus {
-        /// The expected mode.
-        mode: String,
         /// The exit status of the command.
         status: ExitStatus,
         /// The expected exit status as set in the file or derived from the mode.

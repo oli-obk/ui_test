@@ -11,7 +11,7 @@ use crate::{
     build_manager::BuildManager,
     parser::OptWithLine,
     per_test_config::{Comments, Revisioned, TestConfig},
-    Error, Errored, Mode,
+    Error, Errored,
 };
 
 use super::Flag;
@@ -47,9 +47,11 @@ impl Flag for RustfixMode {
         output: &Output,
         build_manager: &BuildManager<'_>,
     ) -> Result<Option<Command>, Errored> {
-        let global_rustfix = match *config.mode()? {
-            Mode::Pass | Mode::Panic => RustfixMode::Disabled,
-            Mode::Fail { .. } | Mode::Yolo => *self,
+        let global_rustfix = match config.exit_status()? {
+            Some(Spanned {
+                content: 101 | 0, ..
+            }) => RustfixMode::Disabled,
+            _ => *self,
         };
 
         let output = output.clone();
@@ -120,9 +122,10 @@ impl Flag for RustfixMode {
                     error_in_other_files: vec![],
                     error_matches: vec![],
                     require_annotations_for_level: Default::default(),
-                    mode: OptWithLine::new(Mode::Pass, Span::default()),
                     diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
                     custom: config.comments().flat_map(|r| r.custom.clone()).collect(),
+                    exit_status: OptWithLine::new(0, Span::default()),
+                    require_annotations: OptWithLine::default(),
                 },
             ))
             .collect(),
@@ -182,7 +185,6 @@ impl Flag for RustfixMode {
             Err(Errored {
                 command: cmd,
                 errors: vec![Error::ExitStatus {
-                    mode: "rustfix".into(),
                     expected: 0,
                     status: output.status,
                     reason: Spanned::new(

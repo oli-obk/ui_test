@@ -104,7 +104,7 @@ impl Build for AuxBuilder {
 
         match CrateType::from_file_contents(&file_contents) {
             // Proc macros must be run on the host
-            CrateType::ProcMacro => config.target = config.host.clone(),
+            CrateType::ProcMacro => config.target.clone_from(&config.host),
             CrateType::Test | CrateType::Bin | CrateType::Lib => {}
         }
 
