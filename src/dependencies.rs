@@ -113,10 +113,40 @@ fn build_dependencies_inner(
     };
 
     if !output.status.success() {
+        let stdout = output
+            .stdout
+            .lines()
+            .flat_map(
+                |line| match serde_json::from_slice::<cargo_metadata::Message>(line) {
+                    Ok(cargo_metadata::Message::CompilerArtifact(artifact)) => {
+                        format!("{artifact:?}\n").into_bytes()
+                    }
+                    Ok(cargo_metadata::Message::BuildFinished(bf)) => {
+                        format!("{bf:?}\n").into_bytes()
+                    }
+                    Ok(cargo_metadata::Message::BuildScriptExecuted(be)) => {
+                        format!("{be:?}\n").into_bytes()
+                    }
+                    Ok(cargo_metadata::Message::TextLine(s)) => s.into_bytes(),
+                    Ok(cargo_metadata::Message::CompilerMessage(msg)) => msg
+                        .target
+                        .src_path
+                        .as_str()
+                        .as_bytes()
+                        .iter()
+                        .copied()
+                        .chain([b'\n'])
+                        .chain(msg.message.rendered.unwrap_or_default().into_bytes())
+                        .collect(),
+                    Ok(_) => vec![],
+                    Err(_) => line.iter().copied().chain([b'\n']).collect(),
+                },
+            )
+            .collect();
         return Err(Errored {
             command: build,
             stderr: output.stderr,
-            stdout: output.stdout,
+            stdout,
             errors: vec![],
         });
     }

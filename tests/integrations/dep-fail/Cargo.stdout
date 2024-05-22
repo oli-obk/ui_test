@@ -10,13 +10,25 @@ FAILED TEST: tests/ui/basic_test.rs
 command: "$CMD" "build" "--color=never" "--target-dir" "$DIR/tests/integrations/dep-fail/target/ui" "--manifest-path" "tested_crate/Cargo.toml"  "--message-format=json"
 
 full stderr:
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
    Compiling tested_crate v0.1.0-dev ($DIR/tests/integrations/dep-fail/tested_crate)
 error: could not compile `tested_crate` (lib) due to 2 previous errors
 
 full stdout:
-{"reason":"compiler-message","package_id":"path+file://$DIR/tests/integrations/dep-fail/tested_crate#0.1.0-dev","manifest_path":"$DIR/tests/integrations/dep-fail/tested_crate/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"tested_crate","src_path":"$DIR/tests/integrations/dep-fail/tested_crate/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"message":{"rendered":"error: this file contains an unclosed delimiter\n --> src/lib.rs:LL:CC\n  |\n1 | pub trait A {\n  |             - ^\n  |             |\n  |             unclosed delimiter\n\n","$message_type":"diagnostic","children":[],"code":null,"level":"error","message":"this file contains an unclosed delimiter","spans":[{"byte_end":13,"byte_start":12,"column_end":14,"column_start":13,"expansion":null,"file_name":"src/lib.rs","is_primary":false,"label":"unclosed delimiter","line_end":1,"line_start":1,"suggested_replacement":null,"suggestion_applicability":null,"text":[{"highlight_end":14,"highlight_start":13,"text":"pub trait A {"}]},{"byte_end":14,"byte_start":14,"column_end":15,"column_start":15,"expansion":null,"file_name":"src/lib.rs","is_primary":true,"label":null,"line_end":1,"line_start":1,"suggested_replacement":null,"suggestion_applicability":null,"text":[{"highlight_end":15,"highlight_start":15,"text":"pub trait A {"}]}]}}
-{"reason":"compiler-message","package_id":"path+file://$DIR/tests/integrations/dep-fail/tested_crate#0.1.0-dev","manifest_path":"$DIR/tests/integrations/dep-fail/tested_crate/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"tested_crate","src_path":"$DIR/tests/integrations/dep-fail/tested_crate/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"message":{"rendered":"error: aborting due to 1 previous error\n\n","$message_type":"diagnostic","children":[],"code":null,"level":"error","message":"aborting due to 1 previous error","spans":[]}}
-{"reason":"build-finished","success":false}
+$DIR/tests/integrations/dep-fail/tested_crate/src/lib.rs
+error: this file contains an unclosed delimiter
+ --> src/lib.rs:LL:CC
+  |
+1 | pub trait A {
+  |             - ^
+  |             |
+  |             unclosed delimiter
+
+$DIR/tests/integrations/dep-fail/tested_crate/src/lib.rs
+error: aborting due to 1 previous error
+
+BuildFinished { success: false }
 
 
 FAILURES:
