@@ -93,6 +93,7 @@ fn main() -> Result<()> {
     config.stdout_filter(r#" \(core dumped\)"#, "");
     // abort messages are different on windows
     config.stdout_filter(r#"exit status: 0xc0000409"#, "signal: 6 (SIGABRT)");
+    config.filter("\"--target=[^\"]+\"", "");
 
     let text = ui_test::status_emitter::Text::from(args.format);
 
