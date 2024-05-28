@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* `Text::diff()` creates a text status emitter that does not do full dumps of test stderr/stdout, but only emits the diff of the changes
+
 ### Fixed
 
 ### Changed
