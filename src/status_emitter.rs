@@ -145,11 +145,18 @@ impl TestStatus for SilentStatus {
     }
 }
 
+#[derive(Clone, Copy)]
+enum OutputVerbosity {
+    Progress,
+    DiffOnly,
+    Full,
+}
+
 /// A human readable output emitter.
 #[derive(Clone)]
 pub struct Text {
     sender: Sender<Msg>,
-    progress: bool,
+    progress: OutputVerbosity,
 }
 
 #[derive(Debug)]
@@ -238,15 +245,30 @@ impl Text {
     pub fn verbose() -> Self {
         Self {
             sender: Self::start_thread(),
-            progress: false,
+            progress: OutputVerbosity::Full,
+        }
+    }
+    /// Print one line per test that gets run.
+    pub fn diff() -> Self {
+        Self {
+            sender: Self::start_thread(),
+            progress: OutputVerbosity::DiffOnly,
         }
     }
     /// Print a progress bar.
     pub fn quiet() -> Self {
         Self {
             sender: Self::start_thread(),
-            progress: true,
+            progress: OutputVerbosity::Progress,
         }
+    }
+
+    fn is_quiet_output(&self) -> bool {
+        matches!(self.progress, OutputVerbosity::Progress)
+    }
+
+    fn is_full_output(&self) -> bool {
+        matches!(self.progress, OutputVerbosity::Full)
     }
 }
 
@@ -279,7 +301,7 @@ impl TextTest {
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult) {
-        if self.text.progress {
+        if self.text.is_quiet_output() {
             self.text.sender.send(Msg::Inc).unwrap();
             self.text.sender.send(Msg::Pop(self.msg(), None)).unwrap();
         } else {
@@ -316,23 +338,27 @@ impl TestStatus for TextTest {
         println!("command: {cmd:?}");
         println!();
 
-        #[derive(Debug)]
-        struct Guard<'a> {
-            stderr: &'a [u8],
-            stdout: &'a [u8],
-        }
-        impl<'a> Drop for Guard<'a> {
-            fn drop(&mut self) {
-                println!("{}", "full stderr:".bold());
-                std::io::stdout().write_all(self.stderr).unwrap();
-                println!();
-                println!("{}", "full stdout:".bold());
-                std::io::stdout().write_all(self.stdout).unwrap();
-                println!();
-                println!();
+        if self.text.is_full_output() {
+            #[derive(Debug)]
+            struct Guard<'a> {
+                stderr: &'a [u8],
+                stdout: &'a [u8],
             }
+            impl<'a> Drop for Guard<'a> {
+                fn drop(&mut self) {
+                    println!("{}", "full stderr:".bold());
+                    std::io::stdout().write_all(self.stderr).unwrap();
+                    println!();
+                    println!("{}", "full stdout:".bold());
+                    std::io::stdout().write_all(self.stdout).unwrap();
+                    println!();
+                    println!();
+                }
+            }
+            Box::new(Guard { stderr, stdout })
+        } else {
+            Box::new(())
         }
-        Box::new(Guard { stderr, stdout })
     }
 
     fn path(&self) -> &Path {
@@ -340,7 +366,9 @@ impl TestStatus for TextTest {
     }
 
     fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
-        if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed) && self.text.progress {
+        if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed)
+            && self.text.is_quiet_output()
+        {
             self.text.sender.send(Msg::IncLength).unwrap();
         }
 
@@ -372,7 +400,7 @@ impl TestStatus for TextTest {
 
 impl StatusEmitter for Text {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
-        if self.progress {
+        if self.is_quiet_output() {
             self.sender.send(Msg::IncLength).unwrap();
         }
         Box::new(TextTest {

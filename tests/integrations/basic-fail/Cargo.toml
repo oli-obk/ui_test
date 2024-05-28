@@ -22,5 +22,9 @@ name = "ui_tests_invalid_program2"
 harness = false
 
 [[test]]
+name = "ui_tests_diff_only"
+harness = false
+
+[[test]]
 name = "ui_tests_bless"
 harness = false
