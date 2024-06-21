@@ -31,7 +31,7 @@ BuildFinished { success: false }
 FAILURES:
     tests/ui/basic_test.rs
 
-test result: FAIL. 1 failed;
+test result: FAIL. 1 failed
 
 
 running 0 tests

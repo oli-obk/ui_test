@@ -473,16 +473,25 @@ impl StatusEmitter for Text {
                     }
                     println!();
                     print!("test result: {}.", "FAIL".bright_red());
-                    print!(" {} failed;", self.failures.len().to_string().green());
+                    print!(" {} failed", self.failures.len().to_string().green());
+                    if self.succeeded > 0 || self.ignored > 0 || self.filtered > 0 {
+                        print!(";");
+                    }
                 }
                 if self.succeeded > 0 {
-                    print!(" {} passed;", self.succeeded.to_string().green());
+                    print!(" {} passed", self.succeeded.to_string().green());
+                    if self.ignored > 0 || self.filtered > 0 {
+                        print!(";");
+                    }
                 }
                 if self.ignored > 0 {
-                    print!(" {} ignored;", self.ignored.to_string().yellow());
+                    print!(" {} ignored", self.ignored.to_string().yellow());
+                    if self.filtered > 0 {
+                        print!(";");
+                    }
                 }
                 if self.filtered > 0 {
-                    print!(" {} filtered out;", self.filtered.to_string().yellow());
+                    print!(" {} filtered out", self.filtered.to_string().yellow());
                 }
                 println!();
                 println!();

@@ -44,7 +44,7 @@ tests/actual_tests/unicode.rs ... ok
 tests/actual_tests/windows_paths.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 31 passed;
+test result: ok. 31 passed
 
 
 running 0 tests
