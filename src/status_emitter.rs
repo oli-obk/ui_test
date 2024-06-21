@@ -421,7 +421,7 @@ impl StatusEmitter for Text {
 
     fn finalize(
         &self,
-        failures: usize,
+        _failures: usize,
         succeeded: usize,
         ignored: usize,
         filtered: usize,
@@ -436,49 +436,37 @@ impl StatusEmitter for Text {
             println!();
         }
         // Print all errors in a single thread to show reliable output
-        if failures == 0 {
-            println!();
-            print!("test result: {}.", "ok".green());
-            if succeeded > 0 {
-                print!(" {} passed;", succeeded.to_string().green());
-            }
-            if ignored > 0 {
-                print!(" {} ignored;", ignored.to_string().yellow());
-            }
-            if filtered > 0 {
-                print!(" {} filtered out;", filtered.to_string().yellow());
-            }
-            println!();
-            println!();
-            Box::new(())
-        } else {
-            struct Summarizer {
-                failures: Vec<String>,
-                succeeded: usize,
-                ignored: usize,
-                filtered: usize,
-            }
+        struct Summarizer {
+            failures: Vec<String>,
+            succeeded: usize,
+            ignored: usize,
+            filtered: usize,
+        }
 
-            impl Summary for Summarizer {
-                fn test_failure(&mut self, status: &dyn TestStatus, errors: &Errors) {
-                    for error in errors {
-                        print_error(error, status.path());
-                    }
-
-                    self.failures.push(if status.revision().is_empty() {
-                        format!("    {}", display(status.path()))
-                    } else {
-                        format!(
-                            "    {} (revision {})",
-                            display(status.path()),
-                            status.revision()
-                        )
-                    });
+        impl Summary for Summarizer {
+            fn test_failure(&mut self, status: &dyn TestStatus, errors: &Errors) {
+                for error in errors {
+                    print_error(error, status.path());
                 }
-            }
 
-            impl Drop for Summarizer {
-                fn drop(&mut self) {
+                self.failures.push(if status.revision().is_empty() {
+                    format!("    {}", display(status.path()))
+                } else {
+                    format!(
+                        "    {} (revision {})",
+                        display(status.path()),
+                        status.revision()
+                    )
+                });
+            }
+        }
+
+        impl Drop for Summarizer {
+            fn drop(&mut self) {
+                if self.failures.is_empty() {
+                    println!();
+                    print!("test result: {}.", "ok".green());
+                } else {
                     println!("{}", "FAILURES:".bright_red().underline().bold());
                     for line in &self.failures {
                         println!("{line}");
@@ -486,26 +474,26 @@ impl StatusEmitter for Text {
                     println!();
                     print!("test result: {}.", "FAIL".bright_red());
                     print!(" {} failed;", self.failures.len().to_string().green());
-                    if self.succeeded > 0 {
-                        print!(" {} passed;", self.succeeded.to_string().green());
-                    }
-                    if self.ignored > 0 {
-                        print!(" {} ignored;", self.ignored.to_string().yellow());
-                    }
-                    if self.filtered > 0 {
-                        print!(" {} filtered out;", self.filtered.to_string().yellow());
-                    }
-                    println!();
-                    println!();
                 }
+                if self.succeeded > 0 {
+                    print!(" {} passed;", self.succeeded.to_string().green());
+                }
+                if self.ignored > 0 {
+                    print!(" {} ignored;", self.ignored.to_string().yellow());
+                }
+                if self.filtered > 0 {
+                    print!(" {} filtered out;", self.filtered.to_string().yellow());
+                }
+                println!();
+                println!();
             }
-            Box::new(Summarizer {
-                failures: vec![],
-                succeeded,
-                ignored,
-                filtered,
-            })
         }
+        Box::new(Summarizer {
+            failures: vec![],
+            succeeded,
+            ignored,
+            filtered,
+        })
     }
 }
 
