@@ -19,10 +19,11 @@ use std::{
     fmt::{Debug, Display, Write as _},
     io::Write as _,
     num::NonZeroUsize,
-    panic::RefUnwindSafe,
+    panic::{AssertUnwindSafe, RefUnwindSafe},
     path::{Path, PathBuf},
     process::Command,
-    sync::atomic::AtomicBool,
+    sync::{atomic::AtomicBool, Arc},
+    thread::JoinHandle,
     time::Duration,
 };
 
@@ -157,6 +158,19 @@ enum OutputVerbosity {
 pub struct Text {
     sender: Sender<Msg>,
     progress: OutputVerbosity,
+    _handle: Arc<JoinOnDrop>,
+}
+
+struct JoinOnDrop(AssertUnwindSafe<Option<JoinHandle<()>>>);
+impl From<JoinHandle<()>> for JoinOnDrop {
+    fn from(handle: JoinHandle<()>) -> Self {
+        Self(AssertUnwindSafe(Some(handle)))
+    }
+}
+impl Drop for JoinOnDrop {
+    fn drop(&mut self) {
+        let _ = self.0 .0.take().unwrap().join();
+    }
 }
 
 #[derive(Debug)]
@@ -170,9 +184,9 @@ enum Msg {
 }
 
 impl Text {
-    fn start_thread() -> Sender<Msg> {
+    fn start_thread(progress: OutputVerbosity) -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded();
-        std::thread::spawn(move || {
+        let handle = std::thread::spawn(move || {
             let bars = MultiProgress::new();
             let mut progress = None;
             let mut threads: HashMap<String, ProgressBar> = HashMap::new();
@@ -238,29 +252,24 @@ impl Text {
                 assert!(progress.is_finished());
             }
         });
-        sender
+        Self {
+            sender,
+            progress,
+            _handle: Arc::new(handle.into()),
+        }
     }
 
     /// Print one line per test that gets run.
     pub fn verbose() -> Self {
-        Self {
-            sender: Self::start_thread(),
-            progress: OutputVerbosity::Full,
-        }
+        Self::start_thread(OutputVerbosity::Full)
     }
     /// Print one line per test that gets run.
     pub fn diff() -> Self {
-        Self {
-            sender: Self::start_thread(),
-            progress: OutputVerbosity::DiffOnly,
-        }
+        Self::start_thread(OutputVerbosity::DiffOnly)
     }
     /// Print a progress bar.
     pub fn quiet() -> Self {
-        Self {
-            sender: Self::start_thread(),
-            progress: OutputVerbosity::Progress,
-        }
+        Self::start_thread(OutputVerbosity::Progress)
     }
 
     fn is_quiet_output(&self) -> bool {

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unrealeased]
+## [Unreleased]
 
 ### Added
 
@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * use `DependencyBuilder::build_std` to enable it
 
 ### Fixed
+
+* Missing result dump if printing thread is too slow and the entire test exits before it is done.
 
 ### Changed
 
