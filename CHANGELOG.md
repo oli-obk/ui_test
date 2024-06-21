@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Split up `Revisioned::mode` into `Revisioned::exit_status` and `Revisioned::require_annotations`
 * `Config::output_conflict_handling` is now `Error` instead of `Bless`
+* updated `prettydiff` from 0.6.4 to 0.7.0, which drops `ansi_term` and `winapi*` deps.
 
 ### Removed
 
