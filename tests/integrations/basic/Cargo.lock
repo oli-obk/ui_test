@@ -660,7 +660,6 @@ dependencies = [
  "serde",
  "serde_json",
  "spanned",
- "tempfile",
 ]
 
 [[package]]
