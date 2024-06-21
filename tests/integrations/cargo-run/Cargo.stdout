@@ -8,5 +8,5 @@ tests/actual_tests/matching_stdin.rs ... ok
 tests/actual_tests/mismatching_stdin.rs ... ok
 tests/actual_tests/no_stdin.rs ... ok
 
-test result: ok. 4 passed;
+test result: ok. 4 passed
 
