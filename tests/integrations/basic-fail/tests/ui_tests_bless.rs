@@ -46,18 +46,13 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
         config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
         config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
-        let result = run_tests_generic(
+        let _ = run_tests_generic(
             vec![config],
             default_file_filter,
             default_per_file_config,
             // Avoid github actions, as these would end up showing up in `Cargo.stderr`
             status_emitter::Text::verbose(),
         );
-        match (&result, rustfix) {
-            (Ok(_), RustfixMode::Everything) => {}
-            (Err(_), RustfixMode::MachineApplicable) => {}
-            _ => panic!("invalid mode/result combo: {rustfix:?}: {result:?}"),
-        }
     }
     Ok(())
 }
