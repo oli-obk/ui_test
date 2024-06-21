@@ -170,7 +170,7 @@ enum Msg {
 }
 
 impl Text {
-    fn start_thread() -> Sender<Msg> {
+    fn start_thread(progress: OutputVerbosity) -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded();
         std::thread::spawn(move || {
             let bars = MultiProgress::new();
@@ -238,29 +238,20 @@ impl Text {
                 assert!(progress.is_finished());
             }
         });
-        sender
+        Self { sender, progress }
     }
 
     /// Print one line per test that gets run.
     pub fn verbose() -> Self {
-        Self {
-            sender: Self::start_thread(),
-            progress: OutputVerbosity::Full,
-        }
+        Self::start_thread(OutputVerbosity::Full)
     }
     /// Print one line per test that gets run.
     pub fn diff() -> Self {
-        Self {
-            sender: Self::start_thread(),
-            progress: OutputVerbosity::DiffOnly,
-        }
+        Self::start_thread(OutputVerbosity::DiffOnly)
     }
     /// Print a progress bar.
     pub fn quiet() -> Self {
-        Self {
-            sender: Self::start_thread(),
-            progress: OutputVerbosity::Progress,
-        }
+        Self::start_thread(OutputVerbosity::Progress)
     }
 
     fn is_quiet_output(&self) -> bool {
