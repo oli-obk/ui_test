@@ -1,4 +1,5 @@
-use colored::*;
+use anstream::{print, println};
+use owo_colors::OwoColorize as _;
 use prettydiff::{basic::DiffOp, basic::DiffOp::*, diff_lines, diff_words};
 
 /// How many lines of context are displayed around the actual diffs
@@ -52,10 +53,12 @@ fn row(row: DiffOp<'_, &str>) {
 }
 
 fn print_line_diff(l: &str, r: &str) {
+    use supports_color::Stream;
+
     let diff = diff_words(l, r);
     let diff = diff.diff();
     if has_both_insertions_and_deletions(&diff)
-        || !colored::control::SHOULD_COLORIZE.should_colorize()
+        || !supports_color::on_cached(Stream::Stdout).map_or(false, |support| support.has_basic)
     {
         // The line both adds and removes chars, print both lines, but highlight their differences instead of
         // drawing the entire line in red/green.
