@@ -30,6 +30,7 @@ annotate-snippets = { version = "0.11.2" }
 levenshtein = "1.0.5"
 spanned = "0.2.1"
 supports-color = "3.0"
+anstream = { version = "0.6", default-features = false, features = ["auto"]}
 
 [dependencies.regex]
 version = "1.5.5"

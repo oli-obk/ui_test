@@ -1,10 +1,11 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
 use annotate_snippets::{Renderer, Snippet};
+use anstream::{print, println};
 use bstr::ByteSlice;
 use crossbeam_channel::{Sender, TryRecvError};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
-use owo_colors::OwoColorize;
+use owo_colors::OwoColorize as _;
 use spanned::Span;
 
 use crate::{

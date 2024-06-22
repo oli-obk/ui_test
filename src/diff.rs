@@ -1,4 +1,5 @@
-use owo_colors::OwoColorize;
+use anstream::{print, println};
+use owo_colors::OwoColorize as _;
 use prettydiff::{basic::DiffOp, basic::DiffOp::*, diff_lines, diff_words};
 
 /// How many lines of context are displayed around the actual diffs
