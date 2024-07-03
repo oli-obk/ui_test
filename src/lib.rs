@@ -321,27 +321,27 @@ fn parse_and_test_file(
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
-    Ok(revisions
-        .iter()
-        .map(|revision| {
-            let status = status.for_revision(revision);
-            // Ignore file if only/ignore rules do (not) apply
-            if !config.test_file_conditions(&comments, revision) {
-                return TestRun {
-                    result: Ok(TestOk::Ignored),
-                    status,
-                };
-            }
+    let mut runs = vec![];
+    for revision in revisions {
+        let status = status.for_revision(revision);
+        // Ignore file if only/ignore rules do (not) apply
+        if !config.test_file_conditions(&comments, revision) {
+            runs.push(TestRun {
+                result: Ok(TestOk::Ignored),
+                status,
+            });
+            continue;
+        }
 
-            let test_config = TestConfig {
-                config: config.clone(),
-                comments: &comments,
-                aux_dir: &status.path().parent().unwrap().join("auxiliary"),
-                status: &status,
-            };
+        let test_config = TestConfig {
+            config: config.clone(),
+            comments: &comments,
+            aux_dir: &status.path().parent().unwrap().join("auxiliary"),
+            status: &status,
+        };
 
-            let result = test_config.run_test(build_manager);
-            TestRun { result, status }
-        })
-        .collect())
+        let result = test_config.run_test(build_manager);
+        runs.push(TestRun { result, status })
+    }
+    Ok(runs)
 }
