@@ -5,7 +5,9 @@ use std::{
     process::{Command, Output},
 };
 
-use crate::{build_manager::BuildManager, per_test_config::TestConfig, Config, Errored};
+use crate::{
+    build_manager::BuildManager, per_test_config::TestConfig, test_result::TestRun, Config, Errored,
+};
 
 #[cfg(feature = "rustc")]
 pub mod run;
@@ -32,15 +34,15 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
     }
 
     /// Run an action after a test is finished.
-    /// Returns `false` if no action was taken.
+    /// Returns `None` if no action was taken.
     fn post_test_action(
         &self,
         _config: &TestConfig<'_>,
         _cmd: &mut Command,
         _output: &Output,
         _build_manager: &BuildManager<'_>,
-    ) -> Result<bool, Errored> {
-        Ok(false)
+    ) -> Result<Option<TestRun>, Errored> {
+        Ok(None)
     }
 
     /// Whether the flag gets overridden by the same flag in revisions.

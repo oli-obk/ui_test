@@ -109,10 +109,10 @@ impl Build for AuxBuilder {
             config,
             comments: &comments,
             aux_dir: self.aux_file.parent().unwrap(),
-            status: &SilentStatus {
+            status: Box::new(SilentStatus {
                 revision: String::new(),
                 path: self.aux_file.content.clone(),
-            },
+            }),
         };
 
         config.patch_out_dir();

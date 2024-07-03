@@ -11,7 +11,8 @@ use crate::{
     build_manager::BuildManager,
     parser::OptWithLine,
     per_test_config::{Comments, Revisioned, TestConfig},
-    Error, Errored,
+    test_result::TestRun,
+    Error, Errored, TestOk,
 };
 
 use super::Flag;
@@ -46,17 +47,15 @@ impl Flag for RustfixMode {
         _cmd: &mut Command,
         output: &Output,
         build_manager: &BuildManager<'_>,
-    ) -> Result<bool, Errored> {
+    ) -> Result<Option<TestRun>, Errored> {
         let global_rustfix = match config.exit_status()? {
             Some(Spanned {
                 content: 101 | 0, ..
             }) => RustfixMode::Disabled,
             _ => *self,
         };
-
         let output = output.clone();
         let no_run_rustfix = config.find_one_custom("no-rustfix")?;
-
         let fixed_code = (no_run_rustfix.is_none() && global_rustfix.enabled())
             .then_some(())
             .and_then(|()| {
@@ -130,12 +129,6 @@ impl Flag for RustfixMode {
             ))
             .collect(),
         };
-        let config = TestConfig {
-            config: config.config.clone(),
-            comments: &rustfix_comments,
-            aux_dir: config.aux_dir,
-            status: config.status,
-        };
 
         let run = fixed_code.is_some();
         let mut errors = vec![];
@@ -156,30 +149,38 @@ impl Flag for RustfixMode {
             .to_str()
             .unwrap()
             .replace('-', "_");
-        let config = TestConfig {
-            config: config.config,
-            comments: &rustfix_comments,
-            aux_dir: config.aux_dir,
-            status: &config.status.for_path(&rustfix_path),
-        };
+
         if !errors.is_empty() {
-            return Err(Errored {
-                command: format!("checking {}", config.status.path().display()),
-                errors,
-                stderr: vec![],
-                stdout: vec![],
-            });
+            return Ok(Some(TestRun {
+                result: Err(Errored {
+                    command: format!("checking {}", config.status.path().display()),
+                    errors,
+                    stderr: vec![],
+                    stdout: vec![],
+                }),
+                status: config.status.for_path(&rustfix_path),
+            }));
         }
 
         if !run {
-            return Ok(false);
+            return Ok(None);
         }
+
+        let config = TestConfig {
+            config: config.config.clone(),
+            comments: &rustfix_comments,
+            aux_dir: config.aux_dir,
+            status: config.status.for_path(&rustfix_path),
+        };
 
         let mut cmd = config.build_command(build_manager)?;
         cmd.arg("--crate-name").arg(crate_name);
         let output = cmd.output().unwrap();
         if output.status.success() {
-            Ok(false)
+            Ok(Some(TestRun {
+                result: Ok(TestOk::Ok),
+                status: config.status,
+            }))
         } else {
             let diagnostics = config.process(&output.stderr);
             Err(Errored {

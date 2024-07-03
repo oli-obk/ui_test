@@ -142,10 +142,10 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
         config,
         comments: &comments,
         aux_dir: &path.parent().unwrap().join("auxiliary"),
-        status: &SilentStatus {
+        status: Box::new(SilentStatus {
             revision: String::new(),
             path: path.to_path_buf(),
-        },
+        }),
     };
     let build_manager = BuildManager::new(&(), config.config.clone());
 
@@ -333,15 +333,18 @@ fn parse_and_test_file(
             continue;
         }
 
-        let test_config = TestConfig {
+        let mut test_config = TestConfig {
             config: config.clone(),
             comments: &comments,
             aux_dir: &status.path().parent().unwrap().join("auxiliary"),
-            status: &status,
+            status,
         };
 
-        let result = test_config.run_test(build_manager);
-        runs.push(TestRun { result, status })
+        let result = test_config.run_test(build_manager, &mut runs);
+        runs.push(TestRun {
+            result,
+            status: test_config.status,
+        })
     }
     Ok(runs)
 }

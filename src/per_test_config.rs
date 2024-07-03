@@ -18,7 +18,7 @@ use crate::diagnostics::{Diagnostics, Message};
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::TestStatus;
-use crate::test_result::{Errored, TestOk, TestResult};
+use crate::test_result::{Errored, TestOk, TestResult, TestRun};
 use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling};
 
 /// All information needed to run a single test
@@ -29,7 +29,7 @@ pub struct TestConfig<'a> {
     /// The path to the folder where to look for aux files
     pub aux_dir: &'a Path,
     /// When doing long-running operations, you can inform the user about it here.
-    pub status: &'a dyn TestStatus,
+    pub status: Box<dyn TestStatus>,
 }
 
 impl TestConfig<'_> {
@@ -400,7 +400,11 @@ impl TestConfig<'_> {
         Ok(())
     }
 
-    pub(crate) fn run_test(mut self, build_manager: &BuildManager<'_>) -> TestResult {
+    pub(crate) fn run_test(
+        &mut self,
+        build_manager: &BuildManager<'_>,
+        runs: &mut Vec<TestRun>,
+    ) -> TestResult {
         self.patch_out_dir();
 
         let mut cmd = self.build_command(build_manager)?;
@@ -416,7 +420,10 @@ impl TestConfig<'_> {
         for rev in self.comments() {
             for custom in rev.custom.values() {
                 for flag in &custom.content {
-                    if flag.post_test_action(&self, &mut cmd, &output, build_manager)? {
+                    if let Some(result) =
+                        flag.post_test_action(self, &mut cmd, &output, build_manager)?
+                    {
+                        runs.push(result);
                         return Ok(TestOk::Ok);
                     }
                 }

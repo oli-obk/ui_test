@@ -7,7 +7,10 @@ use std::{
     process::{Command, Output},
 };
 
-use crate::{build_manager::BuildManager, per_test_config::TestConfig, Error, Errored};
+use crate::{
+    build_manager::BuildManager, per_test_config::TestConfig, test_result::TestRun, Error, Errored,
+    TestOk,
+};
 
 use super::Flag;
 
@@ -30,14 +33,14 @@ impl Flag for Run {
         cmd: &mut Command,
         _output: &Output,
         _build_manager: &BuildManager<'_>,
-    ) -> Result<bool, Errored> {
+    ) -> Result<Option<TestRun>, Errored> {
         let exit_code = self.exit_code;
         let revision = config.extension("run");
         let config = TestConfig {
             config: config.config.clone(),
             comments: config.comments,
             aux_dir: config.aux_dir,
-            status: &config.status.for_revision(&revision),
+            status: config.status.for_revision(&revision),
         };
         cmd.arg("--print").arg("file-names");
         let output = cmd.output().unwrap();
@@ -77,16 +80,19 @@ impl Flag for Run {
                 },
             })
         }
-        if errors.is_empty() {
-            Ok(true)
-        } else {
-            Err(Errored {
-                command: format!("{exe:?}"),
-                errors,
-                stderr: output.stderr,
-                stdout: output.stdout,
-            })
-        }
+        Ok(Some(TestRun {
+            result: if errors.is_empty() {
+                Ok(TestOk::Ok)
+            } else {
+                Err(Errored {
+                    command: format!("{exe:?}"),
+                    errors,
+                    stderr: output.stderr,
+                    stdout: output.stdout,
+                })
+            },
+            status: config.status,
+        }))
     }
 }
 

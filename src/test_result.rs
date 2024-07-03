@@ -39,7 +39,10 @@ impl Errored {
     }
 }
 
-pub(crate) struct TestRun {
-    pub(crate) result: TestResult,
-    pub(crate) status: Box<dyn TestStatus>,
+/// Result of an actual test or sub-test (revision, fixed, run, ...) including its status.
+pub struct TestRun {
+    /// Actual test run output.
+    pub result: TestResult,
+    /// Usually created via `for_revsion` or `for_path`
+    pub status: Box<dyn TestStatus>,
 }
