@@ -246,7 +246,7 @@ pub fn run_tests_generic(
                     Err(err) => {
                         finished_files_sender.send(TestRun {
                             result: Err(Errored {
-                                command: Command::new("<unknown>"),
+                                command: "<unknown>".into(),
                                 errors: vec![Error::Bug(
                                     *Box::<dyn std::any::Any + Send + 'static>::downcast::<String>(
                                         err,

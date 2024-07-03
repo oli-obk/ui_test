@@ -21,7 +21,6 @@ use std::{
     num::NonZeroUsize,
     panic::{AssertUnwindSafe, RefUnwindSafe},
     path::{Path, PathBuf},
-    process::Command,
     sync::{atomic::AtomicBool, Arc},
     thread::JoinHandle,
     time::Duration,
@@ -56,7 +55,7 @@ pub trait TestStatus: Send + Sync + RefUnwindSafe {
     /// gets invoked afterwards.
     fn failed_test<'a>(
         &'a self,
-        cmd: &'a Command,
+        cmd: &'a str,
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a>;
@@ -128,7 +127,7 @@ impl TestStatus for SilentStatus {
 
     fn failed_test<'a>(
         &'a self,
-        _cmd: &'a Command,
+        _cmd: &'a str,
         _stderr: &'a [u8],
         _stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
@@ -336,7 +335,7 @@ impl TestStatus for TextTest {
 
     fn failed_test<'a>(
         &self,
-        cmd: &Command,
+        cmd: &str,
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
@@ -344,7 +343,7 @@ impl TestStatus for TextTest {
 
         println!();
         println!("{}", text.bold().underline());
-        println!("command: {cmd:?}");
+        println!("command: {cmd}");
         println!();
 
         if self.text.is_full_output() {
@@ -959,7 +958,7 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
         })
     }
 
-    fn failed_test(&self, _cmd: &Command, _stderr: &[u8], _stdout: &[u8]) -> Box<dyn Debug> {
+    fn failed_test(&self, _cmd: &str, _stderr: &[u8], _stdout: &[u8]) -> Box<dyn Debug> {
         if GROUP {
             Box::new(github_actions::group(format_args!(
                 "{}:{}",
@@ -1056,7 +1055,7 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
 
     fn failed_test<'a>(
         &'a self,
-        cmd: &'a Command,
+        cmd: &'a str,
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
@@ -1137,7 +1136,7 @@ impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
 
     fn failed_test<'a>(
         &'a self,
-        cmd: &'a Command,
+        cmd: &'a str,
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {

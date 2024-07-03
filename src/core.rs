@@ -14,15 +14,15 @@ use std::process::Command;
 use std::process::Output;
 use std::thread;
 
-pub(crate) fn run_command(mut cmd: Command) -> Result<(Command, Output), Errored> {
+pub(crate) fn run_command(cmd: &mut Command) -> Result<Output, Errored> {
     match cmd.output() {
         Err(err) => Err(Errored {
             errors: vec![],
             stderr: err.to_string().into_bytes(),
             stdout: format!("could not spawn `{:?}` as a process", cmd.get_program()).into_bytes(),
-            command: cmd,
+            command: format!("{cmd:?}"),
         }),
-        Ok(output) => Ok((cmd, output)),
+        Ok(output) => Ok(output),
     }
 }
 

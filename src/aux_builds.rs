@@ -40,10 +40,7 @@ impl Flag for AuxBuilder {
                 aux_file: Spanned::new(
                     crate::core::strip_path_prefix(
                         &aux_file.canonicalize().map_err(|err| Errored {
-                            command: Command::new(format!(
-                                "canonicalizing path `{}`",
-                                aux_file.display()
-                            )),
+                            command: format!("canonicalizing path `{}`", aux_file.display()),
                             errors: vec![],
                             stderr: err.to_string().into_bytes(),
                             stdout: vec![],
@@ -88,7 +85,7 @@ impl Build for AuxBuilder {
     fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
         let mut config = build_manager.config().clone();
         let file_contents = std::fs::read(&self.aux_file.content).map_err(|err| Errored {
-            command: Command::new(format!("reading aux file `{}`", self.aux_file.display())),
+            command: format!("reading aux file `{}`", self.aux_file.display()),
             errors: vec![],
             stderr: err.to_string().into_bytes(),
             stdout: vec![],
@@ -131,7 +128,7 @@ impl Build for AuxBuilder {
                 status: output.status,
             };
             return Err(Errored {
-                command: aux_cmd,
+                command: format!("{aux_cmd:?}"),
                 errors: vec![error],
                 stderr: config.process(&output.stderr).rendered,
                 stdout: output.stdout,

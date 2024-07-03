@@ -27,11 +27,10 @@ impl Flag for Run {
     fn post_test_action(
         &self,
         config: &TestConfig<'_>,
-        cmd: Command,
+        cmd: &mut Command,
         _output: &Output,
         _build_manager: &BuildManager<'_>,
-    ) -> Result<Option<Command>, Errored> {
-        let mut cmd = cmd;
+    ) -> Result<bool, Errored> {
         let exit_code = self.exit_code;
         let revision = config.extension("run");
         let config = TestConfig {
@@ -79,10 +78,10 @@ impl Flag for Run {
             })
         }
         if errors.is_empty() {
-            Ok(None)
+            Ok(true)
         } else {
             Err(Errored {
-                command: exe,
+                command: format!("{exe:?}"),
                 errors,
                 stderr: output.stderr,
                 stdout: output.stdout,

@@ -42,7 +42,7 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>, Errored> {
         Ok(o) => o,
         Err(e) => {
             return Err(Errored {
-                command: cmd,
+                command: format!("{cmd:?}"),
                 stderr: e.to_string().into_bytes(),
                 stdout: vec![],
                 errors: vec![],
@@ -52,7 +52,7 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>, Errored> {
 
     if !output.status.success() {
         return Err(Errored {
-            command: cmd,
+            command: format!("{cmd:?}"),
             stderr: output.stderr,
             stdout: output.stdout,
             errors: vec![],
@@ -61,14 +61,14 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>, Errored> {
     let mut cfgs = vec![];
 
     let stdout = String::from_utf8(output.stdout).map_err(|e| Errored {
-        command: Command::new("processing cfg information from rustc as utf8"),
+        command: "processing cfg information from rustc as utf8".into(),
         errors: vec![],
         stderr: e.to_string().into_bytes(),
         stdout: vec![],
     })?;
     for line in stdout.lines() {
         cfgs.push(Cfg::from_str(line).map_err(|e| Errored {
-            command: Command::new("parsing cfgs from rustc output"),
+            command: "parsing cfgs from rustc output".into(),
             errors: vec![],
             stderr: e.to_string().into_bytes(),
             stdout: vec![],
@@ -111,7 +111,7 @@ fn build_dependencies_inner(
     let output = match build.output() {
         Err(e) => {
             return Err(Errored {
-                command: build,
+                command: format!("{build:?}"),
                 stderr: e.to_string().into_bytes(),
                 stdout: vec![],
                 errors: vec![],
@@ -152,7 +152,7 @@ fn build_dependencies_inner(
             )
             .collect();
         return Err(Errored {
-            command: build,
+            command: format!("{build:?}"),
             stderr: output.stderr,
             stdout,
             errors: vec![],
@@ -217,7 +217,7 @@ fn build_dependencies_inner(
     let output = match metadata.output() {
         Err(e) => {
             return Err(Errored {
-                command: metadata,
+                command: format!("{metadata:?}"),
                 errors: vec![],
                 stderr: e.to_string().into_bytes(),
                 stdout: vec![],
@@ -228,7 +228,7 @@ fn build_dependencies_inner(
 
     if !output.status.success() {
         return Err(Errored {
-            command: metadata,
+            command: format!("{metadata:?}"),
             stderr: output.stderr,
             stdout: output.stdout,
             errors: vec![],
@@ -245,7 +245,7 @@ fn build_dependencies_inner(
         }
         let metadata: cargo_metadata::Metadata =
             serde_json::from_slice(line).map_err(|err| Errored {
-                command: Command::new("decoding cargo metadata json"),
+                command: "decoding cargo metadata json".into(),
                 errors: vec![],
                 stderr: err.to_string().into_bytes(),
                 stdout: vec![],
@@ -297,7 +297,7 @@ fn build_dependencies_inner(
                 match artifacts.remove(id) {
                     Some(Ok((_, artifacts))) => Some(Ok((name.replace('-', "_"), artifacts))),
                     Some(Err(what)) => Some(Err(Errored {
-                        command: Command::new(what),
+                        command: what,
                         errors: vec![],
                         stderr: id.to_string().into_bytes(),
                         stdout: "`ui_test` does not support crates that appear as both build-dependencies and core dependencies".as_bytes().into(),
@@ -347,7 +347,7 @@ fn build_dependencies_inner(
     }
 
     Err(Errored {
-        command: Command::new("looking for json in cargo-metadata output"),
+        command: "looking for json in cargo-metadata output".into(),
         errors: vec![],
         stderr: vec![],
         stdout: vec![],

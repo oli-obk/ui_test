@@ -43,10 +43,10 @@ impl Flag for RustfixMode {
     fn post_test_action(
         &self,
         config: &TestConfig<'_>,
-        cmd: Command,
+        _cmd: &mut Command,
         output: &Output,
         build_manager: &BuildManager<'_>,
-    ) -> Result<Option<Command>, Errored> {
+    ) -> Result<bool, Errored> {
         let global_rustfix = match config.exit_status()? {
             Some(Spanned {
                 content: 101 | 0, ..
@@ -100,7 +100,7 @@ impl Flag for RustfixMode {
             })
             .transpose()
             .map_err(|err| Errored {
-                command: Command::new(format!("rustfix {}", config.status.path().display())),
+                command: format!("rustfix {}", config.status.path().display()),
                 errors: vec![Error::Rustfix(err)],
                 stderr: output.stderr,
                 stdout: output.stdout,
@@ -164,7 +164,7 @@ impl Flag for RustfixMode {
         };
         if !errors.is_empty() {
             return Err(Errored {
-                command: Command::new(format!("checking {}", config.status.path().display())),
+                command: format!("checking {}", config.status.path().display()),
                 errors,
                 stderr: vec![],
                 stdout: vec![],
@@ -172,18 +172,18 @@ impl Flag for RustfixMode {
         }
 
         if !run {
-            return Ok(Some(cmd));
+            return Ok(false);
         }
 
         let mut cmd = config.build_command(build_manager)?;
         cmd.arg("--crate-name").arg(crate_name);
         let output = cmd.output().unwrap();
         if output.status.success() {
-            Ok(None)
+            Ok(false)
         } else {
             let diagnostics = config.process(&output.stderr);
             Err(Errored {
-                command: cmd,
+                command: format!("{cmd:?}"),
                 errors: vec![Error::ExitStatus {
                     expected: 0,
                     status: output.status,

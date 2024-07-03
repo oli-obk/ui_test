@@ -3,7 +3,6 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
     ffi::OsString,
-    process::Command,
     sync::{Arc, OnceLock, RwLock},
 };
 
@@ -52,7 +51,7 @@ impl<'a> BuildManager<'a> {
             .and_then(|o| o.get())
         {
             return res.clone().map_err(|()| Errored {
-                command: Command::new(format!("{description:?}")),
+                command: format!("{description:?}"),
                 errors: vec![],
                 stderr: b"previous build failed".to_vec(),
                 stdout: vec![],
@@ -63,7 +62,7 @@ impl<'a> BuildManager<'a> {
             Entry::Occupied(entry) => {
                 if let Some(res) = entry.get().get() {
                     return res.clone().map_err(|()| Errored {
-                        command: Command::new(format!("{:?}", what.description())),
+                        command: format!("{:?}", what.description()),
                         errors: vec![],
                         stderr: b"previous build failed".to_vec(),
                         stdout: vec![],
@@ -90,7 +89,7 @@ impl<'a> BuildManager<'a> {
                 &res.as_ref()
                     .map(|_| crate::test_result::TestOk::Ok)
                     .map_err(|()| Errored {
-                        command: Command::new(what.description()),
+                        command: what.description(),
                         errors: vec![],
                         stderr: vec![],
                         stdout: vec![],
@@ -101,7 +100,7 @@ impl<'a> BuildManager<'a> {
         .clone()
         .map_err(|()| {
             err.unwrap_or_else(|| Errored {
-                command: Command::new(what.description()),
+                command: what.description(),
                 errors: vec![],
                 stderr: b"previous build failed".to_vec(),
                 stdout: vec![],

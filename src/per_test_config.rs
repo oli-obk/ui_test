@@ -220,11 +220,7 @@ impl TestConfig<'_> {
         (self.config.diagnostic_extractor)(self.status.path(), stderr)
     }
 
-    fn check_test_result(
-        &self,
-        command: Command,
-        output: Output,
-    ) -> Result<(Command, Output), Errored> {
+    fn check_test_result(&self, command: &Command, output: Output) -> Result<Output, Errored> {
         let mut errors = vec![];
         errors.extend(self.ok(output.status)?);
         // Always remove annotation comments from stderr.
@@ -237,10 +233,10 @@ impl TestConfig<'_> {
             &mut errors,
         )?;
         if errors.is_empty() {
-            Ok((command, output))
+            Ok(output)
         } else {
             Err(Errored {
-                command,
+                command: format!("{command:?}"),
                 errors,
                 stderr: diagnostics.rendered,
                 stdout: output.stdout,
@@ -413,16 +409,14 @@ impl TestConfig<'_> {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
         }
 
-        let (cmd, output) = crate::core::run_command(cmd)?;
+        let output = crate::core::run_command(&mut cmd)?;
 
-        let (mut cmd, output) = self.check_test_result(cmd, output)?;
+        let output = self.check_test_result(&cmd, output)?;
 
         for rev in self.comments() {
             for custom in rev.custom.values() {
                 for flag in &custom.content {
-                    if let Some(c) = flag.post_test_action(&self, cmd, &output, build_manager)? {
-                        cmd = c;
-                    } else {
+                    if flag.post_test_action(&self, &mut cmd, &output, build_manager)? {
                         return Ok(TestOk::Ok);
                     }
                 }

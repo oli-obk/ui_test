@@ -32,15 +32,15 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
     }
 
     /// Run an action after a test is finished.
-    /// Returns the `cmd` back if no action was taken.
+    /// Returns `false` if no action was taken.
     fn post_test_action(
         &self,
         _config: &TestConfig<'_>,
-        cmd: Command,
+        _cmd: &mut Command,
         _output: &Output,
         _build_manager: &BuildManager<'_>,
-    ) -> Result<Option<Command>, Errored> {
-        Ok(Some(cmd))
+    ) -> Result<bool, Errored> {
+        Ok(false)
     }
 
     /// Whether the flag gets overridden by the same flag in revisions.
