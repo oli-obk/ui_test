@@ -8,8 +8,8 @@ use std::{
 };
 
 use crate::{
-    build_manager::BuildManager, per_test_config::TestConfig, test_result::TestRun, Error, Errored,
-    TestOk,
+    build_manager::BuildManager, display, per_test_config::TestConfig, test_result::TestRun, Error,
+    Errored, TestOk,
 };
 
 use super::Flag;
@@ -61,7 +61,7 @@ impl Flag for Run {
         }
         let output = exe
             .output()
-            .unwrap_or_else(|err| panic!("exe file: {}: {err}", exe_file.display()));
+            .unwrap_or_else(|err| panic!("exe file: {}: {err}", display(&exe_file)));
 
         let mut errors = vec![];
 

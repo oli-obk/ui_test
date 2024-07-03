@@ -6,6 +6,8 @@ use regex::bytes::{Captures, Regex};
 use std::borrow::Cow;
 use std::path::Path;
 
+use crate::display;
+
 /// A filter's match rule.
 #[derive(Clone, Debug)]
 pub enum Match {
@@ -47,20 +49,12 @@ impl Match {
 
 impl From<&'_ Path> for Match {
     fn from(v: &Path) -> Self {
-        let mut v = v.display().to_string();
+        let mut v = display(v);
         // Normalize away windows canonicalized paths.
-        if v.starts_with(r"\\?\") {
+        if v.starts_with(r"//?/") {
             v.drain(0..4);
         }
-        let mut v = v.into_bytes();
-        // Normalize paths on windows to use slashes instead of backslashes,
-        // So that paths are rendered the same on all systems.
-        for c in &mut v {
-            if *c == b'\\' {
-                *c = b'/';
-            }
-        }
-        Self::Exact(v)
+        Self::Exact(v.into_bytes())
     }
 }
 

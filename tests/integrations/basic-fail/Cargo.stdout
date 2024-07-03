@@ -518,7 +518,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/aux_build_not_found.rs
-command: canonicalizing path `tests/actual_tests_bless\auxiliary\aasdflkjasdlfjasdlfkjasdf`
+command: canonicalizing path `tests/actual_tests_bless/auxiliary/aasdflkjasdlfjasdlfkjasdf`
 
 full stderr:
 No such file or directory

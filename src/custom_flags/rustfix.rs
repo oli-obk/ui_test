@@ -9,6 +9,7 @@ use spanned::{Span, Spanned};
 
 use crate::{
     build_manager::BuildManager,
+    display,
     parser::OptWithLine,
     per_test_config::{Comments, Revisioned, TestConfig},
     test_result::TestRun,
@@ -83,11 +84,12 @@ impl Flag for RustfixMode {
                 if suggestions.is_empty() {
                     None
                 } else {
-                    let path_str = config.status.path().display().to_string();
+                    let path_str = display(config.status.path());
                     for sugg in &suggestions {
                         for snip in &sugg.snippets {
-                            if snip.file_name != path_str {
-                                return Some(Err(anyhow::anyhow!("cannot apply suggestions for `{}` since main file is `{path_str}`. Please use `//@no-rustfix` to disable rustfix", snip.file_name)));
+                            let file_name = snip.file_name.replace('\\', "/");
+                            if file_name != path_str {
+                                return Some(Err(anyhow::anyhow!("cannot apply suggestions for `{file_name}` since main file is `{path_str}`. Please use `//@no-rustfix` to disable rustfix")));
                             }
                         }
                     }
@@ -99,7 +101,7 @@ impl Flag for RustfixMode {
             })
             .transpose()
             .map_err(|err| Errored {
-                command: format!("rustfix {}", config.status.path().display()),
+                command: format!("rustfix {}", display(config.status.path())),
                 errors: vec![Error::Rustfix(err)],
                 stderr: output.stderr,
                 stdout: output.stdout,
@@ -153,7 +155,7 @@ impl Flag for RustfixMode {
         if !errors.is_empty() {
             return Ok(Some(TestRun {
                 result: Err(Errored {
-                    command: format!("checking {}", config.status.path().display()),
+                    command: format!("checking {}", display(config.status.path())),
                     errors,
                     stderr: vec![],
                     stdout: vec![],

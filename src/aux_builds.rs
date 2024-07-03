@@ -8,7 +8,7 @@ use std::{ffi::OsString, path::PathBuf, process::Command};
 use crate::{
     build_manager::{Build, BuildManager},
     custom_flags::Flag,
-    default_per_file_config,
+    default_per_file_config, display,
     per_test_config::{Comments, TestConfig},
     status_emitter::SilentStatus,
     CrateType, Error, Errored,
@@ -40,7 +40,7 @@ impl Flag for AuxBuilder {
                 aux_file: Spanned::new(
                     crate::core::strip_path_prefix(
                         &aux_file.canonicalize().map_err(|err| Errored {
-                            command: format!("canonicalizing path `{}`", aux_file.display()),
+                            command: format!("canonicalizing path `{}`", display(&aux_file)),
                             errors: vec![],
                             stderr: err.to_string().into_bytes(),
                             stdout: vec![],
@@ -85,7 +85,7 @@ impl Build for AuxBuilder {
     fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
         let mut config = build_manager.config().clone();
         let file_contents = std::fs::read(&self.aux_file.content).map_err(|err| Errored {
-            command: format!("reading aux file `{}`", self.aux_file.display()),
+            command: format!("reading aux file `{}`", display(&self.aux_file)),
             errors: vec![],
             stderr: err.to_string().into_bytes(),
             stdout: vec![],
@@ -158,6 +158,6 @@ impl Build for AuxBuilder {
     }
 
     fn description(&self) -> String {
-        format!("Building aux file {}", self.aux_file.display())
+        format!("Building aux file {}", display(&self.aux_file))
     }
 }

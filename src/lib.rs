@@ -63,10 +63,13 @@ pub use spanned;
 pub fn run_tests(mut config: Config) -> Result<()> {
     let args = Args::test()?;
     if let Format::Pretty = args.format {
-        println!("Compiler: {}", config.program.display());
+        println!(
+            "Compiler: {}",
+            config.program.display().to_string().replace('\\', "/")
+        );
     }
 
-    let name = config.root_dir.display().to_string();
+    let name = display(&config.root_dir);
 
     let text = match args.format {
         Format::Terse => status_emitter::Text::quiet(),
@@ -95,7 +98,7 @@ pub fn default_file_filter(path: &Path, config: &Config) -> Option<bool> {
 ///
 /// To only include rust files see [`default_file_filter`].
 pub fn default_any_file_filter(path: &Path, config: &Config) -> bool {
-    let path = path.display().to_string();
+    let path = display(path);
     let contains_path = |files: &[String]| {
         files.iter().any(|f| {
             if config.filter_exact {
@@ -135,7 +138,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
 
     let content =
-        std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
+        std::fs::read(path).wrap_err_with(|| format!("failed to read {}", display(path)))?;
     let comments = Comments::parse(&content, &config, path)
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
@@ -347,4 +350,8 @@ fn parse_and_test_file(
         })
     }
     Ok(runs)
+}
+
+fn display(path: &Path) -> String {
+    path.display().to_string().replace('\\', "/")
 }
