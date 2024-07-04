@@ -9,9 +9,11 @@ use spanned::{Span, Spanned};
 
 use crate::{
     build_manager::BuildManager,
+    display,
     parser::OptWithLine,
     per_test_config::{Comments, Revisioned, TestConfig},
-    Error, Errored,
+    test_result::TestRun,
+    Error, Errored, TestOk,
 };
 
 use super::Flag;
@@ -43,20 +45,18 @@ impl Flag for RustfixMode {
     fn post_test_action(
         &self,
         config: &TestConfig<'_>,
-        cmd: Command,
+        _cmd: &mut Command,
         output: &Output,
         build_manager: &BuildManager<'_>,
-    ) -> Result<Option<Command>, Errored> {
+    ) -> Result<Option<TestRun>, Errored> {
         let global_rustfix = match config.exit_status()? {
             Some(Spanned {
                 content: 101 | 0, ..
             }) => RustfixMode::Disabled,
             _ => *self,
         };
-
         let output = output.clone();
         let no_run_rustfix = config.find_one_custom("no-rustfix")?;
-
         let fixed_code = (no_run_rustfix.is_none() && global_rustfix.enabled())
             .then_some(())
             .and_then(|()| {
@@ -84,11 +84,12 @@ impl Flag for RustfixMode {
                 if suggestions.is_empty() {
                     None
                 } else {
-                    let path_str = config.status.path().display().to_string();
+                    let path_str = display(config.status.path());
                     for sugg in &suggestions {
                         for snip in &sugg.snippets {
-                            if snip.file_name != path_str {
-                                return Some(Err(anyhow::anyhow!("cannot apply suggestions for `{}` since main file is `{path_str}`. Please use `//@no-rustfix` to disable rustfix", snip.file_name)));
+                            let file_name = snip.file_name.replace('\\', "/");
+                            if file_name != path_str {
+                                return Some(Err(anyhow::anyhow!("cannot apply suggestions for `{file_name}` since main file is `{path_str}`. Please use `//@no-rustfix` to disable rustfix")));
                             }
                         }
                     }
@@ -100,7 +101,7 @@ impl Flag for RustfixMode {
             })
             .transpose()
             .map_err(|err| Errored {
-                command: Command::new(format!("rustfix {}", config.status.path().display())),
+                command: format!("rustfix {}", display(config.status.path())),
                 errors: vec![Error::Rustfix(err)],
                 stderr: output.stderr,
                 stdout: output.stdout,
@@ -130,12 +131,6 @@ impl Flag for RustfixMode {
             ))
             .collect(),
         };
-        let config = TestConfig {
-            config: config.config.clone(),
-            comments: &rustfix_comments,
-            aux_dir: config.aux_dir,
-            status: config.status,
-        };
 
         let run = fixed_code.is_some();
         let mut errors = vec![];
@@ -156,34 +151,42 @@ impl Flag for RustfixMode {
             .to_str()
             .unwrap()
             .replace('-', "_");
-        let config = TestConfig {
-            config: config.config,
-            comments: &rustfix_comments,
-            aux_dir: config.aux_dir,
-            status: &config.status.for_path(&rustfix_path),
-        };
+
         if !errors.is_empty() {
-            return Err(Errored {
-                command: Command::new(format!("checking {}", config.status.path().display())),
-                errors,
-                stderr: vec![],
-                stdout: vec![],
-            });
+            return Ok(Some(TestRun {
+                result: Err(Errored {
+                    command: format!("checking {}", display(config.status.path())),
+                    errors,
+                    stderr: vec![],
+                    stdout: vec![],
+                }),
+                status: config.status.for_path(&rustfix_path),
+            }));
         }
 
         if !run {
-            return Ok(Some(cmd));
+            return Ok(None);
         }
+
+        let config = TestConfig {
+            config: config.config.clone(),
+            comments: &rustfix_comments,
+            aux_dir: config.aux_dir,
+            status: config.status.for_path(&rustfix_path),
+        };
 
         let mut cmd = config.build_command(build_manager)?;
         cmd.arg("--crate-name").arg(crate_name);
         let output = cmd.output().unwrap();
         if output.status.success() {
-            Ok(None)
+            Ok(Some(TestRun {
+                result: Ok(TestOk::Ok),
+                status: config.status,
+            }))
         } else {
             let diagnostics = config.process(&output.stderr);
             Err(Errored {
-                command: cmd,
+                command: format!("{cmd:?}"),
                 errors: vec![Error::ExitStatus {
                     expected: 0,
                     status: output.status,

@@ -18,7 +18,7 @@ use crate::diagnostics::{Diagnostics, Message};
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::TestStatus;
-use crate::test_result::{Errored, TestOk, TestResult};
+use crate::test_result::{Errored, TestOk, TestResult, TestRun};
 use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling};
 
 /// All information needed to run a single test
@@ -29,7 +29,7 @@ pub struct TestConfig<'a> {
     /// The path to the folder where to look for aux files
     pub aux_dir: &'a Path,
     /// When doing long-running operations, you can inform the user about it here.
-    pub status: &'a dyn TestStatus,
+    pub status: Box<dyn TestStatus>,
 }
 
 impl TestConfig<'_> {
@@ -220,11 +220,7 @@ impl TestConfig<'_> {
         (self.config.diagnostic_extractor)(self.status.path(), stderr)
     }
 
-    fn check_test_result(
-        &self,
-        command: Command,
-        output: Output,
-    ) -> Result<(Command, Output), Errored> {
+    fn check_test_result(&self, command: &Command, output: Output) -> Result<Output, Errored> {
         let mut errors = vec![];
         errors.extend(self.ok(output.status)?);
         // Always remove annotation comments from stderr.
@@ -237,10 +233,10 @@ impl TestConfig<'_> {
             &mut errors,
         )?;
         if errors.is_empty() {
-            Ok((command, output))
+            Ok(output)
         } else {
             Err(Errored {
-                command,
+                command: format!("{command:?}"),
                 errors,
                 stderr: diagnostics.rendered,
                 stdout: output.stdout,
@@ -404,7 +400,11 @@ impl TestConfig<'_> {
         Ok(())
     }
 
-    pub(crate) fn run_test(mut self, build_manager: &BuildManager<'_>) -> TestResult {
+    pub(crate) fn run_test(
+        &mut self,
+        build_manager: &BuildManager<'_>,
+        runs: &mut Vec<TestRun>,
+    ) -> TestResult {
         self.patch_out_dir();
 
         let mut cmd = self.build_command(build_manager)?;
@@ -413,16 +413,17 @@ impl TestConfig<'_> {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
         }
 
-        let (cmd, output) = crate::core::run_command(cmd)?;
+        let output = crate::core::run_command(&mut cmd)?;
 
-        let (mut cmd, output) = self.check_test_result(cmd, output)?;
+        let output = self.check_test_result(&cmd, output)?;
 
         for rev in self.comments() {
             for custom in rev.custom.values() {
                 for flag in &custom.content {
-                    if let Some(c) = flag.post_test_action(&self, cmd, &output, build_manager)? {
-                        cmd = c;
-                    } else {
+                    if let Some(result) =
+                        flag.post_test_action(self, &mut cmd, &output, build_manager)?
+                    {
+                        runs.push(result);
                         return Ok(TestOk::Ok);
                     }
                 }

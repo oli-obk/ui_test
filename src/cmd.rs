@@ -4,6 +4,8 @@ use std::{
     process::Command,
 };
 
+use crate::display;
+
 #[derive(Debug, Clone)]
 /// A command, its args and its environment. Used for
 /// the main command, the dependency builder and the cfg-reader.
@@ -81,7 +83,7 @@ impl CommandBuilder {
                         write!(f, "{var:?}={val:?} ")?;
                     }
                 }
-                self.0.program.display().fmt(f)?;
+                display(&self.0.program).fmt(f)?;
                 for arg in &self.0.args {
                     write!(f, " {arg:?}")?;
                 }

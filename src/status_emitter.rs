@@ -9,7 +9,7 @@ use spanned::Span;
 
 use crate::{
     diagnostics::{Level, Message},
-    github_actions,
+    display, github_actions,
     parser::Pattern,
     test_result::{Errored, TestOk, TestResult},
     Error, Errors, Format,
@@ -21,7 +21,6 @@ use std::{
     num::NonZeroUsize,
     panic::{AssertUnwindSafe, RefUnwindSafe},
     path::{Path, PathBuf},
-    process::Command,
     sync::{atomic::AtomicBool, Arc},
     thread::JoinHandle,
     time::Duration,
@@ -56,7 +55,7 @@ pub trait TestStatus: Send + Sync + RefUnwindSafe {
     /// gets invoked afterwards.
     fn failed_test<'a>(
         &'a self,
-        cmd: &'a Command,
+        cmd: &'a str,
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a>;
@@ -128,7 +127,7 @@ impl TestStatus for SilentStatus {
 
     fn failed_test<'a>(
         &'a self,
-        _cmd: &'a Command,
+        _cmd: &'a str,
         _stderr: &'a [u8],
         _stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
@@ -301,9 +300,9 @@ impl TextTest {
     /// Prints the user-visible name for this test.
     fn msg(&self) -> String {
         if self.revision.is_empty() {
-            self.path.display().to_string()
+            display(&self.path)
         } else {
-            format!("{} (revision `{}`)", self.path.display(), self.revision)
+            format!("{} (revision `{}`)", display(&self.path), self.revision)
         }
     }
 }
@@ -336,7 +335,7 @@ impl TestStatus for TextTest {
 
     fn failed_test<'a>(
         &self,
-        cmd: &Command,
+        cmd: &str,
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
@@ -344,7 +343,7 @@ impl TestStatus for TextTest {
 
         println!();
         println!("{}", text.bold().underline());
-        println!("command: {cmd:?}");
+        println!("command: {cmd}");
         println!();
 
         if self.text.is_full_output() {
@@ -467,11 +466,11 @@ impl StatusEmitter for Text {
                     }
 
                     self.failures.push(if status.revision().is_empty() {
-                        format!("    {}", status.path().display())
+                        format!("    {}", display(status.path()))
                     } else {
                         format!(
                             "    {} (revision {})",
-                            status.path().display(),
+                            display(status.path()),
                             status.revision()
                         )
                     });
@@ -605,10 +604,10 @@ fn print_error(error: &Error, path: &Path) {
                 println!(
                     "Execute `{}` to update `{}` to the actual output",
                     bless_command,
-                    output_path.display()
+                    display(output_path)
                 );
             }
-            println!("{}", format!("--- {}", output_path.display()).red());
+            println!("{}", format!("--- {}", display(output_path)).red());
             println!(
                 "{}",
                 format!(
@@ -689,7 +688,7 @@ fn print_error(error: &Error, path: &Path) {
         } => {
             print_error_header(format_args!(
                 "aux build from {}:{line} failed",
-                path.display()
+                display(path)
             ));
             for error in errors {
                 print_error(error, aux_path);
@@ -698,7 +697,7 @@ fn print_error(error: &Error, path: &Path) {
         Error::Rustfix(error) => {
             print_error_header(format_args!(
                 "failed to apply suggestions for {} with rustfix",
-                path.display()
+                display(path)
             ));
             println!("{error}");
             println!("Add //@no-rustfix to the test file to ignore rustfix suggestions");
@@ -716,7 +715,7 @@ fn create_error(
 ) {
     let source = std::fs::read_to_string(file).unwrap();
     let source: Vec<_> = source.split_inclusive('\n').collect();
-    let file = file.display().to_string();
+    let file = display(file);
     let mut msg = annotate_snippets::Level::Error.title(s.as_ref());
     for &(label, line) in lines {
         let Some(source) = source.get(line.get() - 1) else {
@@ -830,7 +829,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                     }
                     Replace(l, r) => {
                         let mut err = github_actions::error(
-                            output_path.display().to_string(),
+                            display(output_path),
                             "actual output differs from expected",
                         )
                         .line(NonZeroUsize::new(line + 1).unwrap());
@@ -839,7 +838,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                     }
                     Remove(l) => {
                         let mut err = github_actions::error(
-                            output_path.display().to_string(),
+                            display(output_path),
                             "extraneous lines in output",
                         )
                         .line(NonZeroUsize::new(line + 1).unwrap());
@@ -851,11 +850,9 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                         line += l.len();
                     }
                     Insert(r) => {
-                        let mut err = github_actions::error(
-                            output_path.display().to_string(),
-                            "missing line in output",
-                        )
-                        .line(NonZeroUsize::new(line + 1).unwrap());
+                        let mut err =
+                            github_actions::error(display(output_path), "missing line in output")
+                                .line(NonZeroUsize::new(line + 1).unwrap());
                         writeln!(err, "bless the test to create a line containing `{}`", r[0])
                             .unwrap();
                         // Do not count these lines, they don't exist in the original file and
@@ -867,7 +864,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
         Error::ErrorsWithoutPattern { path, msgs } => {
             if let Some(path) = path.as_ref() {
                 let line = path.line();
-                let path = path.display();
+                let path = display(path);
                 let mut err =
                     github_actions::error(path, format!("Unmatched diagnostics{revision}"))
                         .line(line);
@@ -912,7 +909,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
         } => {
             github_actions::error(test_path, format!("Aux build failed")).line(*line);
             for error in errors {
-                gha_error(error, &aux_path.display().to_string(), "")
+                gha_error(error, &display(aux_path), "")
             }
         }
         Error::Rustfix(error) => {
@@ -959,11 +956,11 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
         })
     }
 
-    fn failed_test(&self, _cmd: &Command, _stderr: &[u8], _stdout: &[u8]) -> Box<dyn Debug> {
+    fn failed_test(&self, _cmd: &str, _stderr: &[u8], _stdout: &[u8]) -> Box<dyn Debug> {
         if GROUP {
             Box::new(github_actions::group(format_args!(
                 "{}:{}",
-                self.path.display(),
+                display(&self.path),
                 self.revision
             )))
         } else {
@@ -1009,10 +1006,10 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
                     format!(" (revision: {})", status.revision())
                 };
                 for error in errors {
-                    gha_error(error, &status.path().display().to_string(), &revision);
+                    gha_error(error, &display(status.path()), &revision);
                 }
                 self.failures
-                    .push(format!("{}{revision}", status.path().display()));
+                    .push(format!("{}{revision}", display(status.path())));
             }
         }
         impl<const GROUP: bool> Drop for Summarizer<GROUP> {
@@ -1056,7 +1053,7 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
 
     fn failed_test<'a>(
         &'a self,
-        cmd: &'a Command,
+        cmd: &'a str,
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
@@ -1137,7 +1134,7 @@ impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
 
     fn failed_test<'a>(
         &'a self,
-        cmd: &'a Command,
+        cmd: &'a str,
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {

@@ -334,7 +334,7 @@ impl Config {
                 .map_err(|err| {
                     color_eyre::eyre::Report::new(err).wrap_err(format!(
                         "failed to parse rustc version info: {}",
-                        self.program.display()
+                        self.program.display().to_string().replace('\\', "/")
                     ))
                 })?
                 .host,

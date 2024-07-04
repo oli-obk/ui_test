@@ -5,7 +5,8 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 Building dependencies ... ok
 tests/actual_tests/bad_pattern.rs ... FAILED
-tests/actual_tests/executable.rs ... FAILED
+tests/actual_tests/executable.rs (revision `run`) ... FAILED
+tests/actual_tests/executable.rs ... ok
 tests/actual_tests/executable_compile_err.rs ... FAILED
 tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
@@ -75,7 +76,7 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests/executable.rs
+FAILED TEST: tests/actual_tests/executable.rs (revision `run`)
 command: "$CMD"
 
 error: actual output differed from expected
@@ -150,7 +151,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/filters.rs
-command: "parse comments"
+command: parse comments
 
 error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
  --> tests/actual_tests/filters.rs:1:9
@@ -259,7 +260,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/inline_chain.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~|` comment not attached to anchoring matcher
  --> tests/actual_tests/inline_chain.rs:5:26
@@ -275,7 +276,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/joined_wrong_order.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~|` comment not attached to anchoring matcher
  --> tests/actual_tests/joined_wrong_order.rs:5:8
@@ -291,7 +292,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/lone_joined_pattern.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~|` comment not attached to anchoring matcher
  --> tests/actual_tests/lone_joined_pattern.rs:2:8
@@ -314,7 +315,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/pattern_too_many_arrow.rs
-command: "parse comments"
+command: parse comments
 
 error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
  --> tests/actual_tests/pattern_too_many_arrow.rs:3:8
@@ -330,7 +331,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/pattern_too_many_arrow_above.rs
-command: "parse comments"
+command: parse comments
 
 error: //~v pattern is trying to refer to line 8, but the file only has 6 lines
  --> tests/actual_tests/pattern_too_many_arrow_above.rs:2:22
@@ -404,7 +405,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/touching_above_below.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~v` comment immediately following a `//~^` comment chain
  --> tests/actual_tests/touching_above_below.rs:4:8
@@ -420,7 +421,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/touching_above_below_chain.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~v` comment immediately following a `//~^` comment chain
  --> tests/actual_tests/touching_above_below_chain.rs:5:8
@@ -436,7 +437,7 @@ full stdout:
 
 FAILURES:
     tests/actual_tests/bad_pattern.rs
-    tests/actual_tests/executable.rs
+    tests/actual_tests/executable.rs (revision run)
     tests/actual_tests/executable_compile_err.rs
     tests/actual_tests/exit_code_fail.rs
     tests/actual_tests/filters.rs
@@ -451,17 +452,19 @@ FAILURES:
     tests/actual_tests/touching_above_below.rs
     tests/actual_tests/touching_above_below_chain.rs
 
-test result: FAIL. 15 failed;
+test result: FAIL. 15 failed; 1 passed;
 
 Building dependencies ... ok
-tests/actual_tests_bless/abort.rs ... FAILED
+tests/actual_tests_bless/abort.rs (revision `run`) ... FAILED
+tests/actual_tests_bless/abort.rs ... ok
 tests/actual_tests_bless/aux_build_not_found.rs ... FAILED
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 Building aux file tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
-tests/actual_tests_bless/failing_executable.rs ... FAILED
+tests/actual_tests_bless/failing_executable.rs (revision `run`) ... FAILED
+tests/actual_tests_bless/failing_executable.rs ... ok
 Building aux file tests/actual_tests_bless/auxiliary/foomp.rs ... ok
 tests/actual_tests_bless/foomp_aux.rs ... ok
 Building aux file tests/actual_tests_bless/auxiliary/nested.rs ... ok
@@ -473,9 +476,13 @@ tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/pass_with_annotation.rs ... FAILED
 tests/actual_tests_bless/revised_revision.rs ... FAILED
+tests/actual_tests_bless/revisioned_executable.rs (revision `run.run`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `run`) ... ok
-tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) ... FAILED
-tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable.rs (revision `panic.run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) ... ok
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run.run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) ... ok
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic.run`) ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) ... ok
 tests/actual_tests_bless/revisions.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions.rs (revision `bar`) ... ok
@@ -489,6 +496,7 @@ tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `foo`) .
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `bar`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `bar`) ... ok
+tests/actual_tests_bless/run_panic.rs (revision `run`) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... FAILED
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... FAILED
@@ -497,7 +505,7 @@ tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 tests/actual_tests_bless/wrong_diagnostic_code.rs ... FAILED
 
-FAILED TEST: tests/actual_tests_bless/abort.rs
+FAILED TEST: tests/actual_tests_bless/abort.rs (revision `run`)
 command: "$CMD"
 
 error: test got signal: 6 (SIGABRT), but expected 0
@@ -510,7 +518,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/aux_build_not_found.rs
-command: "$CMD"
+command: canonicalizing path `tests/actual_tests_bless/auxiliary/aasdflkjasdlfjasdlfkjasdf`
 
 full stderr:
 No such file or directory
@@ -519,7 +527,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/aux_proc_macro_misuse.rs
-command: "parse comments"
+command: parse comments
 
 error: proc macros are now auto-detected, you can remove the `:proc-macro` after the file name
  --> tests/actual_tests_bless/aux_proc_macro_misuse.rs:1:32
@@ -561,7 +569,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/compile_flags_quotes.rs
-command: "parse comments"
+command: parse comments
 
 error: `compile-flag` is not a command known to `ui_test`, did you mean `compile-flags`?
  --> tests/actual_tests_bless/compile_flags_quotes.rs:1:4
@@ -584,7 +592,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/compiletest-rs-command.rs
-command: "parse comments"
+command: parse comments
 
 error: a compiletest-rs style comment was detected.
 Please use text that could not also be interpreted as a command,
@@ -619,7 +627,7 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/failing_executable.rs
+FAILED TEST: tests/actual_tests_bless/failing_executable.rs (revision `run`)
 command: "$CMD"
 
 error: test got exit status: 101, but expected 0
@@ -701,7 +709,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/non_top_level_configs.rs
-command: "parse comments"
+command: parse comments
 
 error: comment looks suspiciously like a test suite command: `@check-pass`
 All `//@` test suite commands must be at the start of the line.
@@ -756,7 +764,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/revised_revision.rs
-command: "parse comments"
+command: parse comments
 
 error: revisions cannot be declared under a revision
  --> tests/actual_tests_bless/revised_revision.rs:2:5
@@ -771,7 +779,7 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/revisioned_executable.rs (revision `panic`)
+FAILED TEST: tests/actual_tests_bless/revisioned_executable.rs (revision `panic.run`)
 command: "$CMD"
 
 error: test got exit status: 0, but expected 101
@@ -783,7 +791,7 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`)
+FAILED TEST: tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run.run`)
 command: "$CMD"
 
 error: test got exit status: 101, but expected 0
@@ -928,7 +936,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/unknown_revision.rs
-command: "parse comments"
+command: parse comments
 
 error: there are no revisions in this test
  --> tests/actual_tests_bless/unknown_revision.rs:3:9
@@ -944,7 +952,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/unknown_revision2.rs
-command: "parse comments"
+command: parse comments
 
 error: the revision `cake` is not known
  --> tests/actual_tests_bless/unknown_revision2.rs:5:9
@@ -1010,21 +1018,21 @@ full stdout:
 
 
 FAILURES:
-    tests/actual_tests_bless/abort.rs
+    tests/actual_tests_bless/abort.rs (revision run)
     tests/actual_tests_bless/aux_build_not_found.rs
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
     tests/actual_tests_bless/aux_proc_macro_no_main.rs
     tests/actual_tests_bless/compile_flags_quotes.rs
     tests/actual_tests_bless/compiletest-rs-command.rs
-    tests/actual_tests_bless/failing_executable.rs
+    tests/actual_tests_bless/failing_executable.rs (revision run)
     tests/actual_tests_bless/no_main.rs
     tests/actual_tests_bless/no_main_manual.rs
     tests/actual_tests_bless/no_test.rs
     tests/actual_tests_bless/non_top_level_configs.rs
     tests/actual_tests_bless/pass_with_annotation.rs
     tests/actual_tests_bless/revised_revision.rs
-    tests/actual_tests_bless/revisioned_executable.rs (revision panic)
-    tests/actual_tests_bless/revisioned_executable_panic.rs (revision run)
+    tests/actual_tests_bless/revisioned_executable.rs (revision panic.run)
+    tests/actual_tests_bless/revisioned_executable_panic.rs (revision run.run)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
     tests/actual_tests_bless/rustfix-fail-revisions.rs (revision a)
     tests/actual_tests_bless/rustfix-fail-revisions.rs (revision b)
@@ -1033,14 +1041,15 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision2.rs
     tests/actual_tests_bless/wrong_diagnostic_code.rs
 
-test result: FAIL. 22 failed; 14 passed; 3 ignored;
+test result: FAIL. 22 failed; 21 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... ok
+tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.fixed ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
 
-test result: ok. 3 passed;
+test result: ok. 4 passed;
 
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED
@@ -1160,7 +1169,7 @@ error: expected error patterns, but found none
 
 
 FAILED TEST: tests/actual_tests/filters.rs
-command: "parse comments"
+command: parse comments
 
 error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
  --> tests/actual_tests/filters.rs:1:9
@@ -1249,7 +1258,7 @@ error: there were 1 unmatched diagnostics
 
 
 FAILED TEST: tests/actual_tests/inline_chain.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~|` comment not attached to anchoring matcher
  --> tests/actual_tests/inline_chain.rs:5:26
@@ -1260,7 +1269,7 @@ error: `//~|` comment not attached to anchoring matcher
 
 
 FAILED TEST: tests/actual_tests/joined_wrong_order.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~|` comment not attached to anchoring matcher
  --> tests/actual_tests/joined_wrong_order.rs:5:8
@@ -1271,7 +1280,7 @@ error: `//~|` comment not attached to anchoring matcher
 
 
 FAILED TEST: tests/actual_tests/lone_joined_pattern.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~|` comment not attached to anchoring matcher
  --> tests/actual_tests/lone_joined_pattern.rs:2:8
@@ -1289,7 +1298,7 @@ error: `//~|` comment not attached to anchoring matcher
 
 
 FAILED TEST: tests/actual_tests/pattern_too_many_arrow.rs
-command: "parse comments"
+command: parse comments
 
 error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
  --> tests/actual_tests/pattern_too_many_arrow.rs:3:8
@@ -1300,7 +1309,7 @@ error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 li
 
 
 FAILED TEST: tests/actual_tests/pattern_too_many_arrow_above.rs
-command: "parse comments"
+command: parse comments
 
 error: //~v pattern is trying to refer to line 8, but the file only has 6 lines
  --> tests/actual_tests/pattern_too_many_arrow_above.rs:2:22
@@ -1349,7 +1358,7 @@ error: there were 1 unmatched diagnostics
 
 
 FAILED TEST: tests/actual_tests/touching_above_below.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~v` comment immediately following a `//~^` comment chain
  --> tests/actual_tests/touching_above_below.rs:4:8
@@ -1360,7 +1369,7 @@ error: `//~v` comment immediately following a `//~^` comment chain
 
 
 FAILED TEST: tests/actual_tests/touching_above_below_chain.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~v` comment immediately following a `//~^` comment chain
  --> tests/actual_tests/touching_above_below_chain.rs:5:8
@@ -1441,7 +1450,7 @@ could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
 FAILED TEST: tests/actual_tests/filters.rs
-command: "parse comments"
+command: parse comments
 
 error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/
  --> tests/actual_tests/filters.rs:1:9
@@ -1475,7 +1484,7 @@ could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
 FAILED TEST: tests/actual_tests/inline_chain.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~|` comment not attached to anchoring matcher
  --> tests/actual_tests/inline_chain.rs:5:26
@@ -1491,7 +1500,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/joined_wrong_order.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~|` comment not attached to anchoring matcher
  --> tests/actual_tests/joined_wrong_order.rs:5:8
@@ -1507,7 +1516,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/lone_joined_pattern.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~|` comment not attached to anchoring matcher
  --> tests/actual_tests/lone_joined_pattern.rs:2:8
@@ -1530,7 +1539,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/pattern_too_many_arrow.rs
-command: "parse comments"
+command: parse comments
 
 error: //~^ pattern is trying to refer to 7 lines above, but there are only 2 lines above
  --> tests/actual_tests/pattern_too_many_arrow.rs:3:8
@@ -1546,7 +1555,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/pattern_too_many_arrow_above.rs
-command: "parse comments"
+command: parse comments
 
 error: //~v pattern is trying to refer to line 8, but the file only has 6 lines
  --> tests/actual_tests/pattern_too_many_arrow_above.rs:2:22
@@ -1571,7 +1580,7 @@ could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 
 FAILED TEST: tests/actual_tests/touching_above_below.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~v` comment immediately following a `//~^` comment chain
  --> tests/actual_tests/touching_above_below.rs:4:8
@@ -1587,7 +1596,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests/touching_above_below_chain.rs
-command: "parse comments"
+command: parse comments
 
 error: `//~v` comment immediately following a `//~^` comment chain
  --> tests/actual_tests/touching_above_below_chain.rs:5:8

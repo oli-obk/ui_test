@@ -2,7 +2,6 @@
 
 use crate::{status_emitter::TestStatus, Error};
 use color_eyre::eyre::Result;
-use std::process::Command;
 
 /// The possible non-failure results a single test can have.
 pub enum TestOk {
@@ -19,7 +18,7 @@ pub type TestResult = Result<TestOk, Errored>;
 #[derive(Debug)]
 pub struct Errored {
     /// Command that failed
-    pub(crate) command: Command,
+    pub(crate) command: String,
     /// The errors that were encountered.
     pub(crate) errors: Vec<Error>,
     /// The full stderr of the test run.
@@ -35,12 +34,15 @@ impl Errored {
             errors,
             stderr: vec![],
             stdout: vec![],
-            command: Command::new(message),
+            command: message.into(),
         }
     }
 }
 
-pub(crate) struct TestRun {
-    pub(crate) result: TestResult,
-    pub(crate) status: Box<dyn TestStatus>,
+/// Result of an actual test or sub-test (revision, fixed, run, ...) including its status.
+pub struct TestRun {
+    /// Actual test run output.
+    pub result: TestResult,
+    /// Usually created via `for_revsion` or `for_path`
+    pub status: Box<dyn TestStatus>,
 }

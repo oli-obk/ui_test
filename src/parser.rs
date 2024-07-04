@@ -2,7 +2,6 @@ use std::{
     collections::{BTreeMap, HashMap},
     num::NonZeroUsize,
     path::Path,
-    process::Command,
 };
 
 use bstr::{ByteSlice, Utf8Error};
@@ -74,7 +73,7 @@ impl Comments {
             Ok(result.into())
         } else {
             Err(Errored {
-                command: Command::new(format!("<finding flags for revision `{revision}`>")),
+                command: format!("<finding flags for revision `{revision}`>"),
                 errors: vec![Error::MultipleRevisionsWithResults {
                     kind: kind.to_string(),
                     lines: errors,

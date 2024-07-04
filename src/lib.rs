@@ -63,10 +63,13 @@ pub use spanned;
 pub fn run_tests(mut config: Config) -> Result<()> {
     let args = Args::test()?;
     if let Format::Pretty = args.format {
-        println!("Compiler: {}", config.program.display());
+        println!(
+            "Compiler: {}",
+            config.program.display().to_string().replace('\\', "/")
+        );
     }
 
-    let name = config.root_dir.display().to_string();
+    let name = display(&config.root_dir);
 
     let text = match args.format {
         Format::Terse => status_emitter::Text::quiet(),
@@ -95,7 +98,7 @@ pub fn default_file_filter(path: &Path, config: &Config) -> Option<bool> {
 ///
 /// To only include rust files see [`default_file_filter`].
 pub fn default_any_file_filter(path: &Path, config: &Config) -> bool {
-    let path = path.display().to_string();
+    let path = display(path);
     let contains_path = |files: &[String]| {
         files.iter().any(|f| {
             if config.filter_exact {
@@ -135,17 +138,17 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
 
     let content =
-        std::fs::read(path).wrap_err_with(|| format!("failed to read {}", path.display()))?;
+        std::fs::read(path).wrap_err_with(|| format!("failed to read {}", display(path)))?;
     let comments = Comments::parse(&content, &config, path)
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
         config,
         comments: &comments,
         aux_dir: &path.parent().unwrap().join("auxiliary"),
-        status: &SilentStatus {
+        status: Box::new(SilentStatus {
             revision: String::new(),
             path: path.to_path_buf(),
-        },
+        }),
     };
     let build_manager = BuildManager::new(&(), config.config.clone());
 
@@ -246,7 +249,7 @@ pub fn run_tests_generic(
                     Err(err) => {
                         finished_files_sender.send(TestRun {
                             result: Err(Errored {
-                                command: Command::new("<unknown>"),
+                                command: "<unknown>".into(),
                                 errors: vec![Error::Bug(
                                     *Box::<dyn std::any::Any + Send + 'static>::downcast::<String>(
                                         err,
@@ -321,27 +324,34 @@ fn parse_and_test_file(
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
-    Ok(revisions
-        .iter()
-        .map(|revision| {
-            let status = status.for_revision(revision);
-            // Ignore file if only/ignore rules do (not) apply
-            if !config.test_file_conditions(&comments, revision) {
-                return TestRun {
-                    result: Ok(TestOk::Ignored),
-                    status,
-                };
-            }
+    let mut runs = vec![];
+    for revision in revisions {
+        let status = status.for_revision(revision);
+        // Ignore file if only/ignore rules do (not) apply
+        if !config.test_file_conditions(&comments, revision) {
+            runs.push(TestRun {
+                result: Ok(TestOk::Ignored),
+                status,
+            });
+            continue;
+        }
 
-            let test_config = TestConfig {
-                config: config.clone(),
-                comments: &comments,
-                aux_dir: &status.path().parent().unwrap().join("auxiliary"),
-                status: &status,
-            };
+        let mut test_config = TestConfig {
+            config: config.clone(),
+            comments: &comments,
+            aux_dir: &status.path().parent().unwrap().join("auxiliary"),
+            status,
+        };
 
-            let result = test_config.run_test(build_manager);
-            TestRun { result, status }
+        let result = test_config.run_test(build_manager, &mut runs);
+        runs.push(TestRun {
+            result,
+            status: test_config.status,
         })
-        .collect())
+    }
+    Ok(runs)
+}
+
+fn display(path: &Path) -> String {
+    path.display().to_string().replace('\\', "/")
 }
