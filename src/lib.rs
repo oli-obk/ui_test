@@ -343,7 +343,7 @@ fn parse_and_test_file(
             status,
         };
 
-        let result = test_config.run_test(build_manager, &mut runs);
+        let result = test_config.run_test(build_manager);
         runs.push(TestRun {
             result,
             status: test_config.status,

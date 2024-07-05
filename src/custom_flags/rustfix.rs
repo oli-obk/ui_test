@@ -14,7 +14,7 @@ use crate::{
     display,
     parser::OptWithLine,
     per_test_config::{Comments, Revisioned, TestConfig},
-    Error, Errored, TestOk, TestRun,
+    Error, Errored,
 };
 
 use super::Flag;
@@ -49,7 +49,7 @@ impl Flag for RustfixMode {
         _cmd: &mut Command,
         output: &Output,
         build_manager: &BuildManager<'_>,
-    ) -> Result<Vec<TestRun>, Errored> {
+    ) -> Result<(), Errored> {
         let global_rustfix = match config.exit_status()? {
             Some(Spanned {
                 content: 101 | 0, ..
@@ -170,7 +170,7 @@ fn compile_fixed(
     config: &TestConfig,
     build_manager: &BuildManager<'_>,
     fixed_paths: Vec<PathBuf>,
-) -> Result<Vec<TestRun>, Errored> {
+) -> Result<(), Errored> {
     // picking the crate name from the file name is problematic when `.revision_name` is inserted,
     // so we compute it here before replacing the path.
     let crate_name = config
@@ -207,7 +207,6 @@ fn compile_fixed(
         .collect(),
     };
 
-    let mut runs = Vec::new();
     for fixed_path in fixed_paths {
         let fixed_config = TestConfig {
             config: config.config.clone(),
@@ -218,11 +217,9 @@ fn compile_fixed(
         let mut cmd = fixed_config.build_command(build_manager)?;
         cmd.arg("--crate-name").arg(&crate_name);
         let output = cmd.output().unwrap();
-        let result = if output.status.success() {
-            Ok(TestOk::Ok)
-        } else {
+        if !output.status.success() {
             let diagnostics = fixed_config.process(&output.stderr);
-            Err(Errored {
+            return Err(Errored {
                 command: format!("{cmd:?}"),
                 errors: vec![Error::ExitStatus {
                     expected: 0,
@@ -240,13 +237,9 @@ fn compile_fixed(
                 }],
                 stderr: diagnostics.rendered,
                 stdout: output.stdout,
-            })
-        };
-        runs.push(TestRun {
-            result,
-            status: fixed_config.status,
-        });
+            });
+        }
     }
 
-    Ok(runs)
+    Ok(())
 }
