@@ -498,9 +498,12 @@ tests/actual_tests_bless/revisions_same_everywhere.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `bar`) ... ok
 tests/actual_tests_bless/run_panic.rs (revision `run`) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
-tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... FAILED
-tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... FAILED
-tests/actual_tests_bless/rustfix-fail.rs ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.a.fixed (revision `a`) ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... ok
+tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision `b`) ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... ok
+tests/actual_tests_bless/rustfix-fail.fixed ... FAILED
+tests/actual_tests_bless/rustfix-fail.rs ... ok
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 tests/actual_tests_bless/wrong_diagnostic_code.rs ... FAILED
@@ -842,11 +845,11 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`)
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.a.fixed (revision `a`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless/rustfix-fail-revisions.rs:2:9
+ --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
   |
 2 | #![deny(warnings)]
   |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
@@ -873,11 +876,11 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`)
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision `b`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless/rustfix-fail-revisions.rs:2:9
+ --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
   |
 2 | #![deny(warnings)]
   |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
@@ -904,11 +907,11 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/rustfix-fail.rs
+FAILED TEST: tests/actual_tests_bless/rustfix-fail.fixed
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail"
 
 error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless/rustfix-fail.rs:1:9
+ --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
   |
 1 | #![deny(warnings)]
   |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
@@ -1034,22 +1037,65 @@ FAILURES:
     tests/actual_tests_bless/revisioned_executable.rs (revision panic.run)
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision run.run)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
-    tests/actual_tests_bless/rustfix-fail-revisions.rs (revision a)
-    tests/actual_tests_bless/rustfix-fail-revisions.rs (revision b)
-    tests/actual_tests_bless/rustfix-fail.rs
+    tests/actual_tests_bless/rustfix-fail-revisions.a.fixed (revision a)
+    tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision b)
+    tests/actual_tests_bless/rustfix-fail.fixed
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
     tests/actual_tests_bless/wrong_diagnostic_code.rs
 
-test result: FAIL. 22 failed; 21 passed; 3 ignored;
+test result: FAIL. 22 failed; 24 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.fixed ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.1.fixed ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed ... FAILED
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.3.fixed ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.rs ... ok
 
-test result: ok. 4 passed;
+FAILED TEST: tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_multiple_fail"
+
+error: test got exit status: 1, but expected 0
+ --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed:1:8
+  |
+1 | pub fn f(_: &i32) -> &i32 {
+  |        ^ after rustfix is applied, all errors should be gone, but weren't
+  |
+
+full stderr:
+error[E0308]: mismatched types
+ --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed:7:7
+  |
+7 |     f(1);
+  |     - ^ expected `&i32`, found integer
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed:1:8
+  |
+1 | pub fn f(_: &i32) -> &i32 {
+  |        ^ -------
+help: consider borrowing here
+  |
+7 |     f(&1);
+  |       +
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.
+
+full stdout:
+
+
+FAILURES:
+    tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed
+
+test result: FAIL. 1 failed; 7 passed;
 
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED

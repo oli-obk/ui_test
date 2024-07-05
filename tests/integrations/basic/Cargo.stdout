@@ -33,13 +33,16 @@ tests/actual_tests/mac_span.rs ... ok
 tests/actual_tests/match_diagnostic_code.fixed ... ok
 tests/actual_tests/match_diagnostic_code.rs ... ok
 tests/actual_tests/no_rustfix.rs ... ok
+tests/actual_tests/rustfix-multiple.1.fixed ... ok
+tests/actual_tests/rustfix-multiple.2.fixed ... ok
+tests/actual_tests/rustfix-multiple.rs ... ok
 tests/actual_tests/stdin.rs (revision `run`) ... ok
 tests/actual_tests/stdin.rs ... ok
 tests/actual_tests/unicode.rs ... ok
 tests/actual_tests/windows_paths.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 27 passed;
+test result: ok. 30 passed;
 
 
 running 0 tests

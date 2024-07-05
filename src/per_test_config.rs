@@ -18,8 +18,8 @@ use crate::diagnostics::{Diagnostics, Message};
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::TestStatus;
-use crate::test_result::{Errored, TestOk, TestResult, TestRun};
-use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling};
+use crate::test_result::{Errored, TestOk, TestResult};
+use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling, TestRun};
 
 /// All information needed to run a single test
 pub struct TestConfig<'a> {
@@ -162,11 +162,11 @@ impl TestConfig<'_> {
         self.status.path().with_extension(ext)
     }
 
-    pub(crate) fn normalize(&self, text: &[u8], kind: &'static str) -> Vec<u8> {
+    pub(crate) fn normalize(&self, text: &[u8], kind: &str) -> Vec<u8> {
         let mut text = text.to_owned();
 
         for (from, to) in self.comments().flat_map(|r| match kind {
-            "fixed" => &[] as &[_],
+            _ if kind.ends_with("fixed") => &[] as &[_],
             "stderr" => &r.normalize_stderr,
             "stdout" => &r.normalize_stdout,
             _ => unreachable!(),
@@ -183,12 +183,7 @@ impl TestConfig<'_> {
         self.check_output(stdout, errors, "stdout");
     }
 
-    pub(crate) fn check_output(
-        &self,
-        output: &[u8],
-        errors: &mut Errors,
-        kind: &'static str,
-    ) -> PathBuf {
+    pub(crate) fn check_output(&self, output: &[u8], errors: &mut Errors, kind: &str) -> PathBuf {
         let output = self.normalize(output, kind);
         let path = self.output_path(kind);
         match &self.config.output_conflict_handling {
@@ -420,12 +415,7 @@ impl TestConfig<'_> {
         for rev in self.comments() {
             for custom in rev.custom.values() {
                 for flag in &custom.content {
-                    if let Some(result) =
-                        flag.post_test_action(self, &mut cmd, &output, build_manager)?
-                    {
-                        runs.push(result);
-                        return Ok(TestOk::Ok);
-                    }
+                    runs.extend(flag.post_test_action(self, &mut cmd, &output, build_manager)?);
                 }
             }
         }
