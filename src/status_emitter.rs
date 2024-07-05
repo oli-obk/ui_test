@@ -232,9 +232,10 @@ impl Text {
                             Msg::Inc => {
                                 progress.as_ref().unwrap().inc(1);
                             }
-                            Msg::Finish => return,
+                            Msg::Finish => break 'outer,
                         },
-                        Err(TryRecvError::Disconnected) => break 'outer,
+                        // Sender panicked, skip asserts
+                        Err(TryRecvError::Disconnected) => return,
                         Err(TryRecvError::Empty) => break,
                     }
                 }
@@ -245,7 +246,7 @@ impl Text {
                     progress.tick()
                 }
             }
-            assert_eq!(threads.len(), 0);
+            assert_eq!(threads.len(), 0, "remaining: {threads:?}");
             if let Some(progress) = progress {
                 progress.tick();
                 assert!(progress.is_finished());
@@ -323,9 +324,8 @@ impl TestStatus for TextTest {
             if ProgressDrawTarget::stdout().is_hidden() {
                 println!("{old_msg} {msg}");
                 std::io::stdout().flush().unwrap();
-            } else {
-                self.text.sender.send(Msg::Pop(old_msg, Some(msg))).unwrap();
             }
+            self.text.sender.send(Msg::Pop(old_msg, Some(msg))).unwrap();
         }
     }
 
