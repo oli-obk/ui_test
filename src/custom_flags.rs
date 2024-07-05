@@ -34,15 +34,15 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
     }
 
     /// Run an action after a test is finished.
-    /// Returns `None` if no action was taken.
+    /// Returns an empty [`Vec`] if no action was taken.
     fn post_test_action(
         &self,
         _config: &TestConfig<'_>,
         _cmd: &mut Command,
         _output: &Output,
         _build_manager: &BuildManager<'_>,
-    ) -> Result<Option<TestRun>, Errored> {
-        Ok(None)
+    ) -> Result<Vec<TestRun>, Errored> {
+        Ok(Vec::new())
     }
 
     /// Whether the flag gets overridden by the same flag in revisions.

@@ -8,8 +8,8 @@ use std::{
 };
 
 use crate::{
-    build_manager::BuildManager, display, per_test_config::TestConfig, test_result::TestRun, Error,
-    Errored, TestOk,
+    build_manager::BuildManager, display, per_test_config::TestConfig, Error, Errored, TestOk,
+    TestRun,
 };
 
 use super::Flag;
@@ -33,7 +33,7 @@ impl Flag for Run {
         cmd: &mut Command,
         _output: &Output,
         _build_manager: &BuildManager<'_>,
-    ) -> Result<Option<TestRun>, Errored> {
+    ) -> Result<Vec<TestRun>, Errored> {
         let exit_code = self.exit_code;
         let revision = config.extension("run");
         let config = TestConfig {
@@ -80,7 +80,8 @@ impl Flag for Run {
                 },
             })
         }
-        Ok(Some(TestRun {
+
+        Ok(vec![TestRun {
             result: if errors.is_empty() {
                 Ok(TestOk::Ok)
             } else {
@@ -92,7 +93,7 @@ impl Flag for Run {
                 })
             },
             status: config.status,
-        }))
+        }])
     }
 }
 
