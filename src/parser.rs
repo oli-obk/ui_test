@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeMap, HashMap},
     num::NonZeroUsize,
-    path::Path,
 };
 
 use bstr::{ByteSlice, Utf8Error};
@@ -300,11 +299,10 @@ impl Comments {
     /// Parse comments in `content`.
     /// `path` is only used to emit diagnostics if parsing fails.
     pub(crate) fn parse(
-        content: &(impl AsRef<[u8]> + ?Sized),
+        content: Spanned<&[u8]>,
         config: &Config,
-        file: &Path,
     ) -> std::result::Result<Self, Vec<Error>> {
-        CommentParser::new(config).parse(content, file)
+        CommentParser::new(config).parse(content)
     }
 }
 
@@ -320,27 +318,16 @@ impl CommentParser<Comments> {
         this
     }
 
-    fn parse(
-        mut self,
-        content: &(impl AsRef<[u8]> + ?Sized),
-        file: &Path,
-    ) -> std::result::Result<Comments, Vec<Error>> {
+    fn parse(mut self, content: Spanned<&[u8]>) -> std::result::Result<Comments, Vec<Error>> {
         let defaults = std::mem::take(self.comments.revisioned.get_mut(&[][..]).unwrap());
 
         let mut delayed_fallthrough = Vec::new();
         let mut fallthrough_to = None; // The line that a `|` will refer to.
         let mut last_line = 0;
-        for (l, line) in content.as_ref().lines().enumerate() {
+        for (l, line) in content.lines().enumerate() {
             last_line = l + 1;
             let l = NonZeroUsize::new(l + 1).unwrap(); // enumerate starts at 0, but line numbers start at 1
-            let span = Span {
-                file: file.to_path_buf(),
-                line_start: l,
-                line_end: l,
-                col_start: NonZeroUsize::new(1).unwrap(),
-                col_end: NonZeroUsize::new(line.len() + 1).unwrap(),
-            };
-            match self.parse_checked_line(fallthrough_to, l, Spanned::new(line, span)) {
+            match self.parse_checked_line(fallthrough_to, l, line) {
                 Ok(ParsePatternResult::Other) => {
                     fallthrough_to = None;
                 }
