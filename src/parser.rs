@@ -253,15 +253,6 @@ pub(crate) enum ErrorMatchKind {
     Code(Spanned<String>),
 }
 
-impl ErrorMatchKind {
-    fn span(&self) -> &Span {
-        match self {
-            Self::Pattern { pattern, .. } => &pattern.span,
-            Self::Code(code) => &code.span,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct ErrorMatch {
     pub(crate) kind: ErrorMatchKind,
@@ -372,7 +363,7 @@ impl CommentParser<Comments> {
                             .comments
                             .revisioned
                             .values_mut()
-                            .find(|rev| rev.error_matches[idx].kind.span().line_start == line)
+                            .find(|rev| rev.error_matches[idx].line == line)
                         {
                             rev.error_matches[idx].line = match_line;
                         } else {
