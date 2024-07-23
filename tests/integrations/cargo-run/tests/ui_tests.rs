@@ -19,7 +19,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     run_tests_generic(
         vec![config],
         default_file_filter,
-        |_config, _path, _content| {},
+        |_config, _content| {},
         // Avoid github actions, as these would end up showing up in `Cargo.stderr`
         status_emitter::Text::verbose(),
     )

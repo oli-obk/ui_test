@@ -84,20 +84,22 @@ pub struct AuxBuilder {
 impl Build for AuxBuilder {
     fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
         let mut config = build_manager.config().clone();
-        let file_contents = std::fs::read(&self.aux_file.content).map_err(|err| Errored {
-            command: format!("reading aux file `{}`", display(&self.aux_file)),
-            errors: vec![],
-            stderr: err.to_string().into_bytes(),
-            stdout: vec![],
-        })?;
-        let comments = Comments::parse(&file_contents, &config, &self.aux_file)
+        let file_contents = Spanned::read_from_file(&self.aux_file.content)
+            .map_err(|err| Errored {
+                command: format!("reading aux file `{}`", display(&self.aux_file)),
+                errors: vec![],
+                stderr: err.to_string().into_bytes(),
+                stdout: vec![],
+            })?
+            .map(|s| s.into_bytes());
+        let comments = Comments::parse(&file_contents.content, &config, &self.aux_file)
             .map_err(|errors| Errored::new(errors, "parse aux comments"))?;
         assert_eq!(
             comments.revisions, None,
             "aux builds cannot specify revisions"
         );
 
-        default_per_file_config(&mut config, &self.aux_file, &file_contents);
+        default_per_file_config(&mut config, &file_contents);
 
         match CrateType::from_file_contents(&file_contents) {
             // Proc macros must be run on the host
