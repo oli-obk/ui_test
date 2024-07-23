@@ -340,7 +340,7 @@ impl CommentParser<Comments> {
                 col_start: NonZeroUsize::new(1).unwrap(),
                 col_end: NonZeroUsize::new(line.len() + 1).unwrap(),
             };
-            match self.parse_checked_line(fallthrough_to, Spanned::new(line, span)) {
+            match self.parse_checked_line(fallthrough_to, l, Spanned::new(line, span)) {
                 Ok(ParsePatternResult::Other) => {
                     fallthrough_to = None;
                 }
@@ -477,6 +477,7 @@ impl CommentParser<Comments> {
     fn parse_checked_line(
         &mut self,
         fallthrough_to: Option<NonZeroUsize>,
+        current_line: NonZeroUsize,
         line: Spanned<&[u8]>,
     ) -> std::result::Result<ParsePatternResult, Spanned<Utf8Error>> {
         let mut res = ParsePatternResult::Other;
@@ -485,7 +486,7 @@ impl CommentParser<Comments> {
         } else if let Some((_, pattern)) = line.split_once_str("//~") {
             let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
             self.revisioned(revisions, |this| {
-                res = this.parse_pattern(pattern, fallthrough_to);
+                res = this.parse_pattern(pattern, fallthrough_to, current_line);
             })
         } else {
             for pos in line.clone().find_iter("//") {
@@ -881,6 +882,7 @@ impl CommentParser<&mut Revisioned> {
         &mut self,
         pattern: Spanned<&str>,
         fallthrough_to: Option<NonZeroUsize>,
+        current_line: NonZeroUsize,
     ) -> ParsePatternResult {
         let c = pattern.chars().next();
         let mut res = ParsePatternResult::Other;
@@ -897,7 +899,7 @@ impl CommentParser<&mut Revisioned> {
                             span,
                             idx: self.error_matches.len(),
                         };
-                        pattern.span.line_start
+                        current_line
                     }
                 },
                 pattern.split_at(1).1,
@@ -907,9 +909,7 @@ impl CommentParser<&mut Revisioned> {
                 span: _,
             }) => {
                 let offset = pattern.chars().take_while(|c| c.content == '^').count();
-                match pattern
-                    .span()
-                    .line_start
+                match current_line
                     .get()
                     .checked_sub(offset)
                     .and_then(NonZeroUsize::new)
@@ -927,7 +927,7 @@ impl CommentParser<&mut Revisioned> {
                             pattern.line().get() - 1,
                         ));
                         return ParsePatternResult::ErrorAbove {
-                            match_line: pattern.span().line_start,
+                            match_line: current_line,
                         };
                     }
                 }
@@ -937,9 +937,7 @@ impl CommentParser<&mut Revisioned> {
                 span: _,
             }) => {
                 let offset = pattern.chars().take_while(|c| c.content == 'v').count();
-                match pattern
-                    .span()
-                    .line_start
+                match current_line
                     .get()
                     .checked_add(offset)
                     .and_then(NonZeroUsize::new)
@@ -960,12 +958,12 @@ impl CommentParser<&mut Revisioned> {
                         ));
                         return ParsePatternResult::ErrorBelow {
                             span: pattern.span(),
-                            match_line: pattern.span().line_start,
+                            match_line: current_line,
                         };
                     }
                 }
             }
-            Some(_) => (pattern.span().line_start, pattern),
+            Some(_) => (current_line, pattern),
             None => {
                 self.error(pattern.span(), "no pattern specified");
                 return res;
