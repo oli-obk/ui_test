@@ -1,0 +1,18 @@
+warning: unused variable: `Ě电脑`
+ --> tests/actual_tests_bless/unicode.rs:7:9
+  |
+7 |     let Ě电脑 = 1;
+  |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_Ě电脑`
+  |
+  = note: `#[warn(unused_variables)]` on by default
+
+warning: variable `Ě电脑` should have a snake case name
+ --> tests/actual_tests_bless/unicode.rs:7:9
+  |
+7 |     let Ě电脑 = 1;
+  |         ^^^^^ help: convert the identifier to snake case: `ě电脑`
+  |
+  = note: `#[warn(non_snake_case)]` on by default
+
+warning: 2 warnings emitted
+

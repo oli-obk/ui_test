@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use spanned::Spanned;
+use spanned::{Span, Spanned};
 
 use crate::diagnostics::Level;
 use crate::diagnostics::Message;
@@ -18,7 +18,17 @@ fn config() -> Config {
 macro_rules! config {
     ($config:ident = $s:expr) => {
         let path = Path::new("moobar");
-        let comments = Comments::parse(Spanned::dummy($s.as_bytes()), &$config).unwrap();
+        let comments = Comments::parse(
+            Spanned::new(
+                $s.as_bytes(),
+                Span {
+                    file: path.to_path_buf(),
+                    bytes: 0..$s.len(),
+                },
+            ),
+            &$config,
+        )
+        .unwrap();
         #[allow(unused_mut)]
         let mut $config = TestConfig {
             config: $config,
@@ -30,6 +40,23 @@ macro_rules! config {
             }),
         };
     };
+}
+
+macro_rules! line {
+    ($thing:expr, $s:expr) => {{
+        let file = Spanned::new(
+            $s.as_bytes(),
+            Span {
+                file: PathBuf::new(),
+                bytes: 0..$s.len(),
+            },
+        );
+        let pos = file
+            .lines()
+            .position(|line| line.span.bytes.contains(&$thing.bytes.start))
+            .unwrap();
+        pos + 1
+    }};
 }
 
 #[test]
@@ -50,7 +77,8 @@ fn main() {
             Message {
                 message:"Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
-                line_col: None,
+                line: None,
+                span: None,
                 code: None,
             }
         ]
@@ -60,7 +88,8 @@ fn main() {
         .unwrap();
     match &errors[..] {
         [Error::PatternNotFound { pattern, .. }, Error::ErrorsWithoutPattern { path, .. }]
-            if path.as_ref().is_some_and(|p| p.line().get() == 5) && pattern.line().get() == 5 => {}
+            if path.as_ref().is_some_and(|(_p, line)| line.get() == 5)
+                && line!(pattern.span, s) == 5 => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -81,7 +110,8 @@ fn main() {
                 Message {
                     message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                     level: Level::Error,
-                    line_col: None,
+                    line: None,
+                    span: None,
                     code: None,
                 }
             ]
@@ -102,7 +132,8 @@ fn main() {
                 Message {
                     message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                     level: Level::Error,
-                    line_col: None,
+                    line: None,
+                    span: None,
                     code: None,
                 }
             ]
@@ -113,8 +144,8 @@ fn main() {
             .unwrap();
         match &errors[..] {
             [Error::PatternNotFound { pattern, .. }, Error::ErrorsWithoutPattern { path, .. }]
-                if path.as_ref().is_some_and(|p| p.line().get() == 4)
-                    && pattern.line().get() == 5 => {}
+                if path.as_ref().is_some_and(|(_, line)| line.get() == 4)
+                    && line!(pattern.span, s) == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -127,7 +158,8 @@ fn main() {
                 Message {
                     message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                     level: Level::Note,
-                    line_col: None,
+                    line: None,
+                    span: None,
                     code: None,
                 }
             ]
@@ -138,7 +170,7 @@ fn main() {
             .unwrap();
         match &errors[..] {
             // Note no `ErrorsWithoutPattern`, because there are no `//~NOTE` in the test file, so we ignore them
-            [Error::PatternNotFound { pattern, .. }] if pattern.line().get() == 5 => {}
+            [Error::PatternNotFound { pattern, .. }] if line!(pattern.span, s) == 5 => {}
             _ => panic!("not the expected error: {:#?}", errors),
         }
     }
@@ -162,7 +194,8 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
-                line_col: None,
+                line: None,
+                span: None,
                 code: None,
             }
         ]
@@ -172,7 +205,7 @@ fn main() {
         .check_annotations(messages, vec![], &mut errors)
         .unwrap();
     match &errors[..] {
-        [Error::PatternNotFound { pattern, .. }] if pattern.line().get() == 6 => {}
+        [Error::PatternNotFound { pattern, .. }] if line!(pattern.span, s) == 6 => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -194,13 +227,15 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
-                line_col: None,
+                    line: None,
+                    span: None,
                 code: None,
             },
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
-                line_col: None,
+                    line: None,
+                    span: None,
                 code: None,
             }
         ]
@@ -211,7 +246,7 @@ fn main() {
         .unwrap();
     match &errors[..] {
         [Error::ErrorsWithoutPattern { path, .. }]
-            if path.as_ref().is_some_and(|p| p.line().get() == 5) => {}
+            if path.as_ref().is_some_and(|(_, line)| line.get() == 5) => {}
         _ => panic!("{:#?}", errors),
     }
 }
@@ -238,19 +273,22 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
-                line_col: None,
+                    line: None,
+                    span: None,
                 code: None,
             },
             Message {
                 message: "kaboom".to_string(),
                 level: Level::Warn,
-                line_col: None,
+                    line: None,
+                    span: None,
                 code: None,
             },
             Message {
                 message: "cake".to_string(),
                 level: Level::Warn,
-                line_col: None,
+                    line: None,
+                    span: None,
                 code: None,
             },
         ],
@@ -261,13 +299,14 @@ fn main() {
         .unwrap();
     match &errors[..] {
         [Error::ErrorsWithoutPattern { path, msgs, .. }]
-            if path.as_ref().is_some_and(|p| p.line().get() == 5) =>
+            if path.as_ref().is_some_and(|(_, line)| line.get() == 5) =>
         {
             match &msgs[..] {
                 [Message {
                     message,
                     level: Level::Warn,
-                    line_col: _,
+                    line: _,
+                    span: _,
                     code: None,
                 }] if message == "kaboom" => {}
                 _ => panic!("{:#?}", msgs),
@@ -299,19 +338,22 @@ fn main() {
             Message {
                 message: "Undefined Behavior: type validation failed: encountered a dangling reference (address 0x10 is unallocated)".to_string(),
                 level: Level::Error,
-                line_col: None,
+                    line: None,
+                    span: None,
                 code: None,
             },
             Message {
                 message: "kaboom".to_string(),
                 level: Level::Warn,
-                line_col: None,
+                    line: None,
+                    span: None,
                 code: None,
             },
             Message {
                 message: "cake".to_string(),
                 level: Level::Warn,
-                line_col: None,
+                    line: None,
+                    span: None,
                 code: None,
             },
         ],
@@ -343,7 +385,8 @@ fn main() {
             vec![Message {
                 message: "mismatched types".to_string(),
                 level: Level::Error,
-                line_col: None,
+                line: None,
+                span: None,
                 code: Some("E0308".into()),
             }],
         ];
@@ -366,7 +409,8 @@ fn main() {
             vec![Message {
                 message: "mismatched types".to_string(),
                 level: Level::Error,
-                line_col: None,
+                line: None,
+                span: None,
                 code: Some("SomeError".into()),
             }],
         ];
@@ -376,7 +420,7 @@ fn main() {
             .unwrap();
         match &errors[..] {
             [Error::CodeNotFound { code, .. }, Error::ErrorsWithoutPattern { msgs, .. }]
-                if **code == "E0308" && code.line().get() == 3 && msgs.len() == 1 => {}
+                if **code == "E0308" && line!(code.span, s) == 3 && msgs.len() == 1 => {}
             _ => panic!("{:#?}", errors),
         }
     }
@@ -390,7 +434,8 @@ fn main() {
             vec![Message {
                 message: "mismatched types".to_string(),
                 level: Level::Warn,
-                line_col: None,
+                line: None,
+                span: None,
                 code: Some("E0308".into()),
             }],
         ];
@@ -399,7 +444,8 @@ fn main() {
             .check_annotations(messages, vec![], &mut errors)
             .unwrap();
         match &errors[..] {
-            [Error::CodeNotFound { code, .. }] if **code == "E0308" && code.line().get() == 3 => {}
+            [Error::CodeNotFound { code, .. }] if **code == "E0308" && line!(code.span, s) == 3 => {
+            }
             _ => panic!("{:#?}", errors),
         }
     }
@@ -424,7 +470,8 @@ fn main() {
             vec![Message {
                 message: "mismatched types".to_string(),
                 level: Level::Error,
-                line_col: None,
+                line: None,
+                span: None,
                 code: Some("prefix::E0308".into()),
             }],
         ];
@@ -447,7 +494,8 @@ fn main() {
             vec![Message {
                 message: "mismatched types".to_string(),
                 level: Level::Error,
-                line_col: None,
+                line: None,
+                span: None,
                 code: Some("E0308".into()),
             }],
         ];
@@ -457,7 +505,7 @@ fn main() {
             .unwrap();
         match &errors[..] {
             [Error::CodeNotFound { code, .. }, Error::ErrorsWithoutPattern { msgs, .. }]
-                if **code == "prefix::E0308" && code.line().get() == 3 && msgs.len() == 1 => {}
+                if **code == "prefix::E0308" && line!(code.span, s) == 3 && msgs.len() == 1 => {}
             _ => panic!("{:#?}", errors),
         }
     }

@@ -29,7 +29,6 @@ impl Flag for AuxBuilder {
     ) -> Result<(), Errored> {
         let aux = &self.aux_file;
         let aux_dir = config.aux_dir;
-        let line = aux.line();
         let aux_file = if aux.starts_with("..") {
             aux_dir.parent().unwrap().join(&aux.content)
         } else {
@@ -60,9 +59,8 @@ impl Flag for AuxBuilder {
                  }| Errored {
                     command,
                     errors: vec![Error::Aux {
-                        path: aux_file.to_path_buf(),
+                        path: Spanned::new(aux_file.to_path_buf(), aux.span()),
                         errors,
-                        line,
                     }],
                     stderr,
                     stdout,
@@ -84,14 +82,13 @@ pub struct AuxBuilder {
 impl Build for AuxBuilder {
     fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
         let mut config = build_manager.config().clone();
-        let file_contents = Spanned::read_from_file(&self.aux_file.content)
-            .map_err(|err| Errored {
+        let file_contents =
+            Spanned::read_from_file(&self.aux_file.content).map_err(|err| Errored {
                 command: format!("reading aux file `{}`", display(&self.aux_file)),
                 errors: vec![],
                 stderr: err.to_string().into_bytes(),
                 stdout: vec![],
-            })?
-            .map(|s| s.into_bytes());
+            })?;
         let comments = Comments::parse(file_contents.as_ref(), &config)
             .map_err(|errors| Errored::new(errors, "parse aux comments"))?;
         assert_eq!(

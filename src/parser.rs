@@ -59,7 +59,7 @@ impl Comments {
             }
             if let Some(found) = f(rev).into_inner() {
                 if result.is_some() {
-                    errors.push(found.line());
+                    errors.push(found.span);
                 } else {
                     result = found.into();
                 }
@@ -911,7 +911,7 @@ impl CommentParser<&mut Revisioned> {
                         self.error(pattern.span(), format!(
                             "//~^ pattern is trying to refer to {} lines above, but there are only {} lines above",
                             offset,
-                            pattern.line().get() - 1,
+                            current_line.get() - 1,
                         ));
                         return ParsePatternResult::ErrorAbove {
                             match_line: current_line,

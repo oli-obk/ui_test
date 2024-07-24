@@ -234,7 +234,7 @@ fn compile_fixed(
                             .iter()
                             .flatten()
                             .chain(diagnostics.messages_from_unknown_file_or_line.iter())
-                            .find_map(|message| message.line_col.clone())
+                            .find_map(|message| message.span.clone())
                             .unwrap_or_default(),
                     ),
                 }],

@@ -56,7 +56,7 @@ pub enum Error {
         /// The main message of the error.
         msgs: Vec<Message>,
         /// File and line information of the error.
-        path: Option<Spanned<PathBuf>>,
+        path: Option<(PathBuf, NonZeroUsize)>,
     },
     /// A comment failed to parse.
     InvalidComment {
@@ -72,7 +72,7 @@ pub enum Error {
         /// The comment being looked for
         kind: String,
         /// The lines where conflicts happened
-        lines: Vec<NonZeroUsize>,
+        lines: Vec<Span>,
     },
     /// A subcommand (e.g. rustfix) of a test failed.
     Command {
@@ -86,11 +86,9 @@ pub enum Error {
     /// An auxiliary build failed with its own set of errors.
     Aux {
         /// Path to the aux file.
-        path: PathBuf,
+        path: Spanned<PathBuf>,
         /// The errors that occurred during the build of the aux file.
         errors: Vec<Error>,
-        /// The line in which the aux file was requested to be built.
-        line: NonZeroUsize,
     },
     /// An error occured applying [`rustfix`] suggestions
     Rustfix(anyhow::Error),

@@ -56,7 +56,9 @@ pub struct Message {
     /// The main message of the diagnostic (what will be matched for with `//~`)
     pub message: String,
     /// Information about where in the file the message was emitted
-    pub line_col: Option<spanned::Span>,
+    pub line: Option<usize>,
+    /// Exact span information of the message
+    pub span: Option<spanned::Span>,
     /// Identifier of the message (E0XXX for rustc errors, or lint names)
     pub code: Option<String>,
 }

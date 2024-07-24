@@ -139,8 +139,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
 
     let content = Spanned::read_from_file(path)
-        .wrap_err_with(|| format!("failed to read {}", display(path)))?
-        .map(|s| s.into_bytes());
+        .wrap_err_with(|| format!("failed to read {}", display(path)))?;
     let comments = Comments::parse(content.as_ref(), &config)
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
@@ -234,9 +233,7 @@ pub fn run_tests_generic(
         |receive, finished_files_sender| -> Result<()> {
             for (status, build_manager) in receive {
                 let path = status.path();
-                let file_contents = Spanned::read_from_file(path)
-                    .unwrap()
-                    .map(|s| s.into_bytes());
+                let file_contents = Spanned::read_from_file(path).unwrap();
                 let mut config = build_manager.config().clone();
                 per_file_config(&mut config, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
