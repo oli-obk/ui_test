@@ -18,6 +18,7 @@ pub use core::run_and_collect;
 pub use core::CrateType;
 pub use filter::Match;
 use per_test_config::TestConfig;
+use spanned::Spanned;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
 use std::path::Path;
@@ -117,7 +118,7 @@ pub fn default_any_file_filter(path: &Path, config: &Config) -> bool {
 }
 
 /// The default per-file config used by `run_tests`.
-pub fn default_per_file_config(config: &mut Config, _path: &Path, file_contents: &[u8]) {
+pub fn default_per_file_config(config: &mut Config, file_contents: &Spanned<Vec<u8>>) {
     config.program.args.push(
         match CrateType::from_file_contents(file_contents) {
             CrateType::ProcMacro => "--crate-type=proc-macro",
@@ -137,9 +138,9 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
 
     config.fill_host_and_target()?;
 
-    let content =
-        std::fs::read(path).wrap_err_with(|| format!("failed to read {}", display(path)))?;
-    let comments = Comments::parse(&content, &config, path)
+    let content = Spanned::read_from_file(path)
+        .wrap_err_with(|| format!("failed to read {}", display(path)))?;
+    let comments = Comments::parse(content.as_ref(), &config)
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
         config,
@@ -166,7 +167,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
 pub fn run_tests_generic(
     mut configs: Vec<Config>,
     file_filter: impl Fn(&Path, &Config) -> Option<bool> + Sync,
-    per_file_config: impl Fn(&mut Config, &Path, &[u8]) + Sync,
+    per_file_config: impl Fn(&mut Config, &Spanned<Vec<u8>>) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
     if nextest::emulate(&mut configs) {
@@ -232,9 +233,9 @@ pub fn run_tests_generic(
         |receive, finished_files_sender| -> Result<()> {
             for (status, build_manager) in receive {
                 let path = status.path();
-                let file_contents = std::fs::read(path).unwrap();
+                let file_contents = Spanned::read_from_file(path).unwrap();
                 let mut config = build_manager.config().clone();
-                per_file_config(&mut config, path, &file_contents);
+                per_file_config(&mut config, &file_contents);
                 let result = match std::panic::catch_unwind(|| {
                     parse_and_test_file(build_manager, &status, config, file_contents)
                 }) {
@@ -317,9 +318,9 @@ fn parse_and_test_file(
     build_manager: &BuildManager<'_>,
     status: &dyn TestStatus,
     config: Config,
-    file_contents: Vec<u8>,
+    file_contents: Spanned<Vec<u8>>,
 ) -> Result<Vec<TestRun>, Errored> {
-    let comments = Comments::parse(&file_contents, &config, status.path())
+    let comments = Comments::parse(file_contents.as_ref(), &config)
         .map_err(|errors| Errored::new(errors, "parse comments"))?;
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions

@@ -139,7 +139,7 @@ fn main() -> Result<()> {
                     && default_any_file_filter(path, config),
             )
         },
-        |_, _, _| {},
+        |_, _| {},
         (
             text,
             ui_test::status_emitter::Gha::<true> {

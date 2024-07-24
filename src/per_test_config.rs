@@ -368,13 +368,7 @@ impl TestConfig<'_> {
                 if !msgs.is_empty() {
                     let line = NonZeroUsize::new(line).expect("line 0 is always empty");
                     errors.push(Error::ErrorsWithoutPattern {
-                        path: Some(Spanned::new(
-                            self.status.path().to_path_buf(),
-                            spanned::Span {
-                                line_start: line,
-                                ..spanned::Span::default()
-                            },
-                        )),
+                        path: Some((self.status.path().to_path_buf(), line)),
                         msgs,
                     });
                 }

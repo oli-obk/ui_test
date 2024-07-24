@@ -1,11 +1,8 @@
 //! Types used for running tests after they pass compilation
 
 use bstr::ByteSlice;
-use spanned::{Span, Spanned};
-use std::{
-    path::PathBuf,
-    process::{Command, Output},
-};
+use spanned::Spanned;
+use std::process::{Command, Output};
 
 use crate::{
     build_manager::BuildManager, display, per_test_config::TestConfig, Error, Errored, TestOk,
@@ -116,19 +113,25 @@ fn get_panic_span(stderr: &[u8]) -> Spanned<String> {
             let Ok(filename) = filename.to_str() else {
                 continue;
             };
-            let Ok(line) = line.parse() else {
+            let Ok(line) = line.parse::<usize>() else {
                 continue;
             };
-            let Ok(col) = col.parse() else {
+            let Ok(col) = col.parse::<usize>() else {
                 continue;
             };
-            let span = Span {
-                file: PathBuf::from(filename),
-                line_start: line,
-                line_end: line,
-                col_start: col,
-                col_end: col,
+            let Ok(file) = Spanned::read_from_file(filename) else {
+                continue;
             };
+            let Some(line) = line.checked_sub(1) else {
+                continue;
+            };
+            let Some(line) = file.lines().nth(line) else {
+                continue;
+            };
+            let Some(col) = col.checked_sub(1) else {
+                continue;
+            };
+            let span = line.span.inc_col_start(col);
             return Spanned::new(message.into(), span);
         }
     }

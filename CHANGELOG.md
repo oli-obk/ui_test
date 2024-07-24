@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.25.0] - 2024-07-24
+
+### Added
+
+### Fixed
+
+* panics when ui_test tried to show diagnostics on multi-byte chars
+
+### Changed
+
+### Removed
+
 
 ## [0.24.0] - 2024-07-11
 

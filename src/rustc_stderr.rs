@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use crate::diagnostics::{Diagnostics, Message};
 
-fn diag_line(diag: &Diagnostic, file: &Path) -> Option<spanned::Span> {
+fn diag_line(diag: &Diagnostic, file: &Path) -> Option<(spanned::Span, usize)> {
     let span = |primary| {
         diag.spans
             .iter()
@@ -20,20 +20,21 @@ fn insert_recursive(
     file: &Path,
     messages: &mut Vec<Vec<Message>>,
     messages_from_unknown_file_or_line: &mut Vec<Message>,
-    line: Option<spanned::Span>,
+    line: Option<(spanned::Span, usize)>,
 ) {
     let line = diag_line(&diag, file).or(line);
     let msg = Message {
         level: diag.level.into(),
         message: diag.message,
-        line_col: line.clone(),
+        line: line.as_ref().map(|&(_, l)| l),
+        span: line.as_ref().map(|(s, _)| s.clone()),
         code: diag.code.map(|x| x.code),
     };
-    if let Some(line) = line.clone() {
-        if messages.len() <= line.line_start.get() {
-            messages.resize_with(line.line_start.get() + 1, Vec::new);
+    if let Some((_, line)) = line.clone() {
+        if messages.len() <= line {
+            messages.resize_with(line + 1, Vec::new);
         }
-        messages[line.line_start.get()].push(msg);
+        messages[line].push(msg);
     // All other messages go into the general bin, unless they are specifically of the
     // "aborting due to X previous errors" variety, as we never want to match those. They
     // only count the number of errors and provide no useful information about the tests.
@@ -54,7 +55,7 @@ fn insert_recursive(
 }
 
 /// Returns the most expanded line number *in the given file*, if possible.
-fn span_line(span: &DiagnosticSpan, file: &Path, primary: bool) -> Option<spanned::Span> {
+fn span_line(span: &DiagnosticSpan, file: &Path, primary: bool) -> Option<(spanned::Span, usize)> {
     let file_name = PathBuf::from(&span.file_name);
     if let Some(exp) = &span.expansion {
         if let Some(line) = span_line(&exp.span, file, !primary || span.is_primary) {
@@ -69,13 +70,14 @@ fn span_line(span: &DiagnosticSpan, file: &Path, primary: bool) -> Option<spanne
     }
     ((!primary || span.is_primary) && file_name == file).then(|| {
         let span = || {
-            Some(spanned::Span {
-                file: file_name,
-                line_start: span.line_start.try_into().ok()?,
-                line_end: span.line_end.try_into().ok()?,
-                col_start: span.column_start.try_into().ok()?,
-                col_end: span.column_end.try_into().ok()?,
-            })
+            Some((
+                spanned::Span {
+                    file: file_name,
+                    bytes: usize::try_from(span.byte_start).unwrap()
+                        ..usize::try_from(span.byte_end).unwrap(),
+                },
+                span.line_start,
+            ))
         };
         span().unwrap_or_default()
     })

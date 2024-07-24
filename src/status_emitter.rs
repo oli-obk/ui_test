@@ -5,7 +5,7 @@ use bstr::ByteSlice;
 use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
-use spanned::Span;
+use spanned::{Span, Spanned};
 
 use crate::{
     diagnostics::{Level, Message},
@@ -526,10 +526,7 @@ fn print_error(error: &Error, path: &Path) {
             // `status` prints as `exit status: N`.
             create_error(
                 format!("test got {status}, but expected {expected}"),
-                &[(
-                    &[(reason, Some(reason.span.clone()))],
-                    reason.span.line_start,
-                )],
+                &[&[(reason, reason.span.clone())]],
                 path,
             )
         }
@@ -556,10 +553,7 @@ fn print_error(error: &Error, path: &Path) {
             // This will print a suitable error header.
             create_error(
                 msg,
-                &[(
-                    &[("expected because of this pattern", Some(pattern.span()))],
-                    pattern.line(),
-                )],
+                &[&[("expected because of this pattern", pattern.span())]],
                 path,
             );
         }
@@ -573,10 +567,7 @@ fn print_error(error: &Error, path: &Path) {
             };
             create_error(
                 format!("diagnostic code `{}` not found {line}", &**code),
-                &[(
-                    &[("expected because of this pattern", Some(code.span()))],
-                    code.line(),
-                )],
+                &[&[("expected because of this pattern", code.span())]],
                 path,
             );
         }
@@ -584,11 +575,11 @@ fn print_error(error: &Error, path: &Path) {
             print_error_header("expected error patterns, but found none");
         }
         Error::PatternFoundInPassTest { mode, span } => {
-            let annot = [("expected because of this annotation", Some(span.clone()))];
-            let mut lines: Vec<(&[_], _)> = vec![(&annot, span.line_start)];
-            let annot = [("expected because of this mode change", Some(mode.clone()))];
+            let annot = [("expected because of this annotation", span.clone())];
+            let mut lines: Vec<&[_]> = vec![&annot];
+            let annot = [("expected because of this mode change", mode.clone())];
             if !mode.is_dummy() {
-                lines.push((&annot, mode.line_start))
+                lines.push(&annot)
             }
             // This will print a suitable error header.
             create_error("error pattern found in pass test", &lines, path);
@@ -619,8 +610,7 @@ fn print_error(error: &Error, path: &Path) {
             crate::diff::print_diff(expected, actual);
         }
         Error::ErrorsWithoutPattern { path, msgs } => {
-            if let Some(path) = path.as_ref() {
-                let line = path.line();
+            if let Some((path, _)) = path.as_ref() {
                 let msgs = msgs
                     .iter()
                     .map(|msg| {
@@ -630,19 +620,16 @@ fn print_error(error: &Error, path: &Path) {
                             }
                             _ => format!("{:?}: {}", msg.level, msg.message),
                         };
-                        (text, msg.line_col.clone())
+                        (text, msg.span.clone().unwrap_or_default())
                     })
                     .collect::<Vec<_>>();
                 // This will print a suitable error header.
                 create_error(
                     format!("there were {} unmatched diagnostics", msgs.len()),
-                    &[(
-                        &msgs
-                            .iter()
-                            .map(|(msg, lc)| (msg.as_ref(), lc.clone().map(Into::into)))
-                            .collect::<Vec<_>>(),
-                        line,
-                    )],
+                    &[&msgs
+                        .iter()
+                        .map(|(msg, lc)| (msg.as_ref(), lc.clone()))
+                        .collect::<Vec<_>>()],
                     path,
                 );
             } else {
@@ -653,8 +640,9 @@ fn print_error(error: &Error, path: &Path) {
                 for Message {
                     level,
                     message,
-                    line_col: _,
+                    line: _,
                     code: _,
+                    span: _,
                 } in msgs
                 {
                     println!("    {level:?}: {message}")
@@ -663,17 +651,14 @@ fn print_error(error: &Error, path: &Path) {
         }
         Error::InvalidComment { msg, span } => {
             // This will print a suitable error header.
-            create_error(msg, &[(&[("", Some(span.clone()))], span.line_start)], path)
+            create_error(msg, &[&[("", span.clone())]], path)
         }
         Error::MultipleRevisionsWithResults { kind, lines } => {
             let title = format!("multiple {kind} found");
             // This will print a suitable error header.
             create_error(
                 title,
-                &lines
-                    .iter()
-                    .map(|&line| (&[] as &[_], line))
-                    .collect::<Vec<_>>(),
+                &lines.iter().map(|_line| &[] as &[_]).collect::<Vec<_>>(),
                 path,
             )
         }
@@ -684,12 +669,12 @@ fn print_error(error: &Error, path: &Path) {
         Error::Aux {
             path: aux_path,
             errors,
-            line,
         } => {
-            print_error_header(format_args!(
-                "aux build from {}:{line} failed",
-                display(path)
-            ));
+            create_error(
+                "aux build failed",
+                &[&[(&path.display().to_string(), aux_path.span.clone())]],
+                &aux_path.span.file,
+            );
             for error in errors {
                 print_error(error, aux_path);
             }
@@ -708,49 +693,32 @@ fn print_error(error: &Error, path: &Path) {
 }
 
 #[allow(clippy::type_complexity)]
-fn create_error(
-    s: impl AsRef<str>,
-    lines: &[(&[(&str, Option<Span>)], NonZeroUsize)],
-    file: &Path,
-) {
+fn create_error(s: impl AsRef<str>, lines: &[&[(&str, Span)]], file: &Path) {
     let source = std::fs::read_to_string(file).unwrap();
-    let source: Vec<_> = source.split_inclusive('\n').collect();
     let file = display(file);
     let mut msg = annotate_snippets::Level::Error.title(s.as_ref());
-    for &(label, line) in lines {
-        let Some(source) = source.get(line.get() - 1) else {
-            for (label, _) in label {
-                let footer = annotate_snippets::Level::Note.title(label);
-                msg = msg.footer(footer);
-            }
-
-            continue;
-        };
-        let len = source.len();
-        let snippet = Snippet::source(source)
-            .line_start(line.get())
-            .origin(&file)
-            .annotations(label.iter().map(|(label, lc)| {
+    for &label in lines {
+        let annotations = label
+            .iter()
+            .filter(|(_, span)| !span.is_dummy())
+            .map(|(label, span)| {
                 annotate_snippets::Level::Error
-                    .span(lc.as_ref().map_or(0..len - 1, |lc| {
-                        assert_eq!(lc.line_start, line);
-                        if lc.line_end > lc.line_start {
-                            lc.col_start.get() - 1..len - 1
-                        } else if lc.col_start == lc.col_end {
-                            if lc.col_start.get() - 1 == len {
-                                // rustc sometimes produces spans pointing *after* the `\n` at the end of the line,
-                                // but we want to render an annotation at the end.
-                                lc.col_start.get() - 2..lc.col_start.get() - 1
-                            } else {
-                                lc.col_start.get() - 1..lc.col_start.get()
-                            }
-                        } else {
-                            lc.col_start.get() - 1..lc.col_end.get() - 1
-                        }
-                    }))
+                    .span(span.bytes.clone())
                     .label(label)
-            }));
-        msg = msg.snippet(snippet);
+            })
+            .collect::<Vec<_>>();
+        if !annotations.is_empty() {
+            let snippet = Snippet::source(&source)
+                .fold(true)
+                .origin(&file)
+                .annotations(annotations);
+            msg = msg.snippet(snippet);
+        }
+        let footer = label
+            .iter()
+            .filter(|(_, span)| span.is_dummy())
+            .map(|(label, _)| annotate_snippets::Level::Note.title(label));
+        msg = msg.footers(footer);
     }
     let renderer = if colored::control::SHOULD_COLORIZE.should_colorize() {
         Renderer::styled()
@@ -761,6 +729,14 @@ fn create_error(
 }
 
 fn gha_error(error: &Error, test_path: &str, revision: &str) {
+    let file = Spanned::read_from_file(test_path).unwrap();
+    let line = |span: &Span| {
+        let line = file
+            .lines()
+            .position(|line| line.span.bytes.contains(&span.bytes.start))
+            .unwrap();
+        NonZeroUsize::new(line + 1).unwrap()
+    };
     match error {
         Error::ExitStatus {
             status,
@@ -778,11 +754,11 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
         }
         Error::PatternNotFound { pattern, .. } => {
             github_actions::error(test_path, format!("Pattern not found{revision}"))
-                .line(pattern.line());
+                .line(line(&pattern.span));
         }
         Error::CodeNotFound { code, .. } => {
             github_actions::error(test_path, format!("Diagnostic code not found{revision}"))
-                .line(code.line());
+                .line(line(&code.span));
         }
         Error::NoPatternsFound => {
             github_actions::error(
@@ -862,16 +838,16 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             }
         }
         Error::ErrorsWithoutPattern { path, msgs } => {
-            if let Some(path) = path.as_ref() {
-                let line = path.line();
+            if let Some((path, line)) = path.as_ref() {
                 let path = display(path);
                 let mut err =
                     github_actions::error(path, format!("Unmatched diagnostics{revision}"))
-                        .line(line);
+                        .line(*line);
                 for Message {
                     level,
                     message,
-                    line_col: _,
+                    line: _,
+                    span: _,
                     code: _,
                 } in msgs
                 {
@@ -885,7 +861,8 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                 for Message {
                     level,
                     message,
-                    line_col: _,
+                    line: _,
+                    span: _,
                     code: _,
                 } in msgs
                 {
@@ -895,19 +872,20 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
         }
         Error::InvalidComment { msg, span } => {
             let mut err = github_actions::error(test_path, format!("Could not parse comment"))
-                .line(span.line_start);
+                .line(line(span));
             writeln!(err, "{msg}").unwrap();
         }
         Error::MultipleRevisionsWithResults { kind, lines } => {
-            github_actions::error(test_path, format!("multiple {kind} found")).line(lines[0]);
+            github_actions::error(test_path, format!("multiple {kind} found"))
+                .line(line(&lines[0]));
         }
         Error::Bug(_) => {}
         Error::Aux {
             path: aux_path,
             errors,
-            line,
         } => {
-            github_actions::error(test_path, format!("Aux build failed")).line(*line);
+            github_actions::error(test_path, format!("Aux build failed"))
+                .line(line(&aux_path.span));
             for error in errors {
                 gha_error(error, &display(aux_path), "")
             }

@@ -504,6 +504,7 @@ tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision `b`) ... FAILE
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... ok
 tests/actual_tests_bless/rustfix-fail.fixed ... FAILED
 tests/actual_tests_bless/rustfix-fail.rs ... ok
+tests/actual_tests_bless/unicode.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 tests/actual_tests_bless/wrong_diagnostic_code.rs ... FAILED
@@ -637,7 +638,7 @@ error: test got exit status: 101, but expected 0
  --> tests/actual_tests_bless/failing_executable.rs:4:5
   |
 4 |     assert_eq!(5, 6);
-  |     ^ assertion `left == right` failed
+  |     ^^^^^^^^^^^^^^^^^ assertion `left == right` failed
   |
 
 full stderr:
@@ -801,7 +802,7 @@ error: test got exit status: 101, but expected 0
  --> tests/actual_tests_bless/revisioned_executable_panic.rs
   |
 6 |     panic!()
-  |     ^ explicit panic
+  |     ^^^^^^^^ explicit panic
   |
 
 full stderr:
@@ -938,6 +939,38 @@ full stdout:
 
 
 
+FAILED TEST: tests/actual_tests_bless/unicode.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/unicode.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+
+error: test got exit status: 0, but expected 1
+ = note: compilation succeeded, but was expected to fail
+
+error: expected error patterns, but found none
+
+full stderr:
+warning: unused variable: `Ě电脑`
+ --> tests/actual_tests_bless/unicode.rs:7:9
+  |
+7 |     let Ě电脑 = 1;
+  |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_Ě电脑`
+  |
+  = note: `#[warn(unused_variables)]` on by default
+
+warning: variable `Ě电脑` should have a snake case name
+ --> tests/actual_tests_bless/unicode.rs:7:9
+  |
+7 |     let Ě电脑 = 1;
+  |         ^^^^^ help: convert the identifier to snake case: `ě电脑`
+  |
+  = note: `#[warn(non_snake_case)]` on by default
+
+warning: 2 warnings emitted
+
+
+full stdout:
+
+
+
 FAILED TEST: tests/actual_tests_bless/unknown_revision.rs
 command: parse comments
 
@@ -1040,11 +1073,12 @@ FAILURES:
     tests/actual_tests_bless/rustfix-fail-revisions.a.fixed (revision a)
     tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision b)
     tests/actual_tests_bless/rustfix-fail.fixed
+    tests/actual_tests_bless/unicode.rs
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
     tests/actual_tests_bless/wrong_diagnostic_code.rs
 
-test result: FAIL. 22 failed; 24 passed; 3 ignored;
+test result: FAIL. 23 failed; 24 passed; 3 ignored;
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
