@@ -1,17 +1,18 @@
 //! Basic operations useful for building a testsuite
 
 use crate::test_result::Errored;
-use bstr::ByteSlice as _;
 use color_eyre::eyre::Result;
 use crossbeam_channel::unbounded;
 use crossbeam_channel::Receiver;
 use crossbeam_channel::Sender;
+use regex::bytes::RegexSet;
 use std::num::NonZeroUsize;
 use std::path::Component;
 use std::path::Path;
 use std::path::Prefix;
 use std::process::Command;
 use std::process::Output;
+use std::sync::OnceLock;
 use std::thread;
 
 pub(crate) fn run_command(cmd: &mut Command) -> Result<Output, Errored> {
@@ -53,20 +54,28 @@ pub(crate) fn strip_path_prefix<'a>(
 
 impl CrateType {
     /// Heuristic:
-    /// * if the file contains `#[test]`, automatically pass `--cfg test`.
-    /// * if the file does not contain `fn main()` or `#[start]`, automatically pass `--crate-type=lib`.
-    /// This avoids having to spam `fn main() {}` in almost every test.
+    /// * [`CrateType::ProcMacro`] if the file contains a [proc macro attribute]
+    /// * [`CrateType::Test`] if the file contains `#[test]`
+    /// * [`CrateType::Bin`] if the file contains `fn main()` or `#[start]`
+    /// * otherwise [`CrateType::Lib`]
+    ///
+    /// [proc macro attribute]: https://doc.rust-lang.org/reference/procedural-macros.html
     pub fn from_file_contents(file_contents: &[u8]) -> CrateType {
-        if file_contents.find(b"#[proc_macro").is_some() {
-            CrateType::ProcMacro
-        } else if file_contents.find(b"#[test]").is_some() {
-            CrateType::Test
-        } else if file_contents.find(b"fn main()").is_none()
-            && file_contents.find(b"#[start]").is_none()
-        {
-            CrateType::Lib
-        } else {
-            CrateType::Bin
+        static RE: OnceLock<RegexSet> = OnceLock::new();
+        let re = RE.get_or_init(|| {
+            RegexSet::new([
+                r"#\[proc_macro(_derive|_attribute)?[\](]",
+                r"#\[test\]",
+                r"fn main()|#\[start\]",
+            ])
+            .unwrap()
+        });
+
+        match re.matches(file_contents).iter().next() {
+            Some(0) => CrateType::ProcMacro,
+            Some(1) => CrateType::Test,
+            Some(2) => CrateType::Bin,
+            _ => CrateType::Lib,
         }
     }
 }
