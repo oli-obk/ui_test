@@ -9,6 +9,8 @@ running 3 tests
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
 
 Building dependencies ... ok
+Building aux file tests/actual_tests/auxiliary/proc_macro_attr.rs ... ok
+tests/actual_tests/aux_attr_proc_macro.rs ... ok
 Building aux file tests/actual_tests/auxiliary/derive_proc_macro.rs ... ok
 tests/actual_tests/aux_derive.fixed ... ok
 tests/actual_tests/aux_derive.rs ... ok
@@ -42,7 +44,7 @@ tests/actual_tests/unicode.rs ... ok
 tests/actual_tests/windows_paths.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 30 passed;
+test result: ok. 31 passed;
 
 
 running 0 tests
