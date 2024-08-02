@@ -6,7 +6,7 @@ fn main() -> Result<()> {
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join("integrations");
     let mut config = Config {
-        bless_command: Some("cargo test".to_string()),
+        bless_command: Some("cargo test -- -- --bless".to_string()),
         ..Config::cargo(root_dir.clone())
     };
 
@@ -113,10 +113,6 @@ fn main() -> Result<()> {
                 .to_str()
                 .unwrap()
                 .ends_with("-fail");
-            if cfg!(windows) && path.components().any(|c| c.as_os_str() == "basic-bin") {
-                // on windows there's also a .pdb file, so we get additional errors that aren't there on other platforms
-                return Some(false);
-            }
             if !path.ends_with("Cargo.toml") {
                 return None;
             }
