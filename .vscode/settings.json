@@ -6,5 +6,10 @@
         "./tests/integrations/basic-fail-mode/Cargo.toml",
         "./tests/integrations/cargo-run/Cargo.toml"
     ],
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "*.rs": "${capture}*"
+    },
     "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix"
 }
