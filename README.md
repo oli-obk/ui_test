@@ -1,6 +1,23 @@
-A stable version of compiletest-rs
+A test runner that builds tests with rustc or cargo (or any other compiler
+with some configuration effort) and compares the output of the compiler with
+a file that you check into git. This allows you to test how your libraries
+show up to your users when the library is used wrongly and emits errors.
 
-## Magic behavior
+## Usage
+
+See [examples directory](examples) for how to use this in your own crate.
+To be able to use it with `cargo test`, you need to put
+
+```toml
+[[test]]
+name = "your_test_file"
+harness = false
+```
+
+into your `Cargo.toml`, otherwise `cargo test` will only look for `#[test]`s and
+not run your `fn main()` that actually executes `ui_test`
+
+## Implicit (and possibly surprising) behavior
 
 * Tests are run in order of their filenames (files first, then recursing into folders).
   So if you have any slow tests, prepend them with a small integral number to make them get run first, taking advantage of parallelism as much as possible (instead of waiting for the slow tests at the end).
@@ -8,7 +25,7 @@ A stable version of compiletest-rs
     * Since `cargo test` on its own runs all tests, using `cargo test -- --check` will not work on its own, but `cargo test -- --quiet` and `cargo test -- some_test_name` will work just fine, as the CLI matches.
 * if there is a `.stdin` file with the same filename as your test, it will be piped as standard input to your program.
 
-## Supported magic comment annotations
+## Supported comment annotations
 
 If your test tests for failure, you need to add a `//~` annotation where the error is happening
 to ensure that the test will always keep failing at the annotated line. These comments can take two forms:
