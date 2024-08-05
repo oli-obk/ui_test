@@ -10,10 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * examples and usage instructions
+* `Config::comment_start` field for changing the default comment symbols from `//`
 
 ### Fixed
 
 ### Changed
+
+* default comment symbols for `Config::cargo` changed to `#`
 
 ### Removed
 
