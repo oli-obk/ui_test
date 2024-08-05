@@ -5,8 +5,7 @@
     rustc::internal
 )]
 #![deny(missing_docs)]
-
-//! A crate to run the Rust compiler (or other binaries) and test their command line output.
+#![doc = include_str!("../README.md")]
 
 use build_manager::BuildManager;
 pub use color_eyre;
