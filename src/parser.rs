@@ -202,6 +202,8 @@ pub struct CommentParser<T> {
     errors: Vec<Error>,
     /// The available commands and their parsing logic
     commands: HashMap<&'static str, CommandParserFunc>,
+    /// The symbol(s) that signify the start of a comment.
+    comment_start: &'static str,
 }
 
 pub type CommandParserFunc =
@@ -312,6 +314,7 @@ impl CommentParser<Comments> {
             comments: config.comment_defaults.clone(),
             errors: vec![],
             commands: Self::commands(),
+            comment_start: config.comment_start,
         };
         this.commands
             .extend(config.custom_comments.iter().map(|(&k, &v)| (k, v)));
@@ -468,15 +471,27 @@ impl CommentParser<Comments> {
         line: Spanned<&[u8]>,
     ) -> std::result::Result<ParsePatternResult, Spanned<Utf8Error>> {
         let mut res = ParsePatternResult::Other;
-        if let Some(command) = line.strip_prefix(b"//@") {
-            self.parse_command(command.to_str()?.trim())
-        } else if let Some((_, pattern)) = line.split_once_str("//~") {
-            let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
-            self.revisioned(revisions, |this| {
-                res = this.parse_pattern(pattern, fallthrough_to, current_line);
-            })
+
+        if let Some((_, comment)) =
+            line.split_once_str(self.comment_start)
+                .filter(|(pre, c)| match c[0] {
+                    b'@' => pre.is_empty(),
+                    b'~' => true,
+                    _ => false,
+                })
+        {
+            if let Some(command) = comment.strip_prefix(b"@") {
+                self.parse_command(command.to_str()?.trim())
+            } else if let Some(pattern) = comment.strip_prefix(b"~") {
+                let (revisions, pattern) = self.parse_revisions(pattern.to_str()?);
+                self.revisioned(revisions, |this| {
+                    res = this.parse_pattern(pattern, fallthrough_to, current_line);
+                })
+            } else {
+                unreachable!()
+            }
         } else {
-            for pos in line.clone().find_iter("//") {
+            for pos in line.clone().find_iter(self.comment_start) {
                 let (_, rest) = line.clone().to_str()?.split_at(pos + 2);
                 for rest in std::iter::once(rest.clone()).chain(rest.strip_prefix(" ")) {
                     let c = rest.chars().next();
@@ -489,9 +504,9 @@ impl CommentParser<Comments> {
                             span,
                             format!(
                                 "comment looks suspiciously like a test suite command: `{}`\n\
-                             All `//@` test suite commands must be at the start of the line.\n\
-                             The `//` must be directly followed by `@` or `~`.",
-                                *rest,
+                             All `{}@` test suite commands must be at the start of the line.\n\
+                             The `{}` must be directly followed by `@` or `~`.",
+                                *rest, self.comment_start, self.comment_start,
                             ),
                         );
                     } else {
@@ -499,15 +514,19 @@ impl CommentParser<Comments> {
                             errors: vec![],
                             comments: Comments::default(),
                             commands: std::mem::take(&mut self.commands),
+                            comment_start: self.comment_start,
                         };
                         let span = rest.span();
                         parser.parse_command(rest);
                         if parser.errors.is_empty() {
                             self.error(
                                 span,
-                                "a compiletest-rs style comment was detected.\n\
+                                format!(
+                                    "a compiletest-rs style comment was detected.\n\
                                 Please use text that could not also be interpreted as a command,\n\
-                                and prefix all actual commands with `//@`",
+                                and prefix all actual commands with `{}@`",
+                                    self.comment_start
+                                ),
                             );
                         }
                         self.commands = parser.commands;
@@ -596,6 +615,7 @@ impl CommentParser<Comments> {
             span,
         } = revisions;
         let mut this = CommentParser {
+            comment_start: self.comment_start,
             errors: std::mem::take(&mut self.errors),
             commands: std::mem::take(&mut self.commands),
             comments: self
@@ -909,7 +929,8 @@ impl CommentParser<&mut Revisioned> {
                     }
                     _ => {
                         self.error(pattern.span(), format!(
-                            "//~^ pattern is trying to refer to {} lines above, but there are only {} lines above",
+                            "{}~^ pattern is trying to refer to {} lines above, but there are only {} lines above",
+                            self.comment_start,
                             offset,
                             current_line.get() - 1,
                         ));
@@ -940,7 +961,8 @@ impl CommentParser<&mut Revisioned> {
                         // The line count of the file is not yet known so we can only check
                         // if the resulting line is in the range of a usize.
                         self.error(pattern.span(), format!(
-                            "//~v pattern is trying to refer to {} lines below, which is more than ui_test can count",
+                            "{}~v pattern is trying to refer to {} lines below, which is more than ui_test can count",
+                            self.comment_start,
                             offset,
                         ));
                         return ParsePatternResult::ErrorBelow {

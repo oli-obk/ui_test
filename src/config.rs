@@ -57,6 +57,8 @@ pub struct Config {
     pub filter_exact: bool,
     /// The default settings settable via `@` comments
     pub comment_defaults: Comments,
+    /// The symbol(s) that signify the start of a comment.
+    pub comment_start: &'static str,
     /// Custom comment parsers
     pub custom_comments: BTreeMap<&'static str, CommandParserFunc>,
     /// Custom diagnostic extractor (invoked on the output of tests)
@@ -152,6 +154,7 @@ impl Config {
             run_only_ignored: false,
             filter_exact: false,
             comment_defaults,
+            comment_start: "//",
             custom_comments: Default::default(),
             diagnostic_extractor: rustc_stderr::process,
         };
@@ -220,6 +223,7 @@ impl Config {
             program: CommandBuilder::cargo(),
             custom_comments: Default::default(),
             diagnostic_extractor: rustc_stderr::process_cargo,
+            comment_start: "#",
             ..Self::rustc(root_dir)
         };
         this.comment_defaults.base().custom.clear();
