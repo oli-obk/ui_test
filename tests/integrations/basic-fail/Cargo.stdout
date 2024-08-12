@@ -498,9 +498,9 @@ tests/actual_tests_bless/revisions_same_everywhere.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `bar`) ... ok
 tests/actual_tests_bless/run_panic.rs (revision `run`) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
-tests/actual_tests_bless/rustfix-fail-revisions.a.fixed (revision `a`) ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.a.fixed ... FAILED
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... ok
-tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision `b`) ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.b.fixed ... FAILED
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... ok
 tests/actual_tests_bless/rustfix-fail.fixed ... FAILED
 tests/actual_tests_bless/rustfix-fail.rs ... ok
@@ -846,8 +846,8 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.a.fixed (revision `a`)
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--cfg=a" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.a.fixed
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: test got exit status: 1, but expected 0
  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
@@ -877,8 +877,8 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision `b`)
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--cfg=b" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.b.fixed
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
 
 error: test got exit status: 1, but expected 0
  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
@@ -1070,8 +1070,8 @@ FAILURES:
     tests/actual_tests_bless/revisioned_executable.rs (revision panic.run)
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision run.run)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
-    tests/actual_tests_bless/rustfix-fail-revisions.a.fixed (revision a)
-    tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision b)
+    tests/actual_tests_bless/rustfix-fail-revisions.a.fixed
+    tests/actual_tests_bless/rustfix-fail-revisions.b.fixed
     tests/actual_tests_bless/rustfix-fail.fixed
     tests/actual_tests_bless/unicode.rs
     tests/actual_tests_bless/unknown_revision.rs

@@ -181,8 +181,15 @@ impl Drop for JoinOnDrop {
 
 #[derive(Debug)]
 enum Msg {
-    Pop(String, Option<String>),
-    Push(String),
+    Pop {
+        msg: String,
+        new_leftover_msg: Option<String>,
+        parent: String,
+    },
+    Push {
+        parent: String,
+        msg: String,
+    },
     Inc,
     IncLength,
     Finish,
@@ -194,38 +201,87 @@ impl Text {
         let handle = std::thread::spawn(move || {
             let bars = MultiProgress::new();
             let mut progress = None;
-            let mut threads: HashMap<String, ProgressBar> = HashMap::new();
+            // The bools signal whether the progress bar is done (used for sanity assertions only)
+            let mut threads: HashMap<String, HashMap<String, (ProgressBar, bool)>> = HashMap::new();
             'outer: loop {
                 std::thread::sleep(Duration::from_millis(100));
                 loop {
                     match receiver.try_recv() {
                         Ok(val) => match val {
-                            Msg::Pop(msg, new_msg) => {
-                                let Some(spinner) = threads.remove(&msg) else {
+                            Msg::Pop {
+                                msg,
+                                new_leftover_msg: new_msg,
+                                parent,
+                            } => {
+                                let Some(children) = threads.get_mut(&parent) else {
                                     // This can happen when a test was not run at all, because it failed directly during
                                     // comment parsing.
                                     continue;
                                 };
-                                spinner.set_style(
-                                    ProgressStyle::with_template("{prefix} {msg}").unwrap(),
-                                );
+                                let Some((spinner, done)) = children.get_mut(&msg) else {
+                                    panic!("pop: {parent}({msg}): {children:#?}")
+                                };
+                                *done = true;
+                                let template = if msg.is_empty() {
+                                    "{prefix} {msg}"
+                                } else {
+                                    "  {prefix} {msg}"
+                                };
+
+                                spinner.set_style(ProgressStyle::with_template(template).unwrap());
                                 if let Some(new_msg) = new_msg {
-                                    bars.remove(&spinner);
-                                    let spinner = bars.insert(0, spinner);
+                                    bars.remove(spinner);
+                                    let spinner = spinner.clone();
+                                    let spinner = if msg.is_empty() {
+                                        // insert at the top
+                                        let spinner = bars.insert(0, spinner);
+
+                                        for (msg, (child, _)) in children {
+                                            if !msg.is_empty() {
+                                                bars.remove(child);
+                                                bars.insert_after(&spinner, child.clone());
+                                            }
+                                        }
+                                        spinner
+                                    } else {
+                                        bars.insert_after(&children[""].0, spinner)
+                                    };
                                     spinner.tick();
                                     spinner.finish_with_message(new_msg);
                                 } else {
                                     spinner.finish_and_clear();
                                 }
                             }
-                            Msg::Push(msg) => {
-                                let spinner =
-                                    bars.add(ProgressBar::new_spinner().with_prefix(msg.clone()));
-                                spinner.set_style(
-                                    ProgressStyle::with_template("{prefix} {spinner} {msg}")
-                                        .unwrap(),
-                                );
-                                threads.insert(msg, spinner);
+
+                            Msg::Push { parent, msg } => {
+                                let insert_main = |msg: String| {
+                                    let spinner =
+                                        bars.add(ProgressBar::new_spinner().with_prefix(msg));
+                                    spinner.set_style(
+                                        ProgressStyle::with_template("{prefix} {spinner} {msg}")
+                                            .unwrap(),
+                                    );
+                                    spinner
+                                };
+                                let children = threads.entry(parent.clone()).or_default();
+                                let spinner = if !msg.is_empty() {
+                                    let parent = &children
+                                        .entry(String::new())
+                                        .or_insert_with(|| (insert_main(parent), false))
+                                        .0;
+                                    let spinner = bars.insert_after(
+                                        parent,
+                                        ProgressBar::new_spinner().with_prefix(msg.clone()),
+                                    );
+                                    spinner.set_style(
+                                        ProgressStyle::with_template("  {prefix} {spinner} {msg}")
+                                            .unwrap(),
+                                    );
+                                    spinner
+                                } else {
+                                    insert_main(parent)
+                                };
+                                children.insert(msg, (spinner, false));
                             }
                             Msg::IncLength => {
                                 progress
@@ -242,14 +298,20 @@ impl Text {
                         Err(TryRecvError::Empty) => break,
                     }
                 }
-                for spinner in threads.values() {
-                    spinner.tick()
+                for children in threads.values() {
+                    for (spinner, _done) in children.values() {
+                        spinner.tick();
+                    }
                 }
                 if let Some(progress) = &progress {
                     progress.tick()
                 }
             }
-            assert_eq!(threads.len(), 0, "remaining: {threads:?}");
+            for (key, children) in threads.iter() {
+                for (sub_key, (_child, done)) in children {
+                    assert!(done, "{key} ({sub_key}) not finished");
+                }
+            }
             if let Some(progress) = progress {
                 progress.tick();
                 assert!(progress.is_finished());
@@ -301,29 +363,24 @@ struct TextTest {
     style: RevisionStyle,
 }
 
-impl TextTest {
-    /// Prints the user-visible name for this test.
-    fn msg(&self) -> String {
-        if self.revision.is_empty() {
-            display(&self.path)
-        } else {
-            format!("{} (revision `{}`)", display(&self.path), self.revision)
-        }
-    }
-}
-
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult) {
         if self.text.is_quiet_output() {
             self.text.sender.send(Msg::Inc).unwrap();
-            self.text.sender.send(Msg::Pop(self.msg(), None)).unwrap();
+            self.text
+                .sender
+                .send(Msg::Pop {
+                    msg: self.revision.clone(),
+                    new_leftover_msg: None,
+                    parent: display(&self.path),
+                })
+                .unwrap();
         } else {
             let result = match result {
                 Ok(TestOk::Ok) => "ok".green(),
                 Err(Errored { .. }) => "FAILED".bright_red().bold(),
                 Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
             };
-            let old_msg = self.msg();
             let msg = format!("... {result}");
             if ProgressDrawTarget::stdout().is_hidden() {
                 match self.style {
@@ -339,7 +396,14 @@ impl TestStatus for TextTest {
                     }
                 }
             }
-            self.text.sender.send(Msg::Pop(old_msg, Some(msg))).unwrap();
+            self.text
+                .sender
+                .send(Msg::Pop {
+                    msg: self.revision.clone(),
+                    new_leftover_msg: Some(msg),
+                    parent: display(&self.path),
+                })
+                .unwrap();
         }
     }
 
@@ -349,7 +413,17 @@ impl TestStatus for TextTest {
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
-        let text = format!("{} {}", "FAILED TEST:".bright_red(), self.msg());
+        let maybe_revision = if self.revision.is_empty() {
+            String::new()
+        } else {
+            format!(" (revision `{}`)", self.revision)
+        };
+        let text = format!(
+            "{} {}{}",
+            "FAILED TEST:".bright_red(),
+            display(&self.path),
+            maybe_revision
+        );
 
         println!();
         println!("{}", text.bold().underline());
@@ -397,7 +471,14 @@ impl TestStatus for TextTest {
             first: AtomicBool::new(false),
             style,
         };
-        self.text.sender.send(Msg::Push(text.msg())).unwrap();
+        self.text
+            .sender
+            .send(Msg::Push {
+                parent: display(&self.path),
+                msg: text.revision.clone(),
+            })
+            .unwrap();
+
         Box::new(text)
     }
 
@@ -405,11 +486,17 @@ impl TestStatus for TextTest {
         let text = Self {
             text: self.text.clone(),
             path: path.to_path_buf(),
-            revision: self.revision.clone(),
+            revision: String::new(),
             first: AtomicBool::new(false),
             style: RevisionStyle::Show,
         };
-        self.text.sender.send(Msg::Push(text.msg())).unwrap();
+        self.text
+            .sender
+            .send(Msg::Push {
+                parent: display(&self.path),
+                msg: self.revision.clone(),
+            })
+            .unwrap();
         Box::new(text)
     }
 
