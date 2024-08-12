@@ -4,19 +4,26 @@ running 0 tests
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
 
 Building dependencies ... ok
+tests/actual_tests/bad_pattern.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/bad_pattern.rs ... FAILED
+tests/actual_tests/executable.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/executable.rs (revision `run`) ... FAILED
 tests/actual_tests/executable.rs ... ok
+tests/actual_tests/executable_compile_err.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/executable_compile_err.rs ... FAILED
+tests/actual_tests/exit_code_fail.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
+tests/actual_tests/foomp.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/foomp.rs ... FAILED
+tests/actual_tests/foomp2.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/foomp2.rs ... FAILED
 tests/actual_tests/inline_chain.rs ... FAILED
 tests/actual_tests/joined_wrong_order.rs ... FAILED
 tests/actual_tests/lone_joined_pattern.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow.rs ... FAILED
 tests/actual_tests/pattern_too_many_arrow_above.rs ... FAILED
+tests/actual_tests/rustc_ice.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/rustc_ice.rs ... FAILED
 tests/actual_tests/touching_above_below.rs ... FAILED
 tests/actual_tests/touching_above_below_chain.rs ... FAILED
@@ -455,58 +462,90 @@ FAILURES:
 test result: FAIL. 15 failed; 1 passed
 
 Building dependencies ... ok
+tests/actual_tests_bless/abort.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/abort.rs (revision `run`) ... FAILED
 tests/actual_tests_bless/abort.rs ... ok
 tests/actual_tests_bless/aux_build_not_found.rs ... FAILED
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
 Building aux file tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
+tests/actual_tests_bless/aux_proc_macro_no_main.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
+tests/actual_tests_bless/failing_executable.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/failing_executable.rs (revision `run`) ... FAILED
 tests/actual_tests_bless/failing_executable.rs ... ok
 Building aux file tests/actual_tests_bless/auxiliary/foomp.rs ... ok
+tests/actual_tests_bless/foomp_aux.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/foomp_aux.rs ... ok
 Building aux file tests/actual_tests_bless/auxiliary/nested.rs ... ok
+tests/actual_tests_bless/nested_aux.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/nested_aux.rs ... ok
+tests/actual_tests_bless/no_main.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/no_main.rs ... FAILED
+tests/actual_tests_bless/no_main_manual.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/no_main_manual.rs ... FAILED
+tests/actual_tests_bless/no_test.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/no_test.rs ... FAILED
 tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
+tests/actual_tests_bless/pass.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/pass.rs ... ok
+tests/actual_tests_bless/pass_with_annotation.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/pass_with_annotation.rs ... FAILED
 tests/actual_tests_bless/revised_revision.rs ... FAILED
+tests/actual_tests_bless/revisioned_executable.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/revisioned_executable.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `run.run`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `run`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic.run`) ... FAILED
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) ... ok
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run.run`) ... FAILED
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic.run`) ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) ... ok
+tests/actual_tests_bless/revisions.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/revisions.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/revisions.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_bad.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/revisions_bad.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) ... FAILED
 tests/actual_tests_bless/revisions_filter.rs (revision `foo`) ... ignored (in-test comment)
 tests/actual_tests_bless/revisions_filter.rs (revision `bar`) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter2.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/revisions_filter2.rs (revision `foo`) ... ignored (in-test comment)
 tests/actual_tests_bless/revisions_filter2.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `bar`) ... ok
+tests/actual_tests_bless/run_panic.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/run_panic.rs (revision `run`) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/rustfix-fail-revisions.a.fixed (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.a.fixed (revision `a`) ... FAILED
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.b.fixed (revision `b`) ... FAILED
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... ok
+tests/actual_tests_bless/rustfix-fail.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless/rustfix-fail.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/rustfix-fail.fixed ... FAILED
 tests/actual_tests_bless/rustfix-fail.rs ... ok
+tests/actual_tests_bless/unicode.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/unicode.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
+tests/actual_tests_bless/wrong_diagnostic_code.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless/wrong_diagnostic_code.rs ... FAILED
 
 FAILED TEST: tests/actual_tests_bless/abort.rs (revision `run`)
@@ -1081,10 +1120,18 @@ FAILURES:
 test result: FAIL. 23 failed; 24 passed; 3 ignored
 
 Building dependencies ... ok
+tests/actual_tests_bless_yolo/revisions_bad.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless_yolo/revisions_bad.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... ok
+tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.fixed ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.1.fixed (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.3.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests_bless_yolo/rustfix-multiple-fail.1.fixed ... ok
 tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed ... FAILED
 tests/actual_tests_bless_yolo/rustfix-multiple-fail.3.fixed ... ok

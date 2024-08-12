@@ -10,38 +10,66 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 Building dependencies ... ok
 Building aux file tests/actual_tests/auxiliary/proc_macro_attr.rs ... ok
+tests/actual_tests/aux_attr_proc_macro.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/aux_attr_proc_macro.rs ... ok
 Building aux file tests/actual_tests/auxiliary/derive_proc_macro.rs ... ok
+tests/actual_tests/aux_derive.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests/aux_derive.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/aux_derive.fixed ... ok
 tests/actual_tests/aux_derive.rs ... ok
 Building aux file tests/actual_tests/auxiliary/the_proc_macro.rs ... ok
+tests/actual_tests/aux_proc_macro.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/aux_proc_macro.rs ... ok
+tests/actual_tests/dep_derive.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/dep_derive.rs (revision `run`) ... ok
 tests/actual_tests/dep_derive.rs ... ok
+tests/actual_tests/error_above.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/error_above.rs ... ok
+tests/actual_tests/executable.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/executable.rs (revision `run`) ... ok
 tests/actual_tests/executable.rs ... ok
+tests/actual_tests/foomp-rustfix.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests/foomp-rustfix.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/foomp-rustfix.fixed ... ok
 tests/actual_tests/foomp-rustfix.rs ... ok
+tests/actual_tests/foomp.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/foomp.rs ... ok
+tests/actual_tests/joined_above.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests/joined_above.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/joined_above.fixed ... ok
 tests/actual_tests/joined_above.rs ... ok
+tests/actual_tests/joined_below.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests/joined_below.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/joined_below.fixed ... ok
 tests/actual_tests/joined_below.rs ... ok
+tests/actual_tests/joined_mixed.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests/joined_mixed.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/joined_mixed.fixed ... ok
 tests/actual_tests/joined_mixed.rs ... ok
+tests/actual_tests/mac_span.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests/mac_span.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/mac_span.fixed ... ok
 tests/actual_tests/mac_span.rs ... ok
+tests/actual_tests/match_diagnostic_code.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests/match_diagnostic_code.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/match_diagnostic_code.fixed ... ok
 tests/actual_tests/match_diagnostic_code.rs ... ok
+tests/actual_tests/no_rustfix.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/no_rustfix.rs ... ok
+tests/actual_tests/rustfix-multiple.rs (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests/rustfix-multiple.1.fixed (revision `waiting for dependencies to finish building`) ... ok
+tests/actual_tests/rustfix-multiple.2.fixed (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/rustfix-multiple.1.fixed ... ok
 tests/actual_tests/rustfix-multiple.2.fixed ... ok
 tests/actual_tests/rustfix-multiple.rs ... ok
+tests/actual_tests/stdin.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/stdin.rs (revision `run`) ... ok
 tests/actual_tests/stdin.rs ... ok
+tests/actual_tests/unicode.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/unicode.rs ... ok
+tests/actual_tests/windows_paths.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/windows_paths.rs ... ok
+tests/actual_tests/subdir/aux_proc_macro.rs (revision `waiting for dependencies to finish building`) ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
 test result: ok. 31 passed

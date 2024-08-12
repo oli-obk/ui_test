@@ -4,6 +4,7 @@ use crate::{status_emitter::TestStatus, Error};
 use color_eyre::eyre::Result;
 
 /// The possible non-failure results a single test can have.
+#[derive(Debug)]
 pub enum TestOk {
     /// The test passed
     Ok,

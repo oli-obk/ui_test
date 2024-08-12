@@ -16,7 +16,7 @@ use crate::{
     custom_flags::Flag,
     per_test_config::TestConfig,
     test_result::Errored,
-    CommandBuilder, Config, OutputConflictHandling,
+    CommandBuilder, Config, OutputConflictHandling, TestOk,
 };
 
 #[derive(Default, Debug)]
@@ -390,13 +390,22 @@ impl Flag for DependencyBuilder {
         config: &TestConfig<'_>,
         build_manager: &BuildManager<'_>,
     ) -> Result<(), Errored> {
-        config
+        let status = config
             .status
-            .update_status("waiting for dependencies to finish building".into());
-        let extra_args = build_manager.build(self.clone())?;
-        cmd.args(extra_args);
-        config.status.update_status(String::new());
-        Ok(())
+            .for_revision("waiting for dependencies to finish building");
+        match build_manager.build(self.clone()) {
+            Ok(extra_args) => {
+                cmd.args(extra_args);
+                status.done(&Ok(TestOk::Ok));
+                Ok(())
+            }
+            Err(err) => {
+                let err = Err(err);
+                status.done(&err);
+                #[allow(clippy::unnecessary_literal_unwrap)]
+                Err(err.unwrap_err())
+            }
+        }
     }
 }
 
