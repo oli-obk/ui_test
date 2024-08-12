@@ -15,6 +15,7 @@ use crate::{
     build_manager::{Build, BuildManager},
     custom_flags::Flag,
     per_test_config::TestConfig,
+    status_emitter::RevisionStyle,
     test_result::Errored,
     CommandBuilder, Config, OutputConflictHandling, TestOk,
 };
@@ -390,9 +391,10 @@ impl Flag for DependencyBuilder {
         config: &TestConfig<'_>,
         build_manager: &BuildManager<'_>,
     ) -> Result<(), Errored> {
-        let status = config
-            .status
-            .for_revision("waiting for dependencies to finish building");
+        let status = config.status.for_revision(
+            "waiting for dependencies to finish building",
+            RevisionStyle::Quiet,
+        );
         match build_manager.build(self.clone()) {
             Ok(extra_args) => {
                 cmd.args(extra_args);

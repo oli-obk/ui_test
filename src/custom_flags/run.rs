@@ -5,8 +5,8 @@ use spanned::Spanned;
 use std::process::{Command, Output};
 
 use crate::{
-    build_manager::BuildManager, display, per_test_config::TestConfig, Error, Errored, TestOk,
-    TestRun,
+    build_manager::BuildManager, display, per_test_config::TestConfig,
+    status_emitter::RevisionStyle, Error, Errored, TestOk, TestRun,
 };
 
 use super::Flag;
@@ -37,7 +37,7 @@ impl Flag for Run {
             config: config.config.clone(),
             comments: config.comments,
             aux_dir: config.aux_dir,
-            status: config.status.for_revision(&revision),
+            status: config.status.for_revision(&revision, RevisionStyle::Show),
         };
         cmd.arg("--print").arg("file-names");
         let output = cmd.output().unwrap();
