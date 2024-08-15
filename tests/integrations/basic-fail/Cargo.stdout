@@ -5,7 +5,6 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 Building dependencies ... ok
 tests/actual_tests/bad_pattern.rs ... FAILED
-tests/actual_tests/executable.rs (revision `run`) ... FAILED
 tests/actual_tests/executable.rs ... ok
 tests/actual_tests/executable_compile_err.rs ... FAILED
 tests/actual_tests/exit_code_fail.rs ... FAILED
@@ -20,6 +19,7 @@ tests/actual_tests/pattern_too_many_arrow_above.rs ... FAILED
 tests/actual_tests/rustc_ice.rs ... FAILED
 tests/actual_tests/touching_above_below.rs ... FAILED
 tests/actual_tests/touching_above_below_chain.rs ... FAILED
+tests/actual_tests/executable.rs (revision `run`) ... FAILED
 
 FAILED TEST: tests/actual_tests/bad_pattern.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
@@ -73,24 +73,6 @@ error: aborting due to 1 previous error
 For more information about this error, try `rustc --explain E0308`.
 
 full stdout:
-
-
-
-FAILED TEST: tests/actual_tests/executable.rs (revision `run`)
-command: "$CMD"
-
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.run.stdout` to the actual output
---- tests/actual_tests/executable.run.stdout
-+++ <stdout output>
--69
-+42
-
-
-full stderr:
-
-full stdout:
-42
 
 
 
@@ -435,9 +417,26 @@ full stderr:
 full stdout:
 
 
+
+FAILED TEST: tests/actual_tests/executable.rs (revision `run`)
+command: "$CMD"
+
+error: actual output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.run.stdout` to the actual output
+--- tests/actual_tests/executable.run.stdout
++++ <stdout output>
+-69
++42
+
+
+full stderr:
+
+full stdout:
+42
+
+
 FAILURES:
     tests/actual_tests/bad_pattern.rs
-    tests/actual_tests/executable.rs (revision run)
     tests/actual_tests/executable_compile_err.rs
     tests/actual_tests/exit_code_fail.rs
     tests/actual_tests/filters.rs
@@ -451,11 +450,11 @@ FAILURES:
     tests/actual_tests/rustc_ice.rs
     tests/actual_tests/touching_above_below.rs
     tests/actual_tests/touching_above_below_chain.rs
+    tests/actual_tests/executable.rs (revision run)
 
 test result: FAIL. 15 failed; 1 passed
 
 Building dependencies ... ok
-tests/actual_tests_bless/abort.rs (revision `run`) ... FAILED
 tests/actual_tests_bless/abort.rs ... ok
 tests/actual_tests_bless/aux_build_not_found.rs ... FAILED
 tests/actual_tests_bless/aux_proc_macro_misuse.rs ... FAILED
@@ -463,7 +462,6 @@ Building aux file tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
-tests/actual_tests_bless/failing_executable.rs (revision `run`) ... FAILED
 tests/actual_tests_bless/failing_executable.rs ... ok
 Building aux file tests/actual_tests_bless/auxiliary/foomp.rs ... ok
 tests/actual_tests_bless/foomp_aux.rs ... ok
@@ -476,13 +474,9 @@ tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/pass_with_annotation.rs ... FAILED
 tests/actual_tests_bless/revised_revision.rs ... FAILED
-tests/actual_tests_bless/revisioned_executable.rs (revision `run.run`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `run`) ... ok
-tests/actual_tests_bless/revisioned_executable.rs (revision `panic.run`) ... FAILED
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) ... ok
-tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run.run`) ... FAILED
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) ... ok
-tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic.run`) ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) ... ok
 tests/actual_tests_bless/revisions.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions.rs (revision `bar`) ... ok
@@ -496,30 +490,24 @@ tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `foo`) .
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `bar`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `bar`) ... ok
-tests/actual_tests_bless/run_panic.rs (revision `run`) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
-tests/actual_tests_bless/rustfix-fail-revisions.a.fixed ... FAILED
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... ok
-tests/actual_tests_bless/rustfix-fail-revisions.b.fixed ... FAILED
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... ok
-tests/actual_tests_bless/rustfix-fail.fixed ... FAILED
 tests/actual_tests_bless/rustfix-fail.rs ... ok
 tests/actual_tests_bless/unicode.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
 tests/actual_tests_bless/wrong_diagnostic_code.rs ... FAILED
-
-FAILED TEST: tests/actual_tests_bless/abort.rs (revision `run`)
-command: "$CMD"
-
-error: test got signal: 6 (SIGABRT), but expected 0
- = note: the test was expected to run successfully
-
-full stderr:
-
-full stdout:
-
-
+tests/actual_tests_bless/abort.rs (revision `run`) ... FAILED
+tests/actual_tests_bless/failing_executable.rs (revision `run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable.rs (revision `run.run`) ... ok
+tests/actual_tests_bless/revisioned_executable.rs (revision `panic.run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run.run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic.run`) ... ok
+tests/actual_tests_bless/run_panic.rs (revision `run`) ... ok
+tests/actual_tests_bless/rustfix-fail-revisions.a.fixed ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.b.fixed ... FAILED
+tests/actual_tests_bless/rustfix-fail.fixed ... FAILED
 
 FAILED TEST: tests/actual_tests_bless/aux_build_not_found.rs
 command: canonicalizing path `tests/actual_tests_bless/auxiliary/aasdflkjasdlfjasdlfkjasdf`
@@ -626,27 +614,6 @@ The `//` must be directly followed by `@` or `~`.
   |
 
 full stderr:
-
-full stdout:
-
-
-
-FAILED TEST: tests/actual_tests_bless/failing_executable.rs (revision `run`)
-command: "$CMD"
-
-error: test got exit status: 101, but expected 0
- --> tests/actual_tests_bless/failing_executable.rs:4:5
-  |
-4 |     assert_eq!(5, 6);
-  |     ^^^^^^^^^^^^^^^^^ assertion `left == right` failed
-  |
-
-full stderr:
-thread 'main' panicked at tests/actual_tests_bless/failing_executable.rs:
-assertion `left == right` failed
-  left: 5
- right: 6
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 full stdout:
 
@@ -783,37 +750,6 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/revisioned_executable.rs (revision `panic.run`)
-command: "$CMD"
-
-error: test got exit status: 0, but expected 101
- = note: the test was expected to panic
-
-full stderr:
-
-full stdout:
-
-
-
-FAILED TEST: tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run.run`)
-command: "$CMD"
-
-error: test got exit status: 101, but expected 0
- --> tests/actual_tests_bless/revisioned_executable_panic.rs
-  |
-6 |     panic!()
-  |     ^^^^^^^^ explicit panic
-  |
-
-full stderr:
-thread 'main' panicked at tests/actual_tests_bless/revisioned_executable_panic.rs:
-explicit panic
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
-full stdout:
-
-
-
 FAILED TEST: tests/actual_tests_bless/revisions_bad.rs (revision `bar`)
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
@@ -841,99 +777,6 @@ error[E0601]: `main` function not found in crate `revisions_bad`
 error: aborting due to 1 previous error
 
 For more information about this error, try `rustc --explain E0601`.
-
-full stdout:
-
-
-
-FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.a.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
-
-error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
-  |
-2 | #![deny(warnings)]
-  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
-  |
-
-full stderr:
-error: path statement drops value
-  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:11:5
-   |
-11 |     x;
-   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
-   |
-note: the lint level is defined here
-  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
-   |
-2  | #![deny(warnings)]
-   |         ^^^^^^^^
-   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
-
-error: aborting due to 1 previous error
-
-
-full stdout:
-
-
-
-FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.b.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions"
-
-error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
-  |
-2 | #![deny(warnings)]
-  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
-  |
-
-full stderr:
-error: path statement drops value
-  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:11:5
-   |
-11 |     x;
-   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
-   |
-note: the lint level is defined here
-  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
-   |
-2  | #![deny(warnings)]
-   |         ^^^^^^^^
-   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
-
-error: aborting due to 1 previous error
-
-
-full stdout:
-
-
-
-FAILED TEST: tests/actual_tests_bless/rustfix-fail.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail"
-
-error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
-  |
-1 | #![deny(warnings)]
-  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
-  |
-
-full stderr:
-error: path statement drops value
-  --> tests/actual_tests_bless/rustfix-fail.fixed:10:5
-   |
-10 |     x;
-   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
-   |
-note: the lint level is defined here
-  --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
-   |
-1  | #![deny(warnings)]
-   |         ^^^^^^^^
-   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
-
-error: aborting due to 1 previous error
-
 
 full stdout:
 
@@ -1053,45 +896,202 @@ error: aborting due to 2 previous errors
 full stdout:
 
 
+
+FAILED TEST: tests/actual_tests_bless/abort.rs (revision `run`)
+command: "$CMD"
+
+error: test got signal: 6 (SIGABRT), but expected 0
+ = note: the test was expected to run successfully
+
+full stderr:
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests_bless/failing_executable.rs (revision `run`)
+command: "$CMD"
+
+error: test got exit status: 101, but expected 0
+ --> tests/actual_tests_bless/failing_executable.rs:4:5
+  |
+4 |     assert_eq!(5, 6);
+  |     ^^^^^^^^^^^^^^^^^ assertion `left == right` failed
+  |
+
+full stderr:
+thread 'main' panicked at tests/actual_tests_bless/failing_executable.rs:
+assertion `left == right` failed
+  left: 5
+ right: 6
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests_bless/revisioned_executable.rs (revision `panic.run`)
+command: "$CMD"
+
+error: test got exit status: 0, but expected 101
+ = note: the test was expected to panic
+
+full stderr:
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run.run`)
+command: "$CMD"
+
+error: test got exit status: 101, but expected 0
+ --> tests/actual_tests_bless/revisioned_executable_panic.rs
+  |
+6 |     panic!()
+  |     ^^^^^^^^ explicit panic
+  |
+
+full stderr:
+thread 'main' panicked at tests/actual_tests_bless/revisioned_executable_panic.rs:
+explicit panic
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.a.fixed
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions_________1"
+
+error: test got exit status: 1, but expected 0
+ --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
+  |
+2 | #![deny(warnings)]
+  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
+  |
+
+full stderr:
+error: path statement drops value
+  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:11:5
+   |
+11 |     x;
+   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
+   |
+note: the lint level is defined here
+  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
+   |
+2  | #![deny(warnings)]
+   |         ^^^^^^^^
+   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
+
+error: aborting due to 1 previous error
+
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.b.fixed
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions_________1"
+
+error: test got exit status: 1, but expected 0
+ --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
+  |
+2 | #![deny(warnings)]
+  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
+  |
+
+full stderr:
+error: path statement drops value
+  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:11:5
+   |
+11 |     x;
+   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
+   |
+note: the lint level is defined here
+  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
+   |
+2  | #![deny(warnings)]
+   |         ^^^^^^^^
+   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
+
+error: aborting due to 1 previous error
+
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests_bless/rustfix-fail.fixed
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_________1"
+
+error: test got exit status: 1, but expected 0
+ --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
+  |
+1 | #![deny(warnings)]
+  |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
+  |
+
+full stderr:
+error: path statement drops value
+  --> tests/actual_tests_bless/rustfix-fail.fixed:10:5
+   |
+10 |     x;
+   |     ^^ help: use `drop` to clarify the intent: `drop(x);`
+   |
+note: the lint level is defined here
+  --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
+   |
+1  | #![deny(warnings)]
+   |         ^^^^^^^^
+   = note: `#[deny(path_statements)]` implied by `#[deny(warnings)]`
+
+error: aborting due to 1 previous error
+
+
+full stdout:
+
+
 FAILURES:
-    tests/actual_tests_bless/abort.rs (revision run)
     tests/actual_tests_bless/aux_build_not_found.rs
     tests/actual_tests_bless/aux_proc_macro_misuse.rs
     tests/actual_tests_bless/aux_proc_macro_no_main.rs
     tests/actual_tests_bless/compile_flags_quotes.rs
     tests/actual_tests_bless/compiletest-rs-command.rs
-    tests/actual_tests_bless/failing_executable.rs (revision run)
     tests/actual_tests_bless/no_main.rs
     tests/actual_tests_bless/no_main_manual.rs
     tests/actual_tests_bless/no_test.rs
     tests/actual_tests_bless/non_top_level_configs.rs
     tests/actual_tests_bless/pass_with_annotation.rs
     tests/actual_tests_bless/revised_revision.rs
-    tests/actual_tests_bless/revisioned_executable.rs (revision panic.run)
-    tests/actual_tests_bless/revisioned_executable_panic.rs (revision run.run)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
-    tests/actual_tests_bless/rustfix-fail-revisions.a.fixed
-    tests/actual_tests_bless/rustfix-fail-revisions.b.fixed
-    tests/actual_tests_bless/rustfix-fail.fixed
     tests/actual_tests_bless/unicode.rs
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
     tests/actual_tests_bless/wrong_diagnostic_code.rs
+    tests/actual_tests_bless/abort.rs (revision run)
+    tests/actual_tests_bless/failing_executable.rs (revision run)
+    tests/actual_tests_bless/revisioned_executable.rs (revision panic.run)
+    tests/actual_tests_bless/revisioned_executable_panic.rs (revision run.run)
+    tests/actual_tests_bless/rustfix-fail-revisions.a.fixed
+    tests/actual_tests_bless/rustfix-fail-revisions.b.fixed
+    tests/actual_tests_bless/rustfix-fail.fixed
 
 test result: FAIL. 23 failed; 24 passed; 3 ignored
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... ok
-tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.fixed ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.rs ... ok
+tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.fixed ... ok
 tests/actual_tests_bless_yolo/rustfix-multiple-fail.1.fixed ... ok
 tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed ... FAILED
 tests/actual_tests_bless_yolo/rustfix-multiple-fail.3.fixed ... ok
-tests/actual_tests_bless_yolo/rustfix-multiple-fail.rs ... ok
 
 FAILED TEST: tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_multiple_fail"
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_multiple_fail_________2"
 
 error: test got exit status: 1, but expected 0
  --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed:1:8

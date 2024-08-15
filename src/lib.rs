@@ -153,7 +153,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
             path: path.to_path_buf(),
         }),
     };
-    let build_manager = BuildManager::new(config.config.clone());
+    let build_manager = BuildManager::new(config.config.clone(), crossbeam_channel::bounded(0).0);
 
     Ok(config.build_command(&build_manager).unwrap())
 }
@@ -169,7 +169,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
 pub fn run_tests_generic(
     mut configs: Vec<Config>,
     file_filter: impl Fn(&Path, &Config) -> Option<bool> + Sync,
-    per_file_config: impl Fn(&mut Config, &Spanned<Vec<u8>>) + Sync,
+    per_file_config: impl Copy + Fn(&mut Config, &Spanned<Vec<u8>>) + Send + Sync + 'static,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
     if nextest::emulate(&mut configs) {
@@ -201,8 +201,7 @@ pub fn run_tests_generic(
 
             let configs: Vec<_> = configs
                 .into_iter()
-                .map(BuildManager::new)
-                .map(Arc::new)
+                .map(|config| Arc::new(BuildManager::new(config, submit.clone())))
                 .collect();
             for build_manager in &configs {
                 todo.push_back((
@@ -230,7 +229,7 @@ pub fn run_tests_generic(
                         let status = status_emitter.register_test(path);
                         // Forward .rs files to the test workers.
                         submit
-                            .send(Box::new(|finished_files_sender: &Sender<TestRun>| {
+                            .send(Box::new(move |finished_files_sender: &Sender<TestRun>| {
                                 let path = status.path();
                                 let file_contents = Spanned::read_from_file(path).unwrap();
                                 let mut config = build_manager.config().clone();
@@ -366,7 +365,7 @@ fn parse_and_test_file(
             status,
         };
 
-        let result = test_config.run_test(&build_manager, &mut runs);
+        let result = test_config.run_test(&build_manager);
         runs.push(TestRun {
             result,
             status: test_config.status,

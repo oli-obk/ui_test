@@ -5,9 +5,7 @@ use std::{
     process::{Command, Output},
 };
 
-use crate::{
-    build_manager::BuildManager, per_test_config::TestConfig, test_result::TestRun, Config, Errored,
-};
+use crate::{build_manager::BuildManager, per_test_config::TestConfig, Config, Errored};
 
 #[cfg(feature = "rustc")]
 pub mod run;
@@ -40,8 +38,8 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
         _config: &TestConfig,
         _output: &Output,
         _build_manager: &BuildManager,
-    ) -> Result<Vec<TestRun>, Errored> {
-        Ok(Vec::new())
+    ) -> Result<(), Errored> {
+        Ok(())
     }
 
     /// Whether the flag gets overridden by the same flag in revisions.

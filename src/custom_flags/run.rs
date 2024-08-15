@@ -29,7 +29,7 @@ impl Flag for Run {
         config: &TestConfig,
         _output: &Output,
         build_manager: &BuildManager,
-    ) -> Result<Vec<TestRun>, Errored> {
+    ) -> Result<(), Errored> {
         let mut cmd = config.build_command(build_manager)?;
         let exit_code = self.exit_code;
         let revision = config.extension("run");
@@ -39,58 +39,63 @@ impl Flag for Run {
             aux_dir: config.aux_dir.clone(),
             status: config.status.for_revision(&revision, RevisionStyle::Show),
         };
-        cmd.arg("--print").arg("file-names");
-        let output = cmd.output().unwrap();
-        assert!(output.status.success(), "{cmd:#?}: {output:#?}");
+        build_manager.add_new_job(move || {
+            cmd.arg("--print").arg("file-names");
+            let output = cmd.output().unwrap();
+            assert!(output.status.success(), "{cmd:#?}: {output:#?}");
 
-        let mut files = output.stdout.lines();
-        let file = files.next().unwrap();
-        assert_eq!(files.next(), None);
-        let file = std::str::from_utf8(file).unwrap();
-        let exe_file = config.config.out_dir.join(file);
-        let mut exe = Command::new(&exe_file);
-        let stdin = config
-            .status
-            .path()
-            .with_extension(format!("{revision}.stdin"));
-        if stdin.exists() {
-            exe.stdin(std::fs::File::open(stdin).unwrap());
-        }
-        let output = exe
-            .output()
-            .unwrap_or_else(|err| panic!("exe file: {}: {err}", display(&exe_file)));
+            let mut files = output.stdout.lines();
+            let file = files.next().unwrap();
+            assert_eq!(files.next(), None);
+            let file = std::str::from_utf8(file).unwrap();
+            let exe_file = config.config.out_dir.join(file);
+            let mut exe = Command::new(&exe_file);
+            let stdin = config
+                .status
+                .path()
+                .with_extension(format!("{revision}.stdin"));
+            if stdin.exists() {
+                exe.stdin(std::fs::File::open(stdin).unwrap());
+            }
+            let output = exe
+                .output()
+                .unwrap_or_else(|err| panic!("exe file: {}: {err}", display(&exe_file)));
 
-        let mut errors = vec![];
+            let mut errors = vec![];
 
-        config.check_test_output(&mut errors, &output.stdout, &output.stderr);
+            config.check_test_output(&mut errors, &output.stdout, &output.stderr);
 
-        let status = output.status;
-        if status.code() != Some(exit_code) {
-            errors.push(Error::ExitStatus {
-                status,
-                expected: exit_code,
-                reason: match (exit_code, status.code()) {
-                    (_, Some(101)) => get_panic_span(&output.stderr),
-                    (0, _) => Spanned::dummy("the test was expected to run successfully".into()),
-                    (101, _) => Spanned::dummy("the test was expected to panic".into()),
-                    _ => Spanned::dummy(String::new()),
-                },
-            })
-        }
-
-        Ok(vec![TestRun {
-            result: if errors.is_empty() {
-                Ok(TestOk::Ok)
-            } else {
-                Err(Errored {
-                    command: format!("{exe:?}"),
-                    errors,
-                    stderr: output.stderr,
-                    stdout: output.stdout,
+            let status = output.status;
+            if status.code() != Some(exit_code) {
+                errors.push(Error::ExitStatus {
+                    status,
+                    expected: exit_code,
+                    reason: match (exit_code, status.code()) {
+                        (_, Some(101)) => get_panic_span(&output.stderr),
+                        (0, _) => {
+                            Spanned::dummy("the test was expected to run successfully".into())
+                        }
+                        (101, _) => Spanned::dummy("the test was expected to panic".into()),
+                        _ => Spanned::dummy(String::new()),
+                    },
                 })
-            },
-            status: config.status,
-        }])
+            }
+
+            TestRun {
+                result: if errors.is_empty() {
+                    Ok(TestOk::Ok)
+                } else {
+                    Err(Errored {
+                        command: format!("{exe:?}"),
+                        errors,
+                        stderr: output.stderr,
+                        stdout: output.stdout,
+                    })
+                },
+                status: config.status,
+            }
+        });
+        Ok(())
     }
 }
 

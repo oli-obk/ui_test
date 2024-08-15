@@ -49,7 +49,7 @@ impl Flag for RustfixMode {
         config: &TestConfig,
         output: &Output,
         build_manager: &BuildManager,
-    ) -> Result<Vec<TestRun>, Errored> {
+    ) -> Result<(), Errored> {
         let global_rustfix = match config.exit_status()? {
             Some(Spanned {
                 content: 101 | 0, ..
@@ -170,7 +170,7 @@ fn compile_fixed(
     config: &TestConfig,
     build_manager: &BuildManager,
     fixed_paths: Vec<PathBuf>,
-) -> Result<Vec<TestRun>, Errored> {
+) -> Result<(), Errored> {
     // picking the crate name from the file name is problematic when `.revision_name` is inserted,
     // so we compute it here before replacing the path.
     let crate_name = config
@@ -207,8 +207,7 @@ fn compile_fixed(
         .collect(),
     });
 
-    let mut runs = Vec::new();
-    for fixed_path in fixed_paths {
+    for (i, fixed_path) in fixed_paths.into_iter().enumerate() {
         let fixed_config = TestConfig {
             config: config.config.clone(),
             comments: rustfix_comments.clone(),
@@ -216,37 +215,41 @@ fn compile_fixed(
             status: config.status.for_path(&fixed_path),
         };
         let mut cmd = fixed_config.build_command(build_manager)?;
-        cmd.arg("--crate-name").arg(&crate_name);
-        let output = cmd.output().unwrap();
-        let result = if output.status.success() {
-            Ok(TestOk::Ok)
-        } else {
-            let diagnostics = fixed_config.process(&output.stderr);
-            Err(Errored {
-                command: format!("{cmd:?}"),
-                errors: vec![Error::ExitStatus {
-                    expected: 0,
-                    status: output.status,
-                    reason: Spanned::new(
-                        "after rustfix is applied, all errors should be gone, but weren't".into(),
-                        diagnostics
-                            .messages
-                            .iter()
-                            .flatten()
-                            .chain(diagnostics.messages_from_unknown_file_or_line.iter())
-                            .find_map(|message| message.span.clone())
-                            .unwrap_or_default(),
-                    ),
-                }],
-                stderr: diagnostics.rendered,
-                stdout: output.stdout,
-            })
-        };
-        runs.push(TestRun {
-            result,
-            status: fixed_config.status,
+        cmd.arg("--crate-name")
+            .arg(format!("{crate_name}_________{}", i + 1));
+        build_manager.add_new_job(move || {
+            let output = cmd.output().unwrap();
+            let result = if output.status.success() {
+                Ok(TestOk::Ok)
+            } else {
+                let diagnostics = fixed_config.process(&output.stderr);
+                Err(Errored {
+                    command: format!("{cmd:?}"),
+                    errors: vec![Error::ExitStatus {
+                        expected: 0,
+                        status: output.status,
+                        reason: Spanned::new(
+                            "after rustfix is applied, all errors should be gone, but weren't"
+                                .into(),
+                            diagnostics
+                                .messages
+                                .iter()
+                                .flatten()
+                                .chain(diagnostics.messages_from_unknown_file_or_line.iter())
+                                .find_map(|message| message.span.clone())
+                                .unwrap_or_default(),
+                        ),
+                    }],
+                    stderr: diagnostics.rendered,
+                    stdout: output.stdout,
+                })
+            };
+            TestRun {
+                result,
+                status: fixed_config.status,
+            }
         });
     }
 
-    Ok(runs)
+    Ok(())
 }

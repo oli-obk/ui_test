@@ -20,7 +20,7 @@ pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::TestStatus;
 use crate::test_result::{Errored, TestOk, TestResult};
-use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling, TestRun};
+use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling};
 
 /// All information needed to run a single test
 pub struct TestConfig {
@@ -383,11 +383,7 @@ impl TestConfig {
         Ok(())
     }
 
-    pub(crate) fn run_test(
-        &mut self,
-        build_manager: &Arc<BuildManager>,
-        runs: &mut Vec<TestRun>,
-    ) -> TestResult {
+    pub(crate) fn run_test(&mut self, build_manager: &Arc<BuildManager>) -> TestResult {
         self.patch_out_dir();
 
         let mut cmd = self.build_command(build_manager)?;
@@ -403,7 +399,7 @@ impl TestConfig {
         for rev in self.comments() {
             for custom in rev.custom.values() {
                 for flag in &custom.content {
-                    runs.extend(flag.post_test_action(self, &output, build_manager)?);
+                    flag.post_test_action(self, &output, build_manager)?;
                 }
             }
         }

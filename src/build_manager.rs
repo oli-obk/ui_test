@@ -6,8 +6,12 @@ use std::{
     sync::{Arc, OnceLock, RwLock},
 };
 
+use color_eyre::eyre::Result;
+use crossbeam_channel::Sender;
+
 use crate::{
     status_emitter::{RevisionStyle, TestStatus},
+    test_result::TestRun,
     Config, Errored,
 };
 
@@ -26,17 +30,30 @@ pub struct BuildManager {
     #[allow(clippy::type_complexity)]
     cache: RwLock<HashMap<String, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
     config: Config,
+    new_job_submitter: Sender<NewJob>,
 }
+
+type NewJob = Box<dyn Send + for<'a> FnOnce(&'a Sender<TestRun>) -> Result<()>>;
 
 impl BuildManager {
     /// Create a new `BuildManager` for a specific `Config`. Each `Config` needs
     /// to have its own.
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, new_job_submitter: Sender<NewJob>) -> Self {
         Self {
             cache: Default::default(),
             config,
+            new_job_submitter,
         }
     }
+
+    /// Lazily add more jobs after a test has finished. These are added to the queue
+    /// as normally, but nested below the test.
+    pub fn add_new_job(&self, job: impl Send + 'static + FnOnce() -> TestRun) {
+        self.new_job_submitter
+            .send(Box::new(move |sender| Ok(sender.send(job())?)))
+            .unwrap()
+    }
+
     /// This function will block until the build is done and then return the arguments
     /// that need to be passed in order to build the dependencies.
     /// The error is only reported once, all follow up invocations of the same build will
