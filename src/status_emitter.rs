@@ -196,6 +196,19 @@ enum Msg {
 }
 
 impl Text {
+    fn insert_parent_and_reposition_children(
+        parent: ProgressBar,
+        bars: &MultiProgress,
+        children: &HashMap<String, (ProgressBar, bool)>,
+    ) {
+        let parent = bars.insert(0, parent);
+        for (msg, (child, _)) in children.iter() {
+            if !msg.is_empty() {
+                bars.remove(child);
+                bars.insert_after(&parent, child.clone());
+            }
+        }
+    }
     fn start_thread(progress: OutputVerbosity) -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded();
         let handle = std::thread::spawn(move || {
@@ -234,17 +247,25 @@ impl Text {
                                     let spinner = spinner.clone();
                                     let spinner = if msg.is_empty() {
                                         // insert at the top
-                                        let spinner = bars.insert(0, spinner);
+                                        Self::insert_parent_and_reposition_children(
+                                            spinner.clone(),
+                                            &bars,
+                                            children,
+                                        );
 
-                                        for (msg, (child, _)) in children {
-                                            if !msg.is_empty() {
-                                                bars.remove(child);
-                                                bars.insert_after(&spinner, child.clone());
-                                            }
-                                        }
                                         spinner
                                     } else {
-                                        bars.insert_after(&children[""].0, spinner)
+                                        let parent = children[""].0.clone();
+                                        parent.inc(1);
+                                        if children.values().all(|&(_, done)| done) {
+                                            bars.remove(&parent);
+                                            Self::insert_parent_and_reposition_children(
+                                                parent, &bars, children,
+                                            );
+                                            spinner
+                                        } else {
+                                            bars.insert_after(&parent, spinner)
+                                        }
                                     };
                                     spinner.tick();
                                     spinner.finish_with_message(new_msg);
@@ -254,21 +275,24 @@ impl Text {
                             }
 
                             Msg::Push { parent, msg } => {
-                                let insert_main = |msg: String| {
-                                    let spinner =
-                                        bars.add(ProgressBar::new_spinner().with_prefix(msg));
-                                    spinner.set_style(
-                                        ProgressStyle::with_template("{prefix} {spinner} {msg}")
-                                            .unwrap(),
-                                    );
-                                    spinner
-                                };
                                 let children = threads.entry(parent.clone()).or_default();
-                                let spinner = if !msg.is_empty() {
+                                if !msg.is_empty() {
                                     let parent = &children
                                         .entry(String::new())
-                                        .or_insert_with(|| (insert_main(parent), false))
+                                        .or_insert_with(|| {
+                                            let spinner = bars.add(
+                                                ProgressBar::new_spinner().with_prefix(parent),
+                                            );
+                                            spinner.set_style(
+                                                ProgressStyle::with_template(
+                                                    "{prefix} {pos}/{len} {msg}",
+                                                )
+                                                .unwrap(),
+                                            );
+                                            (spinner, true)
+                                        })
                                         .0;
+                                    parent.inc_length(1);
                                     let spinner = bars.insert_after(
                                         parent,
                                         ProgressBar::new_spinner().with_prefix(msg.clone()),
@@ -277,11 +301,16 @@ impl Text {
                                         ProgressStyle::with_template("  {prefix} {spinner} {msg}")
                                             .unwrap(),
                                     );
-                                    spinner
+                                    children.insert(msg, (spinner, false));
                                 } else {
-                                    insert_main(parent)
+                                    let spinner =
+                                        bars.add(ProgressBar::new_spinner().with_prefix(parent));
+                                    spinner.set_style(
+                                        ProgressStyle::with_template("{prefix} {spinner} {msg}")
+                                            .unwrap(),
+                                    );
+                                    children.insert(msg, (spinner, false));
                                 };
-                                children.insert(msg, (spinner, false));
                             }
                             Msg::IncLength => {
                                 progress

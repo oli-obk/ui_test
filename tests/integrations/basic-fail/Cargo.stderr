@@ -6,11 +6,6 @@ error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/tests/integrations/basic-fail/debug/deps/ui_tests-HASH` (exit status: 1)
-thread '<unnamed>' panicked at $DIR/src/status_emitter.rs:LL:CC:
-tests/actual_tests_bless/revisions_filter.rs () not finished
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-thread '<unnamed>' panicked at $DIR/src/status_emitter.rs:LL:CC:
-tests/actual_tests_bless_yolo/revisions_bad.rs () not finished
 Error: tests failed
 
 Location:
