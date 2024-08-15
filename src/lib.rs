@@ -18,6 +18,7 @@ pub use core::CrateType;
 pub use filter::Match;
 use per_test_config::TestConfig;
 use spanned::Spanned;
+use status_emitter::RevisionStyle;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
 use std::path::Path;
@@ -326,7 +327,7 @@ fn parse_and_test_file(
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
     let mut runs = vec![];
     for revision in revisions {
-        let status = status.for_revision(revision);
+        let status = status.for_revision(revision, RevisionStyle::Show);
         // Ignore file if only/ignore rules do (not) apply
         if !config.test_file_conditions(&comments, revision) {
             runs.push(TestRun {

@@ -43,10 +43,22 @@ pub trait StatusEmitter: Sync + RefUnwindSafe {
     ) -> Box<dyn Summary>;
 }
 
+/// Some configuration options for revisions
+#[derive(Debug, Clone, Copy)]
+pub enum RevisionStyle {
+    /// Things like dependencies or aux files building are noise in non-interactif mode
+    /// and thus silenced.
+    Quiet,
+    /// Always show them, even if rendering to a file
+    Show,
+    /// The parent, only show in indicatif mode and on failure
+    Parent,
+}
+
 /// Information about a specific test run.
 pub trait TestStatus: Send + Sync + RefUnwindSafe {
     /// Create a copy of this test for a new revision.
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus>;
+    fn for_revision(&self, revision: &str, style: RevisionStyle) -> Box<dyn TestStatus>;
 
     /// Create a copy of this test for a new path.
     fn for_path(&self, path: &Path) -> Box<dyn TestStatus>;
@@ -59,9 +71,6 @@ pub trait TestStatus: Send + Sync + RefUnwindSafe {
         stderr: &'a [u8],
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a>;
-
-    /// Change the status of the test while it is running to supply some kind of progress
-    fn update_status(&self, msg: String);
 
     /// A test has finished, handle the result immediately.
     fn done(&self, _result: &TestResult) {}
@@ -111,7 +120,7 @@ pub struct SilentStatus {
 }
 
 impl TestStatus for SilentStatus {
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+    fn for_revision(&self, revision: &str, _style: RevisionStyle) -> Box<dyn TestStatus> {
         Box::new(SilentStatus {
             revision: revision.into(),
             path: self.path.clone(),
@@ -133,8 +142,6 @@ impl TestStatus for SilentStatus {
     ) -> Box<dyn Debug + 'a> {
         Box::new(())
     }
-
-    fn update_status(&self, _msg: String) {}
 
     fn path(&self) -> &Path {
         &self.path
@@ -179,7 +186,6 @@ enum Msg {
     Inc,
     IncLength,
     Finish,
-    Status(String, String),
 }
 
 impl Text {
@@ -211,9 +217,6 @@ impl Text {
                                 } else {
                                     spinner.finish_and_clear();
                                 }
-                            }
-                            Msg::Status(msg, status) => {
-                                threads.get_mut(&msg).unwrap().set_message(status);
                             }
                             Msg::Push(msg) => {
                                 let spinner =
@@ -295,6 +298,7 @@ struct TextTest {
     path: PathBuf,
     revision: String,
     first: AtomicBool,
+    style: RevisionStyle,
 }
 
 impl TextTest {
@@ -322,15 +326,21 @@ impl TestStatus for TextTest {
             let old_msg = self.msg();
             let msg = format!("... {result}");
             if ProgressDrawTarget::stdout().is_hidden() {
-                println!("{old_msg} {msg}");
-                std::io::stdout().flush().unwrap();
+                match self.style {
+                    RevisionStyle::Quiet => {}
+                    RevisionStyle::Show | RevisionStyle::Parent => {
+                        let revision = if self.revision.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" (revision `{}`)", self.revision)
+                        };
+                        println!("{}{revision} {msg}", display(&self.path));
+                        std::io::stdout().flush().unwrap();
+                    }
+                }
             }
             self.text.sender.send(Msg::Pop(old_msg, Some(msg))).unwrap();
         }
-    }
-
-    fn update_status(&self, msg: String) {
-        self.text.sender.send(Msg::Status(self.msg(), msg)).unwrap();
     }
 
     fn failed_test<'a>(
@@ -373,7 +383,7 @@ impl TestStatus for TextTest {
         &self.path
     }
 
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+    fn for_revision(&self, revision: &str, style: RevisionStyle) -> Box<dyn TestStatus> {
         if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed)
             && self.text.is_quiet_output()
         {
@@ -385,6 +395,7 @@ impl TestStatus for TextTest {
             path: self.path.clone(),
             revision: revision.to_owned(),
             first: AtomicBool::new(false),
+            style,
         };
         self.text.sender.send(Msg::Push(text.msg())).unwrap();
         Box::new(text)
@@ -396,6 +407,7 @@ impl TestStatus for TextTest {
             path: path.to_path_buf(),
             revision: self.revision.clone(),
             first: AtomicBool::new(false),
+            style: RevisionStyle::Show,
         };
         self.text.sender.send(Msg::Push(text.msg())).unwrap();
         Box::new(text)
@@ -416,6 +428,7 @@ impl StatusEmitter for Text {
             path,
             revision: String::new(),
             first: AtomicBool::new(true),
+            style: RevisionStyle::Parent,
         })
     }
 
@@ -917,7 +930,7 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
         &self.path
     }
 
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
+    fn for_revision(&self, revision: &str, _style: RevisionStyle) -> Box<dyn TestStatus> {
         Box::new(Self {
             path: self.path.clone(),
             revision: revision.to_owned(),
@@ -946,8 +959,6 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
     fn revision(&self) -> &str {
         &self.revision
     }
-
-    fn update_status(&self, _msg: String) {}
 }
 
 impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
@@ -1050,17 +1061,15 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
         rev
     }
 
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
-        Box::new((self.0.for_revision(revision), self.1.for_revision(revision)))
+    fn for_revision(&self, revision: &str, style: RevisionStyle) -> Box<dyn TestStatus> {
+        Box::new((
+            self.0.for_revision(revision, style),
+            self.1.for_revision(revision, style),
+        ))
     }
 
     fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
         Box::new((self.0.for_path(path), self.1.for_path(path)))
-    }
-
-    fn update_status(&self, msg: String) {
-        self.0.update_status(msg.clone());
-        self.1.update_status(msg)
     }
 }
 
@@ -1099,8 +1108,8 @@ impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
         (**self).revision()
     }
 
-    fn for_revision(&self, revision: &str) -> Box<dyn TestStatus> {
-        (**self).for_revision(revision)
+    fn for_revision(&self, revision: &str, style: RevisionStyle) -> Box<dyn TestStatus> {
+        (**self).for_revision(revision, style)
     }
 
     fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
@@ -1114,10 +1123,6 @@ impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
         stdout: &'a [u8],
     ) -> Box<dyn Debug + 'a> {
         (**self).failed_test(cmd, stderr, stdout)
-    }
-
-    fn update_status(&self, msg: String) {
-        (**self).update_status(msg)
     }
 }
 

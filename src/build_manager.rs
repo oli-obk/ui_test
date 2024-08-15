@@ -6,7 +6,10 @@ use std::{
     sync::{Arc, OnceLock, RwLock},
 };
 
-use crate::{status_emitter::StatusEmitter, Config, Errored};
+use crate::{
+    status_emitter::{RevisionStyle, StatusEmitter},
+    Config, Errored,
+};
 
 /// A build shared between all tests of the same `BuildManager`
 pub trait Build {
@@ -83,7 +86,7 @@ impl<'a> BuildManager<'a> {
             let build = self
                 .status_emitter
                 .register_test(what.description().into())
-                .for_revision("");
+                .for_revision("", RevisionStyle::Parent);
             let res = what.build(self).map_err(|e| err = Some(e));
             build.done(
                 &res.as_ref()

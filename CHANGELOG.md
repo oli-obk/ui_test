@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+* `TestStatus::update_status`, instead use a revision if you want to run subcommands
+
 ## [0.25.0] - 2024-07-24
 
 ### Added
