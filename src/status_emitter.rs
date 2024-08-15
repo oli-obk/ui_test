@@ -46,13 +46,11 @@ pub trait StatusEmitter: Sync + RefUnwindSafe {
 /// Some configuration options for revisions
 #[derive(Debug, Clone, Copy)]
 pub enum RevisionStyle {
-    /// Things like dependencies or aux files building are noise in non-interactif mode
-    /// and thus silenced.
-    Quiet,
+    /// Things like dependencies or aux files building are not really nested
+    /// below the build, but it is waiting on it.
+    Separate,
     /// Always show them, even if rendering to a file
     Show,
-    /// The parent, only show in indicatif mode and on failure
-    Parent,
 }
 
 /// Information about a specific test run.
@@ -407,17 +405,17 @@ impl TestStatus for TextTest {
             let msg = format!("... {result}");
             if ProgressDrawTarget::stdout().is_hidden() {
                 match self.style {
-                    RevisionStyle::Quiet => {}
-                    RevisionStyle::Show | RevisionStyle::Parent => {
+                    RevisionStyle::Separate => println!("{} {msg}", self.revision),
+                    RevisionStyle::Show => {
                         let revision = if self.revision.is_empty() {
                             String::new()
                         } else {
                             format!(" (revision `{}`)", self.revision)
                         };
                         println!("{}{revision} {msg}", display(&self.path));
-                        std::io::stdout().flush().unwrap();
                     }
                 }
+                std::io::stdout().flush().unwrap();
             }
             Some(msg)
         };
@@ -551,7 +549,7 @@ impl StatusEmitter for Text {
             path,
             revision: String::new(),
             first: AtomicBool::new(true),
-            style: RevisionStyle::Parent,
+            style: RevisionStyle::Show,
         })
     }
 

@@ -23,7 +23,7 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
         &self,
         _cmd: &mut Command,
         _config: &TestConfig<'_>,
-        _build_manager: &BuildManager<'_>,
+        _build_manager: &BuildManager,
     ) -> Result<(), Errored> {
         Ok(())
     }
@@ -40,7 +40,7 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
         _config: &TestConfig<'_>,
         _cmd: &mut Command,
         _output: &Output,
-        _build_manager: &BuildManager<'_>,
+        _build_manager: &BuildManager,
     ) -> Result<Vec<TestRun>, Errored> {
         Ok(Vec::new())
     }

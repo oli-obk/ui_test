@@ -15,9 +15,8 @@ use crate::{
     build_manager::{Build, BuildManager},
     custom_flags::Flag,
     per_test_config::TestConfig,
-    status_emitter::RevisionStyle,
     test_result::Errored,
-    CommandBuilder, Config, OutputConflictHandling, TestOk,
+    CommandBuilder, Config, OutputConflictHandling,
 };
 
 #[derive(Default, Debug)]
@@ -389,30 +388,16 @@ impl Flag for DependencyBuilder {
         &self,
         cmd: &mut Command,
         config: &TestConfig<'_>,
-        build_manager: &BuildManager<'_>,
+        build_manager: &BuildManager,
     ) -> Result<(), Errored> {
-        let status = config.status.for_revision(
-            "waiting for dependencies to finish building",
-            RevisionStyle::Quiet,
-        );
-        match build_manager.build(self.clone()) {
-            Ok(extra_args) => {
-                cmd.args(extra_args);
-                status.done(&Ok(TestOk::Ok));
-                Ok(())
-            }
-            Err(err) => {
-                let err = Err(err);
-                status.done(&err);
-                #[allow(clippy::unnecessary_literal_unwrap)]
-                Err(err.unwrap_err())
-            }
-        }
+        let extra_args = build_manager.build(self.clone(), &config.status)?;
+        cmd.args(extra_args);
+        Ok(())
     }
 }
 
 impl Build for DependencyBuilder {
-    fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
+    fn build(&self, build_manager: &BuildManager) -> Result<Vec<OsString>, Errored> {
         build_dependencies(build_manager.config(), self)
     }
 

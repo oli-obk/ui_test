@@ -29,7 +29,7 @@ impl Flag for Run {
         config: &TestConfig<'_>,
         cmd: &mut Command,
         _output: &Output,
-        _build_manager: &BuildManager<'_>,
+        _build_manager: &BuildManager,
     ) -> Result<Vec<TestRun>, Errored> {
         let exit_code = self.exit_code;
         let revision = config.extension("run");

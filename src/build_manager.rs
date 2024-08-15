@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    status_emitter::{RevisionStyle, StatusEmitter},
+    status_emitter::{RevisionStyle, TestStatus},
     Config, Errored,
 };
 
@@ -15,27 +15,25 @@ use crate::{
 pub trait Build {
     /// Runs the build and returns command line args to add to the test so it can find
     /// the built things.
-    fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored>;
+    fn build(&self, build_manager: &BuildManager) -> Result<Vec<OsString>, Errored>;
     /// Must uniquely describe the build, as it is used for checking that a value
     /// has already been cached.
     fn description(&self) -> String;
 }
 
 /// Deduplicates builds
-pub struct BuildManager<'a> {
+pub struct BuildManager {
     #[allow(clippy::type_complexity)]
     cache: RwLock<HashMap<String, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
-    status_emitter: &'a dyn StatusEmitter,
     config: Config,
 }
 
-impl<'a> BuildManager<'a> {
+impl BuildManager {
     /// Create a new `BuildManager` for a specific `Config`. Each `Config` needs
     /// to have its own.
-    pub fn new(status_emitter: &'a dyn StatusEmitter, config: Config) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
             cache: Default::default(),
-            status_emitter,
             config,
         }
     }
@@ -43,7 +41,11 @@ impl<'a> BuildManager<'a> {
     /// that need to be passed in order to build the dependencies.
     /// The error is only reported once, all follow up invocations of the same build will
     /// have a generic error about a previous build failing.
-    pub fn build(&self, what: impl Build) -> Result<Vec<OsString>, Errored> {
+    pub fn build(
+        &self,
+        what: impl Build,
+        status: &dyn TestStatus,
+    ) -> Result<Vec<OsString>, Errored> {
         let description = what.description();
         // Fast path without much contention.
         if let Some(res) = self
@@ -83,16 +85,14 @@ impl<'a> BuildManager<'a> {
 
         let mut err = None;
         once.get_or_init(|| {
-            let build = self
-                .status_emitter
-                .register_test(what.description().into())
-                .for_revision("", RevisionStyle::Parent);
+            let description = what.description();
+            let build = status.for_revision(&description, RevisionStyle::Separate);
             let res = what.build(self).map_err(|e| err = Some(e));
             build.done(
                 &res.as_ref()
                     .map(|_| crate::test_result::TestOk::Ok)
                     .map_err(|()| Errored {
-                        command: what.description(),
+                        command: description,
                         errors: vec![],
                         stderr: vec![],
                         stdout: vec![],

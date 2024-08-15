@@ -48,7 +48,7 @@ impl Flag for RustfixMode {
         config: &TestConfig<'_>,
         _cmd: &mut Command,
         output: &Output,
-        build_manager: &BuildManager<'_>,
+        build_manager: &BuildManager,
     ) -> Result<Vec<TestRun>, Errored> {
         let global_rustfix = match config.exit_status()? {
             Some(Spanned {
@@ -168,7 +168,7 @@ fn fix(stderr: &[u8], path: &Path, mode: RustfixMode) -> anyhow::Result<Vec<Stri
 
 fn compile_fixed(
     config: &TestConfig,
-    build_manager: &BuildManager<'_>,
+    build_manager: &BuildManager,
     fixed_paths: Vec<PathBuf>,
 ) -> Result<Vec<TestRun>, Errored> {
     // picking the crate name from the file name is problematic when `.revision_name` is inserted,

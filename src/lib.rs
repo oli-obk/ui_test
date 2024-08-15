@@ -151,7 +151,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
             path: path.to_path_buf(),
         }),
     };
-    let build_manager = BuildManager::new(&(), config.config.clone());
+    let build_manager = BuildManager::new(config.config.clone());
 
     Ok(config.build_command(&build_manager).unwrap())
 }
@@ -193,7 +193,7 @@ pub fn run_tests_generic(
 
     let configs: Vec<_> = configs
         .into_iter()
-        .map(|config| BuildManager::new(&status_emitter, config))
+        .map(BuildManager::new)
         .collect();
 
     let mut filtered = 0;
@@ -315,7 +315,7 @@ pub fn run_tests_generic(
 }
 
 fn parse_and_test_file(
-    build_manager: &BuildManager<'_>,
+    build_manager: &BuildManager,
     status: &dyn TestStatus,
     config: Config,
     file_contents: Spanned<Vec<u8>>,

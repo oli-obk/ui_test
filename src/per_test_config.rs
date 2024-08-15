@@ -82,11 +82,7 @@ impl TestConfig<'_> {
         self.comments().flat_map(f).collect()
     }
 
-    fn apply_custom(
-        &self,
-        cmd: &mut Command,
-        build_manager: &BuildManager<'_>,
-    ) -> Result<(), Errored> {
+    fn apply_custom(&self, cmd: &mut Command, build_manager: &BuildManager) -> Result<(), Errored> {
         let mut all = BTreeMap::new();
         for rev in self.comments.for_revision(self.status.revision()) {
             for (&k, flags) in &rev.custom {
@@ -115,10 +111,7 @@ impl TestConfig<'_> {
         Ok(())
     }
 
-    pub(crate) fn build_command(
-        &self,
-        build_manager: &BuildManager<'_>,
-    ) -> Result<Command, Errored> {
+    pub(crate) fn build_command(&self, build_manager: &BuildManager) -> Result<Command, Errored> {
         let mut cmd = self.config.program.build(&self.config.out_dir);
         cmd.arg(self.status.path());
         if !self.status.revision().is_empty() {
@@ -391,7 +384,7 @@ impl TestConfig<'_> {
 
     pub(crate) fn run_test(
         &mut self,
-        build_manager: &BuildManager<'_>,
+        build_manager: &BuildManager,
         runs: &mut Vec<TestRun>,
     ) -> TestResult {
         self.patch_out_dir();
