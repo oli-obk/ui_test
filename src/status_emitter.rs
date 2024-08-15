@@ -365,16 +365,9 @@ struct TextTest {
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult) {
-        if self.text.is_quiet_output() {
+        let new_leftover_msg = if self.text.is_quiet_output() {
             self.text.sender.send(Msg::Inc).unwrap();
-            self.text
-                .sender
-                .send(Msg::Pop {
-                    msg: self.revision.clone(),
-                    new_leftover_msg: None,
-                    parent: display(&self.path),
-                })
-                .unwrap();
+            None
         } else {
             let result = match result {
                 Ok(TestOk::Ok) => "ok".green(),
@@ -396,15 +389,16 @@ impl TestStatus for TextTest {
                     }
                 }
             }
-            self.text
-                .sender
-                .send(Msg::Pop {
-                    msg: self.revision.clone(),
-                    new_leftover_msg: Some(msg),
-                    parent: display(&self.path),
-                })
-                .unwrap();
-        }
+            Some(msg)
+        };
+        self.text
+            .sender
+            .send(Msg::Pop {
+                msg: self.revision.clone(),
+                new_leftover_msg,
+                parent: display(&self.path),
+            })
+            .unwrap();
     }
 
     fn failed_test<'a>(
