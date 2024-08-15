@@ -27,10 +27,10 @@ impl Flag for Run {
     fn post_test_action(
         &self,
         config: &TestConfig<'_>,
-        cmd: &mut Command,
         _output: &Output,
-        _build_manager: &BuildManager,
+        build_manager: &BuildManager,
     ) -> Result<Vec<TestRun>, Errored> {
+        let mut cmd = config.build_command(build_manager)?;
         let exit_code = self.exit_code;
         let revision = config.extension("run");
         let config = TestConfig {
@@ -41,7 +41,7 @@ impl Flag for Run {
         };
         cmd.arg("--print").arg("file-names");
         let output = cmd.output().unwrap();
-        assert!(output.status.success());
+        assert!(output.status.success(), "{cmd:#?}: {output:#?}");
 
         let mut files = output.stdout.lines();
         let file = files.next().unwrap();

@@ -3,7 +3,7 @@
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
-    process::{Command, Output},
+    process::Output,
 };
 
 use rustfix::{CodeFix, Filter, Suggestion};
@@ -46,7 +46,6 @@ impl Flag for RustfixMode {
     fn post_test_action(
         &self,
         config: &TestConfig<'_>,
-        _cmd: &mut Command,
         output: &Output,
         build_manager: &BuildManager,
     ) -> Result<Vec<TestRun>, Errored> {

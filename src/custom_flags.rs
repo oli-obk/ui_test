@@ -38,7 +38,6 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
     fn post_test_action(
         &self,
         _config: &TestConfig<'_>,
-        _cmd: &mut Command,
         _output: &Output,
         _build_manager: &BuildManager,
     ) -> Result<Vec<TestRun>, Errored> {

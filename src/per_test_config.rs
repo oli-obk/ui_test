@@ -403,7 +403,7 @@ impl TestConfig<'_> {
         for rev in self.comments() {
             for custom in rev.custom.values() {
                 for flag in &custom.content {
-                    runs.extend(flag.post_test_action(self, &mut cmd, &output, build_manager)?);
+                    runs.extend(flag.post_test_action(self, &output, build_manager)?);
                 }
             }
         }
