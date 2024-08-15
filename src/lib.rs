@@ -23,6 +23,7 @@ use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
 use std::path::Path;
 use std::process::Command;
+use std::sync::Arc;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
 
@@ -191,18 +192,22 @@ pub fn run_tests_generic(
         },
     };
 
-    let configs: Vec<_> = configs
-        .into_iter()
-        .map(BuildManager::new)
-        .collect();
-
     let mut filtered = 0;
     core::run_and_collect(
         num_threads,
         |submit| {
             let mut todo = VecDeque::new();
+
+            let configs: Vec<_> = configs
+                .into_iter()
+                .map(BuildManager::new)
+                .map(Arc::new)
+                .collect();
             for build_manager in &configs {
-                todo.push_back((build_manager.config().root_dir.clone(), build_manager));
+                todo.push_back((
+                    build_manager.config().root_dir.clone(),
+                    build_manager.clone(),
+                ));
             }
             while let Some((path, build_manager)) = todo.pop_front() {
                 if path.is_dir() {
@@ -217,7 +222,7 @@ pub fn run_tests_generic(
                         .collect::<Vec<_>>();
                     entries.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
                     for entry in entries {
-                        todo.push_back((entry, build_manager));
+                        todo.push_back((entry, build_manager.clone()));
                     }
                 } else if let Some(matched) = file_filter(&path, build_manager.config()) {
                     if matched {
@@ -315,7 +320,7 @@ pub fn run_tests_generic(
 }
 
 fn parse_and_test_file(
-    build_manager: &BuildManager,
+    build_manager: Arc<BuildManager>,
     status: &dyn TestStatus,
     config: Config,
     file_contents: Spanned<Vec<u8>>,
@@ -344,7 +349,7 @@ fn parse_and_test_file(
             status,
         };
 
-        let result = test_config.run_test(build_manager, &mut runs);
+        let result = test_config.run_test(&build_manager, &mut runs);
         runs.push(TestRun {
             result,
             status: test_config.status,

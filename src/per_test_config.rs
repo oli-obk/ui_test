@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use std::sync::Arc;
 
 use spanned::Spanned;
 
@@ -384,7 +385,7 @@ impl TestConfig<'_> {
 
     pub(crate) fn run_test(
         &mut self,
-        build_manager: &BuildManager,
+        build_manager: &Arc<BuildManager>,
         runs: &mut Vec<TestRun>,
     ) -> TestResult {
         self.patch_out_dir();
