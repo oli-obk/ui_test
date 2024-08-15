@@ -4,6 +4,7 @@ use std::{
     collections::HashSet,
     path::{Path, PathBuf},
     process::Output,
+    sync::Arc,
 };
 
 use rustfix::{CodeFix, Filter, Suggestion};
@@ -45,7 +46,7 @@ impl Flag for RustfixMode {
     }
     fn post_test_action(
         &self,
-        config: &TestConfig<'_>,
+        config: &TestConfig,
         output: &Output,
         build_manager: &BuildManager,
     ) -> Result<Vec<TestRun>, Errored> {
@@ -181,7 +182,7 @@ fn compile_fixed(
         .unwrap()
         .replace('-', "_");
 
-    let rustfix_comments = Comments {
+    let rustfix_comments = Arc::new(Comments {
         revisions: None,
         revisioned: std::iter::once((
             vec![],
@@ -204,13 +205,13 @@ fn compile_fixed(
             },
         ))
         .collect(),
-    };
+    });
 
     let mut runs = Vec::new();
     for fixed_path in fixed_paths {
         let fixed_config = TestConfig {
             config: config.config.clone(),
-            comments: &rustfix_comments,
+            comments: rustfix_comments.clone(),
             aux_dir: config.aux_dir.clone(),
             status: config.status.for_path(&fixed_path),
         };

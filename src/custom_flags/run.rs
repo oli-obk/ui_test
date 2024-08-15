@@ -26,7 +26,7 @@ impl Flag for Run {
 
     fn post_test_action(
         &self,
-        config: &TestConfig<'_>,
+        config: &TestConfig,
         _output: &Output,
         build_manager: &BuildManager,
     ) -> Result<Vec<TestRun>, Errored> {
@@ -35,7 +35,7 @@ impl Flag for Run {
         let revision = config.extension("run");
         let config = TestConfig {
             config: config.config.clone(),
-            comments: config.comments,
+            comments: config.comments.clone(),
             aux_dir: config.aux_dir.clone(),
             status: config.status.for_revision(&revision, RevisionStyle::Show),
         };

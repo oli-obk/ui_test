@@ -387,7 +387,7 @@ impl Flag for DependencyBuilder {
     fn apply(
         &self,
         cmd: &mut Command,
-        config: &TestConfig<'_>,
+        config: &TestConfig,
         build_manager: &BuildManager,
     ) -> Result<(), Errored> {
         let extra_args = build_manager.build(self.clone(), &config.status)?;

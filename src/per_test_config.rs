@@ -23,17 +23,17 @@ use crate::test_result::{Errored, TestOk, TestResult};
 use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling, TestRun};
 
 /// All information needed to run a single test
-pub struct TestConfig<'a> {
+pub struct TestConfig {
     /// The generic config for all tests
     pub config: Config,
-    pub(crate) comments: &'a Comments,
+    pub(crate) comments: Arc<Comments>,
     /// The path to the folder where to look for aux files
     pub aux_dir: PathBuf,
     /// When doing long-running operations, you can inform the user about it here.
     pub status: Box<dyn TestStatus>,
 }
 
-impl TestConfig<'_> {
+impl TestConfig {
     pub(crate) fn patch_out_dir(&mut self) {
         // Put aux builds into a separate directory per path so that multiple aux files
         // from different directories (but with the same file name) don't collide.

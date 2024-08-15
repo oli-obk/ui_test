@@ -146,7 +146,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
         config,
-        comments: &comments,
+        comments: Arc::new(comments),
         aux_dir: path.parent().unwrap().join("auxiliary"),
         status: Box::new(SilentStatus {
             revision: String::new(),
@@ -343,6 +343,7 @@ fn parse_and_test_file(
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = Comments::parse(file_contents.as_ref(), &config)
         .map_err(|errors| Errored::new(errors, "parse comments"))?;
+    let comments = Arc::new(comments);
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
@@ -360,7 +361,7 @@ fn parse_and_test_file(
 
         let mut test_config = TestConfig {
             config: config.clone(),
-            comments: &comments,
+            comments: comments.clone(),
             aux_dir: status.path().parent().unwrap().join("auxiliary"),
             status,
         };

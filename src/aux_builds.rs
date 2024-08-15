@@ -3,7 +3,7 @@
 
 use bstr::ByteSlice;
 use spanned::Spanned;
-use std::{ffi::OsString, path::PathBuf, process::Command};
+use std::{ffi::OsString, path::PathBuf, process::Command, sync::Arc};
 
 use crate::{
     build_manager::{Build, BuildManager},
@@ -24,7 +24,7 @@ impl Flag for AuxBuilder {
     fn apply(
         &self,
         cmd: &mut Command,
-        config: &TestConfig<'_>,
+        config: &TestConfig,
         build_manager: &BuildManager,
     ) -> Result<(), Errored> {
         let aux = &self.aux_file;
@@ -109,7 +109,7 @@ impl Build for AuxBuilder {
 
         let mut config = TestConfig {
             config,
-            comments: &comments,
+            comments: Arc::new(comments),
             aux_dir: self.aux_file.parent().unwrap().to_owned(),
             status: Box::new(SilentStatus {
                 revision: String::new(),
