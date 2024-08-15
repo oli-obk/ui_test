@@ -6,7 +6,7 @@
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::sync::Arc;
 
@@ -28,7 +28,7 @@ pub struct TestConfig<'a> {
     pub config: Config,
     pub(crate) comments: &'a Comments,
     /// The path to the folder where to look for aux files
-    pub aux_dir: &'a Path,
+    pub aux_dir: PathBuf,
     /// When doing long-running operations, you can inform the user about it here.
     pub status: Box<dyn TestStatus>,
 }

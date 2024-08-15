@@ -147,7 +147,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     let config = TestConfig {
         config,
         comments: &comments,
-        aux_dir: &path.parent().unwrap().join("auxiliary"),
+        aux_dir: path.parent().unwrap().join("auxiliary"),
         status: Box::new(SilentStatus {
             revision: String::new(),
             path: path.to_path_buf(),
@@ -361,7 +361,7 @@ fn parse_and_test_file(
         let mut test_config = TestConfig {
             config: config.clone(),
             comments: &comments,
-            aux_dir: &status.path().parent().unwrap().join("auxiliary"),
+            aux_dir: status.path().parent().unwrap().join("auxiliary"),
             status,
         };
 

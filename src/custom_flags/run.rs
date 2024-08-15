@@ -36,7 +36,7 @@ impl Flag for Run {
         let config = TestConfig {
             config: config.config.clone(),
             comments: config.comments,
-            aux_dir: config.aux_dir,
+            aux_dir: config.aux_dir.clone(),
             status: config.status.for_revision(&revision, RevisionStyle::Show),
         };
         cmd.arg("--print").arg("file-names");

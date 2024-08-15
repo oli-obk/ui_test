@@ -211,7 +211,7 @@ fn compile_fixed(
         let fixed_config = TestConfig {
             config: config.config.clone(),
             comments: &rustfix_comments,
-            aux_dir: config.aux_dir,
+            aux_dir: config.aux_dir.clone(),
             status: config.status.for_path(&fixed_path),
         };
         let mut cmd = fixed_config.build_command(build_manager)?;

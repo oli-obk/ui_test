@@ -28,7 +28,7 @@ impl Flag for AuxBuilder {
         build_manager: &BuildManager,
     ) -> Result<(), Errored> {
         let aux = &self.aux_file;
-        let aux_dir = config.aux_dir;
+        let aux_dir = config.aux_dir.clone();
         let aux_file = if aux.starts_with("..") {
             aux_dir.parent().unwrap().join(&aux.content)
         } else {
@@ -110,7 +110,7 @@ impl Build for AuxBuilder {
         let mut config = TestConfig {
             config,
             comments: &comments,
-            aux_dir: self.aux_file.parent().unwrap(),
+            aux_dir: self.aux_file.parent().unwrap().to_owned(),
             status: Box::new(SilentStatus {
                 revision: String::new(),
                 path: self.aux_file.content.clone(),
