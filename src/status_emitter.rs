@@ -386,6 +386,7 @@ impl From<Format> for Text {
 
 struct TextTest {
     text: Text,
+    parent: String,
     path: PathBuf,
     revision: String,
     first: AtomicBool,
@@ -423,9 +424,13 @@ impl TestStatus for TextTest {
         self.text
             .sender
             .send(Msg::Pop {
-                msg: self.revision.clone(),
+                msg: if self.revision.is_empty() && display(&self.path) != self.parent {
+                    display(&self.path)
+                } else {
+                    self.revision.clone()
+                },
                 new_leftover_msg,
-                parent: display(&self.path),
+                parent: self.parent.clone(),
             })
             .unwrap();
     }
@@ -490,6 +495,7 @@ impl TestStatus for TextTest {
         let text = Self {
             text: self.text.clone(),
             path: self.path.clone(),
+            parent: self.parent.clone(),
             revision: revision.to_owned(),
             first: AtomicBool::new(false),
             style,
@@ -497,8 +503,12 @@ impl TestStatus for TextTest {
         self.text
             .sender
             .send(Msg::Push {
-                parent: display(&self.path),
-                msg: text.revision.clone(),
+                parent: self.parent.clone(),
+                msg: if revision.is_empty() && display(&self.path) != self.parent {
+                    display(&self.path)
+                } else {
+                    text.revision.clone()
+                },
             })
             .unwrap();
 
@@ -509,15 +519,17 @@ impl TestStatus for TextTest {
         let text = Self {
             text: self.text.clone(),
             path: path.to_path_buf(),
+            parent: self.parent.clone(),
             revision: String::new(),
             first: AtomicBool::new(false),
             style: RevisionStyle::Show,
         };
+
         self.text
             .sender
             .send(Msg::Push {
-                parent: display(&self.path),
-                msg: self.revision.clone(),
+                parent: self.parent.clone(),
+                msg: display(path),
             })
             .unwrap();
         Box::new(text)
@@ -535,6 +547,7 @@ impl StatusEmitter for Text {
         }
         Box::new(TextTest {
             text: self.clone(),
+            parent: display(&path),
             path,
             revision: String::new(),
             first: AtomicBool::new(true),
