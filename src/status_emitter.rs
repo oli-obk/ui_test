@@ -194,19 +194,6 @@ enum Msg {
 }
 
 impl Text {
-    fn insert_parent_and_reposition_children(
-        parent: ProgressBar,
-        bars: &MultiProgress,
-        children: &HashMap<String, (ProgressBar, bool)>,
-    ) {
-        let parent = bars.insert(0, parent);
-        for (msg, (child, _)) in children.iter() {
-            if !msg.is_empty() {
-                bars.remove(child);
-                bars.insert_after(&parent, child.clone());
-            }
-        }
-    }
     fn start_thread(progress: OutputVerbosity) -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded();
         let handle = std::thread::spawn(move || {
@@ -233,40 +220,34 @@ impl Text {
                                     panic!("pop: {parent}({msg}): {children:#?}")
                                 };
                                 *done = true;
-                                let template = if msg.is_empty() {
-                                    "{prefix} {msg}"
-                                } else {
-                                    "  {prefix} {msg}"
-                                };
+                                let spinner = spinner.clone();
 
-                                spinner.set_style(ProgressStyle::with_template(template).unwrap());
                                 if let Some(new_msg) = new_msg {
-                                    bars.remove(spinner);
-                                    let spinner = spinner.clone();
-                                    let spinner = if msg.is_empty() {
-                                        // insert at the top
-                                        Self::insert_parent_and_reposition_children(
-                                            spinner.clone(),
-                                            &bars,
-                                            children,
-                                        );
-
-                                        spinner
-                                    } else {
-                                        let parent = children[""].0.clone();
-                                        parent.inc(1);
-                                        if children.values().all(|&(_, done)| done) {
-                                            bars.remove(&parent);
-                                            Self::insert_parent_and_reposition_children(
-                                                parent, &bars, children,
-                                            );
-                                            spinner
-                                        } else {
-                                            bars.insert_after(&parent, spinner)
-                                        }
-                                    };
-                                    spinner.tick();
                                     spinner.finish_with_message(new_msg);
+                                    let parent = children[""].0.clone();
+                                    if !msg.is_empty() {
+                                        parent.inc(1);
+                                    }
+                                    if children.values().all(|&(_, done)| done) {
+                                        bars.remove(&parent);
+                                        bars.println(format!(
+                                            "{} {}",
+                                            parent.prefix(),
+                                            parent.message()
+                                        ))
+                                        .unwrap();
+                                        for (msg, (child, _)) in children.iter() {
+                                            if !msg.is_empty() {
+                                                bars.remove(child);
+                                                bars.println(format!(
+                                                    "  {} {}",
+                                                    child.prefix(),
+                                                    child.message()
+                                                ))
+                                                .unwrap();
+                                            }
+                                        }
+                                    }
                                 } else {
                                     spinner.finish_and_clear();
                                 }
@@ -335,7 +316,8 @@ impl Text {
                 }
             }
             for (key, children) in threads.iter() {
-                for (sub_key, (_child, done)) in children {
+                for (sub_key, (child, done)) in children {
+                    child.tick();
                     assert!(done, "{key} ({sub_key}) not finished");
                 }
             }
