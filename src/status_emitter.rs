@@ -21,7 +21,10 @@ use std::{
     num::NonZeroUsize,
     panic::{AssertUnwindSafe, RefUnwindSafe},
     path::{Path, PathBuf},
-    sync::{atomic::AtomicBool, Arc},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
     thread::JoinHandle,
     time::Duration,
 };
@@ -222,23 +225,31 @@ impl Text {
                                 *done = true;
                                 let spinner = spinner.clone();
 
+                                let print = new_msg.is_some();
+
                                 if let Some(new_msg) = new_msg {
                                     spinner.finish_with_message(new_msg);
-                                    let parent = children[""].0.clone();
-                                    if !msg.is_empty() {
-                                        parent.inc(1);
-                                    }
-                                    if children.values().all(|&(_, done)| done) {
-                                        bars.remove(&parent);
+                                } else {
+                                    spinner.finish();
+                                }
+                                let parent = children[""].0.clone();
+                                if !msg.is_empty() {
+                                    parent.inc(1);
+                                }
+                                if children.values().all(|&(_, done)| done) {
+                                    bars.remove(&parent);
+                                    if print {
                                         bars.println(format!(
                                             "{} {}",
                                             parent.prefix(),
                                             parent.message()
                                         ))
                                         .unwrap();
-                                        for (msg, (child, _)) in children.iter() {
-                                            if !msg.is_empty() {
-                                                bars.remove(child);
+                                    }
+                                    for (msg, (child, _)) in children.iter() {
+                                        if !msg.is_empty() {
+                                            bars.remove(child);
+                                            if print {
                                                 bars.println(format!(
                                                     "  {} {}",
                                                     child.prefix(),
@@ -248,8 +259,6 @@ impl Text {
                                             }
                                         }
                                     }
-                                } else {
-                                    spinner.finish_and_clear();
                                 }
                             }
 
@@ -323,7 +332,8 @@ impl Text {
             }
             if let Some(progress) = progress {
                 progress.tick();
-                assert!(progress.is_finished());
+                progress.finish();
+                assert_eq!(Some(progress.position()), progress.length());
             }
         });
         Self {
@@ -369,14 +379,20 @@ struct TextTest {
     parent: String,
     path: PathBuf,
     revision: String,
-    first: AtomicBool,
+    /// Increased whenever a revision or sub-path is registered
+    /// Decreased whenever `done` is called
+    /// On increase from 0 to 1, adds 1 to the progress bar length
+    /// On decrease from 1 to 0, removes 1 from progress bar length
+    inc_counter: Arc<AtomicUsize>,
     style: RevisionStyle,
 }
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult) {
         let new_leftover_msg = if self.text.is_quiet_output() {
-            self.text.sender.send(Msg::Inc).unwrap();
+            if self.inc_counter.fetch_sub(1, Ordering::Relaxed) == 1 {
+                self.text.sender.send(Msg::Inc).unwrap();
+            }
             None
         } else {
             let result = match result {
@@ -466,10 +482,8 @@ impl TestStatus for TextTest {
     }
 
     fn for_revision(&self, revision: &str, style: RevisionStyle) -> Box<dyn TestStatus> {
-        if !self.first.swap(false, std::sync::atomic::Ordering::Relaxed)
-            && self.text.is_quiet_output()
-        {
-            self.text.sender.send(Msg::IncLength).unwrap();
+        if self.text.is_quiet_output() {
+            self.inc_counter.fetch_add(1, Ordering::Relaxed);
         }
 
         let text = Self {
@@ -477,7 +491,7 @@ impl TestStatus for TextTest {
             path: self.path.clone(),
             parent: self.parent.clone(),
             revision: revision.to_owned(),
-            first: AtomicBool::new(false),
+            inc_counter: self.inc_counter.clone(),
             style,
         };
         self.text
@@ -496,12 +510,16 @@ impl TestStatus for TextTest {
     }
 
     fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
+        if self.text.is_quiet_output() {
+            self.inc_counter.fetch_add(1, Ordering::Relaxed);
+        }
+
         let text = Self {
             text: self.text.clone(),
             path: path.to_path_buf(),
             parent: self.parent.clone(),
             revision: String::new(),
-            first: AtomicBool::new(false),
+            inc_counter: self.inc_counter.clone(),
             style: RevisionStyle::Show,
         };
 
@@ -530,7 +548,7 @@ impl StatusEmitter for Text {
             parent: display(&path),
             path,
             revision: String::new(),
-            first: AtomicBool::new(true),
+            inc_counter: Default::default(),
             style: RevisionStyle::Show,
         })
     }
