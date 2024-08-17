@@ -19,9 +19,9 @@ use std::{
     fmt::{Debug, Display, Write as _},
     io::Write as _,
     num::NonZeroUsize,
-    panic::{AssertUnwindSafe, RefUnwindSafe},
+    panic::RefUnwindSafe,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
     thread::JoinHandle,
     time::Duration,
 };
@@ -164,18 +164,27 @@ enum OutputVerbosity {
 pub struct Text {
     sender: Sender<Msg>,
     progress: OutputVerbosity,
-    _handle: Arc<JoinOnDrop>,
+    handle: Arc<JoinOnDrop>,
 }
 
-struct JoinOnDrop(AssertUnwindSafe<Option<JoinHandle<()>>>);
+struct JoinOnDrop(Mutex<Option<JoinHandle<()>>>);
 impl From<JoinHandle<()>> for JoinOnDrop {
     fn from(handle: JoinHandle<()>) -> Self {
-        Self(AssertUnwindSafe(Some(handle)))
+        Self(Mutex::new(Some(handle)))
     }
 }
 impl Drop for JoinOnDrop {
     fn drop(&mut self) {
-        let _ = self.0 .0.take().unwrap().join();
+        self.join();
+    }
+}
+
+impl JoinOnDrop {
+    fn join(&self) {
+        let Ok(Some(handle)) = self.0.try_lock().map(|mut g| g.take()) else {
+            return;
+        };
+        let _ = handle.join();
     }
 }
 
@@ -359,7 +368,7 @@ impl Text {
         Self {
             sender,
             progress,
-            _handle: Arc::new(handle.into()),
+            handle: Arc::new(handle.into()),
         }
     }
 
@@ -562,9 +571,8 @@ impl StatusEmitter for Text {
         aborted: bool,
     ) -> Box<dyn Summary> {
         self.sender.send(Msg::Finish).unwrap();
-        while !self.sender.is_empty() {
-            std::thread::sleep(Duration::from_millis(10));
-        }
+
+        self.handle.join();
         if !ProgressDrawTarget::stdout().is_hidden() {
             // The progress bars do not have a trailing newline, so let's
             // add it here.
