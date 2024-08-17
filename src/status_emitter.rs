@@ -339,19 +339,18 @@ impl Text {
                     }
                 }
                 for children in threads.values() {
-                    for (spinner, _done) in children.values() {
-                        spinner.tick();
+                    for (spinner, done) in children.values() {
+                        if !done {
+                            spinner.tick();
+                        }
                     }
                 }
-                progress.tick()
             }
             for (key, children) in threads.iter() {
-                for (sub_key, (child, done)) in children {
-                    child.tick();
+                for (sub_key, (_child, done)) in children {
                     assert!(done, "{key} ({sub_key}) not finished");
                 }
             }
-            progress.tick();
             if aborted {
                 progress.abandon();
             } else {
