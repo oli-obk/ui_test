@@ -32,8 +32,8 @@ macro_rules! config {
         #[allow(unused_mut)]
         let mut $config = TestConfig {
             config: $config,
-            comments: &comments,
-            aux_dir: Path::new("unused_doesnt_exist"),
+            comments: Arc::new(comments),
+            aux_dir: PathBuf::from("unused_doesnt_exist"),
             status: Box::new(crate::status_emitter::SilentStatus {
                 path: path.to_path_buf(),
                 revision: String::new(),

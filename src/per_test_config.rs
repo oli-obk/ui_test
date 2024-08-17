@@ -6,8 +6,9 @@
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Output};
+use std::sync::Arc;
 
 use spanned::Spanned;
 
@@ -19,20 +20,20 @@ pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::TestStatus;
 use crate::test_result::{Errored, TestOk, TestResult};
-use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling, TestRun};
+use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling};
 
 /// All information needed to run a single test
-pub struct TestConfig<'a> {
+pub struct TestConfig {
     /// The generic config for all tests
     pub config: Config,
-    pub(crate) comments: &'a Comments,
+    pub(crate) comments: Arc<Comments>,
     /// The path to the folder where to look for aux files
-    pub aux_dir: &'a Path,
+    pub aux_dir: PathBuf,
     /// When doing long-running operations, you can inform the user about it here.
     pub status: Box<dyn TestStatus>,
 }
 
-impl TestConfig<'_> {
+impl TestConfig {
     pub(crate) fn patch_out_dir(&mut self) {
         // Put aux builds into a separate directory per path so that multiple aux files
         // from different directories (but with the same file name) don't collide.
@@ -82,11 +83,7 @@ impl TestConfig<'_> {
         self.comments().flat_map(f).collect()
     }
 
-    fn apply_custom(
-        &self,
-        cmd: &mut Command,
-        build_manager: &BuildManager<'_>,
-    ) -> Result<(), Errored> {
+    fn apply_custom(&self, cmd: &mut Command, build_manager: &BuildManager) -> Result<(), Errored> {
         let mut all = BTreeMap::new();
         for rev in self.comments.for_revision(self.status.revision()) {
             for (&k, flags) in &rev.custom {
@@ -115,10 +112,7 @@ impl TestConfig<'_> {
         Ok(())
     }
 
-    pub(crate) fn build_command(
-        &self,
-        build_manager: &BuildManager<'_>,
-    ) -> Result<Command, Errored> {
+    pub(crate) fn build_command(&self, build_manager: &BuildManager) -> Result<Command, Errored> {
         let mut cmd = self.config.program.build(&self.config.out_dir);
         cmd.arg(self.status.path());
         if !self.status.revision().is_empty() {
@@ -389,11 +383,7 @@ impl TestConfig<'_> {
         Ok(())
     }
 
-    pub(crate) fn run_test(
-        &mut self,
-        build_manager: &BuildManager<'_>,
-        runs: &mut Vec<TestRun>,
-    ) -> TestResult {
+    pub(crate) fn run_test(&mut self, build_manager: &Arc<BuildManager>) -> TestResult {
         self.patch_out_dir();
 
         let mut cmd = self.build_command(build_manager)?;
@@ -409,7 +399,7 @@ impl TestConfig<'_> {
         for rev in self.comments() {
             for custom in rev.custom.values() {
                 for flag in &custom.content {
-                    runs.extend(flag.post_test_action(self, &mut cmd, &output, build_manager)?);
+                    flag.post_test_action(self, &output, build_manager)?;
                 }
             }
         }

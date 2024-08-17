@@ -6,8 +6,12 @@ use std::{
     sync::{Arc, OnceLock, RwLock},
 };
 
+use color_eyre::eyre::Result;
+use crossbeam_channel::Sender;
+
 use crate::{
-    status_emitter::{RevisionStyle, StatusEmitter},
+    status_emitter::{RevisionStyle, TestStatus},
+    test_result::TestRun,
     Config, Errored,
 };
 
@@ -15,35 +19,50 @@ use crate::{
 pub trait Build {
     /// Runs the build and returns command line args to add to the test so it can find
     /// the built things.
-    fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored>;
+    fn build(&self, build_manager: &BuildManager) -> Result<Vec<OsString>, Errored>;
     /// Must uniquely describe the build, as it is used for checking that a value
     /// has already been cached.
     fn description(&self) -> String;
 }
 
 /// Deduplicates builds
-pub struct BuildManager<'a> {
+pub struct BuildManager {
     #[allow(clippy::type_complexity)]
     cache: RwLock<HashMap<String, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
-    status_emitter: &'a dyn StatusEmitter,
     config: Config,
+    new_job_submitter: Sender<NewJob>,
 }
 
-impl<'a> BuildManager<'a> {
+type NewJob = Box<dyn Send + for<'a> FnOnce(&'a Sender<TestRun>) -> Result<()>>;
+
+impl BuildManager {
     /// Create a new `BuildManager` for a specific `Config`. Each `Config` needs
     /// to have its own.
-    pub fn new(status_emitter: &'a dyn StatusEmitter, config: Config) -> Self {
+    pub fn new(config: Config, new_job_submitter: Sender<NewJob>) -> Self {
         Self {
             cache: Default::default(),
-            status_emitter,
             config,
+            new_job_submitter,
         }
     }
+
+    /// Lazily add more jobs after a test has finished. These are added to the queue
+    /// as normally, but nested below the test.
+    pub fn add_new_job(&self, job: impl Send + 'static + FnOnce() -> TestRun) {
+        self.new_job_submitter
+            .send(Box::new(move |sender| Ok(sender.send(job())?)))
+            .unwrap()
+    }
+
     /// This function will block until the build is done and then return the arguments
     /// that need to be passed in order to build the dependencies.
     /// The error is only reported once, all follow up invocations of the same build will
     /// have a generic error about a previous build failing.
-    pub fn build(&self, what: impl Build) -> Result<Vec<OsString>, Errored> {
+    pub fn build(
+        &self,
+        what: impl Build,
+        status: &dyn TestStatus,
+    ) -> Result<Vec<OsString>, Errored> {
         let description = what.description();
         // Fast path without much contention.
         if let Some(res) = self
@@ -83,16 +102,14 @@ impl<'a> BuildManager<'a> {
 
         let mut err = None;
         once.get_or_init(|| {
-            let build = self
-                .status_emitter
-                .register_test(what.description().into())
-                .for_revision("", RevisionStyle::Parent);
+            let description = what.description();
+            let build = status.for_revision(&description, RevisionStyle::Separate);
             let res = what.build(self).map_err(|e| err = Some(e));
             build.done(
                 &res.as_ref()
                     .map(|_| crate::test_result::TestOk::Ok)
                     .map_err(|()| Errored {
-                        command: what.description(),
+                        command: description,
                         errors: vec![],
                         stderr: vec![],
                         stdout: vec![],

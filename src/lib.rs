@@ -15,6 +15,7 @@ use color_eyre::eyre::Context as _;
 pub use color_eyre::eyre::Result;
 pub use core::run_and_collect;
 pub use core::CrateType;
+use crossbeam_channel::Sender;
 pub use filter::Match;
 use per_test_config::TestConfig;
 use spanned::Spanned;
@@ -23,6 +24,7 @@ use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
 use std::path::Path;
 use std::process::Command;
+use std::sync::Arc;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
 
@@ -144,14 +146,14 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
         config,
-        comments: &comments,
-        aux_dir: &path.parent().unwrap().join("auxiliary"),
+        comments: Arc::new(comments),
+        aux_dir: path.parent().unwrap().join("auxiliary"),
         status: Box::new(SilentStatus {
             revision: String::new(),
             path: path.to_path_buf(),
         }),
     };
-    let build_manager = BuildManager::new(&(), config.config.clone());
+    let build_manager = BuildManager::new(config.config.clone(), crossbeam_channel::bounded(0).0);
 
     Ok(config.build_command(&build_manager).unwrap())
 }
@@ -167,7 +169,7 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
 pub fn run_tests_generic(
     mut configs: Vec<Config>,
     file_filter: impl Fn(&Path, &Config) -> Option<bool> + Sync,
-    per_file_config: impl Fn(&mut Config, &Spanned<Vec<u8>>) + Sync,
+    per_file_config: impl Copy + Fn(&mut Config, &Spanned<Vec<u8>>) + Send + Sync + 'static,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
     if nextest::emulate(&mut configs) {
@@ -191,18 +193,21 @@ pub fn run_tests_generic(
         },
     };
 
-    let configs: Vec<_> = configs
-        .into_iter()
-        .map(|config| BuildManager::new(&status_emitter, config))
-        .collect();
-
     let mut filtered = 0;
     core::run_and_collect(
         num_threads,
         |submit| {
             let mut todo = VecDeque::new();
+
+            let configs: Vec<_> = configs
+                .into_iter()
+                .map(|config| Arc::new(BuildManager::new(config, submit.clone())))
+                .collect();
             for build_manager in &configs {
-                todo.push_back((build_manager.config().root_dir.clone(), build_manager));
+                todo.push_back((
+                    build_manager.config().root_dir.clone(),
+                    build_manager.clone(),
+                ));
             }
             while let Some((path, build_manager)) = todo.pop_front() {
                 if path.is_dir() {
@@ -217,13 +222,63 @@ pub fn run_tests_generic(
                         .collect::<Vec<_>>();
                     entries.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
                     for entry in entries {
-                        todo.push_back((entry, build_manager));
+                        todo.push_back((entry, build_manager.clone()));
                     }
                 } else if let Some(matched) = file_filter(&path, build_manager.config()) {
                     if matched {
                         let status = status_emitter.register_test(path);
                         // Forward .rs files to the test workers.
-                        submit.send((status, build_manager)).unwrap();
+                        submit
+                            .send(Box::new(move |finished_files_sender: &Sender<TestRun>| {
+                                let path = status.path();
+                                let file_contents = Spanned::read_from_file(path).unwrap();
+                                let mut config = build_manager.config().clone();
+                                per_file_config(&mut config, &file_contents);
+                                let result = match std::panic::catch_unwind(|| {
+                                    parse_and_test_file(
+                                        build_manager,
+                                        &status,
+                                        config,
+                                        file_contents,
+                                    )
+                                }) {
+                                    Ok(Ok(res)) => res,
+                                    Ok(Err(err)) => {
+                                        finished_files_sender.send(TestRun {
+                                            result: Err(err),
+                                            status,
+                                        })?;
+                                        return Ok(());
+                                    }
+                                    Err(err) => {
+                                        finished_files_sender.send(TestRun {
+                                            result: Err(Errored {
+                                                command: "<unknown>".into(),
+                                                errors: vec![
+                                                        Error::Bug(
+                                                            *Box::<
+                                                                dyn std::any::Any + Send + 'static,
+                                                            >::downcast::<String>(
+                                                                err
+                                                            )
+                                                            .unwrap(),
+                                                        ),
+                                                    ],
+                                                stderr: vec![],
+                                                stdout: vec![],
+                                            }),
+                                            status,
+                                        })?;
+                                        return Ok(());
+                                    }
+                                };
+                                for result in result {
+                                    finished_files_sender.send(result)?;
+                                }
+                                Ok(())
+                            })
+                                as Box<dyn Send + FnOnce(&Sender<TestRun>) -> Result<()>>)
+                            .unwrap();
                     } else {
                         filtered += 1;
                     }
@@ -231,43 +286,8 @@ pub fn run_tests_generic(
             }
         },
         |receive, finished_files_sender| -> Result<()> {
-            for (status, build_manager) in receive {
-                let path = status.path();
-                let file_contents = Spanned::read_from_file(path).unwrap();
-                let mut config = build_manager.config().clone();
-                per_file_config(&mut config, &file_contents);
-                let result = match std::panic::catch_unwind(|| {
-                    parse_and_test_file(build_manager, &status, config, file_contents)
-                }) {
-                    Ok(Ok(res)) => res,
-                    Ok(Err(err)) => {
-                        finished_files_sender.send(TestRun {
-                            result: Err(err),
-                            status,
-                        })?;
-                        continue;
-                    }
-                    Err(err) => {
-                        finished_files_sender.send(TestRun {
-                            result: Err(Errored {
-                                command: "<unknown>".into(),
-                                errors: vec![Error::Bug(
-                                    *Box::<dyn std::any::Any + Send + 'static>::downcast::<String>(
-                                        err,
-                                    )
-                                    .unwrap(),
-                                )],
-                                stderr: vec![],
-                                stdout: vec![],
-                            }),
-                            status,
-                        })?;
-                        continue;
-                    }
-                };
-                for result in result {
-                    finished_files_sender.send(result)?;
-                }
+            for closure in receive {
+                closure(&finished_files_sender)?;
             }
             Ok(())
         },
@@ -315,13 +335,14 @@ pub fn run_tests_generic(
 }
 
 fn parse_and_test_file(
-    build_manager: &BuildManager<'_>,
+    build_manager: Arc<BuildManager>,
     status: &dyn TestStatus,
     config: Config,
     file_contents: Spanned<Vec<u8>>,
 ) -> Result<Vec<TestRun>, Errored> {
     let comments = Comments::parse(file_contents.as_ref(), &config)
         .map_err(|errors| Errored::new(errors, "parse comments"))?;
+    let comments = Arc::new(comments);
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
@@ -339,12 +360,12 @@ fn parse_and_test_file(
 
         let mut test_config = TestConfig {
             config: config.clone(),
-            comments: &comments,
-            aux_dir: &status.path().parent().unwrap().join("auxiliary"),
+            comments: comments.clone(),
+            aux_dir: status.path().parent().unwrap().join("auxiliary"),
             status,
         };
 
-        let result = test_config.run_test(build_manager, &mut runs);
+        let result = test_config.run_test(&build_manager);
         runs.push(TestRun {
             result,
             status: test_config.status,

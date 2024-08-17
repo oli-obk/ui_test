@@ -5,7 +5,7 @@ use crate::{per_test_config::TestConfig, Errored};
 use super::Error;
 use std::process::ExitStatus;
 
-impl TestConfig<'_> {
+impl TestConfig {
     #[allow(clippy::result_large_err)]
     pub(crate) fn ok(&self, status: ExitStatus) -> Result<Option<Error>, Errored> {
         let Some(expected) = self.exit_status()? else {

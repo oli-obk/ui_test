@@ -86,8 +86,8 @@ impl Config {
             fn apply(
                 &self,
                 cmd: &mut std::process::Command,
-                _config: &TestConfig<'_>,
-                _build_manager: &BuildManager<'_>,
+                _config: &TestConfig,
+                _build_manager: &BuildManager,
             ) -> Result<(), Errored> {
                 cmd.arg("--edition").arg(&self.0);
                 Ok(())

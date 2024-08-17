@@ -3,7 +3,7 @@
 
 use bstr::ByteSlice;
 use spanned::Spanned;
-use std::{ffi::OsString, path::PathBuf, process::Command};
+use std::{ffi::OsString, path::PathBuf, process::Command, sync::Arc};
 
 use crate::{
     build_manager::{Build, BuildManager},
@@ -24,32 +24,35 @@ impl Flag for AuxBuilder {
     fn apply(
         &self,
         cmd: &mut Command,
-        config: &TestConfig<'_>,
-        build_manager: &BuildManager<'_>,
+        config: &TestConfig,
+        build_manager: &BuildManager,
     ) -> Result<(), Errored> {
         let aux = &self.aux_file;
-        let aux_dir = config.aux_dir;
+        let aux_dir = config.aux_dir.clone();
         let aux_file = if aux.starts_with("..") {
             aux_dir.parent().unwrap().join(&aux.content)
         } else {
             aux_dir.join(&aux.content)
         };
         let extra_args = build_manager
-            .build(AuxBuilder {
-                aux_file: Spanned::new(
-                    crate::core::strip_path_prefix(
-                        &aux_file.canonicalize().map_err(|err| Errored {
-                            command: format!("canonicalizing path `{}`", display(&aux_file)),
-                            errors: vec![],
-                            stderr: err.to_string().into_bytes(),
-                            stdout: vec![],
-                        })?,
-                        &std::env::current_dir().unwrap(),
-                    )
-                    .collect(),
-                    aux.span(),
-                ),
-            })
+            .build(
+                AuxBuilder {
+                    aux_file: Spanned::new(
+                        crate::core::strip_path_prefix(
+                            &aux_file.canonicalize().map_err(|err| Errored {
+                                command: format!("canonicalizing path `{}`", display(&aux_file)),
+                                errors: vec![],
+                                stderr: err.to_string().into_bytes(),
+                                stdout: vec![],
+                            })?,
+                            &std::env::current_dir().unwrap(),
+                        )
+                        .collect(),
+                        aux.span(),
+                    ),
+                },
+                &config.status,
+            )
             .map_err(
                 |Errored {
                      command,
@@ -80,7 +83,7 @@ pub struct AuxBuilder {
 }
 
 impl Build for AuxBuilder {
-    fn build(&self, build_manager: &BuildManager<'_>) -> Result<Vec<OsString>, Errored> {
+    fn build(&self, build_manager: &BuildManager) -> Result<Vec<OsString>, Errored> {
         let mut config = build_manager.config().clone();
         let file_contents =
             Spanned::read_from_file(&self.aux_file.content).map_err(|err| Errored {
@@ -106,8 +109,8 @@ impl Build for AuxBuilder {
 
         let mut config = TestConfig {
             config,
-            comments: &comments,
-            aux_dir: self.aux_file.parent().unwrap(),
+            comments: Arc::new(comments),
+            aux_dir: self.aux_file.parent().unwrap().to_owned(),
             status: Box::new(SilentStatus {
                 revision: String::new(),
                 path: self.aux_file.content.clone(),
