@@ -962,7 +962,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.a.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions_________1"
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_fail_revisions_1"
 
 error: test got exit status: 1, but expected 0
  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
@@ -993,7 +993,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.b.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_revisions_________1"
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_fail_revisions_1"
 
 error: test got exit status: 1, but expected 0
  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
@@ -1024,7 +1024,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/rustfix-fail.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_fail_________1"
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_fail_1"
 
 error: test got exit status: 1, but expected 0
  --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
@@ -1091,7 +1091,7 @@ tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed ... FAILED
 tests/actual_tests_bless_yolo/rustfix-multiple-fail.3.fixed ... ok
 
 FAILED TEST: tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "rustfix_multiple_fail_________2"
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_multiple_fail_2"
 
 error: test got exit status: 1, but expected 0
  --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed:1:8
