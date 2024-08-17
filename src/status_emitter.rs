@@ -215,8 +215,10 @@ impl Text {
         let handle = std::thread::spawn(move || {
             let bars = MultiProgress::new();
             let progress = match progress {
-                OutputVerbosity::Progress => Some(bars.add(ProgressBar::new(0))),
-                OutputVerbosity::DiffOnly | OutputVerbosity::Full => None,
+                OutputVerbosity::Progress => bars.add(ProgressBar::new(0)),
+                OutputVerbosity::DiffOnly | OutputVerbosity::Full => {
+                    ProgressBar::with_draw_target(Some(0), ProgressDrawTarget::hidden())
+                }
             };
             // The bools signal whether the progress bar is done (used for sanity assertions only)
             let mut threads: HashMap<String, HashMap<String, (ProgressBar, bool)>> = HashMap::new();
@@ -234,10 +236,7 @@ impl Text {
                                 parent,
                             } => {
                                 let new_msg = match new_leftover_msg {
-                                    PopStyle::Erase => {
-                                        progress.as_ref().unwrap().inc(1);
-                                        None
-                                    }
+                                    PopStyle::Erase => None,
                                     PopStyle::Abort => {
                                         aborted = true;
                                         None
@@ -249,6 +248,7 @@ impl Text {
                                     // comment parsing.
                                     continue;
                                 };
+                                progress.inc(1);
                                 let Some((spinner, done)) = children.get_mut(&msg) else {
                                     panic!("pop: {parent}({msg}): {children:#?}")
                                 };
@@ -293,9 +293,7 @@ impl Text {
                             }
 
                             Msg::Push { parent, msg } => {
-                                if let Some(progress) = &progress {
-                                    progress.inc_length(1);
-                                }
+                                progress.inc_length(1);
                                 let children = threads.entry(parent.clone()).or_default();
                                 if !msg.is_empty() {
                                     let parent = &children
@@ -345,9 +343,7 @@ impl Text {
                         spinner.tick();
                     }
                 }
-                if let Some(progress) = &progress {
-                    progress.tick()
-                }
+                progress.tick()
             }
             for (key, children) in threads.iter() {
                 for (sub_key, (child, done)) in children {
@@ -355,14 +351,12 @@ impl Text {
                     assert!(done, "{key} ({sub_key}) not finished");
                 }
             }
-            if let Some(progress) = progress {
-                progress.tick();
-                if aborted {
-                    progress.abandon();
-                } else {
-                    assert_eq!(Some(progress.position()), progress.length());
-                    progress.finish();
-                }
+            progress.tick();
+            if aborted {
+                progress.abandon();
+            } else {
+                assert_eq!(Some(progress.position()), progress.length(), "{threads:#?}");
+                progress.finish();
             }
         });
         Self {
