@@ -474,9 +474,9 @@ impl CommentParser<Comments> {
 
         if let Some((_, comment)) =
             line.split_once_str(self.comment_start)
-                .filter(|(pre, c)| match c[0] {
-                    b'@' => pre.is_empty(),
-                    b'~' => true,
+                .filter(|(pre, c)| match &c[..] {
+                    [b'@', ..] => pre.is_empty(),
+                    [b'~', ..] => true,
                     _ => false,
                 })
         {
