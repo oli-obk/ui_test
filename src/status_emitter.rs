@@ -220,10 +220,147 @@ impl Text {
                     ProgressBar::with_draw_target(Some(0), ProgressDrawTarget::hidden())
                 }
             };
-            // The bools signal whether the progress bar is done (used for sanity assertions only)
-            let mut threads: HashMap<String, HashMap<String, (ProgressBar, bool)>> = HashMap::new();
 
-            let mut aborted = false;
+            struct ProgressHandler {
+                // The bools signal whether the progress bar is done (used for sanity assertions only)
+                threads: HashMap<String, HashMap<String, (ProgressBar, bool)>>,
+                aborted: bool,
+                bars: MultiProgress,
+                progress: ProgressBar,
+            }
+
+            impl ProgressHandler {
+                fn pop(&mut self, msg: String, new_leftover_msg: PopStyle, parent: String) {
+                    let new_msg = match new_leftover_msg {
+                        PopStyle::Erase => None,
+                        PopStyle::Abort => {
+                            self.aborted = true;
+                            None
+                        }
+                        PopStyle::Replace(msg) => Some(msg),
+                    };
+                    let Some(children) = self.threads.get_mut(&parent) else {
+                        // This can happen when a test was not run at all, because it failed directly during
+                        // comment parsing.
+                        return;
+                    };
+                    self.progress.inc(1);
+                    let Some((spinner, done)) = children.get_mut(&msg) else {
+                        panic!("pop: {parent}({msg}): {children:#?}")
+                    };
+                    *done = true;
+                    let spinner = spinner.clone();
+
+                    let print = new_msg.is_some();
+
+                    if let Some(new_msg) = new_msg {
+                        spinner.finish_with_message(new_msg);
+                    } else {
+                        spinner.finish();
+                    }
+                    let parent = children[""].0.clone();
+                    if !msg.is_empty() {
+                        parent.inc(1);
+                    }
+                    if children.values().all(|&(_, done)| done) {
+                        self.bars.remove(&parent);
+                        if print {
+                            self.bars
+                                .println(format!("{} {}", parent.prefix(), parent.message()))
+                                .unwrap();
+                        }
+                        for (msg, (child, _)) in children.iter() {
+                            if !msg.is_empty() {
+                                self.bars.remove(child);
+                                if print {
+                                    self.bars
+                                        .println(format!(
+                                            "  {} {}",
+                                            child.prefix(),
+                                            child.message()
+                                        ))
+                                        .unwrap();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                fn push(&mut self, parent: String, msg: String) {
+                    self.progress.inc_length(1);
+                    let children = self.threads.entry(parent.clone()).or_default();
+                    if !msg.is_empty() {
+                        let parent = &children
+                            .entry(String::new())
+                            .or_insert_with(|| {
+                                let spinner = self
+                                    .bars
+                                    .add(ProgressBar::new_spinner().with_prefix(parent));
+                                spinner.set_style(
+                                    ProgressStyle::with_template("{prefix} {pos}/{len} {msg}")
+                                        .unwrap(),
+                                );
+                                (spinner, true)
+                            })
+                            .0;
+                        parent.inc_length(1);
+                        let spinner = self.bars.insert_after(
+                            parent,
+                            ProgressBar::new_spinner().with_prefix(msg.clone()),
+                        );
+                        spinner.set_style(
+                            ProgressStyle::with_template("  {prefix} {spinner} {msg}").unwrap(),
+                        );
+                        children.insert(msg, (spinner, false));
+                    } else {
+                        let spinner = self
+                            .bars
+                            .add(ProgressBar::new_spinner().with_prefix(parent));
+                        spinner.set_style(
+                            ProgressStyle::with_template("{prefix} {spinner} {msg}").unwrap(),
+                        );
+                        children.insert(msg, (spinner, false));
+                    };
+                }
+
+                fn tick(&self) {
+                    for children in self.threads.values() {
+                        for (spinner, done) in children.values() {
+                            if !done {
+                                spinner.tick();
+                            }
+                        }
+                    }
+                }
+            }
+
+            impl Drop for ProgressHandler {
+                fn drop(&mut self) {
+                    for (key, children) in self.threads.iter() {
+                        for (sub_key, (_child, done)) in children {
+                            assert!(done, "{key} ({sub_key}) not finished");
+                        }
+                    }
+                    if self.aborted {
+                        self.progress.abandon();
+                    } else {
+                        assert_eq!(
+                            Some(self.progress.position()),
+                            self.progress.length(),
+                            "{:#?}",
+                            self.threads
+                        );
+                        self.progress.finish();
+                    }
+                }
+            }
+
+            let mut handler = ProgressHandler {
+                threads: Default::default(),
+                aborted: false,
+                bars,
+                progress,
+            };
 
             'outer: loop {
                 std::thread::sleep(Duration::from_millis(100));
@@ -235,101 +372,11 @@ impl Text {
                                 new_leftover_msg,
                                 parent,
                             } => {
-                                let new_msg = match new_leftover_msg {
-                                    PopStyle::Erase => None,
-                                    PopStyle::Abort => {
-                                        aborted = true;
-                                        None
-                                    }
-                                    PopStyle::Replace(msg) => Some(msg),
-                                };
-                                let Some(children) = threads.get_mut(&parent) else {
-                                    // This can happen when a test was not run at all, because it failed directly during
-                                    // comment parsing.
-                                    continue;
-                                };
-                                progress.inc(1);
-                                let Some((spinner, done)) = children.get_mut(&msg) else {
-                                    panic!("pop: {parent}({msg}): {children:#?}")
-                                };
-                                *done = true;
-                                let spinner = spinner.clone();
-
-                                let print = new_msg.is_some();
-
-                                if let Some(new_msg) = new_msg {
-                                    spinner.finish_with_message(new_msg);
-                                } else {
-                                    spinner.finish();
-                                }
-                                let parent = children[""].0.clone();
-                                if !msg.is_empty() {
-                                    parent.inc(1);
-                                }
-                                if children.values().all(|&(_, done)| done) {
-                                    bars.remove(&parent);
-                                    if print {
-                                        bars.println(format!(
-                                            "{} {}",
-                                            parent.prefix(),
-                                            parent.message()
-                                        ))
-                                        .unwrap();
-                                    }
-                                    for (msg, (child, _)) in children.iter() {
-                                        if !msg.is_empty() {
-                                            bars.remove(child);
-                                            if print {
-                                                bars.println(format!(
-                                                    "  {} {}",
-                                                    child.prefix(),
-                                                    child.message()
-                                                ))
-                                                .unwrap();
-                                            }
-                                        }
-                                    }
-                                }
+                                handler.pop(msg, new_leftover_msg, parent);
                             }
 
                             Msg::Push { parent, msg } => {
-                                progress.inc_length(1);
-                                let children = threads.entry(parent.clone()).or_default();
-                                if !msg.is_empty() {
-                                    let parent = &children
-                                        .entry(String::new())
-                                        .or_insert_with(|| {
-                                            let spinner = bars.add(
-                                                ProgressBar::new_spinner().with_prefix(parent),
-                                            );
-                                            spinner.set_style(
-                                                ProgressStyle::with_template(
-                                                    "{prefix} {pos}/{len} {msg}",
-                                                )
-                                                .unwrap(),
-                                            );
-                                            (spinner, true)
-                                        })
-                                        .0;
-                                    parent.inc_length(1);
-                                    let spinner = bars.insert_after(
-                                        parent,
-                                        ProgressBar::new_spinner().with_prefix(msg.clone()),
-                                    );
-                                    spinner.set_style(
-                                        ProgressStyle::with_template("  {prefix} {spinner} {msg}")
-                                            .unwrap(),
-                                    );
-                                    children.insert(msg, (spinner, false));
-                                } else {
-                                    let spinner =
-                                        bars.add(ProgressBar::new_spinner().with_prefix(parent));
-                                    spinner.set_style(
-                                        ProgressStyle::with_template("{prefix} {spinner} {msg}")
-                                            .unwrap(),
-                                    );
-                                    children.insert(msg, (spinner, false));
-                                };
+                                handler.push(parent, msg);
                             }
                             Msg::Finish => break 'outer,
                         },
@@ -338,24 +385,7 @@ impl Text {
                         Err(TryRecvError::Empty) => break,
                     }
                 }
-                for children in threads.values() {
-                    for (spinner, done) in children.values() {
-                        if !done {
-                            spinner.tick();
-                        }
-                    }
-                }
-            }
-            for (key, children) in threads.iter() {
-                for (sub_key, (_child, done)) in children {
-                    assert!(done, "{key} ({sub_key}) not finished");
-                }
-            }
-            if aborted {
-                progress.abandon();
-            } else {
-                assert_eq!(Some(progress.position()), progress.length(), "{threads:#?}");
-                progress.finish();
+                handler.tick()
             }
         });
         Self {
