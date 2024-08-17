@@ -43,6 +43,7 @@ pub trait StatusEmitter: Sync + RefUnwindSafe {
         succeeded: usize,
         ignored: usize,
         filtered: usize,
+        aborted: bool,
     ) -> Box<dyn Summary>;
 }
 
@@ -74,7 +75,7 @@ pub trait TestStatus: Send + Sync + RefUnwindSafe {
     ) -> Box<dyn Debug + 'a>;
 
     /// A test has finished, handle the result immediately.
-    fn done(&self, _result: &TestResult) {}
+    fn done(&self, _result: &TestResult, _aborted: bool) {}
 
     /// The path of the test file.
     fn path(&self) -> &Path;
@@ -107,6 +108,7 @@ impl StatusEmitter for () {
         _succeeded: usize,
         _ignored: usize,
         _filtered: usize,
+        _aborted: bool,
     ) -> Box<dyn Summary> {
         Box::new(())
     }
@@ -388,11 +390,13 @@ struct TextTest {
 }
 
 impl TestStatus for TextTest {
-    fn done(&self, result: &TestResult) {
+    fn done(&self, result: &TestResult, aborted: bool) {
         let new_leftover_msg = if self.text.is_quiet_output() {
             if self.inc_counter.fetch_sub(1, Ordering::Relaxed) == 1 {
                 self.text.sender.send(Msg::Inc).unwrap();
             }
+            None
+        } else if aborted {
             None
         } else {
             let result = match result {
@@ -559,6 +563,7 @@ impl StatusEmitter for Text {
         succeeded: usize,
         ignored: usize,
         filtered: usize,
+        aborted: bool,
     ) -> Box<dyn Summary> {
         self.sender.send(Msg::Finish).unwrap();
         while !self.sender.is_empty() {
@@ -575,6 +580,7 @@ impl StatusEmitter for Text {
             succeeded: usize,
             ignored: usize,
             filtered: usize,
+            aborted: bool,
         }
 
         impl Summary for Summarizer {
@@ -599,7 +605,11 @@ impl StatusEmitter for Text {
             fn drop(&mut self) {
                 if self.failures.is_empty() {
                     println!();
-                    print!("test result: {}.", "ok".green());
+                    if self.aborted {
+                        print!("test result: cancelled.");
+                    } else {
+                        print!("test result: {}.", "ok".green());
+                    }
                 } else {
                     println!("{}", "FAILURES:".bright_red().underline().bold());
                     for line in &self.failures {
@@ -636,6 +646,7 @@ impl StatusEmitter for Text {
             succeeded,
             ignored,
             filtered,
+            aborted,
         })
     }
 }
@@ -1096,6 +1107,8 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
         succeeded: usize,
         ignored: usize,
         filtered: usize,
+        // Can't aborted on gha
+        _aborted: bool,
     ) -> Box<dyn Summary> {
         struct Summarizer<const GROUP: bool> {
             failures: Vec<String>,
@@ -1153,9 +1166,9 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
 }
 
 impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
-    fn done(&self, result: &TestResult) {
-        self.0.done(result);
-        self.1.done(result);
+    fn done(&self, result: &TestResult, aborted: bool) {
+        self.0.done(result, aborted);
+        self.1.done(result, aborted);
     }
 
     fn failed_test<'a>(
@@ -1208,17 +1221,20 @@ impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
         succeeded: usize,
         ignored: usize,
         filtered: usize,
+        aborted: bool,
     ) -> Box<dyn Summary> {
         Box::new((
-            self.1.finalize(failures, succeeded, ignored, filtered),
-            self.0.finalize(failures, succeeded, ignored, filtered),
+            self.1
+                .finalize(failures, succeeded, ignored, filtered, aborted),
+            self.0
+                .finalize(failures, succeeded, ignored, filtered, aborted),
         ))
     }
 }
 
 impl<T: TestStatus + ?Sized> TestStatus for Box<T> {
-    fn done(&self, result: &TestResult) {
-        (**self).done(result);
+    fn done(&self, result: &TestResult, aborted: bool) {
+        (**self).done(result, aborted);
     }
 
     fn path(&self) -> &Path {
@@ -1258,8 +1274,9 @@ impl<T: StatusEmitter + ?Sized> StatusEmitter for Box<T> {
         succeeded: usize,
         ignored: usize,
         filtered: usize,
+        aborted: bool,
     ) -> Box<dyn Summary> {
-        (**self).finalize(failures, succeeded, ignored, filtered)
+        (**self).finalize(failures, succeeded, ignored, filtered, aborted)
     }
 }
 

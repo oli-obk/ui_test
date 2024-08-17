@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * default comment symbols for `Config::cargo` changed to `#`
+* Ctrl+C now prints the summary of the tests that were run before Ctrl+C is pressed
 
 ### Removed
 

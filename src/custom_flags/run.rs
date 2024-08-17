@@ -42,6 +42,13 @@ impl Flag for Run {
         build_manager.add_new_job(move || {
             cmd.arg("--print").arg("file-names");
             let output = cmd.output().unwrap();
+            if config.aborted() {
+                return TestRun {
+                    result: Err(Errored::aborted()),
+                    status: config.status,
+                    abort_check: config.config.abort_check.clone(),
+                };
+            }
             assert!(output.status.success(), "{cmd:#?}: {output:#?}");
 
             let mut files = output.stdout.lines();
@@ -60,6 +67,14 @@ impl Flag for Run {
             let output = exe
                 .output()
                 .unwrap_or_else(|err| panic!("exe file: {}: {err}", display(&exe_file)));
+
+            if config.aborted() {
+                return TestRun {
+                    result: Err(Errored::aborted()),
+                    status: config.status,
+                    abort_check: config.config.abort_check.clone(),
+                };
+            }
 
             let mut errors = vec![];
 
@@ -93,6 +108,7 @@ impl Flag for Run {
                     })
                 },
                 status: config.status,
+                abort_check: config.config.abort_check,
             }
         });
         Ok(())

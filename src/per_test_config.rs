@@ -394,6 +394,11 @@ impl TestConfig {
 
         let output = crate::core::run_command(&mut cmd)?;
 
+        // Do not bless aborted tests
+        if build_manager.aborted() {
+            return Err(Errored::aborted());
+        }
+
         let output = self.check_test_result(&cmd, output)?;
 
         for rev in self.comments() {
@@ -416,5 +421,9 @@ impl TestConfig {
                 })
                 .into()
         })
+    }
+
+    pub(crate) fn aborted(&self) -> bool {
+        self.config.aborted()
     }
 }
