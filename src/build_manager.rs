@@ -33,7 +33,8 @@ pub struct BuildManager {
     new_job_submitter: Sender<NewJob>,
 }
 
-type NewJob = Box<dyn Send + for<'a> FnOnce(&'a Sender<TestRun>) -> Result<()>>;
+/// Type of closure that is used to run individual tests.
+pub type NewJob = Box<dyn Send + for<'a> FnOnce(&'a Sender<TestRun>) -> Result<()>>;
 
 impl BuildManager {
     /// Create a new `BuildManager` for a specific `Config`. Each `Config` needs
@@ -49,6 +50,9 @@ impl BuildManager {
     /// Lazily add more jobs after a test has finished. These are added to the queue
     /// as normally, but nested below the test.
     pub fn add_new_job(&self, job: impl Send + 'static + FnOnce() -> TestRun) {
+        if self.aborted() {
+            return;
+        }
         self.new_job_submitter
             .send(Box::new(move |sender| Ok(sender.send(job())?)))
             .unwrap()
@@ -114,6 +118,7 @@ impl BuildManager {
                         stderr: vec![],
                         stdout: vec![],
                     }),
+                self.aborted(),
             );
             res
         })
@@ -131,5 +136,10 @@ impl BuildManager {
     /// The `Config` used for all builds.
     pub fn config(&self) -> &Config {
         &self.config
+    }
+
+    /// Whether the build was cancelled
+    pub fn aborted(&self) -> bool {
+        self.config.aborted()
     }
 }

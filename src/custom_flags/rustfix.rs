@@ -219,7 +219,9 @@ fn compile_fixed(
             .arg(format!("{crate_name}_________{}", i + 1));
         build_manager.add_new_job(move || {
             let output = cmd.output().unwrap();
-            let result = if output.status.success() {
+            let result = if fixed_config.aborted() {
+                Err(Errored::aborted())
+            } else if output.status.success() {
                 Ok(TestOk::Ok)
             } else {
                 let diagnostics = fixed_config.process(&output.stderr);
@@ -247,6 +249,7 @@ fn compile_fixed(
             TestRun {
                 result,
                 status: fixed_config.status,
+                abort_check: fixed_config.config.abort_check,
             }
         });
     }

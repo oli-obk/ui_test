@@ -20,6 +20,7 @@ use std::{
     collections::BTreeMap,
     num::NonZeroUsize,
     path::{Path, PathBuf},
+    sync::{atomic::AtomicBool, Arc},
 };
 
 mod args;
@@ -63,6 +64,10 @@ pub struct Config {
     pub custom_comments: BTreeMap<&'static str, CommandParserFunc>,
     /// Custom diagnostic extractor (invoked on the output of tests)
     pub diagnostic_extractor: fn(&Path, &[u8]) -> Diagnostics,
+    /// An atomic bool that can be set to `true` to abort all tests.
+    /// Will not cancel child processes, but if set from a Ctrl+C handler,
+    /// the pressing of Ctrl+C will already have cancelled child processes.
+    pub abort_check: Arc<AtomicBool>,
 }
 
 impl Config {
@@ -157,6 +162,7 @@ impl Config {
             comment_start: "//",
             custom_comments: Default::default(),
             diagnostic_extractor: rustc_stderr::process,
+            abort_check: Default::default(),
         };
         config
             .custom_comments
@@ -408,6 +414,10 @@ impl Config {
             .flat_map(|r| r.only.iter())
             .all(|c| self.test_condition(c))
             ^ self.run_only_ignored
+    }
+
+    pub(crate) fn aborted(&self) -> bool {
+        self.abort_check.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
 

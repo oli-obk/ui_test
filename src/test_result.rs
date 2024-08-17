@@ -1,5 +1,7 @@
 //! Various data structures used for carrying information about test success or failure
 
+use std::sync::{atomic::AtomicBool, Arc};
+
 use crate::{status_emitter::TestStatus, Error};
 use color_eyre::eyre::Result;
 
@@ -38,6 +40,10 @@ impl Errored {
             command: message.into(),
         }
     }
+
+    pub(crate) fn aborted() -> Errored {
+        Self::new(vec![], "aborted")
+    }
 }
 
 /// Result of an actual test or sub-test (revision, fixed, run, ...) including its status.
@@ -46,4 +52,6 @@ pub struct TestRun {
     pub result: TestResult,
     /// Usually created via `for_revsion` or `for_path`
     pub status: Box<dyn TestStatus>,
+    /// Whether the run was aborted prematurely
+    pub abort_check: Arc<AtomicBool>,
 }

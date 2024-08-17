@@ -8,6 +8,7 @@
 #![doc = include_str!("../README.md")]
 
 use build_manager::BuildManager;
+use build_manager::NewJob;
 pub use color_eyre;
 use color_eyre::eyre::eyre;
 #[cfg(feature = "rustc")]
@@ -24,6 +25,7 @@ use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
 use std::path::Path;
 use std::process::Command;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
@@ -233,6 +235,7 @@ pub fn run_tests_generic(
                                 let path = status.path();
                                 let file_contents = Spanned::read_from_file(path).unwrap();
                                 let mut config = build_manager.config().clone();
+                                let abort_check = config.abort_check.clone();
                                 per_file_config(&mut config, &file_contents);
                                 let result = match std::panic::catch_unwind(|| {
                                     parse_and_test_file(
@@ -247,6 +250,7 @@ pub fn run_tests_generic(
                                         finished_files_sender.send(TestRun {
                                             result: Err(err),
                                             status,
+                                            abort_check,
                                         })?;
                                         return Ok(());
                                     }
@@ -254,20 +258,19 @@ pub fn run_tests_generic(
                                         finished_files_sender.send(TestRun {
                                             result: Err(Errored {
                                                 command: "<unknown>".into(),
-                                                errors: vec![
-                                                        Error::Bug(
+                                                errors: vec![Error::Bug(
                                                             *Box::<
                                                                 dyn std::any::Any + Send + 'static,
                                                             >::downcast::<String>(
                                                                 err
                                                             )
                                                             .unwrap(),
-                                                        ),
-                                                    ],
+                                                        )],
                                                 stderr: vec![],
                                                 stdout: vec![],
                                             }),
                                             status,
+                                            abort_check,
                                         })?;
                                         return Ok(());
                                     }
@@ -276,8 +279,7 @@ pub fn run_tests_generic(
                                     finished_files_sender.send(result)?;
                                 }
                                 Ok(())
-                            })
-                                as Box<dyn Send + FnOnce(&Sender<TestRun>) -> Result<()>>)
+                            }) as NewJob)
                             .unwrap();
                     } else {
                         filtered += 1;
@@ -293,9 +295,13 @@ pub fn run_tests_generic(
         },
         |finished_files_recv| {
             for run in finished_files_recv {
-                run.status.done(&run.result);
+                let aborted = run.abort_check.load(Ordering::Relaxed);
+                run.status.done(&run.result, aborted);
 
-                results.push(run);
+                // Do not write summaries for cancelled tests
+                if !aborted {
+                    results.push(run);
+                }
             }
         },
     )?;
@@ -303,8 +309,10 @@ pub fn run_tests_generic(
     let mut failures = vec![];
     let mut succeeded = 0;
     let mut ignored = 0;
+    let mut aborted = false;
 
     for run in results {
+        aborted |= run.abort_check.load(Ordering::Relaxed);
         match run.result {
             Ok(TestOk::Ok) => succeeded += 1,
             Ok(TestOk::Ignored) => ignored += 1,
@@ -312,7 +320,8 @@ pub fn run_tests_generic(
         }
     }
 
-    let mut failure_emitter = status_emitter.finalize(failures.len(), succeeded, ignored, filtered);
+    let mut failure_emitter =
+        status_emitter.finalize(failures.len(), succeeded, ignored, filtered, aborted);
     for (
         status,
         Errored {
@@ -354,6 +363,7 @@ fn parse_and_test_file(
             runs.push(TestRun {
                 result: Ok(TestOk::Ignored),
                 status,
+                abort_check: config.abort_check.clone(),
             });
             continue;
         }
@@ -369,6 +379,7 @@ fn parse_and_test_file(
         runs.push(TestRun {
             result,
             status: test_config.status,
+            abort_check: test_config.config.abort_check,
         })
     }
     Ok(runs)

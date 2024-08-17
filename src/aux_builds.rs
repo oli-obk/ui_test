@@ -140,6 +140,11 @@ impl Build for AuxBuilder {
         // Now run the command again to fetch the output filenames
         aux_cmd.arg("--print").arg("file-names");
         let output = aux_cmd.output().unwrap();
+
+        if build_manager.aborted() {
+            return Err(Errored::aborted());
+        }
+
         assert!(output.status.success());
 
         let mut extra_args = vec![];
