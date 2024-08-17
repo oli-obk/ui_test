@@ -21,10 +21,7 @@ use std::{
     num::NonZeroUsize,
     panic::{AssertUnwindSafe, RefUnwindSafe},
     path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    sync::Arc,
     thread::JoinHandle,
     time::Duration,
 };
@@ -183,18 +180,23 @@ impl Drop for JoinOnDrop {
 }
 
 #[derive(Debug)]
+enum PopStyle {
+    Erase,
+    Abort,
+    Replace(String),
+}
+
+#[derive(Debug)]
 enum Msg {
     Pop {
         msg: String,
-        new_leftover_msg: Option<String>,
+        new_leftover_msg: PopStyle,
         parent: String,
     },
     Push {
         parent: String,
         msg: String,
     },
-    Inc,
-    IncLength,
     Finish,
 }
 
@@ -203,9 +205,15 @@ impl Text {
         let (sender, receiver) = crossbeam_channel::unbounded();
         let handle = std::thread::spawn(move || {
             let bars = MultiProgress::new();
-            let mut progress = None;
+            let progress = match progress {
+                OutputVerbosity::Progress => Some(bars.add(ProgressBar::new(0))),
+                OutputVerbosity::DiffOnly | OutputVerbosity::Full => None,
+            };
             // The bools signal whether the progress bar is done (used for sanity assertions only)
             let mut threads: HashMap<String, HashMap<String, (ProgressBar, bool)>> = HashMap::new();
+
+            let mut aborted = false;
+
             'outer: loop {
                 std::thread::sleep(Duration::from_millis(100));
                 loop {
@@ -213,9 +221,20 @@ impl Text {
                         Ok(val) => match val {
                             Msg::Pop {
                                 msg,
-                                new_leftover_msg: new_msg,
+                                new_leftover_msg,
                                 parent,
                             } => {
+                                let new_msg = match new_leftover_msg {
+                                    PopStyle::Erase => {
+                                        progress.as_ref().unwrap().inc(1);
+                                        None
+                                    }
+                                    PopStyle::Abort => {
+                                        aborted = true;
+                                        None
+                                    }
+                                    PopStyle::Replace(msg) => Some(msg),
+                                };
                                 let Some(children) = threads.get_mut(&parent) else {
                                     // This can happen when a test was not run at all, because it failed directly during
                                     // comment parsing.
@@ -265,6 +284,9 @@ impl Text {
                             }
 
                             Msg::Push { parent, msg } => {
+                                if let Some(progress) = &progress {
+                                    progress.inc_length(1);
+                                }
                                 let children = threads.entry(parent.clone()).or_default();
                                 if !msg.is_empty() {
                                     let parent = &children
@@ -302,14 +324,6 @@ impl Text {
                                     children.insert(msg, (spinner, false));
                                 };
                             }
-                            Msg::IncLength => {
-                                progress
-                                    .get_or_insert_with(|| bars.add(ProgressBar::new(0)))
-                                    .inc_length(1);
-                            }
-                            Msg::Inc => {
-                                progress.as_ref().unwrap().inc(1);
-                            }
                             Msg::Finish => break 'outer,
                         },
                         // Sender panicked, skip asserts
@@ -334,8 +348,12 @@ impl Text {
             }
             if let Some(progress) = progress {
                 progress.tick();
-                progress.finish();
-                assert_eq!(Some(progress.position()), progress.length());
+                if aborted {
+                    progress.abandon();
+                } else {
+                    assert_eq!(Some(progress.position()), progress.length());
+                    progress.finish();
+                }
             }
         });
         Self {
@@ -381,23 +399,15 @@ struct TextTest {
     parent: String,
     path: PathBuf,
     revision: String,
-    /// Increased whenever a revision or sub-path is registered
-    /// Decreased whenever `done` is called
-    /// On increase from 0 to 1, adds 1 to the progress bar length
-    /// On decrease from 1 to 0, removes 1 from progress bar length
-    inc_counter: Arc<AtomicUsize>,
     style: RevisionStyle,
 }
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult, aborted: bool) {
-        let new_leftover_msg = if self.text.is_quiet_output() {
-            if self.inc_counter.fetch_sub(1, Ordering::Relaxed) == 1 {
-                self.text.sender.send(Msg::Inc).unwrap();
-            }
-            None
-        } else if aborted {
-            None
+        let new_leftover_msg = if aborted {
+            PopStyle::Abort
+        } else if self.text.is_quiet_output() {
+            PopStyle::Erase
         } else {
             let result = match result {
                 Ok(TestOk::Ok) => "ok".green(),
@@ -419,7 +429,7 @@ impl TestStatus for TextTest {
                 }
                 std::io::stdout().flush().unwrap();
             }
-            Some(msg)
+            PopStyle::Replace(msg)
         };
         self.text
             .sender
@@ -486,16 +496,11 @@ impl TestStatus for TextTest {
     }
 
     fn for_revision(&self, revision: &str, style: RevisionStyle) -> Box<dyn TestStatus> {
-        if self.text.is_quiet_output() {
-            self.inc_counter.fetch_add(1, Ordering::Relaxed);
-        }
-
         let text = Self {
             text: self.text.clone(),
             path: self.path.clone(),
             parent: self.parent.clone(),
             revision: revision.to_owned(),
-            inc_counter: self.inc_counter.clone(),
             style,
         };
         self.text
@@ -514,16 +519,11 @@ impl TestStatus for TextTest {
     }
 
     fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
-        if self.text.is_quiet_output() {
-            self.inc_counter.fetch_add(1, Ordering::Relaxed);
-        }
-
         let text = Self {
             text: self.text.clone(),
             path: path.to_path_buf(),
             parent: self.parent.clone(),
             revision: String::new(),
-            inc_counter: self.inc_counter.clone(),
             style: RevisionStyle::Show,
         };
 
@@ -544,15 +544,11 @@ impl TestStatus for TextTest {
 
 impl StatusEmitter for Text {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
-        if self.is_quiet_output() {
-            self.sender.send(Msg::IncLength).unwrap();
-        }
         Box::new(TextTest {
             text: self.clone(),
             parent: display(&path),
             path,
             revision: String::new(),
-            inc_counter: Default::default(),
             style: RevisionStyle::Show,
         })
     }
