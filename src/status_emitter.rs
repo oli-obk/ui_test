@@ -230,13 +230,6 @@ impl Text {
 
             impl ProgressHandler {
                 fn pop(&mut self, msg: String, new_leftover_msg: PopStyle, parent: String) {
-                    let new_msg = match new_leftover_msg {
-                        PopStyle::Abort => {
-                            self.aborted = true;
-                            None
-                        }
-                        PopStyle::Replace(msg) => Some(msg),
-                    };
                     let Some(children) = self.threads.get_mut(&parent) else {
                         // This can happen when a test was not run at all, because it failed directly during
                         // comment parsing.
@@ -248,12 +241,13 @@ impl Text {
                     };
                     *done = true;
                     let spinner = spinner.clone();
-
-                    if let Some(new_msg) = new_msg {
-                        spinner.finish_with_message(new_msg);
-                    } else {
-                        spinner.finish_and_clear();
-                        return;
+                    match new_leftover_msg {
+                        PopStyle::Replace(new_msg) => spinner.finish_with_message(new_msg),
+                        PopStyle::Abort => {
+                            self.aborted = true;
+                            spinner.finish_and_clear();
+                            return;
+                        }
                     }
                     let parent = children[""].0.clone();
                     if children.values().all(|&(_, done)| done) {
