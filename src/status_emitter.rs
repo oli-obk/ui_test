@@ -259,9 +259,6 @@ impl Text {
                         spinner.finish();
                     }
                     let parent = children[""].0.clone();
-                    if !msg.is_empty() {
-                        parent.inc(1);
-                    }
                     if children.values().all(|&(_, done)| done) {
                         self.bars.remove(&parent);
                         if print {
@@ -297,13 +294,11 @@ impl Text {
                                     .bars
                                     .add(ProgressBar::new_spinner().with_prefix(parent));
                                 spinner.set_style(
-                                    ProgressStyle::with_template("{prefix} {pos}/{len} {msg}")
-                                        .unwrap(),
+                                    ProgressStyle::with_template("{prefix} {msg}").unwrap(),
                                 );
                                 (spinner, true)
                             })
                             .0;
-                        parent.inc_length(1);
                         let spinner = self.bars.insert_after(
                             parent,
                             ProgressBar::new_spinner().with_prefix(msg.clone()),
