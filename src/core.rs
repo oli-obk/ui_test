@@ -94,14 +94,17 @@ pub enum CrateType {
 
 /// A generic multithreaded runner that has a thread for producing work,
 /// a thread for collecting work, and `num_threads` threads for doing the work.
-pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
+pub fn run_and_collect<const N: usize, SUBMISSION: Send, RESULT: Send>(
     num_threads: NonZeroUsize,
-    submitter: impl FnOnce(Sender<SUBMISSION>) + Send,
-    runner: impl Sync + Fn(&Receiver<SUBMISSION>, Sender<RESULT>) -> Result<()>,
+    submitter: impl FnOnce([Sender<SUBMISSION>; N]) + Send,
+    runner: impl Sync + Fn(&[Receiver<SUBMISSION>; N], Sender<RESULT>) -> Result<()>,
     collector: impl FnOnce(Receiver<RESULT>) + Send,
 ) -> Result<()> {
     // A channel for files to process
-    let (submit, receive) = unbounded();
+    let (submit, receive): (Vec<_>, Vec<_>) = std::iter::repeat_with(unbounded).take(N).unzip();
+    let receive = receive[..].try_into().unwrap();
+    let mut submit = submit.into_iter();
+    let submit = std::array::from_fn(|_| submit.next().unwrap());
 
     thread::scope(|s| {
         // Create a thread that is in charge of walking the directory and submitting jobs.
@@ -119,7 +122,7 @@ pub fn run_and_collect<SUBMISSION: Send, RESULT: Send>(
         // Create N worker threads that receive files to test.
         for _ in 0..num_threads.get() {
             let finished_files_sender = finished_files_sender.clone();
-            threads.push(s.spawn(|| runner(&receive, finished_files_sender)));
+            threads.push(s.spawn(|| runner(receive, finished_files_sender)));
         }
 
         for thread in threads {
