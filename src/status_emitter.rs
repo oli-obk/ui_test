@@ -190,7 +190,6 @@ impl JoinOnDrop {
 
 #[derive(Debug)]
 enum PopStyle {
-    Erase,
     Abort,
     Replace(String),
 }
@@ -232,7 +231,6 @@ impl Text {
             impl ProgressHandler {
                 fn pop(&mut self, msg: String, new_leftover_msg: PopStyle, parent: String) {
                     let new_msg = match new_leftover_msg {
-                        PopStyle::Erase => None,
                         PopStyle::Abort => {
                             self.aborted = true;
                             None
@@ -251,17 +249,16 @@ impl Text {
                     *done = true;
                     let spinner = spinner.clone();
 
-                    let print = new_msg.is_some();
-
                     if let Some(new_msg) = new_msg {
                         spinner.finish_with_message(new_msg);
                     } else {
-                        spinner.finish();
+                        spinner.finish_and_clear();
+                        return;
                     }
                     let parent = children[""].0.clone();
                     if children.values().all(|&(_, done)| done) {
                         self.bars.remove(&parent);
-                        if print {
+                        if self.progress.is_hidden() {
                             self.bars
                                 .println(format!("{} {}", parent.prefix(), parent.message()))
                                 .unwrap();
@@ -269,7 +266,7 @@ impl Text {
                         for (msg, (child, _)) in children.iter() {
                             if !msg.is_empty() {
                                 self.bars.remove(child);
-                                if print {
+                                if self.progress.is_hidden() {
                                     self.bars
                                         .println(format!(
                                             "  {} {}",
@@ -403,10 +400,6 @@ impl Text {
         Self::start_thread(OutputVerbosity::Progress)
     }
 
-    fn is_quiet_output(&self) -> bool {
-        matches!(self.progress, OutputVerbosity::Progress)
-    }
-
     fn is_full_output(&self) -> bool {
         matches!(self.progress, OutputVerbosity::Full)
     }
@@ -433,8 +426,6 @@ impl TestStatus for TextTest {
     fn done(&self, result: &TestResult, aborted: bool) {
         let new_leftover_msg = if aborted {
             PopStyle::Abort
-        } else if self.text.is_quiet_output() {
-            PopStyle::Erase
         } else {
             let result = match result {
                 Ok(TestOk::Ok) => "ok".green(),
