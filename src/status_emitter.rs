@@ -189,16 +189,10 @@ impl JoinOnDrop {
 }
 
 #[derive(Debug)]
-enum PopStyle {
-    Abort,
-    Replace(String),
-}
-
-#[derive(Debug)]
 enum Msg {
     Pop {
         msg: String,
-        new_leftover_msg: PopStyle,
+        new_leftover_msg: String,
         parent: String,
     },
     Push {
@@ -206,6 +200,7 @@ enum Msg {
         msg: String,
     },
     Finish,
+    Abort,
 }
 
 impl Text {
@@ -229,7 +224,7 @@ impl Text {
             }
 
             impl ProgressHandler {
-                fn pop(&mut self, msg: String, new_leftover_msg: PopStyle, parent: String) {
+                fn pop(&mut self, msg: String, new_leftover_msg: String, parent: String) {
                     let Some(children) = self.threads.get_mut(&parent) else {
                         // This can happen when a test was not run at all, because it failed directly during
                         // comment parsing.
@@ -241,14 +236,7 @@ impl Text {
                     };
                     *done = true;
                     let spinner = spinner.clone();
-                    match new_leftover_msg {
-                        PopStyle::Replace(new_msg) => spinner.finish_with_message(new_msg),
-                        PopStyle::Abort => {
-                            self.aborted = true;
-                            spinner.finish_and_clear();
-                            return;
-                        }
-                    }
+                    spinner.finish_with_message(new_leftover_msg);
                     let parent = children[""].0.clone();
                     if children.values().all(|&(_, done)| done) {
                         self.bars.remove(&parent);
@@ -365,6 +353,7 @@ impl Text {
                                 handler.push(parent, msg);
                             }
                             Msg::Finish => break 'outer,
+                            Msg::Abort => handler.aborted = true,
                         },
                         // Sender panicked, skip asserts
                         Err(TryRecvError::Disconnected) => return,
@@ -418,31 +407,30 @@ struct TextTest {
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult, aborted: bool) {
-        let new_leftover_msg = if aborted {
-            PopStyle::Abort
-        } else {
-            let result = match result {
-                Ok(TestOk::Ok) => "ok".green(),
-                Err(Errored { .. }) => "FAILED".bright_red().bold(),
-                Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
-            };
-            let msg = format!("... {result}");
-            if ProgressDrawTarget::stdout().is_hidden() {
-                match self.style {
-                    RevisionStyle::Separate => println!("{} {msg}", self.revision),
-                    RevisionStyle::Show => {
-                        let revision = if self.revision.is_empty() {
-                            String::new()
-                        } else {
-                            format!(" (revision `{}`)", self.revision)
-                        };
-                        println!("{}{revision} {msg}", display(&self.path));
-                    }
-                }
-                std::io::stdout().flush().unwrap();
-            }
-            PopStyle::Replace(msg)
+        if aborted {
+            self.text.sender.send(Msg::Abort).unwrap();
+        }
+        let result = match result {
+            _ if aborted => "aborted".white(),
+            Ok(TestOk::Ok) => "ok".green(),
+            Err(Errored { .. }) => "FAILED".bright_red().bold(),
+            Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
         };
+        let new_leftover_msg = format!("... {result}");
+        if ProgressDrawTarget::stdout().is_hidden() {
+            match self.style {
+                RevisionStyle::Separate => println!("{} {new_leftover_msg}", self.revision),
+                RevisionStyle::Show => {
+                    let revision = if self.revision.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" (revision `{}`)", self.revision)
+                    };
+                    println!("{}{revision} {new_leftover_msg}", display(&self.path));
+                }
+            }
+            std::io::stdout().flush().unwrap();
+        }
         self.text
             .sender
             .send(Msg::Pop {
