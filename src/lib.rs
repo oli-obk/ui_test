@@ -17,6 +17,7 @@ pub use color_eyre::eyre::Result;
 pub use core::run_and_collect;
 pub use core::CrateType;
 use crossbeam_channel::Sender;
+use crossbeam_channel::TryRecvError;
 pub use filter::Match;
 use per_test_config::TestConfig;
 use spanned::Spanned;
@@ -198,12 +199,12 @@ pub fn run_tests_generic(
     let mut filtered = 0;
     core::run_and_collect(
         num_threads,
-        |submit| {
+        |[submit, priority_submit]| {
             let mut todo = VecDeque::new();
 
             let configs: Vec<_> = configs
                 .into_iter()
-                .map(|config| Arc::new(BuildManager::new(config, submit.clone())))
+                .map(|config| Arc::new(BuildManager::new(config, priority_submit.clone())))
                 .collect();
             for build_manager in &configs {
                 todo.push_back((
@@ -287,11 +288,24 @@ pub fn run_tests_generic(
                 }
             }
         },
-        |receive, finished_files_sender| -> Result<()> {
-            for closure in receive {
-                closure(&finished_files_sender)?;
+        |[receive, priority_receive], finished_files_sender| -> Result<()> {
+            loop {
+                for closure in priority_receive.try_iter() {
+                    closure(&finished_files_sender)?;
+                }
+                match receive.try_recv() {
+                    Ok(closure) => {
+                        closure(&finished_files_sender)?;
+                    }
+                    Err(TryRecvError::Empty) => {}
+                    Err(TryRecvError::Disconnected) => {
+                        for closure in priority_receive {
+                            closure(&finished_files_sender)?;
+                        }
+                        return Ok(());
+                    }
+                }
             }
-            Ok(())
         },
         |finished_files_recv| {
             for run in finished_files_recv {

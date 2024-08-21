@@ -216,7 +216,7 @@ fn compile_fixed(
         };
         let mut cmd = fixed_config.build_command(build_manager)?;
         cmd.arg("--crate-name")
-            .arg(format!("{crate_name}_________{}", i + 1));
+            .arg(format!("__{crate_name}_{}", i + 1));
         build_manager.add_new_job(move || {
             let output = cmd.output().unwrap();
             let result = if fixed_config.aborted() {
