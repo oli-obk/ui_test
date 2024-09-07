@@ -226,12 +226,12 @@ impl<T> std::ops::DerefMut for CommentParser<T> {
 /// The conditions used for "ignore" and "only" filters.
 #[derive(Debug, Clone)]
 pub enum Condition {
-    /// The given string must appear in the host triple.
-    Host(String),
-    /// The given string must appear in the target triple.
-    Target(String),
-    /// Tests that the bitwidth is the given one.
-    Bitwidth(u8),
+    /// One of the given strings must appear in the host triple.
+    Host(Vec<String>),
+    /// One of the given string must appear in the target triple.
+    Target(Vec<String>),
+    /// Tests that the bitwidth is one of the given ones.
+    Bitwidth(Vec<u8>),
     /// Tests that the target is the host.
     OnHost,
 }
@@ -263,16 +263,17 @@ pub(crate) struct ErrorMatch {
 
 impl Condition {
     fn parse(c: &str, args: &str) -> std::result::Result<Self, String> {
+        let args = args.split_whitespace();
         match c {
             "on-host" => Ok(Condition::OnHost),
             "bitwidth" => {
-                let bits: u8 = args.parse().map_err(|_err| {
+                let bits = args.map(|arg| arg.parse::<u8>().map_err(|_err| {
                     format!("invalid ignore/only filter ending in 'bit': {c:?} is not a valid bitwdith")
-                })?;
+                })).collect::<Result<Vec<_>, _>>()?;
                 Ok(Condition::Bitwidth(bits))
             }
-            "target" => Ok(Condition::Target(args.to_owned())),
-            "host" => Ok(Condition::Host(args.to_owned())),
+            "target" => Ok(Condition::Target(args.map(|arg|arg.to_owned()).collect())),
+            "host" => Ok(Condition::Host(args.map(|arg|arg.to_owned()).collect())),
             _ => Err(format!("`{c}` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/")),
         }
     }
