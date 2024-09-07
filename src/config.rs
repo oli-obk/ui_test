@@ -4,9 +4,8 @@ use spanned::Spanned;
 
 #[cfg(feature = "rustc")]
 use crate::{
-    aux_builds::AuxBuilder, build_manager::BuildManager, custom_flags::run::Run,
-    custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
-    per_test_config::TestConfig, rustc_stderr, Errored,
+    aux_builds::AuxBuilder, custom_flags::run::Run, custom_flags::rustfix::RustfixMode,
+    custom_flags::Flag, filter::Match, rustc_stderr,
 };
 use crate::{
     diagnostics::Diagnostics,
@@ -75,29 +74,9 @@ impl Config {
     /// `rustc` on the test files.
     #[cfg(feature = "rustc")]
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
+        use crate::custom_flags::edition::Edition;
+
         let mut comment_defaults = Comments::default();
-
-        #[derive(Debug)]
-        struct Edition(String);
-
-        impl Flag for Edition {
-            fn must_be_unique(&self) -> bool {
-                true
-            }
-            fn clone_inner(&self) -> Box<dyn Flag> {
-                Box::new(Edition(self.0.clone()))
-            }
-
-            fn apply(
-                &self,
-                cmd: &mut std::process::Command,
-                _config: &TestConfig,
-                _build_manager: &BuildManager,
-            ) -> Result<(), Errored> {
-                cmd.arg("--edition").arg(&self.0);
-                Ok(())
-            }
-        }
 
         #[derive(Debug)]
         struct NeedsAsmSupport;

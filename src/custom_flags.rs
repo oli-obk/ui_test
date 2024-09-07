@@ -8,6 +8,8 @@ use std::{
 use crate::{build_manager::BuildManager, per_test_config::TestConfig, Config, Errored};
 
 #[cfg(feature = "rustc")]
+pub mod edition;
+#[cfg(feature = "rustc")]
 pub mod run;
 pub mod rustfix;
 
