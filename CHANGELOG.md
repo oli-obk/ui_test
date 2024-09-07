@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+### Removed
+
+## [0.26.0] - 2024-09-07
+
+### Added
+
 * examples and usage instructions
 * `Config::comment_start` field for changing the default comment symbols from `//`
 
