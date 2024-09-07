@@ -226,12 +226,12 @@ impl<T> std::ops::DerefMut for CommentParser<T> {
 /// The conditions used for "ignore" and "only" filters.
 #[derive(Debug, Clone)]
 pub enum Condition {
-    /// The given string must appear in the host triple.
-    Host(String),
-    /// The given string must appear in the target triple.
-    Target(String),
-    /// Tests that the bitwidth is the given one.
-    Bitwidth(u8),
+    /// One of the given strings must appear in the host triple.
+    Host(Vec<String>),
+    /// One of the given string must appear in the target triple.
+    Target(Vec<String>),
+    /// Tests that the bitwidth is one of the given ones.
+    Bitwidth(Vec<u8>),
     /// Tests that the target is the host.
     OnHost,
 }
@@ -262,22 +262,19 @@ pub(crate) struct ErrorMatch {
 }
 
 impl Condition {
-    fn parse(c: &str) -> std::result::Result<Self, String> {
-        if c == "on-host" {
-            Ok(Condition::OnHost)
-        } else if let Some(bits) = c.strip_suffix("bit") {
-            let bits: u8 = bits.parse().map_err(|_err| {
-                format!("invalid ignore/only filter ending in 'bit': {c:?} is not a valid bitwdith")
-            })?;
-            Ok(Condition::Bitwidth(bits))
-        } else if let Some(triple_substr) = c.strip_prefix("target-") {
-            Ok(Condition::Target(triple_substr.to_owned()))
-        } else if let Some(triple_substr) = c.strip_prefix("host-") {
-            Ok(Condition::Host(triple_substr.to_owned()))
-        } else {
-            Err(format!(
-                "`{c}` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/"
-            ))
+    fn parse(c: &str, args: &str) -> std::result::Result<Self, String> {
+        let args = args.split_whitespace();
+        match c {
+            "on-host" => Ok(Condition::OnHost),
+            "bitwidth" => {
+                let bits = args.map(|arg| arg.parse::<u8>().map_err(|_err| {
+                    format!("invalid ignore/only filter ending in 'bit': {c:?} is not a valid bitwdith")
+                })).collect::<Result<Vec<_>, _>>()?;
+                Ok(Condition::Bitwidth(bits))
+            }
+            "target" => Ok(Condition::Target(args.map(|arg|arg.to_owned()).collect())),
+            "host" => Ok(Condition::Host(args.map(|arg|arg.to_owned()).collect())),
+            _ => Err(format!("`{c}` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/")),
         }
     }
 }
@@ -769,17 +766,20 @@ impl CommentParser<&mut Revisioned> {
     fn parse_command(&mut self, command: Spanned<&str>, args: Spanned<&str>) {
         if let Some(command_handler) = self.commands.get(*command) {
             command_handler(self, args, command.span());
-        } else if let Some(s) = command.strip_prefix("ignore-") {
+        } else if let Some(rest) = command
+            .strip_prefix("ignore-")
+            .or_else(|| command.strip_prefix("only-"))
+        {
             // args are ignored (can be used as comment)
-            match Condition::parse(*s) {
-                Ok(cond) => self.ignore.push(cond),
-                Err(msg) => self.error(s.span(), msg),
-            }
-        } else if let Some(s) = command.strip_prefix("only-") {
-            // args are ignored (can be used as comment)
-            match Condition::parse(*s) {
-                Ok(cond) => self.only.push(cond),
-                Err(msg) => self.error(s.span(), msg),
+            match Condition::parse(*rest, *args) {
+                Ok(cond) => {
+                    if command.starts_with("ignore") {
+                        self.ignore.push(cond)
+                    } else {
+                        self.only.push(cond)
+                    }
+                }
+                Err(msg) => self.error(rest.span(), msg),
             }
         } else {
             let best_match = self

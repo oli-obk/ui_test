@@ -386,9 +386,9 @@ impl Config {
     pub(crate) fn test_condition(&self, condition: &Condition) -> bool {
         let target = self.target.as_ref().unwrap();
         match condition {
-            Condition::Bitwidth(bits) => self.get_pointer_width() == *bits,
-            Condition::Target(t) => target.contains(t),
-            Condition::Host(t) => self.host.as_ref().unwrap().contains(t),
+            Condition::Bitwidth(bits) => bits.iter().any(|bits| self.get_pointer_width() == *bits),
+            Condition::Target(t) => t.iter().any(|t| target.contains(t)),
+            Condition::Host(t) => t.iter().any(|t| self.host.as_ref().unwrap().contains(t)),
             Condition::OnHost => self.host_matches_target(),
         }
     }

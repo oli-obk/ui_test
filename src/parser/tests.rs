@@ -238,7 +238,7 @@ use std::mem;
 
 #[test]
 fn parse_x86_64() {
-    let s = r"//@ only-target-x86_64-unknown-linux";
+    let s = r"//@ only-target:x86_64-unknown-linux";
     let comments = Comments::parse(
         Spanned::new(
             s.as_bytes(),
@@ -255,7 +255,31 @@ fn parse_x86_64() {
     let revisioned = &comments.revisioned[&vec![]];
     assert_eq!(revisioned.only.len(), 1);
     match &revisioned.only[0] {
-        Condition::Target(t) => assert_eq!(t, "x86_64-unknown-linux"),
+        Condition::Target(t) => assert_eq!(t, &["x86_64-unknown-linux"]),
+        _ => unreachable!(),
+    }
+}
+
+#[test]
+fn parse_two_only_filters() {
+    let s = r"//@only-target: hello world";
+    let comments = Comments::parse(
+        Spanned::new(
+            s.as_bytes(),
+            Span {
+                file: PathBuf::new(),
+                bytes: 0..s.len(),
+            },
+        ),
+        &Config::rustc(""),
+    )
+    .unwrap();
+    println!("parsed comments: {:#?}", comments);
+    assert_eq!(comments.revisioned.len(), 1);
+    let revisioned = &comments.revisioned[&vec![]];
+    assert_eq!(revisioned.only.len(), 1);
+    match &revisioned.only[0] {
+        Condition::Target(t) => assert_eq!(t, &["hello", "world"]),
         _ => unreachable!(),
     }
 }
