@@ -18,7 +18,7 @@ pub use crate::diagnostics::Level;
 use crate::diagnostics::{Diagnostics, Message};
 pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
-use crate::status_emitter::TestStatus;
+use crate::status_emitter::{SilentStatus, TestStatus};
 use crate::test_result::{Errored, TestOk, TestResult};
 use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling};
 
@@ -34,6 +34,19 @@ pub struct TestConfig {
 }
 
 impl TestConfig {
+    /// Create a config for running one file.
+    pub fn one_off_runner(config: Config, path: PathBuf) -> Self {
+        Self {
+            comments: Arc::new(config.comment_defaults.clone()),
+            config,
+            aux_dir: PathBuf::new(),
+            status: Box::new(SilentStatus {
+                revision: "".into(),
+                path,
+            }),
+        }
+    }
+
     pub(crate) fn patch_out_dir(&mut self) {
         // Put aux builds into a separate directory per path so that multiple aux files
         // from different directories (but with the same file name) don't collide.
@@ -112,7 +125,8 @@ impl TestConfig {
         Ok(())
     }
 
-    pub(crate) fn build_command(&self, build_manager: &BuildManager) -> Result<Command, Errored> {
+    /// Produce the command that will be executed to run the test.
+    pub fn build_command(&self, build_manager: &BuildManager) -> Result<Command, Errored> {
         let mut cmd = self.config.program.build(&self.config.out_dir);
         cmd.arg(self.status.path());
         if !self.status.revision().is_empty() {
