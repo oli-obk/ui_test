@@ -238,7 +238,7 @@ use std::mem;
 
 #[test]
 fn parse_x86_64() {
-    let s = r"//@ only-target-x86_64-unknown-linux";
+    let s = r"//@ only-target:x86_64-unknown-linux";
     let comments = Comments::parse(
         Spanned::new(
             s.as_bytes(),
