@@ -43,7 +43,7 @@ fn main() {
                 bytes: 0..s.len(),
             },
         ),
-        &Config::rustc(""),
+        &Config::dummy(),
     )
     .unwrap();
     println!("parsed comments: {:#?}", comments);
@@ -79,7 +79,7 @@ fn main() {
                 bytes: 0..s.len(),
             },
         ),
-        &Config::rustc(""),
+        &Config::dummy(),
     )
     .unwrap();
     println!("parsed comments: {:#?}", comments);
@@ -109,7 +109,7 @@ fn main() {
                 bytes: 0..s.len(),
             },
         ),
-        &Config::rustc(""),
+        &Config::dummy(),
     )
     .unwrap_err();
     println!("parsed comments: {:#?}", errors);
@@ -137,7 +137,7 @@ use std::mem;
                 bytes: 0..s.len(),
             },
         ),
-        &Config::rustc(""),
+        &Config::dummy(),
     )
     .unwrap();
     println!("parsed comments: {:#?}", comments);
@@ -163,7 +163,7 @@ use std::mem;
                 bytes: 0..s.len(),
             },
         ),
-        &Config::rustc(""),
+        &Config::dummy(),
     )
     .unwrap();
     println!("parsed comments: {:#?}", comments);
@@ -189,7 +189,7 @@ use std::mem;
                 bytes: 0..s.len(),
             },
         ),
-        &Config::rustc(""),
+        &Config::dummy(),
     )
     .unwrap_err();
     println!("parsed comments: {:#?}", errors);
@@ -223,7 +223,7 @@ use std::mem;
                 bytes: 0..s.len(),
             },
         ),
-        &Config::rustc(""),
+        &Config::dummy(),
     )
     .unwrap_err();
     println!("parsed comments: {:#?}", errors);
@@ -247,7 +247,7 @@ fn parse_x86_64() {
                 bytes: 0..s.len(),
             },
         ),
-        &Config::rustc(""),
+        &Config::dummy(),
     )
     .unwrap();
     println!("parsed comments: {:#?}", comments);
@@ -271,7 +271,7 @@ fn parse_two_only_filters() {
                 bytes: 0..s.len(),
             },
         ),
-        &Config::rustc(""),
+        &Config::dummy(),
     )
     .unwrap();
     println!("parsed comments: {:#?}", comments);

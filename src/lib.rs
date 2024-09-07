@@ -25,6 +25,7 @@ use status_emitter::RevisionStyle;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
 use std::path::Path;
+#[cfg(feature = "rustc")]
 use std::process::Command;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;

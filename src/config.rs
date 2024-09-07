@@ -1,5 +1,4 @@
 use regex::bytes::Regex;
-#[cfg(feature = "rustc")]
 use spanned::Spanned;
 
 #[cfg(feature = "rustc")]
@@ -70,6 +69,36 @@ pub struct Config {
 }
 
 impl Config {
+    /// Create a blank configuration that doesn't do anything interesting
+    pub fn dummy() -> Self {
+        let mut comment_defaults = Comments::default();
+        comment_defaults.base().require_annotations = Spanned::dummy(true).into();
+        Self {
+            host: Default::default(),
+            target: Default::default(),
+            root_dir: Default::default(),
+            program: CommandBuilder::cmd(""),
+            output_conflict_handling: OutputConflictHandling::Error,
+            bless_command: Default::default(),
+            out_dir: Default::default(),
+            skip_files: Default::default(),
+            filter_files: Default::default(),
+            threads: Default::default(),
+            list: Default::default(),
+            run_only_ignored: Default::default(),
+            filter_exact: Default::default(),
+            comment_defaults,
+            comment_start: "//",
+            custom_comments: Default::default(),
+            diagnostic_extractor: |_, _| Diagnostics {
+                rendered: Default::default(),
+                messages: Default::default(),
+                messages_from_unknown_file_or_line: Default::default(),
+            },
+            abort_check: Default::default(),
+        }
+    }
+
     /// Create a configuration for testing the output of running
     /// `rustc` on the test files.
     #[cfg(feature = "rustc")]
