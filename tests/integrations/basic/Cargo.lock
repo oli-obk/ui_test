@@ -651,7 +651,6 @@ dependencies = [
  "comma",
  "crossbeam-channel",
  "indicatif",
- "lazy_static",
  "levenshtein",
  "prettydiff",
  "regex",
