@@ -96,7 +96,12 @@ impl TestConfig {
         self.comments().flat_map(f).collect()
     }
 
-    fn apply_custom(&self, cmd: &mut Command, build_manager: &BuildManager) -> Result<(), Errored> {
+    /// Apply custom flags (aux builds, dependencies, ...)
+    pub fn apply_custom(
+        &self,
+        cmd: &mut Command,
+        build_manager: &BuildManager,
+    ) -> Result<(), Errored> {
         let mut all = BTreeMap::new();
         for rev in self.comments.for_revision(self.status.revision()) {
             for (&k, flags) in &rev.custom {

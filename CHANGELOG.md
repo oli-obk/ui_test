@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+* Made more code public for miri to use
+
+### Removed
+
+## [0.26.3] - 2024-09-08
+
+### Added
+
+### Fixed
+
+### Changed
+
 ### Removed
 
 ## [0.26.2] - 2024-09-08
