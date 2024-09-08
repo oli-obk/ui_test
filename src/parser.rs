@@ -85,13 +85,11 @@ impl Comments {
 
     /// Returns an iterator over all revisioned comments that match the revision.
     pub fn for_revision<'a>(&'a self, revision: &'a str) -> impl Iterator<Item = &'a Revisioned> {
-        self.revisioned.iter().filter_map(move |(k, v)| {
-            if k.is_empty() || k.iter().any(|rev| rev == revision) {
-                Some(v)
-            } else {
-                None
-            }
-        })
+        [&self.revisioned[&[][..]]].into_iter().chain(
+            self.revisioned
+                .iter()
+                .filter_map(move |(k, v)| k.iter().any(|rev| rev == revision).then_some(v)),
+        )
     }
 
     /// The comments set for all revisions
@@ -319,7 +317,9 @@ impl CommentParser<Comments> {
     }
 
     fn parse(mut self, content: Spanned<&[u8]>) -> std::result::Result<Comments, Vec<Error>> {
-        let defaults = std::mem::take(self.comments.revisioned.get_mut(&[][..]).unwrap());
+        // We take out the existing flags so that we can ensure every test only sets them once
+        // by checking that they haven't already been set.
+        let mut defaults = std::mem::take(self.comments.revisioned.get_mut(&[][..]).unwrap());
 
         let mut delayed_fallthrough = Vec::new();
         let mut fallthrough_to = None; // The line that a `|` will refer to.
@@ -422,35 +422,41 @@ impl CommentParser<Comments> {
             require_annotations,
             diagnostic_code_prefix,
             custom,
-        } = self.comments.base();
+        } = &mut defaults;
+
+        // We insert into the defaults so that the defaults are first in case of sorted lists
+        // like `normalize_stderr`, `compile_flags`, or `env_vars`
+        let base = std::mem::take(self.comments.base());
         if span.is_dummy() {
-            *span = defaults.span;
+            *span = base.span;
         }
-        ignore.extend(defaults.ignore);
-        only.extend(defaults.only);
-        *stderr_per_bitwidth |= defaults.stderr_per_bitwidth;
-        compile_flags.extend(defaults.compile_flags);
-        env_vars.extend(defaults.env_vars);
-        normalize_stderr.extend(defaults.normalize_stderr);
-        normalize_stdout.extend(defaults.normalize_stdout);
-        error_in_other_files.extend(defaults.error_in_other_files);
-        error_matches.extend(defaults.error_matches);
-        if require_annotations_for_level.is_none() {
-            *require_annotations_for_level = defaults.require_annotations_for_level;
+        ignore.extend(base.ignore);
+        only.extend(base.only);
+        *stderr_per_bitwidth |= base.stderr_per_bitwidth;
+        compile_flags.extend(base.compile_flags);
+        env_vars.extend(base.env_vars);
+        normalize_stderr.extend(base.normalize_stderr);
+        normalize_stdout.extend(base.normalize_stdout);
+        error_in_other_files.extend(base.error_in_other_files);
+        error_matches.extend(base.error_matches);
+        if base.require_annotations_for_level.is_some() {
+            *require_annotations_for_level = base.require_annotations_for_level;
         }
-        if exit_status.is_none() {
-            *exit_status = defaults.exit_status;
+        if base.exit_status.is_some() {
+            *exit_status = base.exit_status;
         }
-        if require_annotations.is_none() {
-            *require_annotations = defaults.require_annotations;
+        if base.require_annotations.is_some() {
+            *require_annotations = base.require_annotations;
         }
-        if diagnostic_code_prefix.is_none() {
-            *diagnostic_code_prefix = defaults.diagnostic_code_prefix;
+        if base.diagnostic_code_prefix.is_some() {
+            *diagnostic_code_prefix = base.diagnostic_code_prefix;
         }
 
-        for (k, v) in defaults.custom {
+        for (k, v) in base.custom {
             custom.entry(k).or_insert(v);
         }
+
+        *self.base() = defaults;
 
         if self.errors.is_empty() {
             Ok(self.comments)
