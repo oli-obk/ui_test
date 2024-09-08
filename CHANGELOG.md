@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Removed
+
+## [0.26.4] - 2024-09-09
+
+### Added
+
+### Fixed
+
+* custom flags were not overriding the default, but the other way around.
+
+### Changed
+
 * Made more code public for miri to use
 * Replaced `lazy_static` with std's `OnceLock`
 
