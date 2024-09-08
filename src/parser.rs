@@ -453,7 +453,7 @@ impl CommentParser<Comments> {
         }
 
         for (k, v) in base.custom {
-            custom.entry(k).or_insert(v);
+            custom.insert(k, v);
         }
 
         *self.base() = defaults;

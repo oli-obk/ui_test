@@ -463,6 +463,7 @@ Building aux file tests/actual_tests_bless/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests_bless/aux_proc_macro_no_main.rs ... FAILED
 tests/actual_tests_bless/compile_flags_quotes.rs ... FAILED
 tests/actual_tests_bless/compiletest-rs-command.rs ... FAILED
+tests/actual_tests_bless/edition_override.rs ... FAILED
 tests/actual_tests_bless/failing_executable.rs ... ok
 tests/actual_tests_bless/failing_executable.rs (revision `run`) ... FAILED
 Building aux file tests/actual_tests_bless/auxiliary/foomp.rs ... ok
@@ -627,6 +628,39 @@ The `//` must be directly followed by `@` or `~`.
   |
 
 full stderr:
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests_bless/edition_override.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/edition_override.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2018"
+
+error: error pattern found in pass test
+ --> tests/actual_tests_bless/edition_override.rs:6:32
+  |
+6 |         0...10 => {} //~ WARN: deprecated
+  |                                ^^^^^^^^^^ expected because of this annotation
+  |
+ ::: tests/actual_tests_bless/edition_override.rs:2:4
+  |
+2 | //@check-pass
+  |    ^^^^^^^^^^ expected because of this mode change
+  |
+
+full stderr:
+warning: `...` range patterns are deprecated
+ --> tests/actual_tests_bless/edition_override.rs:6:10
+  |
+6 |         0...10 => {}
+  |          ^^^ help: use `..=` for an inclusive range
+  |
+  = warning: this is accepted in the current edition (Rust 2018) but is a hard error in Rust 2021!
+  = note: for more information, see <https://doc.rust-lang.org/nightly/edition-guide/rust-2021/warnings-promoted-to-error.html>
+  = note: `#[warn(ellipsis_inclusive_range_patterns)]` on by default
+
+warning: 1 warning emitted
+
 
 full stdout:
 
@@ -1061,6 +1095,7 @@ FAILURES:
     tests/actual_tests_bless/aux_proc_macro_no_main.rs
     tests/actual_tests_bless/compile_flags_quotes.rs
     tests/actual_tests_bless/compiletest-rs-command.rs
+    tests/actual_tests_bless/edition_override.rs
     tests/actual_tests_bless/failing_executable.rs (revision run)
     tests/actual_tests_bless/no_main.rs
     tests/actual_tests_bless/no_main_manual.rs
@@ -1079,7 +1114,7 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision2.rs
     tests/actual_tests_bless/wrong_diagnostic_code.rs
 
-test result: FAIL. 23 failed; 25 passed; 3 ignored
+test result: FAIL. 24 failed; 25 passed; 3 ignored
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
