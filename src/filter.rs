@@ -1,10 +1,10 @@
 //! Datastructures and operations used for normalizing test output.
 
 use bstr::ByteSlice;
-use lazy_static::lazy_static;
 use regex::bytes::{Captures, Regex};
 use std::borrow::Cow;
 use std::path::Path;
+use std::sync::OnceLock;
 
 use crate::display;
 
@@ -25,9 +25,11 @@ impl Match {
             Match::Regex(regex) => regex.replace_all(text, replacement),
             Match::Exact(needle) => text.replace(needle, replacement).into(),
             Match::PathBackslash => {
-                lazy_static! {
-                    static ref PATH_RE: Regex = Regex::new(
-                        r"(?x)
+                static PATH_RE: OnceLock<Regex> = OnceLock::new();
+                PATH_RE
+                    .get_or_init(|| {
+                        Regex::new(
+                            r"(?x)
                         (?:
                             # Match paths to files with extensions that don't include spaces
                             \\(?:[\pL\pN.\-_']+[/\\])*[\pL\pN.\-_']+\.\pL+
@@ -35,13 +37,12 @@ impl Match {
                             # Allow spaces in absolute paths
                             [A-Z]:\\(?:[\pL\pN.\-_'\ ]+[/\\])+
                         )",
-                    )
-                    .unwrap();
-                }
-
-                PATH_RE.replace_all(text, |caps: &Captures<'_>| {
-                    caps[0].replace(r"\", replacement)
-                })
+                        )
+                        .unwrap()
+                    })
+                    .replace_all(text, |caps: &Captures<'_>| {
+                        caps[0].replace(r"\", replacement)
+                    })
             }
         }
     }
