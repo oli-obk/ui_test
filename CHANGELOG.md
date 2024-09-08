@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.26.2] - 2024-09-08
+
+### Added
+
+### Fixed
+
+* The order of normalizations and other settings is now that individual tests' normalizations get applied after the global normalizations.
+
+### Changed
+
+### Removed
+
 ## [0.26.0] - 2024-09-07
 
 ### Added

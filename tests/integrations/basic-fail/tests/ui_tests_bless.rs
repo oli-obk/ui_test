@@ -46,6 +46,10 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
         config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
         config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
+
+        // This is part of a test: we want to make sure the base filters are run first
+        config.stderr_filter("normalization_override", "NORMALIZATION_OVERRIDE");
+
         let _ = run_tests_generic(
             vec![config],
             default_file_filter,
