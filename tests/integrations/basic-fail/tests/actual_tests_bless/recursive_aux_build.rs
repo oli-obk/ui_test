@@ -1,0 +1,1 @@
+//@ aux-build: recursive.rs

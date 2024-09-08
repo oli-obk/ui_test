@@ -1,6 +1,7 @@
 //! Auxiliary and dependency builder. Extendable to custom builds.
 
 use std::{
+    cell::RefCell,
     collections::{hash_map::Entry, HashMap},
     ffi::OsString,
     sync::{Arc, OnceLock, RwLock},
@@ -84,6 +85,39 @@ impl BuildManager {
             });
         }
         let mut lock = self.cache.write().unwrap();
+
+        thread_local! {
+            static STACK: RefCell<Vec<String>> = const { RefCell::new(vec![]) };
+        }
+        STACK.with_borrow_mut(|stack| {
+            if stack.contains(&description) {
+                Err(Errored {
+                    command: format!("{description:?}"),
+                    errors: vec![],
+                    stderr: b"recursive build".to_vec(),
+                    stdout: vec![],
+                })
+            } else {
+                stack.push(description.clone());
+                Ok(())
+            }
+        })?;
+        struct Handle(Arc<OnceLock<Result<Vec<OsString>, ()>>>, String);
+
+        impl std::ops::Deref for Handle {
+            type Target = OnceLock<Result<Vec<OsString>, ()>>;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+
+        impl Drop for Handle {
+            fn drop(&mut self) {
+                STACK.with_borrow_mut(|stack| assert_eq!(stack.pop().unwrap(), self.1))
+            }
+        }
+
         let once = match lock.entry(description) {
             Entry::Occupied(entry) => {
                 if let Some(res) = entry.get().get() {
@@ -94,12 +128,14 @@ impl BuildManager {
                         stdout: vec![],
                     });
                 }
-                entry.get().clone()
+
+                Handle(entry.get().clone(), entry.key().clone())
             }
             Entry::Vacant(entry) => {
                 let once = Arc::new(OnceLock::new());
-                entry.insert(once.clone());
-                once
+                let handle = Handle(once.clone(), entry.key().clone());
+                entry.insert(once);
+                handle
             }
         };
         drop(lock);

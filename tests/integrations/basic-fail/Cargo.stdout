@@ -476,6 +476,8 @@ tests/actual_tests_bless/non_top_level_configs.rs ... FAILED
 tests/actual_tests_bless/normalization_override.rs ... ok
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/pass_with_annotation.rs ... FAILED
+Building aux file tests/actual_tests_bless/auxiliary/recursive.rs ... FAILED
+tests/actual_tests_bless/recursive_aux_build.rs ... FAILED
 tests/actual_tests_bless/revised_revision.rs ... FAILED
 tests/actual_tests_bless/revisioned_executable.rs (revision `run`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) ... ok
@@ -764,6 +766,29 @@ error: error pattern found in pass test
 
 full stderr:
 
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests_bless/recursive_aux_build.rs
+command: "$CMD"
+
+error: aux build failed
+ --> tests/actual_tests_bless/recursive_aux_build.rs:1:16
+  |
+1 | //@ aux-build: recursive.rs
+  |                ^^^^^^^^^^^^ tests/actual_tests_bless/recursive_aux_build.rs
+  |
+error: aux build failed
+ --> tests/actual_tests_bless/auxiliary/recursive.rs:1:16
+  |
+1 | //@ aux-build: recursive.rs
+  |                ^^^^^^^^^^^^ tests/actual_tests_bless/auxiliary/recursive.rs
+  |
+
+
+full stderr:
+recursive build
 full stdout:
 
 
@@ -1067,6 +1092,7 @@ FAILURES:
     tests/actual_tests_bless/no_test.rs
     tests/actual_tests_bless/non_top_level_configs.rs
     tests/actual_tests_bless/pass_with_annotation.rs
+    tests/actual_tests_bless/recursive_aux_build.rs
     tests/actual_tests_bless/revised_revision.rs
     tests/actual_tests_bless/revisioned_executable.rs (revision panic.run)
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision run.run)
@@ -1079,7 +1105,7 @@ FAILURES:
     tests/actual_tests_bless/unknown_revision2.rs
     tests/actual_tests_bless/wrong_diagnostic_code.rs
 
-test result: FAIL. 23 failed; 25 passed; 3 ignored
+test result: FAIL. 24 failed; 25 passed; 3 ignored
 
 Building dependencies ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok

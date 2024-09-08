@@ -11,7 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* aux builds don't hang anymore if they are recursively depending on themselves
+
 ### Changed
+
+* Basic tests now work even without the `rustc` cargo feature
 
 ### Removed
 
