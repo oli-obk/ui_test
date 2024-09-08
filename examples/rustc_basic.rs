@@ -1,6 +1,9 @@
+#[cfg(feature = "rustc")]
 use std::sync::atomic::Ordering;
+#[cfg(feature = "rustc")]
 use ui_test::{run_tests, Config};
 
+#[cfg(feature = "rustc")]
 fn main() -> ui_test::color_eyre::Result<()> {
     let config = Config::rustc("examples_tests/rustc_basic");
     let abort_check = config.abort_check.clone();
@@ -10,4 +13,9 @@ fn main() -> ui_test::color_eyre::Result<()> {
     // Cargo.toml) and compare their output against the corresponding
     // `.stderr` files.
     run_tests(config)
+}
+
+#[cfg(not(feature = "rustc"))]
+fn main() -> ui_test::color_eyre::Result<()> {
+    Ok(())
 }

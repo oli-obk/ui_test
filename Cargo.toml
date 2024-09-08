@@ -46,6 +46,7 @@ features = ["capture-spantrace"]
 [[test]]
 name = "integration"
 harness = false
+required-features = ["rustc"]
 
 [[test]]
 name = "build_std"
