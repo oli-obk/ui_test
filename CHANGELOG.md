@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Made more code public for miri to use
+* Replaced `lazy_static` with std's `OnceLock`
 
 ### Removed
 
