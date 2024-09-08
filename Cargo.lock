@@ -605,7 +605,6 @@ dependencies = [
  "crossbeam-channel",
  "ctrlc",
  "indicatif",
- "lazy_static",
  "levenshtein",
  "prettydiff",
  "regex",
