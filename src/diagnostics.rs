@@ -1,5 +1,6 @@
 //! Data structures for handling diagnostic output from tests.
 
+#[cfg(feature = "rustc")]
 use cargo_metadata::diagnostic::DiagnosticLevel;
 
 #[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
@@ -19,6 +20,7 @@ pub enum Level {
     FailureNote = 0,
 }
 
+#[cfg(feature = "rustc")]
 impl From<DiagnosticLevel> for Level {
     fn from(value: DiagnosticLevel) -> Self {
         match value {

@@ -16,11 +16,11 @@ rustc_version = "0.4"
 colored = "2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-cargo_metadata = "0.18"
+cargo_metadata = { version = "0.18", optional = true }
 crossbeam-channel = "0.5.6"
 bstr = "1.0.1"
 rustfix = "0.8.1"
-cargo-platform = "0.1.2"
+cargo-platform = { version = "0.1.2", optional = true }
 comma = "1.0.0"
 anyhow = "1.0.6"
 indicatif = "0.17.6"
@@ -53,4 +53,4 @@ test = false
 
 [features]
 default = ["rustc"]
-rustc = []
+rustc = ["dep:cargo-platform", "dep:cargo_metadata"]
