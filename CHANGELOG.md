@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * default comment symbols for `Config::cargo` changed to `#`
 * Ctrl+C now prints the summary of the tests that were run before Ctrl+C is pressed
 * `//@only-target` and `//@only-host` are now separated from the triple substring by a `:` instead of a `-` and accepts multiple (space separated) filters where just one of them needs to match
-* `//@only-64bit` is now `//@only-bitwidth: 64 16` to filter for 64 and 16 bit but not include 32 bit.
+* `//@only-64bit` is now `//@only-bitwidth: 64`. You can use `//@only-bitwidth: 64 16` to enable the test for 64 and 16 bit but not for 32 bit.
 
 ### Removed
 
