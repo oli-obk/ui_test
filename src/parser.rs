@@ -306,8 +306,8 @@ impl Condition {
                 })).collect::<Result<Vec<_>, _>>()?;
                 Ok(Condition::Bitwidth(bits))
             }
-            "target" => Ok(Condition::Target(args.map(|arg|TargetSubStr::try_from(arg.to_owned())).collect::<Result<_, _>>()?)),
-            "host" => Ok(Condition::Host(args.map(|arg|TargetSubStr::try_from(arg.to_owned())).collect::<Result<_, _>>()?)),
+            "target" => Ok(Condition::Target(args.take_while(|&arg| arg != "#").map(|arg|TargetSubStr::try_from(arg.to_owned())).collect::<Result<_, _>>()?)),
+            "host" => Ok(Condition::Host(args.take_while(|&arg| arg != "#").map(|arg|TargetSubStr::try_from(arg.to_owned())).collect::<Result<_, _>>()?)),
             _ => Err(format!("`{c}` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/")),
         }
     }
@@ -612,7 +612,7 @@ impl CommentParser<Comments> {
             }
             Some(i) => {
                 let (command, args) = command.split_at(i);
-                // Commands are separated from their arguments by ':' or ' '
+                // Commands are separated from their arguments by ':'
                 let next = args
                     .chars()
                     .next()

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * `only`/`ignore` filters now only accept integers, alphabetic characters, `-` and `_`
+* `only`/ `ignore` filters allow comments by ignoring everything from an `#` onwards
 
 ### Removed
 

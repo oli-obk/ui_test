@@ -265,7 +265,7 @@ fn parse_x86_64() {
 
 #[test]
 fn parse_two_only_filters() {
-    let s = r"//@only-target: hello world";
+    let s = r"//@only-target: hello world # some comment";
     let comments = Comments::parse(
         Spanned::new(
             s.as_bytes(),
