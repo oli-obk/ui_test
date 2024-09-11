@@ -225,13 +225,49 @@ impl<T> std::ops::DerefMut for CommentParser<T> {
 #[derive(Debug, Clone)]
 pub enum Condition {
     /// One of the given strings must appear in the host triple.
-    Host(Vec<String>),
+    Host(Vec<TargetSubStr>),
     /// One of the given string must appear in the target triple.
-    Target(Vec<String>),
+    Target(Vec<TargetSubStr>),
     /// Tests that the bitwidth is one of the given ones.
     Bitwidth(Vec<u8>),
     /// Tests that the target is the host.
     OnHost,
+}
+
+#[derive(Debug, Clone)]
+/// A sub string of a target (or a whole target).
+/// Effectively a `String` that only allows lowercase chars, integers and dashes
+pub struct TargetSubStr(String);
+
+impl PartialEq<&str> for TargetSubStr {
+    fn eq(&self, other: &&str) -> bool {
+        self.0 == *other
+    }
+}
+
+impl std::ops::Deref for TargetSubStr {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl TryFrom<String> for TargetSubStr {
+    type Error = String;
+
+    fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
+        if value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        {
+            Ok(Self(value))
+        } else {
+            Err(format!(
+                "target strings can only contain integers, basic alphabet characters or dashes"
+            ))
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -270,8 +306,8 @@ impl Condition {
                 })).collect::<Result<Vec<_>, _>>()?;
                 Ok(Condition::Bitwidth(bits))
             }
-            "target" => Ok(Condition::Target(args.map(|arg|arg.to_owned()).collect())),
-            "host" => Ok(Condition::Host(args.map(|arg|arg.to_owned()).collect())),
+            "target" => Ok(Condition::Target(args.take_while(|&arg| arg != "#").map(|arg|TargetSubStr::try_from(arg.to_owned())).collect::<Result<_, _>>()?)),
+            "host" => Ok(Condition::Host(args.take_while(|&arg| arg != "#").map(|arg|TargetSubStr::try_from(arg.to_owned())).collect::<Result<_, _>>()?)),
             _ => Err(format!("`{c}` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host-.*/, or /target-.*/")),
         }
     }
@@ -576,7 +612,7 @@ impl CommentParser<Comments> {
             }
             Some(i) => {
                 let (command, args) = command.split_at(i);
-                // Commands are separated from their arguments by ':' or ' '
+                // Commands are separated from their arguments by ':'
                 let next = args
                     .chars()
                     .next()

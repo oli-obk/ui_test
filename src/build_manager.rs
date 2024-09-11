@@ -7,7 +7,7 @@ use std::{
 };
 
 use color_eyre::eyre::Result;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{bounded, Sender};
 
 use crate::{
     status_emitter::{RevisionStyle, TestStatus},
@@ -45,6 +45,11 @@ impl BuildManager {
             config,
             new_job_submitter,
         }
+    }
+
+    /// Create a new `BuildManager` that cannot create new sub-jobs.
+    pub fn one_off(config: Config) -> Self {
+        Self::new(config, bounded(0).0)
     }
 
     /// Lazily add more jobs after a test has finished. These are added to the queue
