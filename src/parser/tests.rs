@@ -255,7 +255,10 @@ fn parse_x86_64() {
     let revisioned = &comments.revisioned[&vec![]];
     assert_eq!(revisioned.only.len(), 1);
     match &revisioned.only[0] {
-        Condition::Target(t) => assert_eq!(t, &["x86_64-unknown-linux"]),
+        Condition::Target(t) => {
+            assert_eq!(t.len(), 1);
+            assert_eq!(t[0], "x86_64-unknown-linux")
+        }
         _ => unreachable!(),
     }
 }
@@ -279,7 +282,27 @@ fn parse_two_only_filters() {
     let revisioned = &comments.revisioned[&vec![]];
     assert_eq!(revisioned.only.len(), 1);
     match &revisioned.only[0] {
-        Condition::Target(t) => assert_eq!(t, &["hello", "world"]),
+        Condition::Target(t) => {
+            assert_eq!(t.len(), 2);
+            assert_eq!(t[0], "hello");
+            assert_eq!(t[1], "world")
+        }
         _ => unreachable!(),
     }
+}
+
+#[test]
+fn parse_invalid_filter() {
+    let s = r"//@only-target: hello world: somecomment";
+    Comments::parse(
+        Spanned::new(
+            s.as_bytes(),
+            Span {
+                file: PathBuf::new(),
+                bytes: 0..s.len(),
+            },
+        ),
+        &Config::dummy(),
+    )
+    .unwrap_err();
 }
