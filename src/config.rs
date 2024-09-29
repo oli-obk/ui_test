@@ -117,7 +117,12 @@ impl Config {
             fn clone_inner(&self) -> Box<dyn Flag> {
                 Box::new(NeedsAsmSupport)
             }
-            fn test_condition(&self, config: &Config) -> bool {
+            fn test_condition(
+                &self,
+                config: &Config,
+                _comments: &Comments,
+                _revision: &str,
+            ) -> bool {
                 let target = config.target.as_ref().unwrap();
                 static ASM_SUPPORTED_ARCHS: &[&str] = &[
                     "x86", "x86_64", "arm", "aarch64", "riscv32",
@@ -411,9 +416,12 @@ impl Config {
             return self.run_only_ignored;
         }
         if comments.for_revision(revision).any(|r| {
-            r.custom
-                .values()
-                .any(|flags| flags.content.iter().any(|flag| flag.test_condition(self)))
+            r.custom.values().any(|flags| {
+                flags
+                    .content
+                    .iter()
+                    .any(|flag| flag.test_condition(self, comments, revision))
+            })
         }) {
             return self.run_only_ignored;
         }
