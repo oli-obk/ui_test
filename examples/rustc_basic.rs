@@ -4,6 +4,7 @@ use std::sync::atomic::Ordering;
 use ui_test::{run_tests, Config};
 
 #[cfg(feature = "rustc")]
+#[cfg_attr(test, test)]
 fn main() -> ui_test::color_eyre::Result<()> {
     let config = Config::rustc("examples_tests/rustc_basic");
     let abort_check = config.abort_check.clone();
