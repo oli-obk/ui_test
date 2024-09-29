@@ -73,7 +73,10 @@ fn main() -> Result<()> {
     config.filter(" +[0-9]+: .*\n", "");
     config.filter("                +at \\.?/.*\n", "");
     config.filter(" running on .*", "");
-    config.stdout_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
+    config.stdout_filter(
+        "/target/[^/]+/[0-9]+/[^/]+/debug",
+        "/target/$$TMP/$$TRIPLE/debug",
+    );
     config.stdout_filter("/target/.tmp[^/ \"]+", "/target/$$TMP");
     // Normalize proc macro filenames on windows to their linux repr
     config.stdout_filter("/([^/\\.]+)\\.dll", "/lib$1.so");

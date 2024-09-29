@@ -40,7 +40,7 @@ pub struct Config {
     /// The recommended command to bless failing tests.
     pub bless_command: Option<String>,
     /// Where to dump files like the binaries compiled from tests.
-    /// Defaults to `target/ui` in the current directory.
+    /// Defaults to `target/ui/index_of_config` in the current directory.
     pub out_dir: PathBuf,
     /// Skip test files whose names contain any of these entries.
     pub skip_files: Vec<String>,

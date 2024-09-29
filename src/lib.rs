@@ -182,8 +182,9 @@ pub fn run_tests_generic(
         return Ok(());
     }
 
-    for config in &mut configs {
+    for (i, config) in configs.iter_mut().enumerate() {
         config.fill_host_and_target()?;
+        config.out_dir.push(i.to_string())
     }
 
     let mut results = vec![];
