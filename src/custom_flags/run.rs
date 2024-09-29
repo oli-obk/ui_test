@@ -12,7 +12,9 @@ use crate::{
 use super::Flag;
 
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct Run {
+/// Run a test after successfully compiling it
+pub struct Run {
+    /// The exit code that the test is expected to emit.
     pub exit_code: i32,
 }
 
