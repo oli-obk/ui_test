@@ -28,3 +28,5 @@ harness = false
 [[test]]
 name = "ui_tests_bless"
 harness = false
+
+#@normalize-stdout-test: "(command: canonicalizing path `tests/actual_tests_bless/auxiliary/aasdflkjasdlfjasdlfkjasdf`\n\nfull stderr:\n).*" -> "${1}No such file or directory"
