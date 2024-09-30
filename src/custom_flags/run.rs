@@ -6,7 +6,7 @@ use std::{path::Path, process::Output};
 
 use crate::{
     build_manager::BuildManager, display, per_test_config::TestConfig,
-    status_emitter::RevisionStyle, CommandBuilder, Error, Errored, TestOk, TestRun,
+    status_emitter::RevisionStyle, CommandBuilder, Error, Errored, OutputConflictHandling, TestOk, TestRun,
 };
 
 use super::Flag;
@@ -16,6 +16,8 @@ use super::Flag;
 pub struct Run {
     /// The exit code that the test is expected to emit.
     pub exit_code: i32,
+    /// How to handle output conflicts
+    pub output_conflict_handling: Option<OutputConflictHandling>,
 }
 
 impl Flag for Run {
@@ -41,6 +43,9 @@ impl Flag for Run {
             aux_dir: config.aux_dir.clone(),
             status: config.status.for_revision(&revision, RevisionStyle::Show),
         };
+        if let Some(och) = self.output_conflict_handling {
+            config.config.output_conflict_handling = och;
+        }
         build_manager.add_new_job(move || {
             cmd.arg("--print").arg("file-names");
             let output = cmd.output().unwrap();

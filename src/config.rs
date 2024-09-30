@@ -36,8 +36,7 @@ pub struct Config {
     /// The binary to actually execute.
     pub program: CommandBuilder,
     /// What to do in case the stdout/stderr output differs from the expected one.
-    pub output_conflict_handling:
-        fn(path: &Path, actual: Vec<u8>, errors: &mut Errors, config: &Config),
+    pub output_conflict_handling: OutputConflictHandling,
     /// The recommended command to bless failing tests.
     pub bless_command: Option<String>,
     /// Where to dump files like the binaries compiled from tests.
@@ -68,6 +67,9 @@ pub struct Config {
     /// the pressing of Ctrl+C will already have cancelled child processes.
     pub abort_check: Arc<AtomicBool>,
 }
+
+/// Function that performs the actual output conflict handling.
+pub type OutputConflictHandling = fn(&Path, Vec<u8>, &mut Errors, &Config);
 
 impl Config {
     /// Create a blank configuration that doesn't do anything interesting
@@ -200,7 +202,14 @@ impl Config {
 
         config.custom_comments.insert("run", |parser, args, span| {
             let set = |exit_code| {
-                parser.set_custom_once("run", Run { exit_code }, args.span());
+                parser.set_custom_once(
+                    "run",
+                    Run {
+                        exit_code,
+                        output_conflict_handling: None,
+                    },
+                    args.span(),
+                );
                 parser.exit_status = Spanned::new(0, span.clone()).into();
                 parser.require_annotations = Spanned::new(false, span.clone()).into();
 
