@@ -20,7 +20,7 @@ pub use crate::parser::{Comments, Condition, Revisioned};
 use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::{SilentStatus, TestStatus};
 use crate::test_result::{Errored, TestOk, TestResult};
-use crate::{core::strip_path_prefix, Config, Error, Errors, OutputConflictHandling};
+use crate::{core::strip_path_prefix, Config, Error, Errors};
 
 /// All information needed to run a single test
 pub struct TestConfig {
@@ -200,27 +200,7 @@ impl TestConfig {
     pub(crate) fn check_output(&self, output: &[u8], errors: &mut Errors, kind: &str) -> PathBuf {
         let output = self.normalize(output, kind);
         let path = self.output_path(kind);
-        match &self.config.output_conflict_handling {
-            OutputConflictHandling::Error => {
-                let expected_output = std::fs::read(&path).unwrap_or_default();
-                if output != expected_output {
-                    errors.push(Error::OutputDiffers {
-                        path: path.clone(),
-                        actual: output.clone(),
-                        expected: expected_output,
-                        bless_command: self.config.bless_command.clone(),
-                    });
-                }
-            }
-            OutputConflictHandling::Bless => {
-                if output.is_empty() {
-                    let _ = std::fs::remove_file(&path);
-                } else {
-                    std::fs::write(&path, &output).unwrap();
-                }
-            }
-            OutputConflictHandling::Ignore => {}
-        }
+        (self.config.output_conflict_handling)(&path, output, errors, &self.config);
         path
     }
 

@@ -16,7 +16,7 @@ use crate::{
     custom_flags::Flag,
     per_test_config::TestConfig,
     test_result::Errored,
-    CommandBuilder, Config, OutputConflictHandling,
+    CommandBuilder, Config,
 };
 
 #[derive(Default, Debug)]
@@ -100,12 +100,11 @@ fn build_dependencies_inner(
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
     let set_locking = |cmd: &mut Command| {
-        if let OutputConflictHandling::Error = config.output_conflict_handling {
+        if !info.bless_lockfile {
             cmd.arg("--locked");
         }
     };
 
-    set_locking(&mut build);
     build.arg("--message-format=json");
 
     let output = match build.output() {
@@ -365,6 +364,8 @@ pub struct DependencyBuilder {
     /// Build with [`build-std`](https://doc.rust-lang.org/1.78.0/cargo/reference/unstable.html#build-std),
     /// which requires the nightly toolchain. The [`String`] can contain the standard library crates to build.
     pub build_std: Option<String>,
+    /// Whether the lockfile can be overwritten
+    pub bless_lockfile: bool,
 }
 
 impl Default for DependencyBuilder {
@@ -373,6 +374,7 @@ impl Default for DependencyBuilder {
             crate_manifest_path: PathBuf::from("Cargo.toml"),
             program: CommandBuilder::cargo(),
             build_std: None,
+            bless_lockfile: false,
         }
     }
 }

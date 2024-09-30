@@ -4,7 +4,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     let config = Config {
         program: CommandBuilder::cmd("invalid_foobarlaksdfalsdfj"),
         // Never bless integrations-fail tests, we want to see stderr mismatches
-        output_conflict_handling: OutputConflictHandling::Error,
+        output_conflict_handling: ui_test::error_on_output_conflict,
         bless_command: Some("DO NOT BLESS. These are meant to fail".to_string()),
         ..Config::rustc("tests/actual_tests")
     };

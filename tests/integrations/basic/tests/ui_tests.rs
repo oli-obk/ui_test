@@ -4,9 +4,9 @@ fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
     let mut config = Config {
         output_conflict_handling: if std::env::var_os("BLESS").is_some() {
-            OutputConflictHandling::Bless
+            ui_test::bless_output_files
         } else {
-            OutputConflictHandling::Error
+            ui_test::error_on_output_conflict
         },
         bless_command: Some("cargo test".to_string()),
         ..Config::rustc("tests/actual_tests")
@@ -26,7 +26,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
 
     if let Ok(target) = std::env::var("UITEST_TEST_TARGET") {
         config.target = Some(target);
-        config.output_conflict_handling = OutputConflictHandling::Ignore;
+        config.output_conflict_handling = ui_test::ignore_output_conflict;
     }
 
     // hide binaries generated for successfully passing tests

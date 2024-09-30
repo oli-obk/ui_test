@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `only`/`ignore` filters now only accept integers, alphabetic characters, `-` and `_`
 * `only`/ `ignore` filters allow comments by ignoring everything from an `#` onwards
+* `OutputConflictHandling` has been replaced by `error_on_output_conflict`, `bless_output_files`,
+    and `ignore_output_conflict` functions. Custom functions can now be used to implement special
+    handling of output conflicts.
 
 ### Removed
 
