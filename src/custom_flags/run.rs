@@ -2,11 +2,11 @@
 
 use bstr::ByteSlice;
 use spanned::Spanned;
-use std::process::{Command, Output};
+use std::{path::Path, process::Output};
 
 use crate::{
     build_manager::BuildManager, display, per_test_config::TestConfig,
-    status_emitter::RevisionStyle, Error, Errored, TestOk, TestRun,
+    status_emitter::RevisionStyle, CommandBuilder, Error, Errored, TestOk, TestRun,
 };
 
 use super::Flag;
@@ -35,7 +35,7 @@ impl Flag for Run {
         let mut cmd = config.build_command(build_manager)?;
         let exit_code = self.exit_code;
         let revision = config.extension("run");
-        let config = TestConfig {
+        let mut config = TestConfig {
             config: config.config.clone(),
             comments: config.comments.clone(),
             aux_dir: config.aux_dir.clone(),
@@ -57,8 +57,12 @@ impl Flag for Run {
             let file = files.next().unwrap();
             assert_eq!(files.next(), None);
             let file = std::str::from_utf8(file).unwrap();
-            let exe_file = config.config.out_dir.join(file);
-            let mut exe = Command::new(&exe_file);
+            let mut envs = std::mem::take(&mut config.config.program.envs);
+            config.config.program = CommandBuilder::cmd(config.config.out_dir.join(file));
+            envs.extend(config.envs().map(|(k, v)| (k.into(), Some(v.into()))));
+            config.config.program.envs = envs;
+
+            let mut exe = config.config.program.build(Path::new(""));
             let stdin = config
                 .status
                 .path()
@@ -66,9 +70,12 @@ impl Flag for Run {
             if stdin.exists() {
                 exe.stdin(std::fs::File::open(stdin).unwrap());
             }
-            let output = exe
-                .output()
-                .unwrap_or_else(|err| panic!("exe file: {}: {err}", display(&exe_file)));
+            let output = exe.output().unwrap_or_else(|err| {
+                panic!(
+                    "exe file: {}: {err}",
+                    display(&config.config.program.program)
+                )
+            });
 
             if config.aborted() {
                 return TestRun {

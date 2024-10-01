@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `OutputConflictHandling` has been replaced by `error_on_output_conflict`, `bless_output_files`,
     and `ignore_output_conflict` functions. Custom functions can now be used to implement special
     handling of output conflicts.
+* `Run` now forwards env vars passed to the compiler to the executable, too
 
 ### Removed
 

@@ -153,14 +153,7 @@ impl TestConfig {
             }
         }
 
-        // False positive in miri, our `map` uses a ref pattern to get the references to the tuple fields instead
-        // of a reference to a tuple
-        #[allow(clippy::map_identity)]
-        cmd.envs(
-            self.comments()
-                .flat_map(|r| r.env_vars.iter())
-                .map(|(k, v)| (k, v)),
-        );
+        cmd.envs(self.envs());
 
         Ok(cmd)
     }
@@ -425,5 +418,12 @@ impl TestConfig {
 
     pub(crate) fn aborted(&self) -> bool {
         self.config.aborted()
+    }
+
+    /// All the environment variables set for the given revision
+    pub fn envs(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.comments()
+            .flat_map(|r| r.env_vars.iter())
+            .map(|(k, v)| (k.as_ref(), v.as_ref()))
     }
 }
