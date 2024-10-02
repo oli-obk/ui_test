@@ -22,8 +22,10 @@ pub use filter::Match;
 use per_test_config::TestConfig;
 use spanned::Spanned;
 use status_emitter::RevisionStyle;
+use status_emitter::SilentStatus;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::collections::VecDeque;
+use std::panic::AssertUnwindSafe;
 use std::path::Path;
 #[cfg(feature = "rustc")]
 use std::process::Command;
@@ -230,25 +232,26 @@ pub fn run_tests_generic(
                     }
                 } else if let Some(matched) = file_filter(&path, build_manager.config()) {
                     if matched {
-                        let status = status_emitter.register_test(path);
+                        let status = status_emitter.register_test(path.clone());
                         // Forward .rs files to the test workers.
                         submit
                             .send(Box::new(move |finished_files_sender: &Sender<TestRun>| {
-                                let path = status.path();
-                                let file_contents = Spanned::read_from_file(path).unwrap();
+                                let file_contents = Spanned::read_from_file(&path).unwrap();
                                 let mut config = build_manager.config().clone();
                                 let abort_check = config.abort_check.clone();
                                 per_file_config(&mut config, &file_contents);
+                                let status = AssertUnwindSafe(status);
                                 let result = match std::panic::catch_unwind(|| {
+                                    let status = status;
                                     parse_and_test_file(
                                         build_manager,
-                                        &status,
+                                        status.0,
                                         config,
                                         file_contents,
                                     )
                                 }) {
                                     Ok(Ok(res)) => res,
-                                    Ok(Err(err)) => {
+                                    Ok(Err((status, err))) => {
                                         finished_files_sender.send(TestRun {
                                             result: Err(err),
                                             status,
@@ -271,7 +274,10 @@ pub fn run_tests_generic(
                                                 stderr: vec![],
                                                 stdout: vec![],
                                             }),
-                                            status,
+                                            status: Box::new(SilentStatus {
+                                                revision: String::new(),
+                                                path,
+                                            }),
                                             abort_check,
                                         })?;
                                         return Ok(());
@@ -360,44 +366,65 @@ pub fn run_tests_generic(
 
 fn parse_and_test_file(
     build_manager: Arc<BuildManager>,
-    status: &dyn TestStatus,
+    status: Box<dyn TestStatus>,
     config: Config,
     file_contents: Spanned<Vec<u8>>,
-) -> Result<Vec<TestRun>, Errored> {
-    let comments = Comments::parse(file_contents.as_ref(), &config)
-        .map_err(|errors| Errored::new(errors, "parse comments"))?;
+) -> Result<Vec<TestRun>, (Box<dyn TestStatus>, Errored)> {
+    let comments = match Comments::parse(file_contents.as_ref(), &config) {
+        Ok(t) => t,
+        Err(errors) => return Err((status, Errored::new(errors, "parse comments"))),
+    };
     let comments = Arc::new(comments);
-    const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
-    let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
     let mut runs = vec![];
-    for revision in revisions {
-        let status = status.for_revision(revision, RevisionStyle::Show);
-        // Ignore file if only/ignore rules do (not) apply
-        if !config.test_file_conditions(&comments, revision) {
-            runs.push(TestRun {
-                result: Ok(TestOk::Ignored),
-                status,
-                abort_check: config.abort_check.clone(),
-            });
-            continue;
+    for i in 0.. {
+        match comments.revisions.as_deref() {
+            Some(revisions) => {
+                let Some(revision) = revisions.get(i) else {
+                    status.done(&Ok(TestOk::Ok), build_manager.aborted());
+                    break;
+                };
+                let status = status.for_revision(revision, RevisionStyle::Show);
+                test_file(&config, &comments, status, &mut runs, &build_manager)
+            }
+            None => {
+                test_file(&config, &comments, status, &mut runs, &build_manager);
+                break;
+            }
         }
-
-        let mut test_config = TestConfig {
-            config: config.clone(),
-            comments: comments.clone(),
-            aux_dir: status.path().parent().unwrap().join("auxiliary"),
-            status,
-        };
-
-        let result = test_config.run_test(&build_manager);
-        runs.push(TestRun {
-            result,
-            status: test_config.status,
-            abort_check: test_config.config.abort_check,
-        })
     }
     Ok(runs)
+}
+
+fn test_file(
+    config: &Config,
+    comments: &Arc<Comments>,
+    status: Box<dyn TestStatus>,
+    runs: &mut Vec<TestRun>,
+    build_manager: &Arc<BuildManager>,
+) {
+    if !config.test_file_conditions(comments, status.revision()) {
+        runs.push(TestRun {
+            result: Ok(TestOk::Ignored),
+            status,
+            abort_check: config.abort_check.clone(),
+        });
+        return;
+    }
+    let mut test_config = TestConfig {
+        config: config.clone(),
+        comments: comments.clone(),
+        aux_dir: status.path().parent().unwrap().join("auxiliary"),
+        status,
+    };
+    let result = test_config.run_test(build_manager);
+    // Ignore file if only/ignore rules do (not) apply
+
+    runs.push(TestRun {
+        result,
+        status: test_config.status,
+        abort_check: test_config.config.abort_check,
+    });
 }
 
 fn display(path: &Path) -> String {

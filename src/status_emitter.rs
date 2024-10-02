@@ -15,13 +15,15 @@ use crate::{
     Error, Errors, Format,
 };
 use std::{
-    collections::HashMap,
     fmt::{Debug, Display, Write as _},
     io::Write as _,
     num::NonZeroUsize,
     panic::RefUnwindSafe,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    },
     thread::JoinHandle,
     time::Duration,
 };
@@ -30,7 +32,7 @@ use std::{
 pub trait StatusEmitter: Sync + RefUnwindSafe {
     /// Invoked the moment we know a test will later be run.
     /// Useful for progress bars and such.
-    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus>;
+    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus + 'static>;
 
     /// Create a report about the entire test run at the end.
     #[allow(clippy::type_complexity)]
@@ -191,12 +193,12 @@ impl JoinOnDrop {
 #[derive(Debug)]
 enum Msg {
     Pop {
-        msg: String,
         new_leftover_msg: String,
-        parent: String,
+        id: usize,
     },
     Push {
-        parent: String,
+        id: usize,
+        parent: usize,
         msg: String,
     },
     Finish,
@@ -215,94 +217,132 @@ impl Text {
                 }
             };
 
+            #[derive(Debug)]
+            struct Thread {
+                parent: usize,
+                spinner: ProgressBar,
+                /// Used for sanity assertions only
+                done: bool,
+            }
+
             struct ProgressHandler {
-                // The bools signal whether the progress bar is done (used for sanity assertions only)
-                threads: HashMap<String, HashMap<String, (ProgressBar, bool)>>,
+                threads: Vec<Option<Thread>>,
                 aborted: bool,
                 bars: MultiProgress,
-                progress: ProgressBar,
             }
 
             impl ProgressHandler {
-                fn pop(&mut self, msg: String, new_leftover_msg: String, parent: String) {
-                    let Some(children) = self.threads.get_mut(&parent) else {
+                fn parents(&self, mut id: usize) -> impl Iterator<Item = usize> + '_ {
+                    std::iter::from_fn(move || {
+                        let parent = self.threads[id].as_ref().unwrap().parent;
+                        if parent == 0 {
+                            None
+                        } else {
+                            id = parent;
+                            Some(parent)
+                        }
+                    })
+                }
+
+                fn root(&self, id: usize) -> usize {
+                    self.parents(id).last().unwrap_or(id)
+                }
+
+                fn tree(&self, id: usize) -> impl Iterator<Item = (usize, &Thread)> {
+                    let root = self.root(id);
+                    // No need to look at the entries before `root`, as child nodes
+                    // are always after parent nodes.
+                    self.threads
+                        .iter()
+                        .filter_map(|t| t.as_ref())
+                        .enumerate()
+                        .skip(root - 1)
+                        .filter(move |&(i, t)| {
+                            root == if t.parent == 0 {
+                                i
+                            } else {
+                                self.root(t.parent)
+                            }
+                        })
+                }
+
+                fn tree_done(&self, id: usize) -> bool {
+                    self.tree(id).all(|(_, t)| t.done)
+                }
+
+                fn pop(&mut self, new_leftover_msg: String, id: usize) {
+                    assert_ne!(id, 0);
+                    let Some(Some(thread)) = self.threads.get_mut(id) else {
                         // This can happen when a test was not run at all, because it failed directly during
                         // comment parsing.
                         return;
                     };
-                    self.progress.inc(1);
-                    let Some((spinner, done)) = children.get_mut(&msg) else {
-                        panic!("pop: {parent}({msg}): {children:#?}")
-                    };
-                    *done = true;
-                    let spinner = spinner.clone();
+                    thread.done = true;
+                    let spinner = thread.spinner.clone();
                     spinner.finish_with_message(new_leftover_msg);
-                    let parent = children[""].0.clone();
-                    if children.values().all(|&(_, done)| done) {
-                        self.bars.remove(&parent);
-                        if self.progress.is_hidden() {
-                            self.bars
-                                .println(format!("{} {}", parent.prefix(), parent.message()))
-                                .unwrap();
-                        }
-                        for (msg, (child, _)) in children.iter() {
-                            if !msg.is_empty() {
-                                self.bars.remove(child);
-                                if self.progress.is_hidden() {
-                                    self.bars
-                                        .println(format!(
-                                            "  {} {}",
-                                            child.prefix(),
-                                            child.message()
-                                        ))
-                                        .unwrap();
-                                }
+                    let progress = &self.threads[0].as_ref().unwrap().spinner;
+                    progress.inc(1);
+                    if self.tree_done(id) {
+                        for (_, thread) in self.tree(id) {
+                            self.bars.remove(&thread.spinner);
+                            if progress.is_hidden() {
+                                self.bars
+                                    .println(format!(
+                                        "{} {}",
+                                        thread.spinner.prefix(),
+                                        thread.spinner.message()
+                                    ))
+                                    .unwrap();
                             }
                         }
                     }
                 }
 
-                fn push(&mut self, parent: String, msg: String) {
-                    self.progress.inc_length(1);
-                    let children = self.threads.entry(parent.clone()).or_default();
-                    if !msg.is_empty() {
-                        let parent = &children
-                            .entry(String::new())
-                            .or_insert_with(|| {
-                                let spinner = self
-                                    .bars
-                                    .add(ProgressBar::new_spinner().with_prefix(parent));
-                                spinner.set_style(
-                                    ProgressStyle::with_template("{prefix} {msg}").unwrap(),
-                                );
-                                (spinner, true)
-                            })
-                            .0;
-                        let spinner = self.bars.insert_after(
-                            parent,
-                            ProgressBar::new_spinner().with_prefix(msg.clone()),
-                        );
-                        spinner.set_style(
-                            ProgressStyle::with_template("  {prefix} {spinner} {msg}").unwrap(),
-                        );
-                        children.insert(msg, (spinner, false));
+                fn push(&mut self, parent: usize, id: usize, mut msg: String) {
+                    assert!(parent < id);
+                    self.threads[0].as_mut().unwrap().spinner.inc_length(1);
+                    if self.threads.len() <= id {
+                        self.threads.resize_with(id + 1, || None);
+                    }
+                    let parents = if parent == 0 {
+                        0
                     } else {
-                        let spinner = self
-                            .bars
-                            .add(ProgressBar::new_spinner().with_prefix(parent));
-                        spinner.set_style(
-                            ProgressStyle::with_template("{prefix} {spinner} {msg}").unwrap(),
-                        );
-                        children.insert(msg, (spinner, false));
+                        self.parents(parent).count() + 1
                     };
+                    for _ in 0..parents {
+                        msg.insert_str(0, "  ");
+                    }
+                    let spinner = ProgressBar::new_spinner().with_prefix(msg);
+                    let spinner = if parent == 0 {
+                        self.bars.add(spinner)
+                    } else {
+                        let last = self
+                            .threads
+                            .iter()
+                            .enumerate()
+                            .rev()
+                            .filter_map(|(i, t)| Some((i, t.as_ref()?)))
+                            .find(|&(i, _)| self.parents(i).any(|p| p == parent))
+                            .map(|(_, thread)| thread)
+                            .unwrap_or_else(|| self.threads[parent].as_ref().unwrap());
+                        self.bars.insert_after(&last.spinner, spinner)
+                    };
+                    spinner.set_style(
+                        ProgressStyle::with_template("{prefix} {spinner}{msg}").unwrap(),
+                    );
+                    let thread = &mut self.threads[id];
+                    assert!(thread.is_none());
+                    let _ = thread.insert(Thread {
+                        parent,
+                        spinner,
+                        done: false,
+                    });
                 }
 
                 fn tick(&self) {
-                    for children in self.threads.values() {
-                        for (spinner, done) in children.values() {
-                            if !done {
-                                spinner.tick();
-                            }
+                    for thread in self.threads.iter().flatten() {
+                        if !thread.done {
+                            thread.spinner.tick();
                         }
                     }
                 }
@@ -310,30 +350,39 @@ impl Text {
 
             impl Drop for ProgressHandler {
                 fn drop(&mut self) {
-                    for (key, children) in self.threads.iter() {
-                        for (sub_key, (_child, done)) in children {
-                            assert!(done, "{key} ({sub_key}) not finished");
+                    let progress = self.threads[0].as_ref().unwrap();
+                    for (key, thread) in self.threads.iter().skip(1).enumerate() {
+                        if let Some(thread) = thread {
+                            assert!(
+                                thread.done,
+                                "{key} ({}: {}) not finished",
+                                thread.spinner.prefix(),
+                                thread.spinner.message()
+                            );
                         }
                     }
                     if self.aborted {
-                        self.progress.abandon();
+                        progress.spinner.abandon();
                     } else {
                         assert_eq!(
-                            Some(self.progress.position()),
-                            self.progress.length(),
+                            Some(progress.spinner.position()),
+                            progress.spinner.length(),
                             "{:#?}",
                             self.threads
                         );
-                        self.progress.finish();
+                        progress.spinner.finish();
                     }
                 }
             }
 
             let mut handler = ProgressHandler {
-                threads: Default::default(),
+                threads: vec![Some(Thread {
+                    parent: 0,
+                    spinner: progress,
+                    done: false,
+                })],
                 aborted: false,
                 bars,
-                progress,
             };
 
             'outer: loop {
@@ -342,15 +391,14 @@ impl Text {
                     match receiver.try_recv() {
                         Ok(val) => match val {
                             Msg::Pop {
-                                msg,
+                                id,
                                 new_leftover_msg,
-                                parent,
                             } => {
-                                handler.pop(msg, new_leftover_msg, parent);
+                                handler.pop(new_leftover_msg, id);
                             }
 
-                            Msg::Push { parent, msg } => {
-                                handler.push(parent, msg);
+                            Msg::Push { parent, msg, id } => {
+                                handler.push(parent, id, msg);
                             }
                             Msg::Finish => break 'outer,
                             Msg::Abort => handler.aborted = true,
@@ -399,11 +447,14 @@ impl From<Format> for Text {
 
 struct TextTest {
     text: Text,
-    parent: String,
+    parent: usize,
+    id: usize,
     path: PathBuf,
     revision: String,
     style: RevisionStyle,
 }
+
+static ID_GENERATOR: AtomicUsize = AtomicUsize::new(1);
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult, aborted: bool) {
@@ -434,13 +485,8 @@ impl TestStatus for TextTest {
         self.text
             .sender
             .send(Msg::Pop {
-                msg: if self.revision.is_empty() && display(&self.path) != self.parent {
-                    display(&self.path)
-                } else {
-                    self.revision.clone()
-                },
+                id: self.id,
                 new_leftover_msg,
-                parent: self.parent.clone(),
             })
             .unwrap();
     }
@@ -499,21 +545,22 @@ impl TestStatus for TextTest {
         let text = Self {
             text: self.text.clone(),
             path: self.path.clone(),
-            parent: self.parent.clone(),
+            parent: self.id,
+            id: ID_GENERATOR.fetch_add(1, Ordering::Relaxed),
             revision: revision.to_owned(),
             style,
         };
-        self.text
-            .sender
-            .send(Msg::Push {
-                parent: self.parent.clone(),
-                msg: if revision.is_empty() && display(&self.path) != self.parent {
-                    display(&self.path)
-                } else {
-                    text.revision.clone()
-                },
-            })
-            .unwrap();
+        // We already created the base entry
+        if !revision.is_empty() {
+            self.text
+                .sender
+                .send(Msg::Push {
+                    parent: text.parent,
+                    id: text.id,
+                    msg: text.revision.clone(),
+                })
+                .unwrap();
+        }
 
         Box::new(text)
     }
@@ -522,7 +569,8 @@ impl TestStatus for TextTest {
         let text = Self {
             text: self.text.clone(),
             path: path.to_path_buf(),
-            parent: self.parent.clone(),
+            parent: self.id,
+            id: ID_GENERATOR.fetch_add(1, Ordering::Relaxed),
             revision: String::new(),
             style: RevisionStyle::Show,
         };
@@ -530,7 +578,8 @@ impl TestStatus for TextTest {
         self.text
             .sender
             .send(Msg::Push {
-                parent: self.parent.clone(),
+                id: text.id,
+                parent: text.parent,
                 msg: display(path),
             })
             .unwrap();
@@ -544,9 +593,18 @@ impl TestStatus for TextTest {
 
 impl StatusEmitter for Text {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
+        let id = ID_GENERATOR.fetch_add(1, Ordering::Relaxed);
+        self.sender
+            .send(Msg::Push {
+                id,
+                parent: 0,
+                msg: display(&path),
+            })
+            .unwrap();
         Box::new(TextTest {
             text: self.clone(),
-            parent: display(&path),
+            parent: 0,
+            id,
             path,
             revision: String::new(),
             style: RevisionStyle::Show,

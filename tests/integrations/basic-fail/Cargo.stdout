@@ -478,28 +478,37 @@ tests/actual_tests_bless/normalization_override.rs ... ok
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/pass_with_annotation.rs ... FAILED
 tests/actual_tests_bless/revised_revision.rs ... FAILED
+tests/actual_tests_bless/revisioned_executable.rs ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `run`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `run.run`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic.run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run.run`) ... FAILED
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic.run`) ... ok
+tests/actual_tests_bless/revisions.rs ... ok
 tests/actual_tests_bless/revisions.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_bad.rs ... ok
 tests/actual_tests_bless/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) ... FAILED
+tests/actual_tests_bless/revisions_filter.rs ... ok
 tests/actual_tests_bless/revisions_filter.rs (revision `foo`) ... ignored (in-test comment)
 tests/actual_tests_bless/revisions_filter.rs (revision `bar`) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter2.rs ... ok
 tests/actual_tests_bless/revisions_filter2.rs (revision `foo`) ... ignored (in-test comment)
 tests/actual_tests_bless/revisions_filter2.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `bar`) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
 tests/actual_tests_bless/run_panic.rs (revision `run`) ... ok
+tests/actual_tests_bless/rustfix-fail-revisions.rs ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.a.fixed ... FAILED
@@ -1083,6 +1092,7 @@ FAILURES:
 test result: FAIL. 23 failed; 26 passed; 3 ignored
 
 Building dependencies ... ok
+tests/actual_tests_bless_yolo/revisions_bad.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
