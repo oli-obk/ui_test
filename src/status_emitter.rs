@@ -28,6 +28,8 @@ use std::{
     time::Duration,
 };
 
+pub mod debug;
+
 /// A generic way to handle the output of this crate.
 pub trait StatusEmitter: Sync + RefUnwindSafe {
     /// Invoked the moment we know a test will later be run.
@@ -217,12 +219,24 @@ impl Text {
                 }
             };
 
-            #[derive(Debug)]
             struct Thread {
                 parent: usize,
                 spinner: ProgressBar,
                 /// Used for sanity assertions only
                 done: bool,
+            }
+
+            impl Debug for Thread {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    f.debug_struct("Thread")
+                        .field("parent", &self.parent)
+                        .field(
+                            "spinner",
+                            &format_args!("{}: {}", self.spinner.prefix(), self.spinner.message()),
+                        )
+                        .field("done", &self.done)
+                        .finish()
+                }
             }
 
             struct ProgressHandler {
@@ -367,7 +381,7 @@ impl Text {
                         assert_eq!(
                             Some(progress.spinner.position()),
                             progress.spinner.length(),
-                            "{:#?}",
+                            "{:?}",
                             self.threads
                         );
                         progress.spinner.finish();
