@@ -1,15 +1,6 @@
 //! All the logic needed to run rustfix on a test that failed compilation
 
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-    process::Output,
-    sync::Arc,
-};
-
-use rustfix::{CodeFix, Filter, Suggestion};
-use spanned::{Span, Spanned};
-
+use super::Flag;
 use crate::{
     build_manager::BuildManager,
     display,
@@ -17,8 +8,14 @@ use crate::{
     per_test_config::{Comments, Revisioned, TestConfig},
     Error, Errored, TestOk, TestRun,
 };
-
-use super::Flag;
+use rustfix::{CodeFix, Filter, Suggestion};
+use spanned::{Span, Spanned};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+    process::Output,
+    sync::Arc,
+};
 
 /// When to run rustfix on tests
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

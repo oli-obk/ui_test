@@ -1,12 +1,11 @@
 //! Datastructures and operations used for normalizing test output.
 
+use crate::display;
 use bstr::ByteSlice;
 use regex::bytes::{Captures, Regex};
 use std::borrow::Cow;
 use std::path::Path;
 use std::sync::OnceLock;
-
-use crate::display;
 
 /// A filter's match rule.
 #[derive(Clone, Debug)]

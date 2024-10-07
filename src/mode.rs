@@ -1,8 +1,6 @@
-use spanned::Spanned;
-
-use crate::{per_test_config::TestConfig, Errored};
-
 use super::Error;
+use crate::{per_test_config::TestConfig, Errored};
+use spanned::Spanned;
 use std::process::ExitStatus;
 
 impl TestConfig {

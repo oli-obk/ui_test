@@ -1,5 +1,12 @@
 //! Use `cargo` to build dependencies and make them available in your tests
 
+use crate::{
+    build_manager::{Build, BuildManager},
+    custom_flags::Flag,
+    per_test_config::TestConfig,
+    test_result::Errored,
+    CommandBuilder, Config,
+};
 use bstr::ByteSlice;
 use cargo_metadata::{camino::Utf8PathBuf, BuildScript, DependencyKind};
 use cargo_platform::Cfg;
@@ -9,14 +16,6 @@ use std::{
     path::PathBuf,
     process::Command,
     str::FromStr,
-};
-
-use crate::{
-    build_manager::{Build, BuildManager},
-    custom_flags::Flag,
-    per_test_config::TestConfig,
-    test_result::Errored,
-    CommandBuilder, Config,
 };
 
 #[derive(Default, Debug)]

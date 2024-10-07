@@ -7,6 +7,7 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
+use crate::parser::Comments;
 use build_manager::BuildManager;
 use build_manager::NewJob;
 pub use color_eyre;
@@ -33,8 +34,6 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
-
-use crate::parser::Comments;
 
 pub mod aux_builds;
 pub mod build_manager;
@@ -64,7 +63,6 @@ mod tests;
 pub use cmd::*;
 pub use config::*;
 pub use error::*;
-
 pub use spanned;
 
 /// Run all tests as described in the config argument.

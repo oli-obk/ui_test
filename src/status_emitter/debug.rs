@@ -1,8 +1,7 @@
 //! A debug emitter for when things get stuck. Mostly useful for debugging of ui_test itself
 
-use std::path::{Path, PathBuf};
-
 use crate::Error;
+use std::path::{Path, PathBuf};
 
 /// Very verbose status emitter
 pub struct StatusEmitter;

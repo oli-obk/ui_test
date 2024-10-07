@@ -1,18 +1,16 @@
 //! Auxiliary and dependency builder. Extendable to custom builds.
 
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    ffi::OsString,
-    sync::{Arc, OnceLock, RwLock},
-};
-
-use color_eyre::eyre::Result;
-use crossbeam_channel::{bounded, Sender};
-
 use crate::{
     status_emitter::{RevisionStyle, TestStatus},
     test_result::TestRun,
     Config, Errored,
+};
+use color_eyre::eyre::Result;
+use crossbeam_channel::{bounded, Sender};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    ffi::OsString,
+    sync::{Arc, OnceLock, RwLock},
 };
 
 /// A build shared between all tests of the same `BuildManager`

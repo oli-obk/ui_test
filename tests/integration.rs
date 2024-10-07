@@ -1,5 +1,4 @@
 use std::path::Path;
-
 use ui_test::{spanned::Spanned, *};
 
 fn main() -> Result<()> {

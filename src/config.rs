@@ -1,6 +1,3 @@
-use regex::bytes::Regex;
-use spanned::Spanned;
-
 #[cfg(feature = "rustc")]
 use crate::{
     aux_builds::AuxBuilder, custom_flags::run::Run, custom_flags::rustfix::RustfixMode,
@@ -14,6 +11,8 @@ use crate::{
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
+use regex::bytes::Regex;
+use spanned::Spanned;
 use std::{
     collections::BTreeMap,
     num::NonZeroUsize,

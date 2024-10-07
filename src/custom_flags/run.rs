@@ -1,15 +1,14 @@
 //! Types used for running tests after they pass compilation
 
+use super::Flag;
+use crate::{
+    build_manager::BuildManager, display, per_test_config::TestConfig,
+    status_emitter::RevisionStyle, CommandBuilder, Error, Errored, OutputConflictHandling, TestOk,
+    TestRun,
+};
 use bstr::ByteSlice;
 use spanned::Spanned;
 use std::{path::Path, process::Output};
-
-use crate::{
-    build_manager::BuildManager, display, per_test_config::TestConfig,
-    status_emitter::RevisionStyle, CommandBuilder, Error, Errored, OutputConflictHandling, TestOk, TestRun,
-};
-
-use super::Flag;
 
 #[derive(Debug, Copy, Clone)]
 /// Run a test after successfully compiling it

@@ -1,11 +1,8 @@
-use std::path::PathBuf;
-
-use spanned::{Span, Spanned};
-
+use super::*;
 use crate::diagnostics::Level;
 use crate::diagnostics::Message;
-
-use super::*;
+use spanned::{Span, Spanned};
+use std::path::PathBuf;
 
 fn config() -> Config {
     Config {

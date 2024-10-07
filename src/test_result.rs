@@ -1,9 +1,8 @@
 //! Various data structures used for carrying information about test success or failure
 
-use std::sync::{atomic::AtomicBool, Arc};
-
 use crate::{status_emitter::TestStatus, Error};
 use color_eyre::eyre::Result;
+use std::sync::{atomic::AtomicBool, Arc};
 
 /// The possible non-failure results a single test can have.
 #[derive(Debug)]

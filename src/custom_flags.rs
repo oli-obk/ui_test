@@ -1,12 +1,11 @@
 //! Define custom test flags not natively supported by ui_test
 
+use crate::{
+    build_manager::BuildManager, parser::Comments, per_test_config::TestConfig, Config, Errored,
+};
 use std::{
     panic::{RefUnwindSafe, UnwindSafe},
     process::{Command, Output},
-};
-
-use crate::{
-    build_manager::BuildManager, parser::Comments, per_test_config::TestConfig, Config, Errored,
 };
 
 #[cfg(feature = "rustc")]

@@ -3,15 +3,6 @@
 //! in the files. These comments still overwrite the defaults, although
 //! some boolean settings have no way to disable them.
 
-use std::collections::btree_map::Entry;
-use std::collections::BTreeMap;
-use std::num::NonZeroUsize;
-use std::path::PathBuf;
-use std::process::{Command, Output};
-use std::sync::Arc;
-
-use spanned::Spanned;
-
 use crate::build_manager::BuildManager;
 use crate::custom_flags::Flag;
 pub use crate::diagnostics::Level;
@@ -21,6 +12,13 @@ use crate::parser::{ErrorMatch, ErrorMatchKind, OptWithLine};
 use crate::status_emitter::{SilentStatus, TestStatus};
 use crate::test_result::{Errored, TestOk, TestResult};
 use crate::{core::strip_path_prefix, Config, Error, Errors};
+use spanned::Spanned;
+use std::collections::btree_map::Entry;
+use std::collections::BTreeMap;
+use std::num::NonZeroUsize;
+use std::path::PathBuf;
+use std::process::{Command, Output};
+use std::sync::Arc;
 
 /// All information needed to run a single test
 pub struct TestConfig {

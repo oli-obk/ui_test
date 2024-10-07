@@ -1,12 +1,5 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
-use annotate_snippets::{Renderer, Snippet};
-use bstr::ByteSlice;
-use colored::Colorize;
-use crossbeam_channel::{Sender, TryRecvError};
-use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
-use spanned::{Span, Spanned};
-
 use crate::{
     diagnostics::{Level, Message},
     display, github_actions,
@@ -14,6 +7,12 @@ use crate::{
     test_result::{Errored, TestOk, TestResult},
     Error, Errors, Format,
 };
+use annotate_snippets::{Renderer, Snippet};
+use bstr::ByteSlice;
+use colored::Colorize;
+use crossbeam_channel::{Sender, TryRecvError};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use spanned::{Span, Spanned};
 use std::{
     fmt::{Debug, Display, Write as _},
     io::Write as _,
