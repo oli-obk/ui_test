@@ -47,6 +47,8 @@ pub struct Text {
     progress: OutputVerbosity,
     #[cfg(feature = "indicatif")]
     handle: Arc<JoinOnDrop>,
+    #[cfg(feature = "indicatif")]
+    ids: Arc<AtomicUsize>,
 }
 
 #[cfg(feature = "indicatif")]
@@ -316,6 +318,7 @@ impl Text {
             progress,
             #[cfg(feature = "indicatif")]
             handle: Arc::new(handle.into()),
+            ids: Arc::new(AtomicUsize::new(1)),
         }
     }
 
@@ -356,9 +359,6 @@ struct TextTest {
     revision: String,
     style: RevisionStyle,
 }
-
-#[cfg(feature = "indicatif")]
-static ID_GENERATOR: AtomicUsize = AtomicUsize::new(1);
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult, aborted: bool) {
@@ -458,7 +458,7 @@ impl TestStatus for TextTest {
             #[cfg(feature = "indicatif")]
             parent: self.id,
             #[cfg(feature = "indicatif")]
-            id: ID_GENERATOR.fetch_add(1, Ordering::Relaxed),
+            id: self.text.ids.fetch_add(1, Ordering::Relaxed),
             revision: revision.to_owned(),
             style,
         };
@@ -485,7 +485,7 @@ impl TestStatus for TextTest {
             #[cfg(feature = "indicatif")]
             parent: self.id,
             #[cfg(feature = "indicatif")]
-            id: ID_GENERATOR.fetch_add(1, Ordering::Relaxed),
+            id: self.text.ids.fetch_add(1, Ordering::Relaxed),
             revision: String::new(),
             style: RevisionStyle::Show,
         };
@@ -510,7 +510,7 @@ impl TestStatus for TextTest {
 impl StatusEmitter for Text {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
         #[cfg(feature = "indicatif")]
-        let id = ID_GENERATOR.fetch_add(1, Ordering::Relaxed);
+        let id = self.ids.fetch_add(1, Ordering::Relaxed);
         #[cfg(feature = "indicatif")]
         self.sender
             .send(Msg::Push {
