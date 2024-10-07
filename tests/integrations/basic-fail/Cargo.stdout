@@ -478,28 +478,37 @@ tests/actual_tests_bless/normalization_override.rs ... ok
 tests/actual_tests_bless/pass.rs ... ok
 tests/actual_tests_bless/pass_with_annotation.rs ... FAILED
 tests/actual_tests_bless/revised_revision.rs ... FAILED
+tests/actual_tests_bless/revisioned_executable.rs ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `run`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `run.run`) ... ok
 tests/actual_tests_bless/revisioned_executable.rs (revision `panic.run`) ... FAILED
+tests/actual_tests_bless/revisioned_executable_panic.rs ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run`) ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic`) ... ok
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `run.run`) ... FAILED
 tests/actual_tests_bless/revisioned_executable_panic.rs (revision `panic.run`) ... ok
+tests/actual_tests_bless/revisions.rs ... ok
 tests/actual_tests_bless/revisions.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_bad.rs ... ok
 tests/actual_tests_bless/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) ... FAILED
+tests/actual_tests_bless/revisions_filter.rs ... ok
 tests/actual_tests_bless/revisions_filter.rs (revision `foo`) ... ignored (in-test comment)
 tests/actual_tests_bless/revisions_filter.rs (revision `bar`) ... ignored (in-test comment)
+tests/actual_tests_bless/revisions_filter2.rs ... ok
 tests/actual_tests_bless/revisions_filter2.rs (revision `foo`) ... ignored (in-test comment)
 tests/actual_tests_bless/revisions_filter2.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_multiple_per_annotation.rs ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_multiple_per_annotation.rs (revision `bar`) ... ok
+tests/actual_tests_bless/revisions_same_everywhere.rs ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_same_everywhere.rs (revision `bar`) ... ok
 tests/actual_tests_bless/run_panic.rs ... ok
 tests/actual_tests_bless/run_panic.rs (revision `run`) ... ok
+tests/actual_tests_bless/rustfix-fail-revisions.rs ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.a.fixed ... FAILED
@@ -549,7 +558,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/aux_proc_macro_no_main.rs
-command: "rustc" "--error-format=json" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--extern" "the_proc_macro=$DIR/tests/integrations/basic-fail/../../../target/$TMP/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/tests/actual_tests_bless/auxiliary" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+command: "rustc" "--error-format=json" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--extern" "the_proc_macro=$DIR/tests/integrations/basic-fail/../../../target/$TMP/0/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/0/tests/actual_tests_bless/auxiliary" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
 error: there were 1 unmatched diagnostics
  --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:8
@@ -817,7 +826,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/revisions_bad.rs (revision `bar`)
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "-Cextra-filename=bar" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
 error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
  --> tests/actual_tests_bless/revisions_bad.rs:4:31
@@ -1083,6 +1092,7 @@ FAILURES:
 test result: FAIL. 23 failed; 26 passed; 3 ignored
 
 Building dependencies ... ok
+tests/actual_tests_bless_yolo/revisions_bad.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok

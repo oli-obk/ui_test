@@ -1,19 +1,22 @@
 //! Types used for running tests after they pass compilation
 
-use bstr::ByteSlice;
-use spanned::Spanned;
-use std::process::{Command, Output};
-
+use super::Flag;
 use crate::{
     build_manager::BuildManager, display, per_test_config::TestConfig,
-    status_emitter::RevisionStyle, Error, Errored, TestOk, TestRun,
+    status_emitter::RevisionStyle, CommandBuilder, Error, Errored, OutputConflictHandling, TestOk,
+    TestRun,
 };
-
-use super::Flag;
+use bstr::ByteSlice;
+use spanned::Spanned;
+use std::{path::Path, process::Output};
 
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct Run {
+/// Run a test after successfully compiling it
+pub struct Run {
+    /// The exit code that the test is expected to emit.
     pub exit_code: i32,
+    /// How to handle output conflicts
+    pub output_conflict_handling: Option<OutputConflictHandling>,
 }
 
 impl Flag for Run {
@@ -33,12 +36,15 @@ impl Flag for Run {
         let mut cmd = config.build_command(build_manager)?;
         let exit_code = self.exit_code;
         let revision = config.extension("run");
-        let config = TestConfig {
+        let mut config = TestConfig {
             config: config.config.clone(),
             comments: config.comments.clone(),
             aux_dir: config.aux_dir.clone(),
             status: config.status.for_revision(&revision, RevisionStyle::Show),
         };
+        if let Some(och) = self.output_conflict_handling {
+            config.config.output_conflict_handling = och;
+        }
         build_manager.add_new_job(move || {
             cmd.arg("--print").arg("file-names");
             let output = cmd.output().unwrap();
@@ -55,8 +61,12 @@ impl Flag for Run {
             let file = files.next().unwrap();
             assert_eq!(files.next(), None);
             let file = std::str::from_utf8(file).unwrap();
-            let exe_file = config.config.out_dir.join(file);
-            let mut exe = Command::new(&exe_file);
+            let mut envs = std::mem::take(&mut config.config.program.envs);
+            config.config.program = CommandBuilder::cmd(config.config.out_dir.join(file));
+            envs.extend(config.envs().map(|(k, v)| (k.into(), Some(v.into()))));
+            config.config.program.envs = envs;
+
+            let mut exe = config.config.program.build(Path::new(""));
             let stdin = config
                 .status
                 .path()
@@ -64,9 +74,12 @@ impl Flag for Run {
             if stdin.exists() {
                 exe.stdin(std::fs::File::open(stdin).unwrap());
             }
-            let output = exe
-                .output()
-                .unwrap_or_else(|err| panic!("exe file: {}: {err}", display(&exe_file)));
+            let output = exe.output().unwrap_or_else(|err| {
+                panic!(
+                    "exe file: {}: {err}",
+                    display(&config.config.program.program)
+                )
+            });
 
             if config.aborted() {
                 return TestRun {

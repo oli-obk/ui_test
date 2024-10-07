@@ -1,5 +1,12 @@
 //! Use `cargo` to build dependencies and make them available in your tests
 
+use crate::{
+    build_manager::{Build, BuildManager},
+    custom_flags::Flag,
+    per_test_config::TestConfig,
+    test_result::Errored,
+    CommandBuilder, Config,
+};
 use bstr::ByteSlice;
 use cargo_metadata::{camino::Utf8PathBuf, BuildScript, DependencyKind};
 use cargo_platform::Cfg;
@@ -9,14 +16,6 @@ use std::{
     path::PathBuf,
     process::Command,
     str::FromStr,
-};
-
-use crate::{
-    build_manager::{Build, BuildManager},
-    custom_flags::Flag,
-    per_test_config::TestConfig,
-    test_result::Errored,
-    CommandBuilder, Config, OutputConflictHandling,
 };
 
 #[derive(Default, Debug)]
@@ -100,12 +99,11 @@ fn build_dependencies_inner(
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
     let set_locking = |cmd: &mut Command| {
-        if let OutputConflictHandling::Error = config.output_conflict_handling {
+        if !info.bless_lockfile {
             cmd.arg("--locked");
         }
     };
 
-    set_locking(&mut build);
     build.arg("--message-format=json");
 
     let output = match build.output() {
@@ -365,6 +363,8 @@ pub struct DependencyBuilder {
     /// Build with [`build-std`](https://doc.rust-lang.org/1.78.0/cargo/reference/unstable.html#build-std),
     /// which requires the nightly toolchain. The [`String`] can contain the standard library crates to build.
     pub build_std: Option<String>,
+    /// Whether the lockfile can be overwritten
+    pub bless_lockfile: bool,
 }
 
 impl Default for DependencyBuilder {
@@ -373,6 +373,7 @@ impl Default for DependencyBuilder {
             crate_manifest_path: PathBuf::from("Cargo.toml"),
             program: CommandBuilder::cargo(),
             build_std: None,
+            bless_lockfile: false,
         }
     }
 }

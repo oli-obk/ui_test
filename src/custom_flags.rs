@@ -1,11 +1,12 @@
 //! Define custom test flags not natively supported by ui_test
 
+use crate::{
+    build_manager::BuildManager, parser::Comments, per_test_config::TestConfig, Config, Errored,
+};
 use std::{
     panic::{RefUnwindSafe, UnwindSafe},
     process::{Command, Output},
 };
-
-use crate::{build_manager::BuildManager, per_test_config::TestConfig, Config, Errored};
 
 #[cfg(feature = "rustc")]
 pub mod edition;
@@ -29,7 +30,7 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
     }
 
     /// Whether this flag causes a test to be filtered out
-    fn test_condition(&self, _config: &Config) -> bool {
+    fn test_condition(&self, _config: &Config, _comments: &Comments, _revision: &str) -> bool {
         false
     }
 

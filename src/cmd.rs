@@ -1,10 +1,9 @@
+use crate::display;
 use std::{
     ffi::OsString,
     path::{Path, PathBuf},
     process::Command,
 };
-
-use crate::display;
 
 #[derive(Debug, Clone)]
 /// A command, its args and its environment. Used for

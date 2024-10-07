@@ -5,6 +5,6 @@ Location:
 error: test failed, to rerun pass `--test ui`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/ui/tests/integrations/dep-fail/debug/deps/ui-HASH` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/1/tests/integrations/dep-fail/debug/deps/ui-HASH` (exit status: 1)
 error: 1 target failed:
     `--test ui`

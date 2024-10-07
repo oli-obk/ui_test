@@ -1,9 +1,8 @@
+use crate::diagnostics::{Diagnostics, Message};
 use bstr::ByteSlice;
 use cargo_metadata::diagnostic::{Diagnostic, DiagnosticSpan};
 use regex::Regex;
 use std::path::{Path, PathBuf};
-
-use crate::diagnostics::{Diagnostics, Message};
 
 fn diag_line(diag: &Diagnostic, file: &Path) -> Option<(spanned::Span, usize)> {
     let span = |primary| {

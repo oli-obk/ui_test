@@ -4,9 +4,9 @@ fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
     let mut config = Config {
         output_conflict_handling: if std::env::var_os("BLESS").is_some() {
-            OutputConflictHandling::Bless
+            ui_test::bless_output_files
         } else {
-            OutputConflictHandling::Error
+            ui_test::error_on_output_conflict
         },
         bless_command: Some("cargo test".to_string()),
         ..Config::rustc("tests/actual_tests")
@@ -19,7 +19,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
     config.stderr_filter(r"\.exe", "");
-    config.stderr_filter("/target/[^/]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
+    config.stderr_filter("/target/[^/]+/[0-9]+/[^/]+/debug", "/target/$$TMP/$$TRIPLE/debug");
     config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
 
     // hide binaries generated for successfully passing tests

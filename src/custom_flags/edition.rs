@@ -1,8 +1,7 @@
 //! Custom flag for setting the edition for all tests
 
-use crate::{build_manager::BuildManager, per_test_config::TestConfig, Errored};
-
 use super::Flag;
+use crate::{build_manager::BuildManager, per_test_config::TestConfig, Errored};
 
 #[derive(Debug)]
 /// Set the edition of the tests

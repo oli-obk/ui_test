@@ -13,8 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.27.0] - 2024-10-07
+
+### Added
+
+* debug status emitter for when you have problems with ui_test
+* cargo features to disable gha or CLI refreshing 
+
+### Fixed
+
+* CLI refreshing is now reliable and not leaving around fragments
+* Can run multiple `Config`s that test the same files in parallel.
+
+### Changed
+
 * `only`/`ignore` filters now only accept integers, alphabetic characters, `-` and `_`
 * `only`/ `ignore` filters allow comments by ignoring everything from an `#` onwards
+* `OutputConflictHandling` has been replaced by `error_on_output_conflict`, `bless_output_files`,
+    and `ignore_output_conflict` functions. Custom functions can now be used to implement special
+    handling of output conflicts.
+* `Run` now forwards env vars passed to the compiler to the executable, too
 
 ### Removed
 

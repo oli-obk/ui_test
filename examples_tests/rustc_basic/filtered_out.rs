@@ -1,4 +1,4 @@
-//@[foo] only-target-asdfasdf
+//@[foo] only-target: asdfasdf
 
 //@ revisions: foo bar
 

@@ -1,13 +1,10 @@
-use std::path::PathBuf;
-
-use spanned::{Span, Spanned};
-
+use super::Comments;
 use crate::{
     parser::{Condition, ErrorMatchKind, Pattern},
     Config, Error,
 };
-
-use super::Comments;
+use spanned::{Span, Spanned};
+use std::path::PathBuf;
 
 macro_rules! line {
     ($thing:expr, $s:expr) => {{

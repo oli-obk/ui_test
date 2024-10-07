@@ -5,7 +5,7 @@ Location:
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/ui/tests/integrations/basic-fail/debug/deps/ui_tests-HASH` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/1/tests/integrations/basic-fail/debug/deps/ui_tests-HASH` (exit status: 1)
 Error: tests failed
 
 Location:
@@ -13,7 +13,7 @@ Location:
 error: test failed, to rerun pass `--test ui_tests_diff_only`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/ui/tests/integrations/basic-fail/debug/deps/ui_tests_diff_only-HASH` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/1/tests/integrations/basic-fail/debug/deps/ui_tests_diff_only-HASH` (exit status: 1)
 Error: failed to parse rustc version info: invalid_foobarlaksdfalsdfj
 
 Caused by:
@@ -23,7 +23,7 @@ Location:
 error: test failed, to rerun pass `--test ui_tests_invalid_program`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/ui/tests/integrations/basic-fail/debug/deps/ui_tests_invalid_program-HASH` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/1/tests/integrations/basic-fail/debug/deps/ui_tests_invalid_program-HASH` (exit status: 1)
 Error: tests failed
 
 Location:
@@ -31,7 +31,7 @@ Location:
 error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
-  process didn't exit successfully: `$DIR/target/ui/tests/integrations/basic-fail/debug/deps/ui_tests_invalid_program2-HASH` (exit status: 1)
+  process didn't exit successfully: `$DIR/target/ui/1/tests/integrations/basic-fail/debug/deps/ui_tests_invalid_program2-HASH` (exit status: 1)
 error: 4 targets failed:
     `--test ui_tests`
     `--test ui_tests_diff_only`

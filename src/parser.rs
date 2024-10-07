@@ -1,18 +1,14 @@
+use crate::{
+    custom_flags::Flag, diagnostics::Level, filter::Match, test_result::Errored, Config, Error,
+};
+use bstr::{ByteSlice, Utf8Error};
+use color_eyre::eyre::Result;
+use regex::bytes::Regex;
+pub(crate) use spanned::*;
 use std::{
     collections::{BTreeMap, HashMap},
     num::NonZeroUsize,
 };
-
-use bstr::{ByteSlice, Utf8Error};
-use regex::bytes::Regex;
-
-use crate::{
-    custom_flags::Flag, diagnostics::Level, filter::Match, test_result::Errored, Config, Error,
-};
-
-use color_eyre::eyre::Result;
-
-pub(crate) use spanned::*;
 
 mod spanned;
 #[cfg(test)]

@@ -1,10 +1,6 @@
 //! Everything needed to build auxilary files with rustc
 // lol we can't name this file `aux.rs` on windows
 
-use bstr::ByteSlice;
-use spanned::Spanned;
-use std::{ffi::OsString, path::PathBuf, process::Command, sync::Arc};
-
 use crate::{
     build_manager::{Build, BuildManager},
     custom_flags::Flag,
@@ -13,6 +9,9 @@ use crate::{
     status_emitter::SilentStatus,
     CrateType, Error, Errored,
 };
+use bstr::ByteSlice;
+use spanned::Spanned;
+use std::{ffi::OsString, path::PathBuf, process::Command, sync::Arc};
 
 impl Flag for AuxBuilder {
     fn must_be_unique(&self) -> bool {

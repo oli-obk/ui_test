@@ -1,7 +1,9 @@
 #[cfg(feature = "rustc")]
 use std::sync::atomic::Ordering;
 #[cfg(feature = "rustc")]
-use ui_test::{run_tests, Config};
+use ui_test::{
+    default_file_filter, default_per_file_config, run_tests_generic, status_emitter, Config,
+};
 
 #[cfg(feature = "rustc")]
 #[cfg_attr(test, test)]
@@ -13,7 +15,12 @@ fn main() -> ui_test::color_eyre::Result<()> {
     // Compile all `.rs` files in the given directory (relative to your
     // Cargo.toml) and compare their output against the corresponding
     // `.stderr` files.
-    run_tests(config)
+    run_tests_generic(
+        vec![config.clone(), config],
+        default_file_filter,
+        default_per_file_config,
+        status_emitter::Text::verbose(),
+    )
 }
 
 #[cfg(not(feature = "rustc"))]

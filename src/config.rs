@@ -1,6 +1,3 @@
-use regex::bytes::Regex;
-use spanned::Spanned;
-
 #[cfg(feature = "rustc")]
 use crate::{
     aux_builds::AuxBuilder, custom_flags::run::Run, custom_flags::rustfix::RustfixMode,
@@ -10,10 +7,12 @@ use crate::{
     diagnostics::Diagnostics,
     parser::CommandParserFunc,
     per_test_config::{Comments, Condition},
-    CommandBuilder,
+    CommandBuilder, Error, Errors,
 };
 pub use color_eyre;
 use color_eyre::eyre::Result;
+use regex::bytes::Regex;
+use spanned::Spanned;
 use std::{
     collections::BTreeMap,
     num::NonZeroUsize,
@@ -40,7 +39,7 @@ pub struct Config {
     /// The recommended command to bless failing tests.
     pub bless_command: Option<String>,
     /// Where to dump files like the binaries compiled from tests.
-    /// Defaults to `target/ui` in the current directory.
+    /// Defaults to `target/ui/index_of_config` in the current directory.
     pub out_dir: PathBuf,
     /// Skip test files whose names contain any of these entries.
     pub skip_files: Vec<String>,
@@ -68,6 +67,9 @@ pub struct Config {
     pub abort_check: Arc<AtomicBool>,
 }
 
+/// Function that performs the actual output conflict handling.
+pub type OutputConflictHandling = fn(&Path, Vec<u8>, &mut Errors, &Config);
+
 impl Config {
     /// Create a blank configuration that doesn't do anything interesting
     pub fn dummy() -> Self {
@@ -78,7 +80,7 @@ impl Config {
             target: Default::default(),
             root_dir: Default::default(),
             program: CommandBuilder::cmd(""),
-            output_conflict_handling: OutputConflictHandling::Error,
+            output_conflict_handling: error_on_output_conflict,
             bless_command: Default::default(),
             out_dir: Default::default(),
             skip_files: Default::default(),
@@ -117,7 +119,12 @@ impl Config {
             fn clone_inner(&self) -> Box<dyn Flag> {
                 Box::new(NeedsAsmSupport)
             }
-            fn test_condition(&self, config: &Config) -> bool {
+            fn test_condition(
+                &self,
+                config: &Config,
+                _comments: &Comments,
+                _revision: &str,
+            ) -> bool {
                 let target = config.target.as_ref().unwrap();
                 static ASM_SUPPORTED_ARCHS: &[&str] = &[
                     "x86", "x86_64", "arm", "aarch64", "riscv32",
@@ -154,7 +161,7 @@ impl Config {
             target: None,
             root_dir: root_dir.into(),
             program: CommandBuilder::rustc(),
-            output_conflict_handling: OutputConflictHandling::Error,
+            output_conflict_handling: error_on_output_conflict,
             bless_command: None,
             out_dir: std::env::var_os("CARGO_TARGET_DIR")
                 .map(PathBuf::from)
@@ -194,7 +201,14 @@ impl Config {
 
         config.custom_comments.insert("run", |parser, args, span| {
             let set = |exit_code| {
-                parser.set_custom_once("run", Run { exit_code }, args.span());
+                parser.set_custom_once(
+                    "run",
+                    Run {
+                        exit_code,
+                        output_conflict_handling: None,
+                    },
+                    args.span(),
+                );
                 parser.exit_status = Spanned::new(0, span.clone()).into();
                 parser.require_annotations = Spanned::new(false, span.clone()).into();
 
@@ -268,9 +282,9 @@ impl Config {
         self.list = list;
 
         if check {
-            self.output_conflict_handling = OutputConflictHandling::Error;
+            self.output_conflict_handling = error_on_output_conflict;
         } else if bless {
-            self.output_conflict_handling = OutputConflictHandling::Bless;
+            self.output_conflict_handling = bless_output_files;
         }
     }
 
@@ -411,9 +425,12 @@ impl Config {
             return self.run_only_ignored;
         }
         if comments.for_revision(revision).any(|r| {
-            r.custom
-                .values()
-                .any(|flags| flags.content.iter().any(|flag| flag.test_condition(self)))
+            r.custom.values().any(|flags| {
+                flags
+                    .content
+                    .iter()
+                    .any(|flag| flag.test_condition(self, comments, revision))
+            })
         }) {
             return self.run_only_ignored;
         }
@@ -429,16 +446,41 @@ impl Config {
     }
 }
 
-#[derive(Debug, Clone)]
-/// The different options for what to do when stdout/stderr files differ from the actual output.
-pub enum OutputConflictHandling {
-    /// Fail the test when mismatches are found, if provided the command string
-    /// in [`Config::bless_command`] will be suggested as a way to bless the
-    /// test.
-    Error,
-    /// Ignore mismatches in the stderr/stdout files.
-    Ignore,
-    /// Instead of erroring if the stderr/stdout differs from the expected
-    /// automatically replace it with the found output (after applying filters).
-    Bless,
+/// Fail the test when mismatches are found, if provided the command string
+/// in [`Config::bless_command`] will be suggested as a way to bless the
+/// test.
+pub fn error_on_output_conflict(
+    path: &Path,
+    actual: Vec<u8>,
+    errors: &mut Errors,
+    config: &Config,
+) {
+    let expected = std::fs::read(path).unwrap_or_default();
+    if actual != expected {
+        errors.push(Error::OutputDiffers {
+            path: path.to_path_buf(),
+            actual,
+            expected,
+            bless_command: config.bless_command.clone(),
+        });
+    }
+}
+
+/// Ignore mismatches in the stderr/stdout files.
+pub fn ignore_output_conflict(
+    _path: &Path,
+    _actual: Vec<u8>,
+    _errors: &mut Errors,
+    _config: &Config,
+) {
+}
+
+/// Instead of erroring if the stderr/stdout differs from the expected
+/// automatically replace it with the found output (after applying filters).
+pub fn bless_output_files(path: &Path, actual: Vec<u8>, _errors: &mut Errors, _config: &Config) {
+    if actual.is_empty() {
+        let _ = std::fs::remove_file(path);
+    } else {
+        std::fs::write(path, &actual).unwrap();
+    }
 }
