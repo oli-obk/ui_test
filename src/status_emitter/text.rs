@@ -318,6 +318,7 @@ impl Text {
             progress,
             #[cfg(feature = "indicatif")]
             handle: Arc::new(handle.into()),
+            #[cfg(feature = "indicatif")]
             ids: Arc::new(AtomicUsize::new(1)),
         }
     }
