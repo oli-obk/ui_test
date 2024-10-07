@@ -15,23 +15,22 @@ use crate::Format;
 use annotate_snippets::Renderer;
 use annotate_snippets::Snippet;
 use colored::Colorize;
-use crossbeam_channel::Sender;
-use crossbeam_channel::TryRecvError;
-use indicatif::MultiProgress;
-use indicatif::ProgressBar;
-use indicatif::ProgressDrawTarget;
-use indicatif::ProgressStyle;
+#[cfg(feature = "indicatif")]
+use crossbeam_channel::{Sender, TryRecvError};
+#[cfg(feature = "indicatif")]
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use spanned::Span;
 use std::fmt::{Debug, Display};
 use std::io::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::thread::JoinHandle;
-use std::time::Duration;
+
+#[cfg(feature = "indicatif")]
+use std::{
+    sync::{atomic::AtomicUsize, atomic::Ordering, Arc, Mutex},
+    thread::JoinHandle,
+    time::Duration,
+};
 
 #[derive(Clone, Copy)]
 enum OutputVerbosity {
@@ -43,23 +42,29 @@ enum OutputVerbosity {
 /// A human readable output emitter.
 #[derive(Clone)]
 pub struct Text {
+    #[cfg(feature = "indicatif")]
     sender: Sender<Msg>,
     progress: OutputVerbosity,
+    #[cfg(feature = "indicatif")]
     handle: Arc<JoinOnDrop>,
 }
 
+#[cfg(feature = "indicatif")]
 struct JoinOnDrop(Mutex<Option<JoinHandle<()>>>);
+#[cfg(feature = "indicatif")]
 impl From<JoinHandle<()>> for JoinOnDrop {
     fn from(handle: JoinHandle<()>) -> Self {
         Self(Mutex::new(Some(handle)))
     }
 }
+#[cfg(feature = "indicatif")]
 impl Drop for JoinOnDrop {
     fn drop(&mut self) {
         self.join();
     }
 }
 
+#[cfg(feature = "indicatif")]
 impl JoinOnDrop {
     fn join(&self) {
         let Ok(Some(handle)) = self.0.try_lock().map(|mut g| g.take()) else {
@@ -69,6 +74,7 @@ impl JoinOnDrop {
     }
 }
 
+#[cfg(feature = "indicatif")]
 #[derive(Debug)]
 enum Msg {
     Pop {
@@ -86,7 +92,9 @@ enum Msg {
 
 impl Text {
     fn start_thread(progress: OutputVerbosity) -> Self {
+        #[cfg(feature = "indicatif")]
         let (sender, receiver) = crossbeam_channel::unbounded();
+        #[cfg(feature = "indicatif")]
         let handle = std::thread::spawn(move || {
             let bars = MultiProgress::new();
             let progress = match progress {
@@ -303,8 +311,10 @@ impl Text {
             }
         });
         Self {
+            #[cfg(feature = "indicatif")]
             sender,
             progress,
+            #[cfg(feature = "indicatif")]
             handle: Arc::new(handle.into()),
         }
     }
@@ -338,17 +348,21 @@ impl From<Format> for Text {
 
 struct TextTest {
     text: Text,
+    #[cfg(feature = "indicatif")]
     parent: usize,
+    #[cfg(feature = "indicatif")]
     id: usize,
     path: PathBuf,
     revision: String,
     style: RevisionStyle,
 }
 
+#[cfg(feature = "indicatif")]
 static ID_GENERATOR: AtomicUsize = AtomicUsize::new(1);
 
 impl TestStatus for TextTest {
     fn done(&self, result: &TestResult, aborted: bool) {
+        #[cfg(feature = "indicatif")]
         if aborted {
             self.text.sender.send(Msg::Abort).unwrap();
         }
@@ -359,7 +373,11 @@ impl TestStatus for TextTest {
             Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
         };
         let new_leftover_msg = format!("... {result}");
-        if ProgressDrawTarget::stdout().is_hidden() {
+        #[cfg(feature = "indicatif")]
+        let print_immediately = ProgressDrawTarget::stdout().is_hidden();
+        #[cfg(not(feature = "indicatif"))]
+        let print_immediately = true;
+        if print_immediately {
             match self.style {
                 RevisionStyle::Separate => println!("{} {new_leftover_msg}", self.revision),
                 RevisionStyle::Show => {
@@ -373,6 +391,7 @@ impl TestStatus for TextTest {
             }
             std::io::stdout().flush().unwrap();
         }
+        #[cfg(feature = "indicatif")]
         self.text
             .sender
             .send(Msg::Pop {
@@ -436,12 +455,15 @@ impl TestStatus for TextTest {
         let text = Self {
             text: self.text.clone(),
             path: self.path.clone(),
+            #[cfg(feature = "indicatif")]
             parent: self.id,
+            #[cfg(feature = "indicatif")]
             id: ID_GENERATOR.fetch_add(1, Ordering::Relaxed),
             revision: revision.to_owned(),
             style,
         };
         // We already created the base entry
+        #[cfg(feature = "indicatif")]
         if !revision.is_empty() {
             self.text
                 .sender
@@ -460,12 +482,15 @@ impl TestStatus for TextTest {
         let text = Self {
             text: self.text.clone(),
             path: path.to_path_buf(),
+            #[cfg(feature = "indicatif")]
             parent: self.id,
+            #[cfg(feature = "indicatif")]
             id: ID_GENERATOR.fetch_add(1, Ordering::Relaxed),
             revision: String::new(),
             style: RevisionStyle::Show,
         };
 
+        #[cfg(feature = "indicatif")]
         self.text
             .sender
             .send(Msg::Push {
@@ -484,7 +509,9 @@ impl TestStatus for TextTest {
 
 impl StatusEmitter for Text {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
+        #[cfg(feature = "indicatif")]
         let id = ID_GENERATOR.fetch_add(1, Ordering::Relaxed);
+        #[cfg(feature = "indicatif")]
         self.sender
             .send(Msg::Push {
                 id,
@@ -494,7 +521,9 @@ impl StatusEmitter for Text {
             .unwrap();
         Box::new(TextTest {
             text: self.clone(),
+            #[cfg(feature = "indicatif")]
             parent: 0,
+            #[cfg(feature = "indicatif")]
             id,
             path,
             revision: String::new(),
@@ -510,9 +539,12 @@ impl StatusEmitter for Text {
         filtered: usize,
         aborted: bool,
     ) -> Box<dyn Summary> {
+        #[cfg(feature = "indicatif")]
         self.sender.send(Msg::Finish).unwrap();
 
+        #[cfg(feature = "indicatif")]
         self.handle.join();
+        #[cfg(feature = "indicatif")]
         if !ProgressDrawTarget::stdout().is_hidden() {
             // The progress bars do not have a trailing newline, so let's
             // add it here.

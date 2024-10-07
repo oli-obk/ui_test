@@ -47,6 +47,7 @@ pub mod diagnostics;
 mod diff;
 mod error;
 pub mod filter;
+#[cfg(feature = "gha")]
 pub mod github_actions;
 mod mode;
 pub mod nextest;
@@ -76,6 +77,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         );
     }
 
+    #[cfg(feature = "gha")]
     let name = display(&config.root_dir);
 
     let text = match args.format {
@@ -88,7 +90,11 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         vec![config],
         default_file_filter,
         default_per_file_config,
-        (text, status_emitter::Gha::<true> { name }),
+        (
+            text,
+            #[cfg(feature = "gha")]
+            status_emitter::Gha::<true> { name },
+        ),
     )
 }
 

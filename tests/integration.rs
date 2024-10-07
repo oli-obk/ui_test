@@ -140,6 +140,7 @@ fn main() -> Result<()> {
         |_, _| {},
         (
             text,
+            #[cfg(feature = "gha")]
             ui_test::status_emitter::Gha::<true> {
                 name: "integration tests".into(),
             },
