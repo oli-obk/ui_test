@@ -431,7 +431,7 @@ impl TestStatus for TextTest {
                 stderr: &'a [u8],
                 stdout: &'a [u8],
             }
-            impl<'a> Drop for Guard<'a> {
+            impl Drop for Guard<'_> {
                 fn drop(&mut self) {
                     println!("{}", "full stderr:".bold());
                     std::io::stdout().write_all(self.stderr).unwrap();

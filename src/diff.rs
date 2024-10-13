@@ -142,7 +142,7 @@ fn has_both_insertions_and_deletions(diff: &[DiffOp<'_, &str>]) -> bool {
     seen_l && seen_r
 }
 
-pub fn print_diff(expected: &[u8], actual: &[u8]) {
+pub(crate) fn print_diff(expected: &[u8], actual: &[u8]) {
     let expected_str = String::from_utf8_lossy(expected);
     let actual_str = String::from_utf8_lossy(actual);
 
