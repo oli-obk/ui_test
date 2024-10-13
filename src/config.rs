@@ -9,7 +9,6 @@ use crate::{
     per_test_config::{Comments, Condition},
     CommandBuilder, Error, Errors,
 };
-pub use color_eyre;
 use color_eyre::eyre::Result;
 use regex::bytes::Regex;
 use spanned::Spanned;

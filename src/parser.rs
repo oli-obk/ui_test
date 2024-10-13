@@ -4,7 +4,7 @@ use crate::{
 use bstr::{ByteSlice, Utf8Error};
 use color_eyre::eyre::Result;
 use regex::bytes::Regex;
-pub(crate) use spanned::*;
+pub use spanned::*;
 use std::{
     collections::{BTreeMap, HashMap},
     num::NonZeroUsize,
@@ -200,6 +200,7 @@ pub struct CommentParser<T> {
     comment_start: &'static str,
 }
 
+/// Command parser function type.
 pub type CommandParserFunc =
     fn(&mut CommentParser<&mut Revisioned>, args: Spanned<&str>, span: Span);
 
@@ -230,9 +231,10 @@ pub enum Condition {
     OnHost,
 }
 
-#[derive(Debug, Clone)]
 /// A sub string of a target (or a whole target).
-/// Effectively a `String` that only allows lowercase chars, integers and dashes
+///
+/// Effectively a `String` that only allows lowercase chars, integers and dashes.
+#[derive(Debug, Clone)]
 pub struct TargetSubStr(String);
 
 impl PartialEq<&str> for TargetSubStr {
@@ -266,10 +268,12 @@ impl TryFrom<String> for TargetSubStr {
     }
 }
 
-#[derive(Debug, Clone)]
 /// An error pattern parsed from a `//~` comment.
+#[derive(Debug, Clone)]
 pub enum Pattern {
+    /// A substring that must appear in the error message.
     SubString(String),
+    /// A regex that must match the error message.
     Regex(Regex),
 }
 
@@ -288,7 +292,7 @@ pub(crate) enum ErrorMatchKind {
 pub(crate) struct ErrorMatch {
     pub(crate) kind: ErrorMatchKind,
     /// The line this pattern is expecting to find a message in.
-    pub line: NonZeroUsize,
+    pub(crate) line: NonZeroUsize,
 }
 
 impl Condition {
@@ -574,6 +578,7 @@ impl CommentParser<Comments> {
 }
 
 impl<CommentsType> CommentParser<CommentsType> {
+    /// Emits an [`InvalidComment`](Error::InvalidComment) error with the given span and message.
     pub fn error(&mut self, span: Span, s: impl Into<String>) {
         self.errors.push(Error::InvalidComment {
             msg: s.into(),
@@ -581,13 +586,15 @@ impl<CommentsType> CommentParser<CommentsType> {
         });
     }
 
+    /// Checks a condition and emits an error if it is not met.
     pub fn check(&mut self, span: Span, cond: bool, s: impl Into<String>) {
         if !cond {
             self.error(span, s);
         }
     }
 
-    fn check_some<T>(&mut self, span: Span, opt: Option<T>, s: impl Into<String>) -> Option<T> {
+    /// Checks an option and emits an error if it is `None`.
+    pub fn check_some<T>(&mut self, span: Span, opt: Option<T>, s: impl Into<String>) -> Option<T> {
         self.check(span, opt.is_some(), s);
         opt
     }
@@ -703,7 +710,7 @@ impl CommentParser<&mut Revisioned> {
         Some((regex, to.as_bytes().to_owned()))
     }
 
-    /// Add a flag or error if it already existed
+    /// Adds a flag, or errors if it already existed.
     pub fn set_custom_once(&mut self, key: &'static str, custom: impl Flag + 'static, span: Span) {
         let prev = self
             .custom

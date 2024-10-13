@@ -1,5 +1,6 @@
-pub use spanned::*;
+pub(crate) use spanned::*;
 
+/// An optional spanned value.
 #[derive(Debug, Clone)]
 pub struct OptWithLine<T>(Option<Spanned<T>>);
 
@@ -30,6 +31,7 @@ impl<T> Default for OptWithLine<T> {
 }
 
 impl<T> OptWithLine<T> {
+    /// Creates a new optional spanned value.
     pub fn new(data: T, span: Span) -> Self {
         Self(Some(Spanned::new(data, span)))
     }
@@ -47,6 +49,7 @@ impl<T> OptWithLine<T> {
         }
     }
 
+    /// Consumes `self` and returns the inner value.
     #[must_use]
     pub fn into_inner(self) -> Option<Spanned<T>> {
         self.0

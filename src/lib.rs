@@ -2,12 +2,15 @@
     clippy::enum_variant_names,
     clippy::useless_format,
     clippy::too_many_arguments,
-    rustc::internal
+    rustc::internal,
+    // `unnameable_types` was stabilized in 1.79 which is higher than the current MSRV.
+    // Ignore the "unknown lint" warning which is emitted on older versions.
+    unknown_lints
 )]
+#![warn(unreachable_pub, unnameable_types)]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
-use crate::parser::Comments;
 use build_manager::BuildManager;
 use build_manager::NewJob;
 pub use color_eyre;
@@ -64,6 +67,7 @@ mod tests;
 pub use cmd::*;
 pub use config::*;
 pub use error::*;
+pub use parser::*;
 pub use spanned;
 
 /// Run all tests as described in the config argument.
@@ -146,8 +150,6 @@ pub fn default_per_file_config(config: &mut Config, file_contents: &Spanned<Vec<
 /// Ignores various settings from `Config` that relate to finding test files.
 #[cfg(feature = "rustc")]
 pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
-    use status_emitter::SilentStatus;
-
     config.fill_host_and_target()?;
 
     let content = Spanned::read_from_file(path)
