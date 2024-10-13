@@ -2,7 +2,10 @@ use crate::diagnostics::{Diagnostics, Message};
 use bstr::ByteSlice;
 use cargo_metadata::diagnostic::{Diagnostic, DiagnosticSpan};
 use regex::Regex;
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::OnceLock,
+};
 
 fn diag_line(diag: &Diagnostic, file: &Path) -> Option<(spanned::Span, usize)> {
     let span = |primary| {
@@ -83,8 +86,10 @@ fn span_line(span: &DiagnosticSpan, file: &Path, primary: bool) -> Option<(spann
 }
 
 fn filter_annotations_from_rendered(rendered: &str) -> std::borrow::Cow<'_, str> {
-    let annotations = Regex::new(r" *//(\[[a-z,]+\])?~.*").unwrap();
-    annotations.replace_all(rendered, "")
+    static ANNOTATIONS_RE: OnceLock<Regex> = OnceLock::new();
+    ANNOTATIONS_RE
+        .get_or_init(|| Regex::new(r" *//(\[[a-z,]+\])?~.*").unwrap())
+        .replace_all(rendered, "")
 }
 
 pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
