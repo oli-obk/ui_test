@@ -56,8 +56,6 @@ mod mode;
 pub mod nextest;
 mod parser;
 pub mod per_test_config;
-#[cfg(feature = "rustc")]
-mod rustc_stderr;
 pub mod status_emitter;
 pub mod test_result;
 
@@ -104,6 +102,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
 
 /// The filter used by `run_tests` to only run on `.rs` files that are
 /// specified by [`Config::filter_files`] and [`Config::skip_files`].
+///
 /// Returns `None` if there is no extension or the extension is not `.rs`.
 pub fn default_file_filter(path: &Path, config: &Config) -> Option<bool> {
     path.extension().filter(|&ext| ext == "rs")?;

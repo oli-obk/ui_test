@@ -1,6 +1,11 @@
-use crate::diagnostics::{Diagnostics, Message};
+//! `rustc` and `cargo` diagnostics extractors.
+//!
+//! These parse diagnostics from the respective stderr JSON output using the
+//! data structures defined in [`cargo_metadata::diagnostic`].
+
+use super::{Diagnostics, Level, Message};
 use bstr::ByteSlice;
-use cargo_metadata::diagnostic::{Diagnostic, DiagnosticSpan};
+use cargo_metadata::diagnostic::{Diagnostic, DiagnosticLevel, DiagnosticSpan};
 use regex::Regex;
 use std::{
     path::{Path, PathBuf},
@@ -92,7 +97,8 @@ fn filter_annotations_from_rendered(rendered: &str) -> std::borrow::Cow<'_, str>
         .replace_all(rendered, "")
 }
 
-pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
+/// `rustc` diagnostics extractor.
+pub fn rustc_diagnostics_extractor(file: &Path, stderr: &[u8]) -> Diagnostics {
     let mut rendered = Vec::new();
     let mut messages = vec![];
     let mut messages_from_unknown_file_or_line = vec![];
@@ -123,7 +129,8 @@ pub(crate) fn process(file: &Path, stderr: &[u8]) -> Diagnostics {
     }
 }
 
-pub(crate) fn process_cargo(file: &Path, stderr: &[u8]) -> Diagnostics {
+/// `cargo` diagnostics extractor.
+pub fn cargo_diagnostics_extractor(file: &Path, stderr: &[u8]) -> Diagnostics {
     let mut rendered = Vec::new();
     let mut messages = vec![];
     let mut messages_from_unknown_file_or_line = vec![];
@@ -153,5 +160,19 @@ pub(crate) fn process_cargo(file: &Path, stderr: &[u8]) -> Diagnostics {
         rendered,
         messages,
         messages_from_unknown_file_or_line,
+    }
+}
+
+impl From<DiagnosticLevel> for Level {
+    fn from(value: DiagnosticLevel) -> Self {
+        match value {
+            DiagnosticLevel::Ice => Level::Ice,
+            DiagnosticLevel::Error => Level::Error,
+            DiagnosticLevel::Warning => Level::Warn,
+            DiagnosticLevel::FailureNote => Level::FailureNote,
+            DiagnosticLevel::Note => Level::Note,
+            DiagnosticLevel::Help => Level::Help,
+            other => panic!("rustc got a new kind of diagnostic level: {other:?}"),
+        }
     }
 }

@@ -1,10 +1,10 @@
 #[cfg(feature = "rustc")]
 use crate::{
-    aux_builds::AuxBuilder, custom_flags::run::Run, custom_flags::rustfix::RustfixMode,
-    custom_flags::Flag, filter::Match, rustc_stderr,
+    aux_builds::AuxBuilder, custom_flags::edition::Edition, custom_flags::run::Run,
+    custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
 };
 use crate::{
-    diagnostics::Diagnostics,
+    diagnostics::{self, Diagnostics},
     parser::CommandParserFunc,
     per_test_config::{Comments, Condition},
     CommandBuilder, Error, Errors,
@@ -91,11 +91,7 @@ impl Config {
             comment_defaults,
             comment_start: "//",
             custom_comments: Default::default(),
-            diagnostic_extractor: |_, _| Diagnostics {
-                rendered: Default::default(),
-                messages: Default::default(),
-                messages_from_unknown_file_or_line: Default::default(),
-            },
+            diagnostic_extractor: diagnostics::default_diagnostics_extractor,
             abort_check: Default::default(),
         }
     }
@@ -104,8 +100,6 @@ impl Config {
     /// `rustc` on the test files.
     #[cfg(feature = "rustc")]
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
-        use crate::custom_flags::edition::Edition;
-
         let mut comment_defaults = Comments::default();
 
         #[derive(Debug)]
@@ -175,7 +169,7 @@ impl Config {
             comment_defaults,
             comment_start: "//",
             custom_comments: Default::default(),
-            diagnostic_extractor: rustc_stderr::process,
+            diagnostic_extractor: diagnostics::rustc::rustc_diagnostics_extractor,
             abort_check: Default::default(),
         };
         config
@@ -249,7 +243,7 @@ impl Config {
         let mut this = Self {
             program: CommandBuilder::cargo(),
             custom_comments: Default::default(),
-            diagnostic_extractor: rustc_stderr::process_cargo,
+            diagnostic_extractor: diagnostics::rustc::cargo_diagnostics_extractor,
             comment_start: "#",
             ..Self::rustc(root_dir)
         };
