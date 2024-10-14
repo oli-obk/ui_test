@@ -1,10 +1,17 @@
 //! Data structures for handling diagnostic output from tests.
 
-#[cfg(feature = "rustc")]
-use cargo_metadata::diagnostic::DiagnosticLevel;
+use std::path::Path;
 
-#[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
+#[cfg(feature = "rustc")]
+pub mod rustc;
+
+/// Default diagnostics extractor that does nothing.
+pub fn default_diagnostics_extractor(_path: &Path, _stderr: &[u8]) -> Diagnostics {
+    Diagnostics::default()
+}
+
 /// The different levels of diagnostic messages and their relative ranking.
+#[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub enum Level {
     /// internal compiler errors
     Ice = 5,
@@ -18,21 +25,6 @@ pub enum Level {
     Note = 1,
     /// Only used for "For more information about this error, try `rustc --explain EXXXX`".
     FailureNote = 0,
-}
-
-#[cfg(feature = "rustc")]
-impl From<DiagnosticLevel> for Level {
-    fn from(value: DiagnosticLevel) -> Self {
-        match value {
-            DiagnosticLevel::Ice => Level::Ice,
-            DiagnosticLevel::Error => Level::Error,
-            DiagnosticLevel::Warning => Level::Warn,
-            DiagnosticLevel::FailureNote => Level::FailureNote,
-            DiagnosticLevel::Note => Level::Note,
-            DiagnosticLevel::Help => Level::Help,
-            other => panic!("rustc got a new kind of diagnostic level: {other:?}"),
-        }
-    }
 }
 
 impl std::str::FromStr for Level {
@@ -50,8 +42,8 @@ impl std::str::FromStr for Level {
     }
 }
 
-#[derive(Debug)]
 /// A diagnostic message.
+#[derive(Debug)]
 pub struct Message {
     /// The diagnostic level at which this message was emitted
     pub level: Level,
@@ -65,8 +57,8 @@ pub struct Message {
     pub code: Option<String>,
 }
 
-#[derive(Debug)]
-/// All the diagnostics that were emitted in a test
+/// All the diagnostics that were emitted in a test.
+#[derive(Default, Debug)]
 pub struct Diagnostics {
     /// Rendered and concatenated version of all diagnostics.
     /// This is equivalent to non-json diagnostics.
