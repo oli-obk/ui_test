@@ -18,7 +18,7 @@ error: this file contains an unclosed delimiter
  --> src/lib.rs:LL:CC
   |
 1 | pub trait A {
-  |             - ^
+  |             -^
   |             |
   |             unclosed delimiter
 
