@@ -826,7 +826,7 @@ full stdout:
 
 
 FAILED TEST: tests/actual_tests_bless/revisions_bad.rs (revision `bar`)
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--cfg=bar" "-Cextra-filename=bar" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/revisions_bad.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--cfg=bar" "-Cextra-filename=bar"
 
 error: ``main` function not found in crate `revisions_bad`` not found in diagnostics outside the testfile
  --> tests/actual_tests_bless/revisions_bad.rs:4:31
