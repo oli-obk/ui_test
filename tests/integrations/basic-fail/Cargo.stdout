@@ -114,7 +114,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 +3 | fn main() {
 +  |           - unclosed delimiter
 +4 |
-+  |  ^
++  | ^
 +
 +error: aborting due to 1 previous error
 +
@@ -127,7 +127,7 @@ error: this file contains an unclosed delimiter
 3 | fn main() {
   |           - unclosed delimiter
 4 |
-  |  ^
+  | ^
 
 error: aborting due to 1 previous error
 
@@ -1244,7 +1244,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 +3 | fn main() {
 +  |           - unclosed delimiter
 +4 |
-+  |  ^
++  | ^
 +
 +error: aborting due to 1 previous error
 +
