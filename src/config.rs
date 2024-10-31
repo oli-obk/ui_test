@@ -1,6 +1,7 @@
 #[cfg(feature = "rustc")]
 use crate::{
-    aux_builds::AuxBuilder, custom_flags::edition::Edition, custom_flags::run::Run,
+    aux_builds::AuxBuilder, custom_flags::edition::Edition,
+    custom_flags::revision_args::RustcRevisionArgs, custom_flags::run::Run,
     custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
 };
 use crate::{
@@ -129,6 +130,9 @@ impl Config {
             }
         }
 
+        comment_defaults
+            .base()
+            .add_custom("rustc-revision-args", RustcRevisionArgs);
         comment_defaults
             .base()
             .add_custom("edition", Edition("2021".into()));

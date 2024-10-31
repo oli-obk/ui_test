@@ -133,10 +133,6 @@ impl TestConfig {
     pub fn build_command(&self, build_manager: &BuildManager) -> Result<Command, Errored> {
         let mut cmd = self.config.program.build(&self.config.out_dir);
         cmd.arg(self.status.path());
-        if !self.status.revision().is_empty() {
-            cmd.arg(format!("--cfg={}", self.status.revision()));
-            cmd.arg(format!("-Cextra-filename={}", self.status.revision()));
-        }
         for r in self.comments() {
             cmd.args(&r.compile_flags);
         }

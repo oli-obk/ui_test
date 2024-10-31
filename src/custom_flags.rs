@@ -11,6 +11,8 @@ use std::{
 #[cfg(feature = "rustc")]
 pub mod edition;
 #[cfg(feature = "rustc")]
+pub mod revision_args;
+#[cfg(feature = "rustc")]
 pub mod run;
 pub mod rustfix;
 
