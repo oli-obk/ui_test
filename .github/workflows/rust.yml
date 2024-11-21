@@ -15,9 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        components: rustfmt
+    - name: install rustfmt
+      run: rustup component add rustfmt
     - name: Format
       run: cargo fmt --check
 
@@ -26,9 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        components: clippy
+    - name: install clippy
+      run: rustup component add clippy
     - name: Clippy
       run: cargo clippy -- -D warnings
 
@@ -51,7 +49,6 @@ jobs:
     - uses: actions/checkout@v4
       with:
         path: "dir with spaces/ui test"
-    - uses: dtolnay/rust-toolchain@stable
     - name: Build
       run: cargo build --verbose
     - name: Run ui tests
@@ -83,5 +80,7 @@ jobs:
     - uses: dtolnay/rust-toolchain@nightly
       with:
         components: rust-src
+    - name: Install rustc-src component
+      run: rustup toolchain install nightly && rustup +nightly component add rust-src
     - name: Run build-std test
-      run: cargo test --verbose --test build_std
+      run: cargo +nightly test --verbose --test build_std
