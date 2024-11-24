@@ -247,7 +247,7 @@ pub fn run_tests_generic(
                                 let abort_check = config.abort_check.clone();
                                 per_file_config(&mut config, &file_contents);
                                 let status = AssertUnwindSafe(status);
-                                let result = match std::panic::catch_unwind(|| {
+                                let result = std::panic::catch_unwind(|| {
                                     let status = status;
                                     parse_and_test_file(
                                         build_manager,
@@ -255,7 +255,8 @@ pub fn run_tests_generic(
                                         config,
                                         file_contents,
                                     )
-                                }) {
+                                });
+                                let result = match result {
                                     Ok(Ok(res)) => res,
                                     Ok(Err((status, err))) => {
                                         finished_files_sender.send(TestRun {
