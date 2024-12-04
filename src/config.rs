@@ -8,7 +8,7 @@ use crate::{
     diagnostics::{self, Diagnostics},
     parser::CommandParserFunc,
     per_test_config::{Comments, Condition},
-    CommandBuilder, Error, Errors,
+    CommandBuilder, Error, Errored, Errors,
 };
 use color_eyre::eyre::Result;
 use regex::bytes::Regex;
@@ -454,8 +454,12 @@ impl Config {
             ^ self.run_only_ignored
     }
 
-    pub(crate) fn aborted(&self) -> bool {
-        self.abort_check.aborted()
+    pub(crate) fn aborted(&self) -> Result<(), Errored> {
+        if self.abort_check.aborted() {
+            Err(Errored::aborted())
+        } else {
+            Ok(())
+        }
     }
 }
 

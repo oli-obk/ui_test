@@ -156,6 +156,6 @@ impl BuildManager {
 
     /// Whether the build was cancelled
     pub fn aborted(&self) -> bool {
-        self.config.aborted()
+        self.config.abort_check.aborted()
     }
 }

@@ -383,9 +383,7 @@ impl TestConfig {
         let output = crate::core::run_command(&mut cmd)?;
 
         // Do not bless aborted tests
-        if build_manager.aborted() {
-            return Err(Errored::aborted());
-        }
+        self.aborted()?;
 
         let output = self.check_test_result(&cmd, output)?;
 
@@ -412,11 +410,7 @@ impl TestConfig {
     }
 
     pub(crate) fn aborted(&self) -> Result<(), Errored> {
-        if self.config.aborted() {
-            Err(Errored::aborted())
-        } else {
-            Ok(())
-        }
+        self.config.aborted()
     }
 
     /// All the environment variables set for the given revision

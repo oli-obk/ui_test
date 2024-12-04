@@ -141,9 +141,7 @@ impl Build for AuxBuilder {
         aux_cmd.arg("--print").arg("file-names");
         let output = run_command(&mut aux_cmd)?;
 
-        if build_manager.aborted() {
-            return Err(Errored::aborted());
-        }
+        config.aborted()?;
 
         assert!(output.status.success());
 
