@@ -6,7 +6,7 @@ use crate::{
     display,
     parser::OptWithLine,
     per_test_config::{Comments, Revisioned, TestConfig},
-    Error, Errored, TestOk, TestRun,
+    Error, Errored, TestOk,
 };
 use rustfix::{CodeFix, Filter, Suggestion};
 use spanned::{Span, Spanned};
@@ -214,11 +214,10 @@ fn compile_fixed(
         let mut cmd = fixed_config.build_command(build_manager)?;
         cmd.arg("--crate-name")
             .arg(format!("__{crate_name}_{}", i + 1));
-        build_manager.add_new_job(move || {
+        build_manager.add_new_job(fixed_config, move |fixed_config| {
             let output = cmd.output().unwrap();
-            let result = if fixed_config.aborted() {
-                Err(Errored::aborted())
-            } else if output.status.success() {
+            fixed_config.aborted()?;
+            if output.status.success() {
                 Ok(TestOk::Ok)
             } else {
                 let diagnostics = fixed_config.process(&output.stderr);
@@ -242,11 +241,6 @@ fn compile_fixed(
                     stderr: diagnostics.rendered,
                     stdout: output.stdout,
                 })
-            };
-            TestRun {
-                result,
-                status: fixed_config.status,
-                abort_check: fixed_config.config.abort_check,
             }
         });
     }

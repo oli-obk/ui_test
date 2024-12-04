@@ -411,8 +411,12 @@ impl TestConfig {
         })
     }
 
-    pub(crate) fn aborted(&self) -> bool {
-        self.config.aborted()
+    pub(crate) fn aborted(&self) -> Result<(), Errored> {
+        if self.config.aborted() {
+            Err(Errored::aborted())
+        } else {
+            Ok(())
+        }
     }
 
     /// All the environment variables set for the given revision
