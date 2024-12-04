@@ -1,8 +1,9 @@
 //! Auxiliary and dependency builder. Extendable to custom builds.
 
 use crate::{
+    per_test_config::TestConfig,
     status_emitter::{RevisionStyle, TestStatus},
-    test_result::TestRun,
+    test_result::{TestResult, TestRun},
     Config, Errored,
 };
 use color_eyre::eyre::Result;
@@ -27,7 +28,7 @@ pub trait Build {
 pub struct BuildManager {
     #[allow(clippy::type_complexity)]
     cache: RwLock<HashMap<String, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
-    config: Config,
+    pub(crate) config: Config,
     new_job_submitter: Sender<NewJob>,
 }
 
@@ -52,12 +53,24 @@ impl BuildManager {
 
     /// Lazily add more jobs after a test has finished. These are added to the queue
     /// as normally, but nested below the test.
-    pub fn add_new_job(&self, job: impl Send + 'static + FnOnce() -> TestRun) {
+    pub fn add_new_job(
+        &self,
+        mut config: TestConfig,
+        job: impl Send + 'static + FnOnce(&mut TestConfig) -> TestResult,
+    ) {
         if self.aborted() {
             return;
         }
         self.new_job_submitter
-            .send(Box::new(move |sender| Ok(sender.send(job())?)))
+            .send(Box::new(move |sender| {
+                let result = job(&mut config);
+                let result = TestRun {
+                    result,
+                    status: config.status,
+                    abort_check: config.config.abort_check,
+                };
+                Ok(sender.send(result)?)
+            }))
             .unwrap()
     }
 
@@ -143,6 +156,6 @@ impl BuildManager {
 
     /// Whether the build was cancelled
     pub fn aborted(&self) -> bool {
-        self.config.aborted()
+        self.config.abort_check.aborted()
     }
 }

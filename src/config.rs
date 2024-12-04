@@ -8,7 +8,7 @@ use crate::{
     diagnostics::{self, Diagnostics},
     parser::CommandParserFunc,
     per_test_config::{Comments, Condition},
-    CommandBuilder, Error, Errors,
+    CommandBuilder, Error, Errored, Errors,
 };
 use color_eyre::eyre::Result;
 use regex::bytes::Regex;
@@ -17,6 +17,7 @@ use std::{
     collections::BTreeMap,
     num::NonZeroUsize,
     path::{Path, PathBuf},
+    process::{Command, Output},
     sync::{atomic::AtomicBool, Arc},
 };
 
@@ -61,10 +62,26 @@ pub struct Config {
     pub custom_comments: BTreeMap<&'static str, CommandParserFunc>,
     /// Custom diagnostic extractor (invoked on the output of tests)
     pub diagnostic_extractor: fn(&Path, &[u8]) -> Diagnostics,
-    /// An atomic bool that can be set to `true` to abort all tests.
-    /// Will not cancel child processes, but if set from a Ctrl+C handler,
-    /// the pressing of Ctrl+C will already have cancelled child processes.
-    pub abort_check: Arc<AtomicBool>,
+    /// Handle to the global abort check.
+    pub abort_check: AbortCheck,
+}
+
+/// An atomic bool that can be set to `true` to abort all tests.
+/// Will not cancel child processes, but if set from a Ctrl+C handler,
+/// the pressing of Ctrl+C will already have cancelled child processes.
+#[derive(Clone, Debug, Default)]
+pub struct AbortCheck(Arc<AtomicBool>);
+
+impl AbortCheck {
+    /// Whether any test has been aborted.
+    pub fn aborted(&self) -> bool {
+        self.0.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Inform everyone that an abort has been requested
+    pub fn abort(&self) {
+        self.0.store(true, std::sync::atomic::Ordering::Relaxed)
+    }
 }
 
 /// Function that performs the actual output conflict handling.
@@ -438,8 +455,27 @@ impl Config {
             ^ self.run_only_ignored
     }
 
-    pub(crate) fn aborted(&self) -> bool {
-        self.abort_check.load(std::sync::atomic::Ordering::Relaxed)
+    pub(crate) fn aborted(&self) -> Result<(), Errored> {
+        if self.abort_check.aborted() {
+            Err(Errored::aborted())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub(crate) fn run_command(&self, cmd: &mut Command) -> Result<Output, Errored> {
+        self.aborted()?;
+
+        let output = cmd.output().map_err(|err| Errored {
+            errors: vec![],
+            stderr: err.to_string().into_bytes(),
+            stdout: format!("could not spawn `{:?}` as a process", cmd.get_program()).into_bytes(),
+            command: format!("{cmd:?}"),
+        })?;
+
+        self.aborted()?;
+
+        Ok(output)
     }
 }
 

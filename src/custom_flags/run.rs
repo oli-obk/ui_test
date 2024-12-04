@@ -4,7 +4,6 @@ use super::Flag;
 use crate::{
     build_manager::BuildManager, display, per_test_config::TestConfig,
     status_emitter::RevisionStyle, CommandBuilder, Error, Errored, OutputConflictHandling, TestOk,
-    TestRun,
 };
 use bstr::ByteSlice;
 use spanned::Spanned;
@@ -45,16 +44,10 @@ impl Flag for Run {
         if let Some(och) = self.output_conflict_handling {
             config.config.output_conflict_handling = och;
         }
-        build_manager.add_new_job(move || {
+        build_manager.add_new_job(config, move |config| {
             cmd.arg("--print").arg("file-names");
             let output = cmd.output().unwrap();
-            if config.aborted() {
-                return TestRun {
-                    result: Err(Errored::aborted()),
-                    status: config.status,
-                    abort_check: config.config.abort_check.clone(),
-                };
-            }
+            config.aborted()?;
             assert!(output.status.success(), "{cmd:#?}: {output:#?}");
 
             let mut files = output.stdout.lines();
@@ -81,13 +74,7 @@ impl Flag for Run {
                 )
             });
 
-            if config.aborted() {
-                return TestRun {
-                    result: Err(Errored::aborted()),
-                    status: config.status,
-                    abort_check: config.config.abort_check.clone(),
-                };
-            }
+            config.aborted()?;
 
             let mut errors = vec![];
 
@@ -108,20 +95,15 @@ impl Flag for Run {
                     },
                 })
             }
-
-            TestRun {
-                result: if errors.is_empty() {
-                    Ok(TestOk::Ok)
-                } else {
-                    Err(Errored {
-                        command: format!("{exe:?}"),
-                        errors,
-                        stderr: output.stderr,
-                        stdout: output.stdout,
-                    })
-                },
-                status: config.status,
-                abort_check: config.config.abort_check,
+            if errors.is_empty() {
+                Ok(TestOk::Ok)
+            } else {
+                Err(Errored {
+                    command: format!("{exe:?}"),
+                    errors,
+                    stderr: output.stderr,
+                    stdout: output.stdout,
+                })
             }
         });
         Ok(())

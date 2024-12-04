@@ -122,7 +122,7 @@ impl Build for AuxBuilder {
 
         aux_cmd.arg("--emit=link");
         let filename = self.aux_file.file_stem().unwrap().to_str().unwrap();
-        let output = aux_cmd.output().unwrap();
+        let output = config.config.run_command(&mut aux_cmd)?;
         if !output.status.success() {
             let error = Error::Command {
                 kind: "compilation of aux build failed".to_string(),
@@ -138,11 +138,7 @@ impl Build for AuxBuilder {
 
         // Now run the command again to fetch the output filenames
         aux_cmd.arg("--print").arg("file-names");
-        let output = aux_cmd.output().unwrap();
-
-        if build_manager.aborted() {
-            return Err(Errored::aborted());
-        }
+        let output = config.config.run_command(&mut aux_cmd)?;
 
         assert!(output.status.success());
 

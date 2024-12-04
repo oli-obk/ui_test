@@ -380,12 +380,7 @@ impl TestConfig {
             cmd.stdin(std::fs::File::open(stdin).unwrap());
         }
 
-        let output = crate::core::run_command(&mut cmd)?;
-
-        // Do not bless aborted tests
-        if build_manager.aborted() {
-            return Err(Errored::aborted());
-        }
+        let output = build_manager.config.run_command(&mut cmd)?;
 
         let output = self.check_test_result(&cmd, output)?;
 
@@ -411,7 +406,7 @@ impl TestConfig {
         })
     }
 
-    pub(crate) fn aborted(&self) -> bool {
+    pub(crate) fn aborted(&self) -> Result<(), Errored> {
         self.config.aborted()
     }
 

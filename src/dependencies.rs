@@ -37,17 +37,7 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>, Errored> {
     let mut cmd = config.program.build(&config.out_dir);
     cmd.arg(cfg);
     cmd.arg("--target").arg(config.target.as_ref().unwrap());
-    let output = match cmd.output() {
-        Ok(o) => o,
-        Err(e) => {
-            return Err(Errored {
-                command: format!("{cmd:?}"),
-                stderr: e.to_string().into_bytes(),
-                stdout: vec![],
-                errors: vec![],
-            })
-        }
-    };
+    let output = config.run_command(&mut cmd)?;
 
     if !output.status.success() {
         return Err(Errored {
@@ -106,17 +96,7 @@ fn build_dependencies_inner(
 
     build.arg("--message-format=json");
 
-    let output = match build.output() {
-        Err(e) => {
-            return Err(Errored {
-                command: format!("{build:?}"),
-                stderr: e.to_string().into_bytes(),
-                stdout: vec![],
-                errors: vec![],
-            })
-        }
-        Ok(o) => o,
-    };
+    let output = config.run_command(&mut build)?;
 
     if !output.status.success() {
         let stdout = output
@@ -212,17 +192,7 @@ fn build_dependencies_inner(
         .arg(&info.crate_manifest_path);
     info.program.apply_env(&mut metadata);
     set_locking(&mut metadata);
-    let output = match metadata.output() {
-        Err(e) => {
-            return Err(Errored {
-                command: format!("{metadata:?}"),
-                errors: vec![],
-                stderr: e.to_string().into_bytes(),
-                stdout: vec![],
-            })
-        }
-        Ok(output) => output,
-    };
+    let output = config.run_command(&mut metadata)?;
 
     if !output.status.success() {
         return Err(Errored {

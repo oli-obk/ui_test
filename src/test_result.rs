@@ -1,8 +1,8 @@
 //! Various data structures used for carrying information about test success or failure
 
-use crate::{status_emitter::TestStatus, Error};
+use crate::{status_emitter::TestStatus, AbortCheck, Error};
+use bstr::ByteSlice;
 use color_eyre::eyre::Result;
-use std::sync::{atomic::AtomicBool, Arc};
 
 /// The possible non-failure results a single test can have.
 #[derive(Debug)]
@@ -17,7 +17,6 @@ pub enum TestOk {
 pub type TestResult = Result<TestOk, Errored>;
 
 /// Information about a test failure.
-#[derive(Debug)]
 pub struct Errored {
     /// Command that failed
     pub(crate) command: String,
@@ -27,6 +26,16 @@ pub struct Errored {
     pub(crate) stderr: Vec<u8>,
     /// The full stdout of the test run.
     pub(crate) stdout: Vec<u8>,
+}
+
+impl std::fmt::Debug for Errored {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "command: {}", self.command)?;
+        writeln!(f, "errors: {:#?}", self.errors)?;
+        writeln!(f, "stderr: {}", self.stderr.to_str_lossy())?;
+        writeln!(f, "stdout: {}", self.stdout.to_str_lossy())?;
+        Ok(())
+    }
 }
 
 impl Errored {
@@ -52,5 +61,5 @@ pub struct TestRun {
     /// Usually created via `for_revsion` or `for_path`
     pub status: Box<dyn TestStatus>,
     /// Whether the run was aborted prematurely
-    pub abort_check: Arc<AtomicBool>,
+    pub abort_check: AbortCheck,
 }
