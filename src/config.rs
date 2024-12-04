@@ -17,6 +17,7 @@ use std::{
     collections::BTreeMap,
     num::NonZeroUsize,
     path::{Path, PathBuf},
+    process::{Command, Output},
     sync::{atomic::AtomicBool, Arc},
 };
 
@@ -460,6 +461,21 @@ impl Config {
         } else {
             Ok(())
         }
+    }
+
+    pub(crate) fn run_command(&self, cmd: &mut Command) -> Result<Output, Errored> {
+        self.aborted()?;
+
+        let output = cmd.output().map_err(|err| Errored {
+            errors: vec![],
+            stderr: err.to_string().into_bytes(),
+            stdout: format!("could not spawn `{:?}` as a process", cmd.get_program()).into_bytes(),
+            command: format!("{cmd:?}"),
+        })?;
+
+        self.aborted()?;
+
+        Ok(output)
     }
 }
 

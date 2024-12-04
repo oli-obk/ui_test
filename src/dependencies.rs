@@ -2,7 +2,6 @@
 
 use crate::{
     build_manager::{Build, BuildManager},
-    core::run_command,
     custom_flags::Flag,
     per_test_config::TestConfig,
     test_result::Errored,
@@ -38,7 +37,7 @@ fn cfgs(config: &Config) -> Result<Vec<Cfg>, Errored> {
     let mut cmd = config.program.build(&config.out_dir);
     cmd.arg(cfg);
     cmd.arg("--target").arg(config.target.as_ref().unwrap());
-    let output = run_command(&mut cmd)?;
+    let output = config.run_command(&mut cmd)?;
 
     if !output.status.success() {
         return Err(Errored {
@@ -97,7 +96,7 @@ fn build_dependencies_inner(
 
     build.arg("--message-format=json");
 
-    let output = run_command(&mut build)?;
+    let output = config.run_command(&mut build)?;
 
     if !output.status.success() {
         let stdout = output
@@ -193,7 +192,7 @@ fn build_dependencies_inner(
         .arg(&info.crate_manifest_path);
     info.program.apply_env(&mut metadata);
     set_locking(&mut metadata);
-    let output = run_command(&mut metadata)?;
+    let output = config.run_command(&mut metadata)?;
 
     if !output.status.success() {
         return Err(Errored {

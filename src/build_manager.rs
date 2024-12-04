@@ -28,7 +28,7 @@ pub trait Build {
 pub struct BuildManager {
     #[allow(clippy::type_complexity)]
     cache: RwLock<HashMap<String, Arc<OnceLock<Result<Vec<OsString>, ()>>>>>,
-    config: Config,
+    pub(crate) config: Config,
     new_job_submitter: Sender<NewJob>,
 }
 

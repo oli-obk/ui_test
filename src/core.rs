@@ -1,6 +1,5 @@
 //! Basic operations useful for building a testsuite
 
-use crate::test_result::Errored;
 use color_eyre::eyre::Result;
 use crossbeam_channel::unbounded;
 use crossbeam_channel::Receiver;
@@ -10,22 +9,8 @@ use std::num::NonZeroUsize;
 use std::path::Component;
 use std::path::Path;
 use std::path::Prefix;
-use std::process::Command;
-use std::process::Output;
 use std::sync::OnceLock;
 use std::thread;
-
-pub(crate) fn run_command(cmd: &mut Command) -> Result<Output, Errored> {
-    match cmd.output() {
-        Err(err) => Err(Errored {
-            errors: vec![],
-            stderr: err.to_string().into_bytes(),
-            stdout: format!("could not spawn `{:?}` as a process", cmd.get_program()).into_bytes(),
-            command: format!("{cmd:?}"),
-        }),
-        Ok(output) => Ok(output),
-    }
-}
 
 /// Remove the common prefix of this path and the `root_dir`.
 pub(crate) fn strip_path_prefix<'a>(
