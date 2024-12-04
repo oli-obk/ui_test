@@ -490,9 +490,9 @@ tests/actual_tests_bless/revisions.rs ... ok
 tests/actual_tests_bless/revisions.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions.rs (revision `bar`) ... ok
 tests/actual_tests_bless/revisions_bad.rs ... ok
+tests/actual_tests_bless/revisions_filter.rs ... ok
 tests/actual_tests_bless/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless/revisions_bad.rs (revision `bar`) ... FAILED
-tests/actual_tests_bless/revisions_filter.rs ... ok
 tests/actual_tests_bless/revisions_filter.rs (revision `foo`) ... ignored (in-test comment)
 tests/actual_tests_bless/revisions_filter.rs (revision `bar`) ... ignored (in-test comment)
 tests/actual_tests_bless/revisions_filter2.rs ... ok

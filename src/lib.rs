@@ -33,7 +33,6 @@ use std::panic::AssertUnwindSafe;
 use std::path::Path;
 #[cfg(feature = "rustc")]
 use std::process::Command;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
@@ -323,7 +322,7 @@ pub fn run_tests_generic(
         },
         |finished_files_recv| {
             for run in finished_files_recv {
-                let aborted = run.abort_check.load(Ordering::Relaxed);
+                let aborted = run.abort_check.aborted();
                 run.status.done(&run.result, aborted);
 
                 // Do not write summaries for cancelled tests
@@ -340,7 +339,7 @@ pub fn run_tests_generic(
     let mut aborted = false;
 
     for run in results {
-        aborted |= run.abort_check.load(Ordering::Relaxed);
+        aborted |= run.abort_check.aborted();
         match run.result {
             Ok(TestOk::Ok) => succeeded += 1,
             Ok(TestOk::Ignored) => ignored += 1,

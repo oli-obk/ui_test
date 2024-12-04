@@ -1,8 +1,7 @@
 //! Various data structures used for carrying information about test success or failure
 
-use crate::{status_emitter::TestStatus, Error};
+use crate::{status_emitter::TestStatus, AbortCheck, Error};
 use color_eyre::eyre::Result;
-use std::sync::{atomic::AtomicBool, Arc};
 
 /// The possible non-failure results a single test can have.
 #[derive(Debug)]
@@ -52,5 +51,5 @@ pub struct TestRun {
     /// Usually created via `for_revsion` or `for_path`
     pub status: Box<dyn TestStatus>,
     /// Whether the run was aborted prematurely
-    pub abort_check: Arc<AtomicBool>,
+    pub abort_check: AbortCheck,
 }
