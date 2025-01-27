@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Changed
+
+### Removed
+
+## [0.27.2] - 2025-01-27
+
+### Added
+
+### Fixed
+
 * exported previously-unnameable parser types
 
 ### Changed
