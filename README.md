@@ -58,6 +58,20 @@ their command specifies, or the test will fail without even being run.
     * `//~` comments can be restricted to specific revisions by adding the revision name after the `~` in square brackets: `//~[XXX]`
     * `//@` comments can be restricted to specific revisions by adding the revision name after the `@` in square brackets: `//@[XXX]`
         * Note that you cannot add revisions to the `revisions` command.
+
+    For example:
+
+    ```rust
+    //@revisions: edition2021 edition2024
+    //@[edition2021] edition:2021
+    //@[edition2024] edition:2024
+    //@[edition2024] check-pass
+
+    // Then in code:
+    let x = 12; //~[edition2021] dead_code
+    let x = 12;
+    //~[edition2021]^ dead_code
+    ```
 * `//@compile-flags: XXX` appends `XXX` to the command line arguments passed to the rustc driver
     * you can specify this multiple times, and all the flags will accumulate
 * `//@rustc-env: XXX=YYY` sets the env var `XXX` to `YYY` for the rustc driver execution.
