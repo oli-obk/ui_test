@@ -94,9 +94,8 @@ their command specifies, or the test will fail without even being run.
 
 ## Significant differences to compiletest-rs
 
-* `ignore-target-xxx` and `only-target-xxx` requires the `target-` prefix before the `xxx` substring
-  to be matched against target triples, whereas compiletest allows plain `ignore-xxx` without the
-  `target-` prefix. The substring `xxx` must also be a substring of target triples, and special
+* target selection is done via `ignore-target: xxx` and `only-target: xxx` instead of compiletest's
+  `ignore-xxx`/`only-xxx`. The `xxx` must also be a substring of the target triple; special
   collections such as `macos`/`unix` in compiletest is not supported.
 * only supports `ui` tests
 * tests are run in named order, so you can prefix slow tests with `0` in order to make them get run first
