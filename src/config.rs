@@ -7,7 +7,7 @@ use crate::{
 use crate::{
     diagnostics::{self, Diagnostics},
     parser::CommandParserFunc,
-    per_test_config::{Comments, Condition},
+    per_test_config::{Comments, Condition, TestConfig},
     CommandBuilder, Error, Errored, Errors,
 };
 use color_eyre::eyre::Result;
@@ -85,7 +85,7 @@ impl AbortCheck {
 }
 
 /// Function that performs the actual output conflict handling.
-pub type OutputConflictHandling = fn(&Path, Vec<u8>, &mut Errors, &Config);
+pub type OutputConflictHandling = fn(&Path, &[u8], &mut Errors, &TestConfig);
 
 impl Config {
     /// Create a blank configuration that doesn't do anything interesting
@@ -484,17 +484,19 @@ impl Config {
 /// test.
 pub fn error_on_output_conflict(
     path: &Path,
-    actual: Vec<u8>,
+    output: &[u8],
     errors: &mut Errors,
-    config: &Config,
+    config: &TestConfig,
 ) {
+    let normalized = config.normalize(output, &path.extension().unwrap().to_string_lossy());
     let expected = std::fs::read(path).unwrap_or_default();
-    if actual != expected {
+    if normalized != expected {
         errors.push(Error::OutputDiffers {
             path: path.to_path_buf(),
-            actual,
+            actual: normalized,
+            output: output.to_vec(),
             expected,
-            bless_command: config.bless_command.clone(),
+            bless_command: config.config.bless_command.clone(),
         });
     }
 }
@@ -502,18 +504,19 @@ pub fn error_on_output_conflict(
 /// Ignore mismatches in the stderr/stdout files.
 pub fn ignore_output_conflict(
     _path: &Path,
-    _actual: Vec<u8>,
+    _output: &[u8],
     _errors: &mut Errors,
-    _config: &Config,
+    _config: &TestConfig,
 ) {
 }
 
 /// Instead of erroring if the stderr/stdout differs from the expected
 /// automatically replace it with the found output (after applying filters).
-pub fn bless_output_files(path: &Path, actual: Vec<u8>, _errors: &mut Errors, _config: &Config) {
-    if actual.is_empty() {
+pub fn bless_output_files(path: &Path, output: &[u8], _errors: &mut Errors, config: &TestConfig) {
+    if output.is_empty() {
         let _ = std::fs::remove_file(path);
     } else {
-        std::fs::write(path, &actual).unwrap();
+        let actual = config.normalize(output, &path.extension().unwrap().to_string_lossy());
+        std::fs::write(path, actual).unwrap();
     }
 }

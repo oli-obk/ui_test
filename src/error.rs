@@ -44,8 +44,10 @@ pub enum Error {
     OutputDiffers {
         /// The file containing the expected output that differs from the actual output.
         path: PathBuf,
-        /// The output from the command.
+        /// The normalized output from the command.
         actual: Vec<u8>,
+        /// The unnormalized output from the command.
+        output: Vec<u8>,
         /// The contents of the file.
         expected: Vec<u8>,
         /// A command, that when run, causes the output to get blessed instead of erroring.

@@ -706,27 +706,54 @@ fn print_error(error: &Error, path: &Path) {
         Error::OutputDiffers {
             path: output_path,
             actual,
+            output,
             expected,
             bless_command,
         } => {
-            print_error_header("actual output differed from expected");
-            if let Some(bless_command) = bless_command {
+            let bless = || {
+                if let Some(bless_command) = bless_command {
+                    println!(
+                        "Execute `{}` to update `{}` to the actual output",
+                        bless_command,
+                        display(output_path)
+                    );
+                }
+            };
+            if expected.is_empty() {
+                print_error_header("no output was expected");
+                bless();
                 println!(
-                    "Execute `{}` to update `{}` to the actual output",
-                    bless_command,
-                    display(output_path)
+                    "{}",
+                    format!(
+                        "+++ <{} output>",
+                        output_path.extension().unwrap().to_str().unwrap()
+                    )
+                    .green()
                 );
+                println!("{}", String::from_utf8_lossy(output));
+            } else if output.is_empty() {
+                print_error_header("no output was emitted");
+                if let Some(bless_command) = bless_command {
+                    println!(
+                        "Execute `{}` to remove `{}`",
+                        bless_command,
+                        display(output_path)
+                    );
+                }
+            } else {
+                print_error_header("actual output differed from expected");
+                bless();
+                println!("{}", format!("--- {}", display(output_path)).red());
+                println!(
+                    "{}",
+                    format!(
+                        "+++ <{} output>",
+                        output_path.extension().unwrap().to_str().unwrap()
+                    )
+                    .green()
+                );
+                crate::diff::print_diff(expected, actual);
             }
-            println!("{}", format!("--- {}", display(output_path)).red());
-            println!(
-                "{}",
-                format!(
-                    "+++ <{} output>",
-                    output_path.extension().unwrap().to_str().unwrap()
-                )
-                .green()
-            );
-            crate::diff::print_diff(expected, actual);
         }
         Error::ErrorsWithoutPattern { path, msgs } => {
             if let Some((path, _)) = path.as_ref() {
