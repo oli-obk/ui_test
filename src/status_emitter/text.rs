@@ -753,6 +753,11 @@ fn print_error(error: &Error, path: &Path) {
                     .green()
                 );
                 crate::diff::print_diff(expected, actual);
+
+                println!(
+                    "Full unnormalized output:\n{}",
+                    String::from_utf8_lossy(output)
+                );
             }
         }
         Error::ErrorsWithoutPattern { path, msgs } => {

@@ -38,6 +38,25 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ba
  
  For more information about this error, try `rustc --explain E0308`.
 
+Full unnormalized output:
+error[E0308]: mismatched types
+ --> tests/actual_tests/bad_pattern.rs:4:9
+  |
+4 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.
+
 
 error: `miesmätsched types` not found in diagnostics on line 4
  --> tests/actual_tests/bad_pattern.rs:5:17
@@ -85,6 +104,9 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ex
 +++ <stdout output>
 -69
 +42
+
+Full unnormalized output:
+42
 
 
 full stderr:
@@ -193,6 +215,25 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
  
  For more information about this error, try `rustc --explain E0308`.
 
+Full unnormalized output:
+error[E0308]: mismatched types
+ --> tests/actual_tests/foomp.rs:4:9
+  |
+4 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.
+
 
 full stderr:
 error[E0308]: mismatched types
@@ -233,6 +274,25 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 +error: aborting due to 1 previous error
  
  For more information about this error, try `rustc --explain E0308`.
+
+Full unnormalized output:
+error[E0308]: mismatched types
+ --> tests/actual_tests/foomp2.rs:4:9
+  |
+4 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.
 
 
 full stderr:
@@ -1179,6 +1239,17 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ba
 -For more information about this error, try `rustc --explain E0308`.
 +For more information about this error, try `rustc --explain E0432`.
 
+Full unnormalized output:
+error[E0432]: unresolved import `basic_fail`
+ --> tests/actual_tests/bad_pattern.rs:1:5
+  |
+1 | use basic_fail::add;
+  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0432`.
+
 
 error: `miesmätsched types` not found in diagnostics on line 4
  --> tests/actual_tests/bad_pattern.rs:5:17
@@ -1289,6 +1360,17 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 -For more information about this error, try `rustc --explain E0308`.
 +For more information about this error, try `rustc --explain E0432`.
 
+Full unnormalized output:
+error[E0432]: unresolved import `basic_fail`
+ --> tests/actual_tests/foomp.rs:1:5
+  |
+1 | use basic_fail::add;
+  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0432`.
+
 
 error: `mismatched types` not found in diagnostics on line 4
  --> tests/actual_tests/foomp.rs:5:17
@@ -1327,6 +1409,17 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
  
 -For more information about this error, try `rustc --explain E0308`.
 +For more information about this error, try `rustc --explain E0432`.
+
+Full unnormalized output:
+error[E0432]: unresolved import `basic_fail`
+ --> tests/actual_tests/foomp2.rs:1:5
+  |
+1 | use basic_fail::add;
+  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0432`.
 
 
 error: `mismatched types` not found in diagnostics on line 4
@@ -1427,6 +1520,29 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ru
 +  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
  
  thread 'rustc' panicked
+
+Full unnormalized output:
+error: internal compiler error[E0432]: unresolved import `basic_fail`
+ --> tests/actual_tests/rustc_ice.rs:5:5
+  |
+5 | use basic_fail::add;
+  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
+
+thread 'rustc' panicked at compiler/rustc_errors/src/lib.rs:
+aborting due to `-Z treat-err-as-bug=1`
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+error: the compiler unexpectedly panicked. this is a bug.
+
+note: we would appreciate a bug report: https://github.com/rust-lang/rust/issues/new?labels=C-bug%2C+I-ICE%2C+T-compiler&template=ice.md
+
+
+
+note: compiler flags: -Z treat-err-as-bug
+
+query stack during panic:
+#0 [resolver_for_lowering_raw] getting the resolver for lowering
+end of query stack
 
 
 error: `mismatched types` not found in diagnostics on line 8
