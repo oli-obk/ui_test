@@ -104,20 +104,19 @@ error: test got exit status: 1, but expected 0
   |    ^^^ compilation failed, but was expected to succeed
   |
 
-error: actual output differed from expected
+error: no output was expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual output
---- tests/actual_tests/executable_compile_err.stderr
 +++ <stderr output>
-+error: this file contains an unclosed delimiter
-+ --> tests/actual_tests/executable_compile_err.rs:4:2
-+  |
-+3 | fn main() {
-+  |           - unclosed delimiter
-+4 |
-+  |  ^
-+
-+error: aborting due to 1 previous error
-+
+error: this file contains an unclosed delimiter
+ --> tests/actual_tests/executable_compile_err.rs:4:2
+  |
+3 | fn main() {
+  |           - unclosed delimiter
+4 |
+  |  ^
+
+error: aborting due to 1 previous error
+
 
 
 full stderr:
@@ -1206,19 +1205,18 @@ error: test got exit status: 1, but expected 0
   |    ^^^ compilation failed, but was expected to succeed
   |
 
-error: actual output differed from expected
+error: no output was expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.stderr` to the actual output
---- tests/actual_tests/executable.stderr
 +++ <stderr output>
-+error[E0432]: unresolved import `basic_fail`
-+ --> tests/actual_tests/executable.rs:1:5
-+  |
-+1 | use basic_fail::add;
-+  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
-+
-+error: aborting due to 1 previous error
-+
-+For more information about this error, try `rustc --explain E0432`.
+error[E0432]: unresolved import `basic_fail`
+ --> tests/actual_tests/executable.rs:1:5
+  |
+1 | use basic_fail::add;
+  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0432`.
 
 
 
@@ -1232,20 +1230,19 @@ error: test got exit status: 1, but expected 0
   |    ^^^ compilation failed, but was expected to succeed
   |
 
-error: actual output differed from expected
+error: no output was expected
 Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual output
---- tests/actual_tests/executable_compile_err.stderr
 +++ <stderr output>
-+error: this file contains an unclosed delimiter
-+ --> tests/actual_tests/executable_compile_err.rs:4:2
-+  |
-+3 | fn main() {
-+  |           - unclosed delimiter
-+4 |
-+  |  ^
-+
-+error: aborting due to 1 previous error
-+
+error: this file contains an unclosed delimiter
+ --> tests/actual_tests/executable_compile_err.rs:4:2
+  |
+3 | fn main() {
+  |           - unclosed delimiter
+4 |
+  |  ^
+
+error: aborting due to 1 previous error
+
 
 
 

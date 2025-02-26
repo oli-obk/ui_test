@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.29.0] - 2025-02-25
+
+### Added
+
+### Fixed
+
+### Changed
+
+* output conflict handling now only takes the unnormalized output and is expected to normalize itself if desired.
+
+### Removed
+
 ## [0.28.0] - 2025-01-27
 
 ### Added
