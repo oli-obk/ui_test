@@ -39,8 +39,17 @@ fn row(row: DiffOp<'_, &str>) {
             skip(l);
         }
         Replace(l, r) => {
-            for (l, r) in l.iter().zip(r) {
-                print_line_diff(l, r);
+            if l.len() == r.len() {
+                for (l, r) in l.iter().zip(r) {
+                    print_line_diff(l, r);
+                }
+            } else {
+                for l in l {
+                    println!("{}{}", "-".red(), l.red());
+                }
+                for r in r {
+                    println!("{}{}", "+".green(), r.green());
+                }
             }
         }
         Insert(r) => {

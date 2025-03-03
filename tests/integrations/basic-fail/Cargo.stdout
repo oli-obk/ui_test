@@ -1229,8 +1229,16 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ba
 + --> tests/actual_tests/bad_pattern.rs:1:5
    |
 -4 |     add("42", 3);
-+1 | use basic_fail::add;
 -  |     --- ^^^^ expected `usize`, found `&str`
+-  |     |
+-  |     arguments to this function are incorrect
+-  |
+-note: function defined here
+- --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+-  |
+-1 | pub fn add(left: usize, right: usize) -> usize {
+-  |        ^^^
++1 | use basic_fail::add;
 +  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
  
 -error: aborting due to previous error
@@ -1350,8 +1358,14 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 + --> tests/actual_tests/foomp.rs:1:5
    |
 -4 |     add("42", 3);
-+1 | use basic_fail::add;
 -  |     --- ^^^^ expected `usize`, found `&str`
+-  |
+-note: function defined here
+- --> $DIR/tests/integrations/basic/src/lib.rs:LL:CC
+-  |
+-1 | pub fn add(left: usize, right: usize) -> usize {
+-  |        ^^^ some expected text that isn't in the actual message
++1 | use basic_fail::add;
 +  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
  
 -error: aborting doo to previous error
@@ -1400,8 +1414,16 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 + --> tests/actual_tests/foomp2.rs:1:5
    |
 -4 |     add("42", 3);
-+1 | use basic_fail::add;
 -  |     --- ^^^^ expected `usize`, found `&str`
+-  |     |
+-  |     arguments to this function are incorrect
+-  |
+-note: function defined here
+- --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+-  |
+-1 | pub fn add(left: usize, right: usize) -> usize {
+-  |        ^^^
++1 | use basic_fail::add;
 +  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
  
 -error: aborting due to previous error
@@ -1515,8 +1537,16 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ru
 + --> tests/actual_tests/rustc_ice.rs:5:5
    |
 -8 |     add("42", 3);
-+5 | use basic_fail::add;
 -  |     --- ^^^^ expected `usize`, found `&str`
+-  |     |
+-  |     arguments to this function are incorrect
+-  |
+-note: function defined here
+- --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+-  |
+-1 | pub fn add(left: usize, right: usize) -> usize {
+-  |        ^^^
++5 | use basic_fail::add;
 +  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
  
  thread 'rustc' panicked
