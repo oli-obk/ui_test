@@ -36,7 +36,7 @@ impl std::str::FromStr for Level {
             "HELP" | "help" => Ok(Self::Help),
             "NOTE" | "note" => Ok(Self::Note),
             "failure-note" => Ok(Self::FailureNote),
-            "error: internal compiler error" => Ok(Self::Ice),
+            "ICE" | "ice" => Ok(Self::Ice),
             _ => Err(format!("unknown level `{s}`")),
         }
     }
