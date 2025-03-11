@@ -12,6 +12,7 @@ tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 tests/actual_tests/foomp2.rs ... FAILED
+tests/actual_tests/ice_annotations.rs ... FAILED
 tests/actual_tests/inline_chain.rs ... FAILED
 tests/actual_tests/joined_wrong_order.rs ... FAILED
 tests/actual_tests/lone_joined_pattern.rs ... FAILED
@@ -318,6 +319,83 @@ full stdout:
 
 
 
+FAILED TEST: tests/actual_tests/ice_annotations.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/ice_annotations.rs" "-Ztreat-err-as-bug" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+
+error: test got exit status: 101, but expected 1
+ = note: the compiler panicked
+
+error: no output was expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ice_annotations.stderr` to the actual output
++++ <stderr output>
+error: internal compiler error[E0308]: mismatched types
+ --> tests/actual_tests/ice_annotations.rs:8:9
+  |
+8 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+thread 'rustc' panicked at compiler/rustc_errors/src/lib.rs:
+aborting due to `-Z treat-err-as-bug=1`
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+error: the compiler unexpectedly panicked. this is a bug.
+
+note: we would appreciate a bug report: https://github.com/rust-lang/rust/issues/new?labels=C-bug%2C+I-ICE%2C+T-compiler&template=ice.md
+
+
+
+note: compiler flags: -Z treat-err-as-bug
+
+query stack during panic:
+#0 [typeck] type-checking `main`
+#1 [analysis] running analysis passes on this crate
+end of query stack
+
+
+full stderr:
+error: internal compiler error[E0308]: mismatched types
+ --> tests/actual_tests/ice_annotations.rs:8:9
+  |
+8 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+thread 'rustc' panicked at compiler/rustc_errors/src/lib.rs:
+aborting due to `-Z treat-err-as-bug=1`
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+error: the compiler unexpectedly panicked. this is a bug.
+
+note: we would appreciate a bug report: https://github.com/rust-lang/rust/issues/new?labels=C-bug%2C+I-ICE%2C+T-compiler&template=ice.md
+
+
+
+note: compiler flags: -Z treat-err-as-bug
+
+query stack during panic:
+#0 [typeck] type-checking `main`
+#1 [analysis] running analysis passes on this crate
+end of query stack
+
+full stdout:
+
+
+
 FAILED TEST: tests/actual_tests/inline_chain.rs
 command: parse comments
 
@@ -500,6 +578,7 @@ FAILURES:
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
     tests/actual_tests/foomp2.rs
+    tests/actual_tests/ice_annotations.rs
     tests/actual_tests/inline_chain.rs
     tests/actual_tests/joined_wrong_order.rs
     tests/actual_tests/lone_joined_pattern.rs
@@ -509,7 +588,7 @@ FAILURES:
     tests/actual_tests/touching_above_below.rs
     tests/actual_tests/touching_above_below_chain.rs
 
-test result: FAIL. 15 failed; 1 passed
+test result: FAIL. 16 failed; 1 passed
 
 Building dependencies ... ok
 tests/actual_tests_bless/abort.rs ... ok
@@ -1207,6 +1286,7 @@ tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 tests/actual_tests/foomp2.rs ... FAILED
+tests/actual_tests/ice_annotations.rs ... FAILED
 tests/actual_tests/inline_chain.rs ... FAILED
 tests/actual_tests/joined_wrong_order.rs ... FAILED
 tests/actual_tests/lone_joined_pattern.rs ... FAILED
@@ -1459,6 +1539,53 @@ error: there were 1 unmatched diagnostics
   |
 
 
+FAILED TEST: tests/actual_tests/ice_annotations.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/ice_annotations.rs" "-Ztreat-err-as-bug" "--edition" "2021"
+
+error: test got exit status: 101, but expected 1
+ = note: the compiler panicked
+
+error: no output was expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ice_annotations.stderr` to the actual output
++++ <stderr output>
+error: internal compiler error[E0432]: unresolved import `basic_fail`
+ --> tests/actual_tests/ice_annotations.rs:5:5
+  |
+5 | use basic_fail::add;
+  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
+
+thread 'rustc' panicked at compiler/rustc_errors/src/lib.rs:
+aborting due to `-Z treat-err-as-bug=1`
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+error: the compiler unexpectedly panicked. this is a bug.
+
+note: we would appreciate a bug report: https://github.com/rust-lang/rust/issues/new?labels=C-bug%2C+I-ICE%2C+T-compiler&template=ice.md
+
+
+
+note: compiler flags: -Z treat-err-as-bug
+
+query stack during panic:
+#0 [resolver_for_lowering_raw] getting the resolver for lowering
+end of query stack
+
+
+error: `mismatched types` not found in diagnostics on line 8
+ --> tests/actual_tests/ice_annotations.rs:9:15
+  |
+9 |     //~^ ICE: mismatched types
+  |               ^^^^^^^^^^^^^^^^ expected because of this pattern
+  |
+
+error: there were 1 unmatched diagnostics
+ --> tests/actual_tests/ice_annotations.rs:5:5
+  |
+5 | use basic_fail::add;
+  |     ^^^^^^^^^^ Ice: unresolved import `basic_fail`
+  |
+
+
 FAILED TEST: tests/actual_tests/inline_chain.rs
 command: parse comments
 
@@ -1619,6 +1746,7 @@ FAILURES:
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
     tests/actual_tests/foomp2.rs
+    tests/actual_tests/ice_annotations.rs
     tests/actual_tests/inline_chain.rs
     tests/actual_tests/joined_wrong_order.rs
     tests/actual_tests/lone_joined_pattern.rs
@@ -1628,7 +1756,7 @@ FAILURES:
     tests/actual_tests/touching_above_below.rs
     tests/actual_tests/touching_above_below_chain.rs
 
-test result: FAIL. 15 failed
+test result: FAIL. 16 failed
 
 tests/actual_tests/bad_pattern.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED
@@ -1637,6 +1765,7 @@ tests/actual_tests/exit_code_fail.rs ... FAILED
 tests/actual_tests/filters.rs ... FAILED
 tests/actual_tests/foomp.rs ... FAILED
 tests/actual_tests/foomp2.rs ... FAILED
+tests/actual_tests/ice_annotations.rs ... FAILED
 tests/actual_tests/inline_chain.rs ... FAILED
 tests/actual_tests/joined_wrong_order.rs ... FAILED
 tests/actual_tests/lone_joined_pattern.rs ... FAILED
@@ -1709,6 +1838,15 @@ could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
 
 FAILED TEST: tests/actual_tests/foomp2.rs
 command: "$CMD" "tests/actual_tests/foomp2.rs" "--edition" "2021"
+
+full stderr:
+No such file or directory
+full stdout:
+could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+
+
+FAILED TEST: tests/actual_tests/ice_annotations.rs
+command: "$CMD" "tests/actual_tests/ice_annotations.rs" "-Ztreat-err-as-bug" "--edition" "2021"
 
 full stderr:
 No such file or directory
@@ -1851,6 +1989,7 @@ FAILURES:
     tests/actual_tests/filters.rs
     tests/actual_tests/foomp.rs
     tests/actual_tests/foomp2.rs
+    tests/actual_tests/ice_annotations.rs
     tests/actual_tests/inline_chain.rs
     tests/actual_tests/joined_wrong_order.rs
     tests/actual_tests/lone_joined_pattern.rs
@@ -1860,7 +1999,7 @@ FAILURES:
     tests/actual_tests/touching_above_below.rs
     tests/actual_tests/touching_above_below_chain.rs
 
-test result: FAIL. 15 failed
+test result: FAIL. 16 failed
 
 
 running 0 tests

@@ -31,7 +31,7 @@ If your test tests for failure, you need to add a `//~` annotation where the err
 to ensure that the test will always keep failing at the annotated line. These comments can take two forms:
 
 * `//~ LEVEL: XXX` matches by error level and message text
-    * `LEVEL` can be one of the following (descending order): `ERROR`, `HELP`, `WARN` or `NOTE`
+    * `LEVEL` can be one of the following (descending order): `ERROR`, `HELP`, `WARN`, `NOTE` or `ICE`
     * If a level is specified explicitly, *all* diagnostics of that level or higher need an annotation. To avoid this see `//@require-annotations-for-level`
     * This checks the output *before* normalization, so you can check things that get normalized away, but need to
         be careful not to accidentally have a pattern that differs between platforms.
