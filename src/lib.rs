@@ -102,9 +102,12 @@ pub fn run_tests(mut config: Config) -> Result<()> {
 /// The filter used by `run_tests` to only run on `.rs` files that are
 /// specified by [`Config::filter_files`] and [`Config::skip_files`].
 ///
-/// Returns `None` if there is no extension or the extension is not `.rs`.
+/// Returns `None` if there is no extension or the extension is not `.rs`
+/// or if the filename ends in `fixed.rs`.
 pub fn default_file_filter(path: &Path, config: &Config) -> Option<bool> {
     path.extension().filter(|&ext| ext == "rs")?;
+    path.file_name()
+        .filter(|f1| f1.to_str().filter(|f2| !f2.ends_with("fixed.rs")).is_some())?;
     Some(default_any_file_filter(path, config))
 }
 
