@@ -6,14 +6,34 @@ use std::{
     fmt::Debug,
     panic::RefUnwindSafe,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
 };
-pub use text::*;
 pub mod debug;
-mod text;
 #[cfg(feature = "gha")]
 pub use gha::*;
 #[cfg(feature = "gha")]
 mod gha;
+pub use libtest_json::*;
+mod libtest_json;
+pub use text::*;
+mod text;
+
+// The testing framework employs the implementations of the various emitter traits
+// as follows:
+//
+// The framework first creates an instance of a StatusEmitter.
+//
+// The framework then searches for tests in its perview, and if it finds one, it
+// calls StatusEmitter::register_test() to obtain a TestStatus for that test. The
+// tests are then executed in an asynchonous manner.
+//
+// Once a single test finish executing, the framework calls TestStatus::done().
+//
+// Once all tests finish executing, the framework calls StatusEmitter::finalize()
+// to obtain a Summary.
+//
+// For each failed test, the framework calls both TestStatus::failed_test() and
+// Summary::test_failure().
 
 /// A generic way to handle the output of this crate.
 pub trait StatusEmitter: Sync + RefUnwindSafe {
@@ -52,7 +72,7 @@ pub trait TestStatus: Send + Sync + RefUnwindSafe {
     fn for_path(&self, path: &Path) -> Box<dyn TestStatus>;
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
-    /// gets invoked afterwards.
+    /// get invoked afterwards.
     fn failed_test<'a>(
         &'a self,
         cmd: &'a str,
@@ -183,7 +203,7 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
     }
 }
 
-impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
+impl<T: StatusEmitter + Send, U: StatusEmitter> StatusEmitter for (Arc<T>, U) {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
         Box::new((
             self.0.register_test(path.clone()),
@@ -211,6 +231,24 @@ impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
 /// Forwards directly to `T`, exists only so that tuples can be used with `cfg` to filter
 /// out individual fields
 impl<T: StatusEmitter> StatusEmitter for (T,) {
+    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
+        self.0.register_test(path.clone())
+    }
+
+    fn finalize(
+        &self,
+        failures: usize,
+        succeeded: usize,
+        ignored: usize,
+        filtered: usize,
+        aborted: bool,
+    ) -> Box<dyn Summary> {
+        self.0
+            .finalize(failures, succeeded, ignored, filtered, aborted)
+    }
+}
+
+impl<T: StatusEmitter + Send> StatusEmitter for (Arc<T>,) {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
         self.0.register_test(path.clone())
     }
