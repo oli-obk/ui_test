@@ -33,7 +33,7 @@ use std::panic::AssertUnwindSafe;
 use std::path::Path;
 #[cfg(feature = "rustc")]
 use std::process::Command;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
 
@@ -81,10 +81,26 @@ pub fn run_tests(mut config: Config) -> Result<()> {
     #[cfg(feature = "gha")]
     let name = display(&config.root_dir);
 
-    let text = match args.format {
+    /*
+    let emitter = match args.format {
+        Format::LibtestJSON => status_emitter::LibtestJSON,
         Format::Terse => status_emitter::Text::quiet(),
         Format::Pretty => status_emitter::Text::verbose(),
     };
+    */
+    let emitter: Arc<dyn status_emitter::StatusEmitter> = match args.format {
+        Format::LibtestJSON => Arc::new(status_emitter::LibtestJSON),
+        Format::Pretty => Arc::new(status_emitter::Text::verbose()),
+        Format::Terse => Arc::new(status_emitter::Text::quiet()),
+    };
+    /*
+    let emitter: Arc<Mutex<dyn status_emitter::StatusEmitter>> = match args.format {
+        Format::LibtestJSON => Arc::new(Mutex::new(status_emitter::LibtestJSON)),
+        Format::Pretty => Arc::new(Mutex::new(status_emitter::Text::verbose())),
+        Format::Terse => Arc::new(Mutex::new(status_emitter::Text::quiet())),
+    };
+     */
+    
     config.with_args(&args);
 
     run_tests_generic(
@@ -92,7 +108,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         default_file_filter,
         default_per_file_config,
         (
-            text,
+            emitter,
             #[cfg(feature = "gha")]
             status_emitter::Gha::<true> { name },
         ),
@@ -181,6 +197,7 @@ pub fn run_tests_generic(
     file_filter: impl Fn(&Path, &Config) -> Option<bool> + Sync,
     per_file_config: impl Copy + Fn(&mut Config, &Spanned<Vec<u8>>) + Send + Sync + 'static,
     status_emitter: impl StatusEmitter + Send,
+    // status_emitter: Arc<impl StatusEmitter + Send>,
 ) -> Result<()> {
     if nextest::emulate(&mut configs) {
         return Ok(());

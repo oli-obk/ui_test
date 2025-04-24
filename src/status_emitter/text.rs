@@ -343,9 +343,12 @@ impl Text {
 
 impl From<Format> for Text {
     fn from(format: Format) -> Self {
+        // Not sure what to do here. The architecture allows for multiple emitter
+        // implementations, but the code assumes that there is only implementation,
+        // namely Text.
         match format {
+            Format::LibtestJSON | Format::Pretty => Text::verbose(),
             Format::Terse => Text::quiet(),
-            Format::Pretty => Text::verbose(),
         }
     }
 }
