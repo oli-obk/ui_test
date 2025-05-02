@@ -92,7 +92,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         (
             emitter,
             #[cfg(feature = "gha")]
-            status_emitter::Gha::<true> { name },
+            status_emitter::Gha { name, group: true },
         ),
     )
 }

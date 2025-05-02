@@ -185,18 +185,21 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
 
 /// Emits Github Actions Workspace commands to show the failures directly in the github diff view.
 /// If the const generic `GROUP` boolean is `true`, also emit `::group` commands.
-pub struct Gha<const GROUP: bool> {
+pub struct Gha {
     /// Show a specific name for the final summary.
     pub name: String,
+    /// Use github grouping/folding feature to collapse individual test outputs and entire test suites.
+    pub group: bool,
 }
 
 #[derive(Clone)]
-struct PathAndRev<const GROUP: bool> {
+struct PathAndRev {
     path: PathBuf,
     revision: String,
+    group: bool,
 }
 
-impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
+impl TestStatus for PathAndRev {
     fn path(&self) -> &Path {
         &self.path
     }
@@ -205,6 +208,7 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
         Box::new(Self {
             path: self.path.clone(),
             revision: revision.to_owned(),
+            group: self.group,
         })
     }
 
@@ -212,11 +216,12 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
         Box::new(Self {
             path: path.to_path_buf(),
             revision: self.revision.clone(),
+            group: self.group,
         })
     }
 
     fn failed_test(&self, _cmd: &str, _stderr: &[u8], _stdout: &[u8]) -> Box<dyn Debug> {
-        if GROUP {
+        if self.group {
             Box::new(github_actions::group(format_args!(
                 "{}:{}",
                 display(&self.path),
@@ -232,11 +237,12 @@ impl<const GROUP: bool> TestStatus for PathAndRev<GROUP> {
     }
 }
 
-impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
+impl StatusEmitter for Gha {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
-        Box::new(PathAndRev::<GROUP> {
+        Box::new(PathAndRev {
             path,
             revision: String::new(),
+            group: self.group,
         })
     }
 
@@ -249,7 +255,7 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
         // Can't aborted on gha
         _aborted: bool,
     ) -> Box<dyn Summary> {
-        struct Summarizer<const GROUP: bool> {
+        struct Summarizer {
             failures: Vec<String>,
             succeeded: usize,
             ignored: usize,
@@ -257,7 +263,7 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
             name: String,
         }
 
-        impl<const GROUP: bool> Summary for Summarizer<GROUP> {
+        impl Summary for Summarizer {
             fn test_failure(&mut self, status: &dyn TestStatus, errors: &Errors) {
                 let revision = if status.revision().is_empty() {
                     "".to_string()
@@ -271,7 +277,7 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
                     .push(format!("{}{revision}", display(status.path())));
             }
         }
-        impl<const GROUP: bool> Drop for Summarizer<GROUP> {
+        impl Drop for Summarizer {
             fn drop(&mut self) {
                 if let Some(mut file) = github_actions::summary() {
                     writeln!(file, "### {}", self.name).unwrap();
@@ -294,7 +300,7 @@ impl<const GROUP: bool> StatusEmitter for Gha<GROUP> {
             }
         }
 
-        Box::new(Summarizer::<GROUP> {
+        Box::new(Summarizer {
             failures: vec![],
             succeeded,
             ignored,

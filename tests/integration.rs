@@ -141,8 +141,9 @@ fn main() -> Result<()> {
         (
             emitter,
             #[cfg(feature = "gha")]
-            ui_test::status_emitter::Gha::<true> {
+            ui_test::status_emitter::Gha {
                 name: "integration tests".into(),
+                group: true,
             },
         ),
     )
