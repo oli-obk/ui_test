@@ -1,0 +1,21 @@
+error[E0432]: unresolved import `m`
+  --> tests/actual_tests/error_below_multi_rev.rs:18:7
+   |
+18 | use ::m::foo;
+   |       ^ help: a similar path exists: `self::m`
+
+error: unused import: `::std::vec`
+ --> tests/actual_tests/error_below_multi_rev.rs:9:5
+  |
+9 | use ::std::vec;
+  |     ^^^^^^^^^^
+  |
+note: the lint level is defined here
+ --> tests/actual_tests/error_below_multi_rev.rs:6:20
+  |
+6 | #![deny(dead_code, unused_imports)]
+  |                    ^^^^^^^^^^^^^^
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0432`.
