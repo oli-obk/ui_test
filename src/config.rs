@@ -117,7 +117,7 @@ impl Config {
     /// Create a configuration for testing the output of running
     /// `rustc` on the test files.
     #[cfg(feature = "rustc")]
-    pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
+    pub fn rustc(root_dir: impl Into<PathBuf>, cargo_target_tmpdir: impl Into<PathBuf>) -> Self {
         let mut comment_defaults = Comments::default();
 
         #[derive(Debug)]
@@ -177,11 +177,7 @@ impl Config {
             program: CommandBuilder::rustc(),
             output_conflict_handling: error_on_output_conflict,
             bless_command: None,
-            out_dir: option_env!("CARGO_TARGET_TMPDIR")
-                .map(PathBuf::from)
-                .or_else(|| std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from))
-                .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"))
-                .join("ui"),
+            out_dir: cargo_target_tmpdir.into().join("ui"),
             skip_files: Vec::new(),
             filter_files: Vec::new(),
             threads: None,
@@ -261,13 +257,13 @@ impl Config {
     /// Create a configuration for testing the output of running
     /// `cargo` on the test `Cargo.toml` files.
     #[cfg(feature = "rustc")]
-    pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
+    pub fn cargo(root_dir: impl Into<PathBuf>, cargo_target_tmpdir: impl Into<PathBuf>) -> Self {
         let mut this = Self {
             program: CommandBuilder::cargo(),
             custom_comments: Default::default(),
             diagnostic_extractor: diagnostics::rustc::cargo_diagnostics_extractor,
             comment_start: "#",
-            ..Self::rustc(root_dir)
+            ..Self::rustc(root_dir, cargo_target_tmpdir)
         };
         this.comment_defaults.base().custom.clear();
         this
