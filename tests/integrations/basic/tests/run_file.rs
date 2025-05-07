@@ -5,7 +5,7 @@ use ui_test::*;
 
 #[test]
 fn run_file() -> Result<()> {
-    let mut config = Config::rustc(PathBuf::new());
+    let mut config = Config::rustc(PathBuf::new(), env!("CARGO_TARGET_TMPDIR"));
 
     let tmp_dir = tempfile::tempdir_in(env!("CARGO_TARGET_TMPDIR"))?;
     let tmp_dir = tmp_dir.path();
@@ -27,7 +27,7 @@ fn run_file() -> Result<()> {
 fn run_file_with_deps() -> Result<()> {
     let path = "../../../target";
 
-    let mut config = Config::rustc(PathBuf::new());
+    let mut config = Config::rustc(PathBuf::new(), env!("CARGO_TARGET_TMPDIR"));
 
     let tmp_dir = tempfile::tempdir_in(path)?;
     let tmp_dir = tmp_dir.path();
@@ -61,7 +61,7 @@ fn non_utf8() -> Result<()> {
     if cfg!(windows) {
         return Ok(());
     }
-    let mut config = Config::rustc(PathBuf::new());
+    let mut config = Config::rustc(PathBuf::new(), env!("CARGO_TARGET_TMPDIR"));
     config.program = CommandBuilder::cmd("cat");
     config.comment_defaults.base().custom.clear();
     config.host = Some(String::new());

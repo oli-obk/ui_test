@@ -7,7 +7,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         output_conflict_handling: ui_test::error_on_output_conflict,
         bless_command: Some("DO NOT BLESS. These are meant to fail".to_string()),
         host: Some("foo".into()),
-        ..Config::rustc("tests/actual_tests")
+        ..Config::rustc("tests/actual_tests", env!("CARGO_TARGET_TMPDIR"))
     };
 
     run_tests_generic(

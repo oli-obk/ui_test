@@ -5,7 +5,7 @@ use ui_test::*;
 
 #[test]
 fn run_file() -> Result<()> {
-    let mut config = Config::rustc(PathBuf::new());
+    let mut config = Config::rustc(PathBuf::new(), env!("CARGO_TARGET_TMPDIR"));
 
     let tmp_dir = tempfile::tempdir_in(env!("CARGO_TARGET_TMPDIR"))?;
     let tmp_dir = tmp_dir.path();
@@ -25,7 +25,7 @@ fn run_file() -> Result<()> {
 
 #[test]
 fn fail_run_file() {
-    let mut config = Config::rustc(PathBuf::new());
+    let mut config = Config::rustc(PathBuf::new(), env!("CARGO_TARGET_TMPDIR"));
     config.host = Some(String::new());
     config.program = CommandBuilder::cmd("invalid_alsdkfjalsdfjalskdfj");
 
@@ -45,7 +45,7 @@ fn fail_run_file() {
 fn run_file_no_deps() -> Result<()> {
     let path = "../../../target";
 
-    let mut config = Config::rustc(PathBuf::new());
+    let mut config = Config::rustc(PathBuf::new(), env!("CARGO_TARGET_TMPDIR"));
 
     let tmp_dir = tempfile::tempdir_in(path)?;
     let tmp_dir = tmp_dir.path();
