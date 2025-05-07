@@ -14,11 +14,8 @@ use super::{RevisionStyle, StatusEmitter, Summary, TestStatus};
 fn gha_error(error: &Error, test_path: &str, revision: &str) {
     let file = Spanned::read_from_file(test_path).unwrap();
     let line = |span: &Span| {
-        let line = file
-            .lines()
-            .position(|line| line.span.bytes.contains(&span.bytes.start))
-            .unwrap();
-        NonZeroUsize::new(line + 1).unwrap()
+        let line = file[..=span.bytes.start].lines().count();
+        NonZeroUsize::new(line).unwrap_or(NonZeroUsize::MIN)
     };
     match error {
         Error::ExitStatus {
