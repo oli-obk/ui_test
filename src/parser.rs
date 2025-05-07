@@ -382,11 +382,10 @@ impl CommentParser<Comments> {
                     }
 
                     for (span, line, idx) in delayed_fallthrough.drain(..) {
-                        if let Some(rev) = self
-                            .comments
-                            .revisioned
-                            .values_mut()
-                            .find(|rev| rev.error_matches[idx].line == line)
+                        if let Some(rev) =
+                            self.comments.revisioned.values_mut().find(|rev| {
+                                rev.error_matches.get(idx).is_some_and(|m| m.line == line)
+                            })
                         {
                             rev.error_matches[idx].line = match_line;
                         } else {
