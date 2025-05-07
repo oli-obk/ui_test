@@ -177,8 +177,9 @@ impl Config {
             program: CommandBuilder::rustc(),
             output_conflict_handling: error_on_output_conflict,
             bless_command: None,
-            out_dir: std::env::var_os("CARGO_TARGET_DIR")
+            out_dir: option_env!("CARGO_TARGET_TMPDIR")
                 .map(PathBuf::from)
+                .or_else(|| std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from))
                 .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"))
                 .join("ui"),
             skip_files: Vec::new(),
