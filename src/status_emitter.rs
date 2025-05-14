@@ -23,7 +23,6 @@ use std::{
     fmt::Debug,
     panic::RefUnwindSafe,
     path::{Path, PathBuf},
-    sync::Arc,
 };
 pub mod debug;
 #[cfg(feature = "gha")]
@@ -36,7 +35,7 @@ pub use text::*;
 mod text;
 
 /// A generic way to handle the output of this crate.
-pub trait StatusEmitter: Sync + RefUnwindSafe {
+pub trait StatusEmitter: Send + Sync + RefUnwindSafe {
     /// Invoked the moment we know a test will later be run.
     /// Useful for progress bars and such.
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus + 'static>;
@@ -203,7 +202,7 @@ impl<T: TestStatus, U: TestStatus> TestStatus for (T, U) {
     }
 }
 
-impl<T: StatusEmitter + Send, U: StatusEmitter> StatusEmitter for (Arc<T>, U) {
+impl<T: StatusEmitter, U: StatusEmitter> StatusEmitter for (T, U) {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
         Box::new((
             self.0.register_test(path.clone()),
@@ -231,24 +230,6 @@ impl<T: StatusEmitter + Send, U: StatusEmitter> StatusEmitter for (Arc<T>, U) {
 /// Forwards directly to `T`, exists only so that tuples can be used with `cfg` to filter
 /// out individual fields
 impl<T: StatusEmitter> StatusEmitter for (T,) {
-    fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
-        self.0.register_test(path.clone())
-    }
-
-    fn finalize(
-        &self,
-        failures: usize,
-        succeeded: usize,
-        ignored: usize,
-        filtered: usize,
-        aborted: bool,
-    ) -> Box<dyn Summary> {
-        self.0
-            .finalize(failures, succeeded, ignored, filtered, aborted)
-    }
-}
-
-impl<T: StatusEmitter + Send> StatusEmitter for (Arc<T>,) {
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus> {
         self.0.register_test(path.clone())
     }

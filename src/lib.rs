@@ -81,17 +81,10 @@ pub fn run_tests(mut config: Config) -> Result<()> {
     #[cfg(feature = "gha")]
     let name = display(&config.root_dir);
 
-    /*
     let emitter: Box<dyn status_emitter::StatusEmitter> = match args.format {
         Format::JSON => Box::new(status_emitter::JSON),
         Format::Pretty => Box::new(status_emitter::Text::verbose()),
         Format::Terse => Box::new(status_emitter::Text::quiet()),
-    };
-    */
-    let emitter: Arc<dyn status_emitter::StatusEmitter> = match args.format {
-        Format::JSON => Arc::new(status_emitter::JSON),
-        Format::Pretty => Arc::new(status_emitter::Text::verbose()),
-        Format::Terse => Arc::new(status_emitter::Text::quiet()),
     };
     
     config.with_args(&args);
@@ -190,7 +183,6 @@ pub fn run_tests_generic(
     file_filter: impl Fn(&Path, &Config) -> Option<bool> + Sync,
     per_file_config: impl Copy + Fn(&mut Config, &Spanned<Vec<u8>>) + Send + Sync + 'static,
     status_emitter: impl StatusEmitter + Send,
-    // status_emitter: Arc<impl StatusEmitter + Send>,
 ) -> Result<()> {
     if nextest::emulate(&mut configs) {
         return Ok(());
