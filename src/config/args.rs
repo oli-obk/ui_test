@@ -40,8 +40,8 @@ pub struct Args {
 /// Possible choices for styling the output.
 #[derive(Debug, Copy, Clone, Default)]
 pub enum Format {
-    /// Libtest JSON format
-    LibtestJSON,
+    /// JSON format
+    JSON,
     /// Print one line per test
     #[default]
     Pretty,
@@ -78,7 +78,7 @@ impl Args {
                 // We ignore this flag for now.
             } else if let Some(format) = parse_value("--format", &arg, &mut iter)? {
                 self.format = match &*format {
-                    "libtest-json" => Format::LibtestJSON,
+                    "json" => Format::JSON,
                     "pretty" => Format::Pretty,
                     "terse" => Format::Terse,
                     _ => bail!("unsupported format `{format}`"),

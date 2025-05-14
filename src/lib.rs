@@ -33,7 +33,7 @@ use std::panic::AssertUnwindSafe;
 use std::path::Path;
 #[cfg(feature = "rustc")]
 use std::process::Command;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use test_result::TestRun;
 pub use test_result::{Errored, TestOk};
 
@@ -82,24 +82,17 @@ pub fn run_tests(mut config: Config) -> Result<()> {
     let name = display(&config.root_dir);
 
     /*
-    let emitter = match args.format {
-        Format::LibtestJSON => status_emitter::LibtestJSON,
-        Format::Terse => status_emitter::Text::quiet(),
-        Format::Pretty => status_emitter::Text::verbose(),
+    let emitter: Box<dyn status_emitter::StatusEmitter> = match args.format {
+        Format::JSON => Box::new(status_emitter::JSON),
+        Format::Pretty => Box::new(status_emitter::Text::verbose()),
+        Format::Terse => Box::new(status_emitter::Text::quiet()),
     };
     */
     let emitter: Arc<dyn status_emitter::StatusEmitter> = match args.format {
-        Format::LibtestJSON => Arc::new(status_emitter::LibtestJSON),
+        Format::JSON => Arc::new(status_emitter::JSON),
         Format::Pretty => Arc::new(status_emitter::Text::verbose()),
         Format::Terse => Arc::new(status_emitter::Text::quiet()),
     };
-    /*
-    let emitter: Arc<Mutex<dyn status_emitter::StatusEmitter>> = match args.format {
-        Format::LibtestJSON => Arc::new(Mutex::new(status_emitter::LibtestJSON)),
-        Format::Pretty => Arc::new(Mutex::new(status_emitter::Text::verbose())),
-        Format::Terse => Arc::new(Mutex::new(status_emitter::Text::quiet())),
-    };
-     */
     
     config.with_args(&args);
 

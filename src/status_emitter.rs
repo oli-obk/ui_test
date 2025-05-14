@@ -6,15 +6,15 @@ use std::{
     fmt::Debug,
     panic::RefUnwindSafe,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 pub mod debug;
 #[cfg(feature = "gha")]
 pub use gha::*;
 #[cfg(feature = "gha")]
 mod gha;
-pub use libtest_json::*;
-mod libtest_json;
+pub use json::*;
+mod json;
 pub use text::*;
 mod text;
 

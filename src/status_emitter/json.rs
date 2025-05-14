@@ -110,11 +110,11 @@ impl<S: AsRef<str>> Display for EscapedString<S> {
 
 // MAINTENANCE REGION END
 
-/// A libtest JSON output emitter.
+/// A JSON output emitter.
 #[derive(Clone)]
-pub struct LibtestJSON;
+pub struct JSON;
 
-impl StatusEmitter for LibtestJSON {
+impl StatusEmitter for JSON {
     /// Create a report about the entire test run at the end.
     fn finalize(
         &self,
@@ -143,7 +143,7 @@ impl StatusEmitter for LibtestJSON {
 
         emit_test_start(&name);
 
-        Box::new(LibtestJSONStatus {
+        Box::new(JSONStatus {
             name,
             path,
             revision: String::new(),
@@ -153,14 +153,14 @@ impl StatusEmitter for LibtestJSON {
 }
 
 /// Information about a specific test run.
-pub struct LibtestJSONStatus {
+pub struct JSONStatus {
     name: String,
     path: PathBuf,
     revision: String,
     style: RevisionStyle,
 }
 
-impl TestStatus for LibtestJSONStatus {
+impl TestStatus for JSONStatus {
     /// A test has finished, handle the result immediately.
     fn done(&self, result: &TestResult, aborted: bool) {
         let status = if aborted {
@@ -195,7 +195,7 @@ impl TestStatus for LibtestJSONStatus {
 
     /// Create a copy of this test for a new path.
     fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
-        let status = LibtestJSONStatus {
+        let status = JSONStatus {
             name: self.name.clone(),
             path: path.to_path_buf(),
             revision: self.revision.clone(),
@@ -206,7 +206,7 @@ impl TestStatus for LibtestJSONStatus {
 
     /// Create a copy of this test for a new revision.
     fn for_revision(&self, revision: &str, style: RevisionStyle) -> Box<dyn TestStatus> {
-        let status = LibtestJSONStatus {
+        let status = JSONStatus {
             name: self.name.clone(),
             path: self.path.clone(),
             revision: revision.to_owned(),
