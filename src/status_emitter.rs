@@ -1,4 +1,21 @@
 //! Various schemes for reporting messages during testing or after testing is done.
+//!
+//! The testing framework employs the implementations of the various emitter traits
+//! as follows:
+//!
+//! The framework first creates an instance of a `StatusEmitter`.
+//!
+//! The framework then searches for tests in its perview, and if it finds one, it
+//! calls `StatusEmitter::register_test()` to obtain a `TestStatus` for that test.
+//! The tests are then executed in an asynchonous manner.
+//!
+//! Once a single test finish executing, the framework calls `TestStatus::done()`.
+//!
+//! Once all tests finish executing, the framework calls `StatusEmitter::finalize()`
+//! to obtain a Summary.
+//!
+//! For each failed test, the framework calls both `TestStatus::failed_test()` and
+//! `Summary::test_failure()`.
 
 use crate::{test_result::TestResult, Errors};
 
@@ -17,23 +34,6 @@ pub use json::*;
 mod json;
 pub use text::*;
 mod text;
-
-// The testing framework employs the implementations of the various emitter traits
-// as follows:
-//
-// The framework first creates an instance of a StatusEmitter.
-//
-// The framework then searches for tests in its perview, and if it finds one, it
-// calls StatusEmitter::register_test() to obtain a TestStatus for that test. The
-// tests are then executed in an asynchonous manner.
-//
-// Once a single test finish executing, the framework calls TestStatus::done().
-//
-// Once all tests finish executing, the framework calls StatusEmitter::finalize()
-// to obtain a Summary.
-//
-// For each failed test, the framework calls both TestStatus::failed_test() and
-// Summary::test_failure().
 
 /// A generic way to handle the output of this crate.
 pub trait StatusEmitter: Sync + RefUnwindSafe {
