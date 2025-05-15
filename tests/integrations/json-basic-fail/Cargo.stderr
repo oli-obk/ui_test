@@ -1,0 +1,10 @@
+Error: tests failed
+
+Location:
+    $DIR/src/lib.rs:LL:CC
+error: test failed, to rerun pass `--test ui_tests`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/ui/1/tests/integrations/json-basic-fail/debug/deps/ui_tests-HASH` (exit status: 1)
+error: 1 target failed:
+    `--test ui_tests`

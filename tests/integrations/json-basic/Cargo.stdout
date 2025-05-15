@@ -1,0 +1,64 @@
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
+
+{ "type": "test", "event": "started", "name": "tests/actual_tests/aux_attr_proc_macro.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/aux_derive.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/aux_proc_macro.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/dep_derive.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/error_above.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/executable.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/foomp-rustfix.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/foomp.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/joined_above.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/joined_below.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/joined_mixed.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/mac_span.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/match_diagnostic_code.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/no_rustfix.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-multiple.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/stdin.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/unicode.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/windows_paths.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/subdir/aux_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_attr_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_attr_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_derive.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_derive.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_derive.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/dep_derive.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/dep_derive.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/error_above.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/executable.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/executable.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/foomp-rustfix.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/foomp-rustfix.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/foomp.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_above.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_above.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_below.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_below.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_mixed.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_mixed.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/mac_span.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/mac_span.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/no_rustfix.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/stdin.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/stdin.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/unicode.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/windows_paths.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/subdir/aux_proc_macro.rs" }
+{ "type": "suite", "event": "ok", "passed": 31, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
+

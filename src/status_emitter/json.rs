@@ -17,22 +17,26 @@ use bstr::ByteSlice;
 
 fn emit_suite_end(failed: usize, filtered_out: usize, ignored: usize, passed: usize, status: &String,) {
     // Adapted from test::formatters::json::write_run_finish().
-    println!(r#"{{ "type": "suite", "event": "{status}", "passed": {passed}, "failed": {failed}, "ignored": {ignored}, "measured": 0, "filtered_out": {filtered_out} }}\n"#);
+    println!(r#"{{ "type": "suite", "event": "{status}", "passed": {passed}, "failed": {failed}, "ignored": {ignored}, "measured": 0, "filtered_out": {filtered_out} }}"#);
 }
 
-fn emit_test_end(name: &String, status: &String, stdout: &String) {
-    let triaged_name = serde_json::to_string(name).unwrap();
-    let triaged_stdout = serde_json::to_string(stdout).unwrap();
+fn emit_test_end(name: &String, status: &String, error_output: &String) {
+    let escaped_name = serde_json::to_string(name).unwrap();
+    let escaped_error_output = if error_output.is_empty() {
+        String::new()
+    } else {
+        format!(r#", "stdout": {}"#, serde_json::to_string(error_output).unwrap())
+    };
 
     // Adapted from test::formatters::json::write_event().
-    println!(r#"{{ "type": "test", "event": "{status}", "name": "{triaged_name}"{triaged_stdout} }}\n"#);
+    println!(r#"{{ "type": "test", "event": "{status}", "name": {escaped_name}{escaped_error_output} }}"#);
 }
 
 fn emit_test_start(name: &String) {
-    let triaged_name = serde_json::to_string(name).unwrap();
+    let escaped_name = serde_json::to_string(name).unwrap();
 
     // Adapted from test::formatters::json::write_test_start().
-    println!(r#"{{ "type": "test", "event": "started", "name": "{triaged_name}" }}\n"#);
+    println!(r#"{{ "type": "test", "event": "started", "name": {escaped_name} }}"#);
 }
 
 // MAINTENANCE REGION END
@@ -98,16 +102,16 @@ impl TestStatus for JSONStatus {
                 Err(_) => String::from("failed"),
             }
         };
-        let stdout = if let Err(errored) = result {
+        let error_output = if let Err(errored) = result {
             let command = &errored.command;
             let stderr = errored.stderr.to_str_lossy();
             let stdout = errored.stdout.to_str_lossy();
-            format!(r#", "stdout": "---- command\n\n{command}\n\n\---- stdout\n\n\{stdout}\n\n---- stderr\n\n\{stderr}""#)
+            format!(r#"---- command\n\n{command}\n\n\---- stdout\n\n\{stdout}\n\n---- stderr\n\n\{stderr}"#)
         } else {
             String::new()
         };
 
-        emit_test_end(&self.name, &status, &stdout);
+        emit_test_end(&self.name, &status, &error_output);
     }
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
