@@ -647,10 +647,10 @@ tests/actual_tests_bless/run_panic.rs (revision `run`) ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.rs ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `a`) ... ok
 tests/actual_tests_bless/rustfix-fail-revisions.rs (revision `b`) ... ok
-tests/actual_tests_bless/rustfix-fail-revisions.a.fixed ... FAILED
-tests/actual_tests_bless/rustfix-fail-revisions.b.fixed ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.a.fixed.rs ... FAILED
+tests/actual_tests_bless/rustfix-fail-revisions.b.fixed.rs ... FAILED
 tests/actual_tests_bless/rustfix-fail.rs ... ok
-tests/actual_tests_bless/rustfix-fail.fixed ... FAILED
+tests/actual_tests_bless/rustfix-fail.fixed.rs ... FAILED
 tests/actual_tests_bless/unicode.rs ... FAILED
 tests/actual_tests_bless/unknown_revision.rs ... FAILED
 tests/actual_tests_bless/unknown_revision2.rs ... FAILED
@@ -993,11 +993,11 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.a.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_fail_revisions_1"
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.a.fixed.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.a.fixed.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_fail_revisions_1"
 
 error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
+ --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed.rs:2:9
   |
 2 | #![deny(warnings)]
   |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
@@ -1005,13 +1005,13 @@ error: test got exit status: 1, but expected 0
 
 full stderr:
 error: path statement drops value
-  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:11:5
+  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed.rs:11:5
    |
 11 |     x;
    |     ^^ help: use `drop` to clarify the intent: `drop(x);`
    |
 note: the lint level is defined here
-  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed:2:9
+  --> tests/actual_tests_bless/rustfix-fail-revisions.a.fixed.rs:2:9
    |
 2  | #![deny(warnings)]
    |         ^^^^^^^^
@@ -1024,11 +1024,11 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.b.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_fail_revisions_1"
+FAILED TEST: tests/actual_tests_bless/rustfix-fail-revisions.b.fixed.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail-revisions.b.fixed.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_fail_revisions_1"
 
 error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
+ --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed.rs:2:9
   |
 2 | #![deny(warnings)]
   |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
@@ -1036,13 +1036,13 @@ error: test got exit status: 1, but expected 0
 
 full stderr:
 error: path statement drops value
-  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:11:5
+  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed.rs:11:5
    |
 11 |     x;
    |     ^^ help: use `drop` to clarify the intent: `drop(x);`
    |
 note: the lint level is defined here
-  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed:2:9
+  --> tests/actual_tests_bless/rustfix-fail-revisions.b.fixed.rs:2:9
    |
 2  | #![deny(warnings)]
    |         ^^^^^^^^
@@ -1055,11 +1055,11 @@ full stdout:
 
 
 
-FAILED TEST: tests/actual_tests_bless/rustfix-fail.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_fail_1"
+FAILED TEST: tests/actual_tests_bless/rustfix-fail.fixed.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless/rustfix-fail.fixed.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_fail_1"
 
 error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
+ --> tests/actual_tests_bless/rustfix-fail.fixed.rs:1:9
   |
 1 | #![deny(warnings)]
   |         ^^^^^^^^ after rustfix is applied, all errors should be gone, but weren't
@@ -1067,13 +1067,13 @@ error: test got exit status: 1, but expected 0
 
 full stderr:
 error: path statement drops value
-  --> tests/actual_tests_bless/rustfix-fail.fixed:10:5
+  --> tests/actual_tests_bless/rustfix-fail.fixed.rs:10:5
    |
 10 |     x;
    |     ^^ help: use `drop` to clarify the intent: `drop(x);`
    |
 note: the lint level is defined here
-  --> tests/actual_tests_bless/rustfix-fail.fixed:1:9
+  --> tests/actual_tests_bless/rustfix-fail.fixed.rs:1:9
    |
 1  | #![deny(warnings)]
    |         ^^^^^^^^
@@ -1217,9 +1217,9 @@ FAILURES:
     tests/actual_tests_bless/revisioned_executable.rs (revision panic.run)
     tests/actual_tests_bless/revisioned_executable_panic.rs (revision run.run)
     tests/actual_tests_bless/revisions_bad.rs (revision bar)
-    tests/actual_tests_bless/rustfix-fail-revisions.a.fixed
-    tests/actual_tests_bless/rustfix-fail-revisions.b.fixed
-    tests/actual_tests_bless/rustfix-fail.fixed
+    tests/actual_tests_bless/rustfix-fail-revisions.a.fixed.rs
+    tests/actual_tests_bless/rustfix-fail-revisions.b.fixed.rs
+    tests/actual_tests_bless/rustfix-fail.fixed.rs
     tests/actual_tests_bless/unicode.rs
     tests/actual_tests_bless/unknown_revision.rs
     tests/actual_tests_bless/unknown_revision2.rs
@@ -1232,17 +1232,17 @@ tests/actual_tests_bless_yolo/revisions_bad.rs ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `foo`) ... ok
 tests/actual_tests_bless_yolo/revisions_bad.rs (revision `bar`) ... ok
 tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.rs ... ok
-tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.fixed ... ok
+tests/actual_tests_bless_yolo/rustfix-maybe-incorrect.fixed.rs ... ok
 tests/actual_tests_bless_yolo/rustfix-multiple-fail.rs ... ok
-tests/actual_tests_bless_yolo/rustfix-multiple-fail.1.fixed ... ok
-tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed ... FAILED
-tests/actual_tests_bless_yolo/rustfix-multiple-fail.3.fixed ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.1.fixed.rs ... ok
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed.rs ... FAILED
+tests/actual_tests_bless_yolo/rustfix-multiple-fail.3.fixed.rs ... ok
 
-FAILED TEST: tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed
-command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_multiple_fail_2"
+FAILED TEST: tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021" "--crate-name" "__rustfix_multiple_fail_2"
 
 error: test got exit status: 1, but expected 0
- --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed:1:8
+ --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed.rs:1:8
   |
 1 | pub fn f(_: &i32) -> &i32 {
   |        ^ after rustfix is applied, all errors should be gone, but weren't
@@ -1250,7 +1250,7 @@ error: test got exit status: 1, but expected 0
 
 full stderr:
 error[E0308]: mismatched types
- --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed:7:7
+ --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed.rs:7:7
   |
 7 |     f(1);
   |     - ^ expected `&i32`, found integer
@@ -1258,7 +1258,7 @@ error[E0308]: mismatched types
   |     arguments to this function are incorrect
   |
 note: function defined here
- --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed:1:8
+ --> tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed.rs:1:8
   |
 1 | pub fn f(_: &i32) -> &i32 {
   |        ^ -------
@@ -1275,7 +1275,7 @@ full stdout:
 
 
 FAILURES:
-    tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed
+    tests/actual_tests_bless_yolo/rustfix-multiple-fail.2.fixed.rs
 
 test result: FAIL. 1 failed; 7 passed
 
