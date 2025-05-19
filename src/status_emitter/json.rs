@@ -94,7 +94,7 @@ impl StatusEmitter for JSON {
     }
 
     /// Invoked the moment we know a test will later be run.
-    /// Useful for progress bars and such.
+    /// Emits a JSON start event.
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus + 'static> {
         let name = path.to_str().unwrap().to_string();
         let revision = String::new();
