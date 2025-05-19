@@ -3,6 +3,65 @@ running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished 
 
+{ "type": "suite", "event": "started" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/aux_attr_proc_macro.rs () - tests/actual_tests/aux_attr_proc_macro.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/aux_derive.rs () - tests/actual_tests/aux_derive.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/aux_proc_macro.rs () - tests/actual_tests/aux_proc_macro.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/dep_derive.rs () - tests/actual_tests/dep_derive.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/error_above.rs () - tests/actual_tests/error_above.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/error_below_multi_rev.rs () - tests/actual_tests/error_below_multi_rev.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/executable.rs () - tests/actual_tests/executable.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/foomp-rustfix.rs () - tests/actual_tests/foomp-rustfix.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/foomp.rs () - tests/actual_tests/foomp.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/joined_above.rs () - tests/actual_tests/joined_above.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/joined_below.rs () - tests/actual_tests/joined_below.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/joined_mixed.rs () - tests/actual_tests/joined_mixed.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/mac_span.rs () - tests/actual_tests/mac_span.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/no_rustfix.rs () - tests/actual_tests/no_rustfix.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/stdin.rs () - tests/actual_tests/stdin.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/unicode.rs () - tests/actual_tests/unicode.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/windows_paths.rs () - tests/actual_tests/windows_paths.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/subdir/aux_proc_macro.rs () - tests/actual_tests/subdir/aux_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_attr_proc_macro.rs (Building aux file tests/actual_tests/auxiliary/proc_macro_attr.rs) - tests/actual_tests/aux_attr_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_attr_proc_macro.rs () - tests/actual_tests/aux_attr_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_derive.rs (Building aux file tests/actual_tests/auxiliary/derive_proc_macro.rs) - tests/actual_tests/aux_derive.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_derive.rs () - tests/actual_tests/aux_derive.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_derive.rs () - tests/actual_tests/aux_derive.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_proc_macro.rs (Building aux file tests/actual_tests/auxiliary/the_proc_macro.rs) - tests/actual_tests/aux_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/aux_proc_macro.rs () - tests/actual_tests/aux_proc_macro.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/dep_derive.rs () - tests/actual_tests/dep_derive.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/dep_derive.rs (run) - tests/actual_tests/dep_derive.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/error_above.rs () - tests/actual_tests/error_above.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/error_below_multi_rev.rs () - tests/actual_tests/error_below_multi_rev.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/error_below_multi_rev.rs (edition2015) - tests/actual_tests/error_below_multi_rev.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/error_below_multi_rev.rs (edition2018) - tests/actual_tests/error_below_multi_rev.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/executable.rs () - tests/actual_tests/executable.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/executable.rs (run) - tests/actual_tests/executable.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/foomp-rustfix.rs () - tests/actual_tests/foomp-rustfix.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/foomp-rustfix.rs () - tests/actual_tests/foomp-rustfix.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/foomp.rs () - tests/actual_tests/foomp.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_above.rs () - tests/actual_tests/joined_above.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_above.rs () - tests/actual_tests/joined_above.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_below.rs () - tests/actual_tests/joined_below.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_below.rs () - tests/actual_tests/joined_below.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_mixed.rs () - tests/actual_tests/joined_mixed.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/joined_mixed.rs () - tests/actual_tests/joined_mixed.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/mac_span.rs () - tests/actual_tests/mac_span.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/mac_span.rs () - tests/actual_tests/mac_span.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/no_rustfix.rs () - tests/actual_tests/no_rustfix.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.1.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.2.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/stdin.rs () - tests/actual_tests/stdin.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/stdin.rs (run) - tests/actual_tests/stdin.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/unicode.rs () - tests/actual_tests/unicode.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/windows_paths.rs () - tests/actual_tests/windows_paths.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/subdir/aux_proc_macro.rs () - tests/actual_tests/subdir/aux_proc_macro.rs" }
+{ "type": "suite", "event": "ok", "passed": 33, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }
 
 running 3 tests
 ...

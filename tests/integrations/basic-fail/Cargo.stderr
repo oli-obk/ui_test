@@ -2,6 +2,14 @@ Error: tests failed
 
 Location:
     $DIR/src/lib.rs:LL:CC
+error: test failed, to rerun pass `--test json`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/ui/1/tests/integrations/basic-fail/debug/deps/json-HASH` (exit status: 1)
+Error: tests failed
+
+Location:
+    $DIR/src/lib.rs:LL:CC
 error: test failed, to rerun pass `--test ui_tests`
 
 Caused by:
@@ -32,7 +40,8 @@ error: test failed, to rerun pass `--test ui_tests_invalid_program2`
 
 Caused by:
   process didn't exit successfully: `$DIR/target/ui/1/tests/integrations/basic-fail/debug/deps/ui_tests_invalid_program2-HASH` (exit status: 1)
-error: 4 targets failed:
+error: 5 targets failed:
+    `--test json`
     `--test ui_tests`
     `--test ui_tests_diff_only`
     `--test ui_tests_invalid_program`
