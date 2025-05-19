@@ -17,11 +17,7 @@
 //! For each failed test, the framework calls both `TestStatus::failed_test()` and
 //! `Summary::test_failure()`.
 
-use crate::{
-    Errors,
-    Format,
-    test_result::TestResult
-};
+use crate::{test_result::TestResult, Errors, Format};
 
 use std::{
     boxed::Box,

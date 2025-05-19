@@ -2,8 +2,8 @@ use super::RevisionStyle;
 use super::StatusEmitter;
 use super::Summary;
 use super::TestStatus;
-use crate::TestOk;
 use crate::test_result::TestResult;
+use crate::TestOk;
 
 use std::boxed::Box;
 use std::fmt::{Debug, Display, Formatter};
@@ -15,9 +15,11 @@ use bstr::ByteSlice;
 
 // When integrating with a new libtest version, update all emit_xxx functions.
 
-fn emit_suite_end(failed: usize, filtered_out: usize, ignored: usize, passed: usize, status: &str,) {
+fn emit_suite_end(failed: usize, filtered_out: usize, ignored: usize, passed: usize, status: &str) {
     // Adapted from test::formatters::json::write_run_finish().
-    println!(r#"{{ "type": "suite", "event": "{status}", "passed": {passed}, "failed": {failed}, "ignored": {ignored}, "measured": 0, "filtered_out": {filtered_out} }}"#);
+    println!(
+        r#"{{ "type": "suite", "event": "{status}", "passed": {passed}, "failed": {failed}, "ignored": {ignored}, "measured": 0, "filtered_out": {filtered_out} }}"#
+    );
 }
 
 fn emit_suite_start() {
@@ -27,7 +29,9 @@ fn emit_suite_start() {
 
 fn emit_test_end(name: &String, status: &str, diags: &str) {
     let triaged_name = EscapedString(name);
-    let stdout = if diags.is_empty() { String::new() } else {
+    let stdout = if diags.is_empty() {
+        String::new()
+    } else {
         let triaged_diags = EscapedString(diags);
         format!(r#", "stdout": {triaged_diags}"#)
     };
@@ -128,6 +132,12 @@ impl JSON {
     }
 }
 
+impl Default for JSON {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StatusEmitter for JSON {
     /// Create a report about the entire test run at the end.
     fn finalize(
@@ -144,7 +154,7 @@ impl StatusEmitter for JSON {
             "ok"
         };
 
-        emit_suite_end(failed, filtered, ignored, succeeded, &status);
+        emit_suite_end(failed, filtered, ignored, succeeded, status);
 
         Box::new(())
     }
@@ -195,7 +205,7 @@ impl TestStatus for JSONStatus {
             String::new()
         };
 
-        emit_test_end(&self.name, &status, &diags);
+        emit_test_end(&self.name, status, &diags);
     }
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
@@ -205,7 +215,9 @@ impl TestStatus for JSONStatus {
         _cmd: &'a str,
         _stderr: &'a [u8],
         _stdout: &'a [u8],
-    ) -> Box<dyn Debug + 'a> { Box::new(()) }
+    ) -> Box<dyn Debug + 'a> {
+        Box::new(())
+    }
 
     /// Create a copy of this test for a new path.
     fn for_path(&self, path: &Path) -> Box<dyn TestStatus> {
@@ -213,7 +225,7 @@ impl TestStatus for JSONStatus {
             name: self.name.clone(),
             path: path.to_path_buf(),
             revision: self.revision.clone(),
-            style: self.style.clone(),
+            style: self.style,
         };
         Box::new(status)
     }
