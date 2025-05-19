@@ -178,7 +178,7 @@ pub fn run_tests_generic(
     mut configs: Vec<Config>,
     file_filter: impl Fn(&Path, &Config) -> Option<bool> + Sync,
     per_file_config: impl Copy + Fn(&mut Config, &Spanned<Vec<u8>>) + Send + Sync + 'static,
-    status_emitter: impl StatusEmitter + Send,
+    status_emitter: impl StatusEmitter,
 ) -> Result<()> {
     if nextest::emulate(&mut configs) {
         return Ok(());
