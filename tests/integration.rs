@@ -55,7 +55,6 @@ fn main() -> Result<()> {
     config.filter("RUSTC_ICE=\"0\" ", "");
     // The order of the `/deps` directory flag is flaky
     config.stdout_filter("/deps", "");
-    config.path_filter(std::path::Path::new(path), "$DIR");
     config.stdout_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
     // Windows backslashes are sometimes escaped.
     // Insert the replacement filter at the start to make sure the filter for single backslashes
@@ -65,6 +64,13 @@ fn main() -> Result<()> {
         .base()
         .normalize_stdout
         .insert(0, (Match::Exact(b"\\\\".to_vec()), b"\\".to_vec()));
+    // Do windows path escaping twice because json also escapes paths
+    config
+        .comment_defaults
+        .base()
+        .normalize_stdout
+        .insert(0, (Match::Exact(b"\\\\\\\\".to_vec()), b"\\".to_vec()));
+    config.path_filter(std::path::Path::new(path), "$DIR");
     config.stdout_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     // We don't want to normalize lines starting with `+`, those are diffs of the inner ui_test
     // and normalizing these here doesn't make the "actual output differed from expected" go
