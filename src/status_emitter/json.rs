@@ -27,7 +27,7 @@ fn emit_suite_start() {
     println!(r#"{{ "type": "suite", "event": "started" }}"#);
 }
 
-fn emit_test_end(name: &String, revision: &String, path: &PathBuf, status: &str, diags: &str) {
+fn emit_test_end(name: &String, revision: &String, path: &Path, status: &str, diags: &str) {
     let displayed_path = path.display();
     let stdout = if diags.is_empty() {
         String::new()
@@ -37,14 +37,18 @@ fn emit_test_end(name: &String, revision: &String, path: &PathBuf, status: &str,
     };
 
     // Adapted from test::formatters::json::write_event().
-    println!(r#"{{ "type": "test", "event": "{status}", "name": "{name} ({revision}) - {displayed_path}"{stdout} }}"#);
+    println!(
+        r#"{{ "type": "test", "event": "{status}", "name": "{name} ({revision}) - {displayed_path}"{stdout} }}"#
+    );
 }
 
-fn emit_test_start(name: &String, revision: &String, path: &PathBuf) {
+fn emit_test_start(name: &String, revision: &String, path: &Path) {
     let displayed_path = path.display();
 
     // Adapted from test::formatters::json::write_test_start().
-    println!(r#"{{ "type": "test", "event": "started", "name": "{name} ({revision}) - {displayed_path}" }}"#);
+    println!(
+        r#"{{ "type": "test", "event": "started", "name": "{name} ({revision}) - {displayed_path}" }}"#
+    );
 }
 
 // MAINTENANCE REGION END
@@ -136,7 +140,7 @@ impl TestStatus for JSONStatus {
             String::new()
         };
 
-        emit_test_end(&self.name, &self.revision, &self.path, status, &diags);
+        emit_test_end(&self.name, &self.revision, self.path(), status, &diags);
     }
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
