@@ -97,7 +97,7 @@ fn main() -> Result<()> {
     config.stdout_filter(r#"exit status: 0xc0000409"#, "signal: 6 (SIGABRT)");
     config.filter("\"--target=[^\"]+\"", "");
 
-    let text = ui_test::status_emitter::Text::from(args.format);
+    let emitter: Box<dyn ui_test::status_emitter::StatusEmitter> = args.format.into();
 
     let mut pass_config = config.clone();
     pass_config.comment_defaults.base().exit_status = Some(Spanned::dummy(0)).into();
@@ -139,7 +139,7 @@ fn main() -> Result<()> {
         },
         |_, _| {},
         (
-            text,
+            emitter,
             #[cfg(feature = "gha")]
             ui_test::status_emitter::Gha::<true> {
                 name: "integration tests".into(),

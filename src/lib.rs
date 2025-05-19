@@ -81,10 +81,8 @@ pub fn run_tests(mut config: Config) -> Result<()> {
     #[cfg(feature = "gha")]
     let name = display(&config.root_dir);
 
-    let text = match args.format {
-        Format::Terse => status_emitter::Text::quiet(),
-        Format::Pretty => status_emitter::Text::verbose(),
-    };
+    let emitter: Box<dyn StatusEmitter> = args.format.into();
+
     config.with_args(&args);
 
     run_tests_generic(
@@ -92,7 +90,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         default_file_filter,
         default_per_file_config,
         (
-            text,
+            emitter,
             #[cfg(feature = "gha")]
             status_emitter::Gha::<true> { name },
         ),
@@ -180,7 +178,7 @@ pub fn run_tests_generic(
     mut configs: Vec<Config>,
     file_filter: impl Fn(&Path, &Config) -> Option<bool> + Sync,
     per_file_config: impl Copy + Fn(&mut Config, &Spanned<Vec<u8>>) + Send + Sync + 'static,
-    status_emitter: impl StatusEmitter + Send,
+    status_emitter: impl StatusEmitter,
 ) -> Result<()> {
     if nextest::emulate(&mut configs) {
         return Ok(());

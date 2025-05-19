@@ -1,22 +1,42 @@
 //! Various schemes for reporting messages during testing or after testing is done.
+//!
+//! The testing framework employs the implementations of the various emitter traits
+//! as follows:
+//!
+//! The framework first creates an instance of a `StatusEmitter`.
+//!
+//! The framework then searches for tests in its perview, and if it finds one, it
+//! calls `StatusEmitter::register_test()` to obtain a `TestStatus` for that test.
+//! The tests are then executed in an asynchonous manner.
+//!
+//! Once a single test finish executing, the framework calls `TestStatus::done()`.
+//!
+//! Once all tests finish executing, the framework calls `StatusEmitter::finalize()`
+//! to obtain a Summary.
+//!
+//! For each failed test, the framework calls both `TestStatus::failed_test()` and
+//! `Summary::test_failure()`.
 
-use crate::{test_result::TestResult, Errors};
+use crate::{test_result::TestResult, Errors, Format};
 
 use std::{
+    boxed::Box,
     fmt::Debug,
     panic::RefUnwindSafe,
     path::{Path, PathBuf},
 };
-pub use text::*;
 pub mod debug;
-mod text;
 #[cfg(feature = "gha")]
 pub use gha::*;
 #[cfg(feature = "gha")]
 mod gha;
+pub use json::*;
+mod json;
+pub use text::*;
+mod text;
 
 /// A generic way to handle the output of this crate.
-pub trait StatusEmitter: Sync + RefUnwindSafe {
+pub trait StatusEmitter: Send + Sync + RefUnwindSafe {
     /// Invoked the moment we know a test will later be run.
     /// Useful for progress bars and such.
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus + 'static>;
@@ -31,6 +51,16 @@ pub trait StatusEmitter: Sync + RefUnwindSafe {
         filtered: usize,
         aborted: bool,
     ) -> Box<dyn Summary>;
+}
+
+impl From<Format> for Box<dyn StatusEmitter> {
+    fn from(format: Format) -> Box<dyn StatusEmitter> {
+        match format {
+            Format::JSON => Box::new(JSON::new()),
+            Format::Pretty => Box::new(Text::verbose()),
+            Format::Terse => Box::new(Text::quiet()),
+        }
+    }
 }
 
 /// Some configuration options for revisions
@@ -52,7 +82,7 @@ pub trait TestStatus: Send + Sync + RefUnwindSafe {
     fn for_path(&self, path: &Path) -> Box<dyn TestStatus>;
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
-    /// gets invoked afterwards.
+    /// get invoked afterwards.
     fn failed_test<'a>(
         &'a self,
         cmd: &'a str,

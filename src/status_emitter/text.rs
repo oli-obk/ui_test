@@ -11,7 +11,6 @@ use crate::test_result::TestOk;
 use crate::test_result::TestResult;
 use crate::Error;
 use crate::Errors;
-use crate::Format;
 use annotate_snippets::Renderer;
 use annotate_snippets::Snippet;
 use colored::Colorize;
@@ -338,15 +337,6 @@ impl Text {
 
     fn is_full_output(&self) -> bool {
         matches!(self.progress, OutputVerbosity::Full)
-    }
-}
-
-impl From<Format> for Text {
-    fn from(format: Format) -> Self {
-        match format {
-            Format::Terse => Text::quiet(),
-            Format::Pretty => Text::verbose(),
-        }
     }
 }
 
