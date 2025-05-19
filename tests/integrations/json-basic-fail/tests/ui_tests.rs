@@ -6,7 +6,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         // Never bless integrations-fail tests, we want to see stderr mismatches
         output_conflict_handling: ui_test::error_on_output_conflict,
         bless_command: Some("DO NOT BLESS. These are meant to fail".to_string()),
-        ..Config::rustc("tests/actual_tests")
+        ..Config::rustc("../basic-fail/tests/actual_tests")
     };
 
     config
@@ -30,6 +30,6 @@ fn main() -> ui_test::color_eyre::Result<()> {
         default_file_filter,
         default_per_file_config,
         // Avoid github actions, as these would end up showing up in `Cargo.stderr`
-        status_emitter::JSON,
+        status_emitter::JSON::new(),
     )
 }

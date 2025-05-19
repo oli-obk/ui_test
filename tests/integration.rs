@@ -97,11 +97,7 @@ fn main() -> Result<()> {
     config.stdout_filter(r#"exit status: 0xc0000409"#, "signal: 6 (SIGABRT)");
     config.filter("\"--target=[^\"]+\"", "");
 
-    let emitter: Box<dyn status_emitter::StatusEmitter> = match args.format {
-        Format::JSON => Box::new(status_emitter::JSON),
-        Format::Pretty => Box::new(status_emitter::Text::verbose()),
-        Format::Terse => Box::new(status_emitter::Text::quiet()),
-    };
+    let emitter = ui_test::status_emitter::from_format(args.format);
 
     let mut pass_config = config.clone();
     pass_config.comment_defaults.base().exit_status = Some(Spanned::dummy(0)).into();

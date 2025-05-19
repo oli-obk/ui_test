@@ -6,7 +6,7 @@ use crate::TestOk;
 use crate::test_result::TestResult;
 
 use std::boxed::Box;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 
 use bstr::ByteSlice;
@@ -15,35 +15,118 @@ use bstr::ByteSlice;
 
 // When integrating with a new libtest version, update all emit_xxx functions.
 
-fn emit_suite_end(failed: usize, filtered_out: usize, ignored: usize, passed: usize, status: &String,) {
+fn emit_suite_end(failed: usize, filtered_out: usize, ignored: usize, passed: usize, status: &str,) {
     // Adapted from test::formatters::json::write_run_finish().
     println!(r#"{{ "type": "suite", "event": "{status}", "passed": {passed}, "failed": {failed}, "ignored": {ignored}, "measured": 0, "filtered_out": {filtered_out} }}"#);
 }
 
-fn emit_test_end(name: &String, status: &String, error_output: &String) {
-    let escaped_name = serde_json::to_string(name).unwrap();
-    let escaped_error_output = if error_output.is_empty() {
-        String::new()
-    } else {
-        format!(r#", "stdout": {}"#, serde_json::to_string(error_output).unwrap())
+fn emit_suite_start() {
+    // Adapted from test::formatters::json::write_run_start().
+    println!(r#"{{ "type": "suite", "event": "started" }}"#);
+}
+
+fn emit_test_end(name: &String, status: &str, diags: &str) {
+    let triaged_name = EscapedString(name);
+    let stdout = if diags.is_empty() { String::new() } else {
+        let triaged_diags = EscapedString(diags);
+        format!(r#", "stdout": {triaged_diags}"#)
     };
 
     // Adapted from test::formatters::json::write_event().
-    println!(r#"{{ "type": "test", "event": "{status}", "name": {escaped_name}{escaped_error_output} }}"#);
+    println!(r#"{{ "type": "test", "event": "{status}", "name": "{triaged_name}"{stdout} }}"#);
 }
 
 fn emit_test_start(name: &String) {
-    let escaped_name = serde_json::to_string(name).unwrap();
+    let triaged_name = EscapedString(name);
 
     // Adapted from test::formatters::json::write_test_start().
-    println!(r#"{{ "type": "test", "event": "started", "name": {escaped_name} }}"#);
+    println!(r#"{{ "type": "test", "event": "started", "name": "{triaged_name}" }}"#);
+}
+
+// Adapted from test::formatters::json. Note that serde_json::to_string() cannot
+// properly escape certain characters, and this results in malformed JSON.
+
+/// A formatting utility used to print strings with characters in need of escaping.
+/// Base code taken form `libserialize::json::escape_str`.
+struct EscapedString<S: AsRef<str>>(S);
+
+impl<S: AsRef<str>> Display for EscapedString<S> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> ::std::fmt::Result {
+        let mut start = 0;
+
+        for (i, byte) in self.0.as_ref().bytes().enumerate() {
+            let escaped = match byte {
+                b'"' => "\\\"",
+                b'\\' => "\\\\",
+                b'\x00' => "\\u0000",
+                b'\x01' => "\\u0001",
+                b'\x02' => "\\u0002",
+                b'\x03' => "\\u0003",
+                b'\x04' => "\\u0004",
+                b'\x05' => "\\u0005",
+                b'\x06' => "\\u0006",
+                b'\x07' => "\\u0007",
+                b'\x08' => "\\b",
+                b'\t' => "\\t",
+                b'\n' => "\\n",
+                b'\x0b' => "\\u000b",
+                b'\x0c' => "\\f",
+                b'\r' => "\\r",
+                b'\x0e' => "\\u000e",
+                b'\x0f' => "\\u000f",
+                b'\x10' => "\\u0010",
+                b'\x11' => "\\u0011",
+                b'\x12' => "\\u0012",
+                b'\x13' => "\\u0013",
+                b'\x14' => "\\u0014",
+                b'\x15' => "\\u0015",
+                b'\x16' => "\\u0016",
+                b'\x17' => "\\u0017",
+                b'\x18' => "\\u0018",
+                b'\x19' => "\\u0019",
+                b'\x1a' => "\\u001a",
+                b'\x1b' => "\\u001b",
+                b'\x1c' => "\\u001c",
+                b'\x1d' => "\\u001d",
+                b'\x1e' => "\\u001e",
+                b'\x1f' => "\\u001f",
+                b'\x7b' => "{{",
+                b'\x7d' => "}}",
+                b'\x7f' => "\\u007f",
+                _ => {
+                    continue;
+                }
+            };
+
+            if start < i {
+                f.write_str(&self.0.as_ref()[start..i])?;
+            }
+            f.write_str(escaped)?;
+
+            start = i + 1;
+        }
+
+        if start != self.0.as_ref().len() {
+            f.write_str(&self.0.as_ref()[start..])?;
+        }
+        Ok(())
+    }
 }
 
 // MAINTENANCE REGION END
 
 /// A JSON output emitter.
 #[derive(Clone)]
-pub struct JSON;
+pub struct JSON {}
+
+impl JSON {
+    /// Create a new instance of a JSON output emitter.
+    pub fn new() -> Self {
+        emit_suite_start();
+
+        JSON {}
+    }
+}
 
 impl StatusEmitter for JSON {
     /// Create a report about the entire test run at the end.
@@ -56,9 +139,9 @@ impl StatusEmitter for JSON {
         aborted: bool,
     ) -> Box<dyn Summary> {
         let status = if aborted || failed > 0 {
-            String::from("failed")
+            "failed"
         } else {
-            String::from("ok")
+            "ok"
         };
 
         emit_suite_end(failed, filtered, ignored, succeeded, &status);
@@ -94,24 +177,25 @@ impl TestStatus for JSONStatus {
     /// A test has finished, handle the result immediately.
     fn done(&self, result: &TestResult, aborted: bool) {
         let status = if aborted {
-            String::from("timeout")
+            "timeout"
         } else {
             match result {
-                Ok(TestOk::Ignored) => String::from("ignored"),
-                Ok(TestOk::Ok) => String::from("ok"),
-                Err(_) => String::from("failed"),
+                Ok(TestOk::Ignored) => "ignored",
+                Ok(TestOk::Ok) => "ok",
+                Err(_) => "failed",
             }
         };
-        let error_output = if let Err(errored) = result {
-            let command = &errored.command;
-            let stderr = errored.stderr.to_str_lossy();
-            let stdout = errored.stdout.to_str_lossy();
-            format!(r#"---- command\n\n{command}\n\n\---- stdout\n\n\{stdout}\n\n---- stderr\n\n\{stderr}"#)
+        let diags = if let Err(errored) = result {
+            let command = errored.command.as_str();
+            let stdout = errored.stderr.to_str_lossy();
+            let stderr = errored.stdout.to_str_lossy();
+
+            format!(r#"command: <{command}> stdout: <{stdout}> stderr: <{stderr}>"#)
         } else {
             String::new()
         };
 
-        emit_test_end(&self.name, &status, &error_output);
+        emit_test_end(&self.name, &status, &diags);
     }
 
     /// Invoked before each failed test prints its errors along with a drop guard that can

@@ -17,9 +17,14 @@
 //! For each failed test, the framework calls both `TestStatus::failed_test()` and
 //! `Summary::test_failure()`.
 
-use crate::{test_result::TestResult, Errors};
+use crate::{
+    Errors,
+    Format,
+    test_result::TestResult
+};
 
 use std::{
+    boxed::Box,
     fmt::Debug,
     panic::RefUnwindSafe,
     path::{Path, PathBuf},
@@ -50,6 +55,15 @@ pub trait StatusEmitter: Send + Sync + RefUnwindSafe {
         filtered: usize,
         aborted: bool,
     ) -> Box<dyn Summary>;
+}
+
+/// Create a `StatusEmitter` for a particular `Format`.
+pub fn from_format(format: Format) -> Box<dyn StatusEmitter> {
+    match format {
+        Format::JSON => Box::new(JSON::new()),
+        Format::Pretty => Box::new(Text::verbose()),
+        Format::Terse => Box::new(Text::quiet()),
+    }
 }
 
 /// Some configuration options for revisions
