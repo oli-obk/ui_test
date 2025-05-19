@@ -81,7 +81,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
     #[cfg(feature = "gha")]
     let name = display(&config.root_dir);
 
-    let emitter = status_emitter::from_format(args.format);
+    let emitter: Box<dyn StatusEmitter> = args.format.into();
 
     config.with_args(&args);
 

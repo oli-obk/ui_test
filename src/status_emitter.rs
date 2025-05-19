@@ -53,12 +53,13 @@ pub trait StatusEmitter: Send + Sync + RefUnwindSafe {
     ) -> Box<dyn Summary>;
 }
 
-/// Create a `StatusEmitter` for a particular `Format`.
-pub fn from_format(format: Format) -> Box<dyn StatusEmitter> {
-    match format {
-        Format::JSON => Box::new(JSON::new()),
-        Format::Pretty => Box::new(Text::verbose()),
-        Format::Terse => Box::new(Text::quiet()),
+impl From<Format> for Box<dyn StatusEmitter> {
+    fn from(format: Format) -> Box<dyn StatusEmitter> {
+        match format {
+            Format::JSON => Box::new(JSON::new()),
+            Format::Pretty => Box::new(Text::verbose()),
+            Format::Terse => Box::new(Text::quiet()),
+        }
     }
 }
 

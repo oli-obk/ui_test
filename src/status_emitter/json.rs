@@ -6,7 +6,7 @@ use crate::test_result::TestResult;
 use crate::TestOk;
 
 use std::boxed::Box;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
 use bstr::ByteSlice;
@@ -27,94 +27,24 @@ fn emit_suite_start() {
     println!(r#"{{ "type": "suite", "event": "started" }}"#);
 }
 
-fn emit_test_end(name: &String, status: &str, diags: &str) {
-    let triaged_name = EscapedString(name);
+fn emit_test_end(name: &String, revision: &String, path: &PathBuf, status: &str, diags: &str) {
+    let displayed_path = path.display();
     let stdout = if diags.is_empty() {
         String::new()
     } else {
-        let triaged_diags = EscapedString(diags);
+        let triaged_diags = serde_json::to_string(diags).unwrap();
         format!(r#", "stdout": {triaged_diags}"#)
     };
 
     // Adapted from test::formatters::json::write_event().
-    println!(r#"{{ "type": "test", "event": "{status}", "name": "{triaged_name}"{stdout} }}"#);
+    println!(r#"{{ "type": "test", "event": "{status}", "name": "{name} ({revision}) - {displayed_path}"{stdout} }}"#);
 }
 
-fn emit_test_start(name: &String) {
-    let triaged_name = EscapedString(name);
+fn emit_test_start(name: &String, revision: &String, path: &PathBuf) {
+    let displayed_path = path.display();
 
     // Adapted from test::formatters::json::write_test_start().
-    println!(r#"{{ "type": "test", "event": "started", "name": "{triaged_name}" }}"#);
-}
-
-// Adapted from test::formatters::json. Note that serde_json::to_string() cannot
-// properly escape certain characters, and this results in malformed JSON.
-
-/// A formatting utility used to print strings with characters in need of escaping.
-/// Base code taken form `libserialize::json::escape_str`.
-struct EscapedString<S: AsRef<str>>(S);
-
-impl<S: AsRef<str>> Display for EscapedString<S> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> ::std::fmt::Result {
-        let mut start = 0;
-
-        for (i, byte) in self.0.as_ref().bytes().enumerate() {
-            let escaped = match byte {
-                b'"' => "\\\"",
-                b'\\' => "\\\\",
-                b'\x00' => "\\u0000",
-                b'\x01' => "\\u0001",
-                b'\x02' => "\\u0002",
-                b'\x03' => "\\u0003",
-                b'\x04' => "\\u0004",
-                b'\x05' => "\\u0005",
-                b'\x06' => "\\u0006",
-                b'\x07' => "\\u0007",
-                b'\x08' => "\\b",
-                b'\t' => "\\t",
-                b'\n' => "\\n",
-                b'\x0b' => "\\u000b",
-                b'\x0c' => "\\f",
-                b'\r' => "\\r",
-                b'\x0e' => "\\u000e",
-                b'\x0f' => "\\u000f",
-                b'\x10' => "\\u0010",
-                b'\x11' => "\\u0011",
-                b'\x12' => "\\u0012",
-                b'\x13' => "\\u0013",
-                b'\x14' => "\\u0014",
-                b'\x15' => "\\u0015",
-                b'\x16' => "\\u0016",
-                b'\x17' => "\\u0017",
-                b'\x18' => "\\u0018",
-                b'\x19' => "\\u0019",
-                b'\x1a' => "\\u001a",
-                b'\x1b' => "\\u001b",
-                b'\x1c' => "\\u001c",
-                b'\x1d' => "\\u001d",
-                b'\x1e' => "\\u001e",
-                b'\x1f' => "\\u001f",
-                b'\x7b' => "{{",
-                b'\x7d' => "}}",
-                b'\x7f' => "\\u007f",
-                _ => {
-                    continue;
-                }
-            };
-
-            if start < i {
-                f.write_str(&self.0.as_ref()[start..i])?;
-            }
-            f.write_str(escaped)?;
-
-            start = i + 1;
-        }
-
-        if start != self.0.as_ref().len() {
-            f.write_str(&self.0.as_ref()[start..])?;
-        }
-        Ok(())
-    }
+    println!(r#"{{ "type": "test", "event": "started", "name": "{name} ({revision}) - {displayed_path}" }}"#);
 }
 
 // MAINTENANCE REGION END
@@ -163,8 +93,9 @@ impl StatusEmitter for JSON {
     /// Useful for progress bars and such.
     fn register_test(&self, path: PathBuf) -> Box<dyn TestStatus + 'static> {
         let name = path.to_str().unwrap().to_string();
+        let revision = String::new();
 
-        emit_test_start(&name);
+        emit_test_start(&name, &revision, &path);
 
         Box::new(JSONStatus {
             name,
@@ -205,7 +136,7 @@ impl TestStatus for JSONStatus {
             String::new()
         };
 
-        emit_test_end(&self.name, status, &diags);
+        emit_test_end(&self.name, &self.revision, &self.path, status, &diags);
     }
 
     /// Invoked before each failed test prints its errors along with a drop guard that can
