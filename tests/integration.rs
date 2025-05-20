@@ -51,8 +51,8 @@ fn main() -> Result<()> {
         "The system cannot find the file specified.",
         "No such file or directory",
     );
-    config.filter(r#"RUSTC_BOOTSTRAP=\"1\" "#, "");
-    config.filter(r#"RUSTC_ICE=\"0\" "#, "");
+    config.filter(r#"RUSTC_BOOTSTRAP=\\"1\\" "#, "");
+    config.filter(r#"RUSTC_ICE=\\"0\\" "#, "");
     config.filter("RUSTC_BOOTSTRAP=\"1\" ", "");
     config.filter("RUSTC_ICE=\"0\" ", "");
     // The order of the `/deps` directory flag is flaky
