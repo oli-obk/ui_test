@@ -45,6 +45,9 @@ jobs:
             echo "Aborting: Version $VERSION is already published, we found its tag in the repo."
             exit 1
           fi
+      
+      - name: Install binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       # TODO: Replace this with the cargo-semver-checks v2 GitHub Action when it's stabilized:
       #       https://github.com/obi1kenobi/cargo-semver-checks-action/pull/21
@@ -52,7 +55,7 @@ jobs:
         run: |
           # Fail on first error, on undefined variables, and on errors in pipes.
           set -euo pipefail
-          cargo install --locked cargo-semver-checks
+          cargo binstall --locked cargo-semver-checks
           cargo semver-checks check-release
 
       - name: Publish
