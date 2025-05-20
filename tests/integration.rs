@@ -71,6 +71,8 @@ fn main() -> Result<()> {
         .normalize_stdout
         .insert(0, (Match::Exact(b"\\\\\\\\".to_vec()), b"\\".to_vec()));
     config.path_filter(std::path::Path::new(path), "$DIR");
+    // Unescape escaped quotes at the end of windows paths in json
+    config.filter("/\"", "\\\"");
     config.stdout_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     // We don't want to normalize lines starting with `+`, those are diffs of the inner ui_test
     // and normalizing these here doesn't make the "actual output differed from expected" go
