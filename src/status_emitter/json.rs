@@ -245,7 +245,13 @@ fn test_end_event_constructs_event() {
 #[test]
 fn test_end_event_constructs_event_with_escapes() {
     assert_eq!(
-        test_end_event(r#"aaa\bbb"#, r#"ccc ddd\eee"#, Path::new(r#"fff\ggg"#), "status", r#""rustc" "--error-format=json""#),
+        test_end_event(
+            r#"aaa\bbb"#,
+            r#"ccc ddd\eee"#,
+            Path::new(r#"fff\ggg"#),
+            "status",
+            r#""rustc" "--error-format=json""#
+        ),
         r#"{ "type": "test", "event": "status", "name": "aaa\\bbb (ccc ddd\\eee) - fff\\ggg", "stdout": "\"rustc\" \"--error-format=json\"" }"#
     );
 }
