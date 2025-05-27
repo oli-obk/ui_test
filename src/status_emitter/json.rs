@@ -34,37 +34,36 @@ fn suite_start_event() -> String {
 }
 
 fn test_end_event(name: &str, revision: &str, path: &Path, status: &str, diags: &str) -> String {
-    let escaped_name = escape_backslashes(name);
-    let escaped_revision = escape_backslashes(revision);
-    let escaped_path = escape_backslashes(&path.display().to_string());
-    let escaped_stdout = if diags.is_empty() {
-        String::new()
-    } else {
-        let escaped_diags = serde_json::to_string(&escape_backslashes(diags)).unwrap();
-        format!(r#", "stdout": {}"#, escaped_diags)
-    };
+    let name_attribute = make_name_attribute(name, revision, path);
+    let stdout_attribute = make_stdout_attribute(diags);
 
     // Adapted from test::formatters::json::write_event().
-    format!(
-        r#"{{ "type": "test", "event": "{status}", "name": "{escaped_name} ({escaped_revision}) - {escaped_path}"{escaped_stdout} }}"#
-    )
+    format!(r#"{{ "type": "test", "event": "{status}"{name_attribute}{stdout_attribute} }}"#)
 }
 
 fn test_start_event(name: &str, revision: &str, path: &Path) -> String {
-    let escaped_name = escape_backslashes(name);
-    let escaped_revision = escape_backslashes(revision);
-    let escaped_path = escape_backslashes(&path.display().to_string());
+    let name_attribute = make_name_attribute(name, revision, path);
 
     // Adapted from test::formatters::json::write_test_start().
-    format!(
-        r#"{{ "type": "test", "event": "started", "name": "{escaped_name} ({escaped_revision}) - {escaped_path}" }}"#
-    )
+    format!(r#"{{ "type": "test", "event": "started"{name_attribute} }}"#)
 }
 
 // MAINTENANCE REGION END
 
-fn escape_backslashes(s: &str) -> String {
-    s.replace('\\', "\\\\")
+fn make_name_attribute(name: &str, revision: &str, path: &Path) -> String {
+    let path_display = path.display();
+    let escaped_value =
+        serde_json::to_string(&format!("{name} ({revision}) - {path_display}")).unwrap();
+    format!(r#", "name": {escaped_value}"#)
+}
+
+fn make_stdout_attribute(diags: &str) -> String {
+    if diags.is_empty() {
+        String::new()
+    } else {
+        let escaped_diags = serde_json::to_string(diags).unwrap();
+        format!(r#", "stdout": {escaped_diags}"#)
+    }
 }
 
 /// A JSON output emitter.
@@ -205,11 +204,6 @@ impl TestStatus for JSONStatus {
     fn revision(&self) -> &str {
         &self.revision
     }
-}
-
-#[test]
-fn escape_backslashes_escapes() {
-    assert_eq!(escape_backslashes(r#"\aaa\bbb"#), r#"\\aaa\\bbb"#);
 }
 
 #[test]
