@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* the JSON output now properly escapes backslashes on Windows
+
 ### Changed
 
 ### Removed
