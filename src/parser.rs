@@ -909,7 +909,10 @@ impl<CommentsType> CommentParser<CommentsType> {
                     );
                 };
                 let (revision, pattern) = s.split_at(end);
-                let revisions = revision.split(',').map(|s| s.trim().to_string()).collect();
+                let revisions = revision
+                    .split(',')
+                    .map(|s| s.content.trim().to_string())
+                    .collect();
                 (
                     Spanned::new(revisions, revision.span()),
                     // 1.. because `split_at` includes the separator
@@ -1061,10 +1064,7 @@ impl CommentParser<&mut Revisioned> {
             return res;
         } else {
             self.error_matches.push(ErrorMatch {
-                kind: ErrorMatchKind::Code(Spanned::new(
-                    level_or_code.to_string(),
-                    level_or_code.span(),
-                )),
+                kind: ErrorMatchKind::Code(level_or_code.to_string()),
                 line: match_line,
             });
         };

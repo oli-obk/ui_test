@@ -15,8 +15,6 @@ use build_manager::BuildManager;
 use build_manager::NewJob;
 pub use color_eyre;
 use color_eyre::eyre::eyre;
-#[cfg(feature = "rustc")]
-use color_eyre::eyre::Context as _;
 pub use color_eyre::eyre::Result;
 pub use core::run_and_collect;
 pub use core::CrateType;
@@ -148,8 +146,7 @@ pub fn default_per_file_config(config: &mut Config, file_contents: &Spanned<Vec<
 pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
 
-    let content = Spanned::read_from_file(path)
-        .wrap_err_with(|| format!("failed to read {}", display(path)))?;
+    let content = Spanned::read_from_file(path).transpose()?;
     let comments = Comments::parse(content.as_ref(), &config)
         .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let config = TestConfig {
@@ -239,7 +236,8 @@ pub fn run_tests_generic(
                         // Forward .rs files to the test workers.
                         submit
                             .send(Box::new(move |finished_files_sender: &Sender<TestRun>| {
-                                let file_contents = Spanned::read_from_file(&path).unwrap();
+                                let file_contents =
+                                    Spanned::read_from_file(&path).transpose().unwrap();
                                 let mut config = build_manager.config().clone();
                                 let abort_check = config.abort_check.clone();
                                 per_file_config(&mut config, &file_contents);

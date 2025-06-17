@@ -12,7 +12,7 @@ use std::{
 
 use super::{RevisionStyle, StatusEmitter, Summary, TestStatus};
 fn gha_error(error: &Error, test_path: &str, revision: &str) {
-    let file = Spanned::read_from_file(test_path).unwrap();
+    let file = Spanned::read_from_file(test_path).transpose().unwrap();
     let line = |span: &Span| {
         let line = file[..=span.bytes.start].lines().count();
         NonZeroUsize::new(line).unwrap_or(NonZeroUsize::MIN)

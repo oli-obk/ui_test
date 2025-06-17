@@ -135,7 +135,7 @@ fn get_panic_span(stderr: &[u8]) -> Spanned<String> {
             let Ok(col) = col.parse::<usize>() else {
                 continue;
             };
-            let Ok(file) = Spanned::read_from_file(filename) else {
+            let Ok(file) = Spanned::read_from_file(filename).transpose() else {
                 continue;
             };
             let Some(line) = line.checked_sub(1) else {
