@@ -58,6 +58,7 @@ dependencies = [
 name = "basic"
 version = "0.1.0"
 dependencies = [
+ "quote",
  "serde_derive",
  "tempfile",
  "ui_test",

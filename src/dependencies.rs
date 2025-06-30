@@ -156,6 +156,50 @@ fn build_dependencies_inner(
                 {
                     continue;
                 }
+                if let Some(target) = &config.target {
+                    // We passed `--target` to cargo. This means host and target dependencies will
+                    // end up in different folders, which we can use to distinguish them! We only
+                    // want to add target dependencies, and their folder will look something like:
+                    // ```
+                    // .../target/ui_test/0/x86_64-unknown-linux-gnu/debug/deps/libquote-031e34ffdd9a346e.rlib
+                    // ```
+                    // So we skip all artifacts where, popping the top 3 components, we do not see
+                    // the target. However, we do *not* do this for proc-macro crates as those will
+                    // only ever show up as host crates anyway.
+                    let skip_crate = 'skip_crate: {
+                        let Some(filename) = artifact.filenames.first() else {
+                            // No filename? No idea what this is...
+                            break 'skip_crate false;
+                        };
+                        if artifact
+                            .target
+                            .crate_types
+                            .iter()
+                            .any(|ctype| ctype == "proc-macro")
+                        {
+                            // Proc macros are only ever built for the host, don't skip that.
+                            break 'skip_crate false;
+                        }
+                        // Not a proc macro, let's check the path.
+                        let mut filename = filename.to_path_buf();
+                        filename.pop();
+                        // We also validate that the path looks as expected before we actually skip.
+                        if filename.file_name().unwrap_or_default() != "deps" {
+                            // Either cargo changed or this is a weird corner case, let's just
+                            // keep it.
+                            break 'skip_crate false;
+                        }
+                        filename.pop();
+                        // This is the profile name, `debug` or `release` or so.
+                        filename.pop();
+                        // And now this should be the target name.
+                        // If not, skip it.
+                        filename.file_name().unwrap_or_default() != target
+                    };
+                    if skip_crate {
+                        continue;
+                    }
+                }
                 for filename in &artifact.filenames {
                     import_paths.insert(filename.parent().unwrap().into());
                 }
