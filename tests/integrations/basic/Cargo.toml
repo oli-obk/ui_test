@@ -6,7 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# A proc-macro dependency, needs special treatment.
 serde_derive = "1.0"
+# `quote` now shows up both as host and target dependency -- let's make sure that works.
+quote = "1.0.25"
 
 [dev-dependencies]
 ui_test = { path = "../../.."}
