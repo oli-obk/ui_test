@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- DependencyBuilder: if `config.target` is set (which is always the case if you use `run_tests_generic`),
+  ui_test now supports the same crate showing up as a direct dependency and a dependency of a proc-macro.
+
 ### Removed
 
 ## [0.30.1] - 2025-05-28
