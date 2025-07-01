@@ -5,7 +5,7 @@ fn main() -> Result<()> {
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join("integrations");
     let mut config = Config {
-        bless_command: Some("cargo test -- -- --bless".to_string()),
+        bless_command: Some("cargo test".to_string()), // we bless by default
         ..Config::cargo(root_dir.clone())
     };
 
@@ -32,6 +32,10 @@ fn main() -> Result<()> {
         .program
         .envs
         .push(("BLESS".into(), (!args.check).then(|| String::new().into())));
+    if args.check {
+        // Also check the lockfile.
+        config.program.args.push("--locked".into());
+    }
 
     config
         .program
