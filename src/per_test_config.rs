@@ -17,7 +17,7 @@ use spanned::Spanned;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::Arc;
 
@@ -164,11 +164,13 @@ impl TestConfig {
         self.status.path().with_extension(ext)
     }
 
-    pub(crate) fn normalize(&self, text: &[u8], kind: &str) -> Vec<u8> {
+    pub(crate) fn normalize(&self, text: &[u8], path: &Path) -> Vec<u8> {
         let mut text = text.to_owned();
+        let kind: &str = &path.extension().unwrap().to_string_lossy();
+        let filename = path.file_name().unwrap().to_string_lossy().to_string();
 
         for (from, to) in self.comments().flat_map(|r| match kind {
-            _ if kind.ends_with("fixed") => &[] as &[_],
+            _ if filename.ends_with("fixed.rs") => &[] as &[_],
             "stderr" => &r.normalize_stderr,
             "stdout" => &r.normalize_stdout,
             _ => unreachable!(),
