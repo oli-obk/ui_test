@@ -28,7 +28,8 @@ not run your `fn main()` that actually executes `ui_test`
 ## Supported comment annotations
 
 If your test tests for failure, you need to add a `//~` annotation where the error is happening
-to ensure that the test will always keep failing at the annotated line. These comments can take two forms:
+to ensure that the test will always keep failing at the annotated line. This will match any substring
+of the error. These comments can take two forms:
 
 * `//~ LEVEL: XXX` matches by error level and message text
     * `LEVEL` can be one of the following (descending order): `ERROR`, `HELP`, `WARN`, `NOTE` or `ICE`
@@ -77,7 +78,8 @@ their command specifies, or the test will fail without even being run.
 * `//@rustc-env: XXX=YYY` sets the env var `XXX` to `YYY` for the rustc driver execution.
     * for Miri these env vars are used during compilation via rustc and during the emulation of the program
     * you can specify this multiple times, accumulating all the env vars
-* `//@normalize-stderr-test: "REGEX" -> "REPLACEMENT"` replaces all matches of `REGEX` in the stderr with `REPLACEMENT`. The replacement may specify `$1` and similar backreferences to paste captures.
+* `//@normalize-stderr-test: "REGEX" -> "REPLACEMENT"` replaces all matches of `REGEX` in the stderr with `REPLACEMENT`. The replacement may specify `$1` and similar backreferences to paste captures. Note that this
+doesn't apply to error strings specified by `//~` comments.
     * you can specify multiple such commands, there is no need to create a single regex that handles multiple replacements that you want to perform.
 * `//@require-annotations-for-level: LEVEL` can be used to change the level of diagnostics that require a corresponding annotation.
     * this is only useful if there are any annotations like `HELP`, `WARN` or `NOTE`, as these would automatically require annotations for all other diagnostics of the same or higher level.
