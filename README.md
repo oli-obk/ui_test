@@ -78,8 +78,7 @@ their command specifies, or the test will fail without even being run.
 * `//@rustc-env: XXX=YYY` sets the env var `XXX` to `YYY` for the rustc driver execution.
     * for Miri these env vars are used during compilation via rustc and during the emulation of the program
     * you can specify this multiple times, accumulating all the env vars
-* `//@normalize-stdout-test: "REGEX" -> "REPLACEMENT"` / `//@normalize-stderr-test: "REGEX" -> "REPLACEMENT"` replaces all matches of `REGEX` in the stdout/stderr with `REPLACEMENT`. The replacement may specify `$1` and similar backreferences to paste captures. Note that this
-doesn't apply to error strings specified by `//~` comments.
+* `//@normalize-stdout-test: "REGEX" -> "REPLACEMENT"` / `//@normalize-stderr-test: "REGEX" -> "REPLACEMENT"` replaces all matches of `REGEX` in the stdout/stderr with `REPLACEMENT`. The replacement may specify `$1` and similar backreferences to paste captures. Note that this doesn't apply to error strings specified by `//~` comments.
     * you can specify multiple such commands, there is no need to create a single regex that handles multiple replacements that you want to perform.
 * `//@require-annotations-for-level: LEVEL` can be used to change the level of diagnostics that require a corresponding annotation.
     * this is only useful if there are any annotations like `HELP`, `WARN` or `NOTE`, as these would automatically require annotations for all other diagnostics of the same or higher level.
