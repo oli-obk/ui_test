@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- the text output now uses the singular form when there was 1 unmatched diagnostic
+
 ### Changed
 
 - DependencyBuilder: if `config.target` is set (which is always the case if you use `run_tests_generic`),
