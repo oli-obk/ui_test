@@ -5,6 +5,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 { "type": "suite", "event": "started" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/bad_pattern.rs () - tests/actual_tests/bad_pattern.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/bad_pattern_multiple.rs () - tests/actual_tests/bad_pattern_multiple.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/executable.rs () - tests/actual_tests/executable.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/executable_compile_err.rs () - tests/actual_tests/executable_compile_err.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/exit_code_fail.rs () - tests/actual_tests/exit_code_fail.rs" }
@@ -22,6 +23,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "started", "name": "tests/actual_tests/touching_above_below_chain.rs () - tests/actual_tests/touching_above_below_chain.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/bad_pattern.rs (Building dependencies) - tests/actual_tests/bad_pattern.rs" }
 { "type": "test", "event": "failed", "name": "tests/actual_tests/bad_pattern.rs () - tests/actual_tests/bad_pattern.rs", "stdout": "command: <\"rustc\" \"--error-format=json\" \"--out-dir\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/0/tests/actual_tests\" \"tests/actual_tests/bad_pattern.rs\" \"--extern\" \"basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib\" \"--extern\" \"basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta\" \"-L\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug\" \"-L\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug\" \"--edition\" \"2021\"> stdout: <error[E0308]: mismatched types\n --> tests/actual_tests/bad_pattern.rs:4:9\n  |\n4 |     add(\"42\", 3);\n  |     --- ^^^^ expected `usize`, found `&str`\n  |     |\n  |     arguments to this function are incorrect\n  |\nnote: function defined here\n --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC\n  |\n1 | pub fn add(left: usize, right: usize) -> usize {\n  |        ^^^\n\nerror: aborting due to 1 previous error\n\nFor more information about this error, try `rustc --explain E0308`.\n> stderr: <>" }
+{ "type": "test", "event": "failed", "name": "tests/actual_tests/bad_pattern_multiple.rs () - tests/actual_tests/bad_pattern_multiple.rs", "stdout": "command: <\"rustc\" \"--error-format=json\" \"--out-dir\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/0/tests/actual_tests\" \"tests/actual_tests/bad_pattern_multiple.rs\" \"--extern\" \"basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib\" \"--extern\" \"basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta\" \"-L\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug\" \"-L\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug\" \"--edition\" \"2021\"> stdout: <error[E0308]: mismatched types\n --> tests/actual_tests/bad_pattern_multiple.rs:4:9\n  |\n4 |     add(\"42\", 3);\n  |     --- ^^^^ expected `usize`, found `&str`\n  |     |\n  |     arguments to this function are incorrect\n  |\nnote: function defined here\n --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC\n  |\n1 | pub fn add(left: usize, right: usize) -> usize {\n  |        ^^^\n\nerror[E0308]: mismatched types\n --> tests/actual_tests/bad_pattern_multiple.rs:6:9\n  |\n6 |     add(\"42\", 3);\n  |     --- ^^^^ expected `usize`, found `&str`\n  |     |\n  |     arguments to this function are incorrect\n  |\nnote: function defined here\n --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC\n  |\n1 | pub fn add(left: usize, right: usize) -> usize {\n  |        ^^^\n\nerror: aborting due to 2 previous errors\n\nFor more information about this error, try `rustc --explain E0308`.\n> stderr: <>" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/executable.rs () - tests/actual_tests/executable.rs" }
 { "type": "test", "event": "failed", "name": "tests/actual_tests/executable.rs (run) - tests/actual_tests/executable.rs", "stdout": "command: <\"$DIR/tests/integrations/basic-fail/../../../target/$TMP/0/tests/actual_tests/executable\"> stdout: <> stderr: <42\n>" }
 { "type": "test", "event": "failed", "name": "tests/actual_tests/executable_compile_err.rs () - tests/actual_tests/executable_compile_err.rs", "stdout": "command: <\"rustc\" \"--error-format=json\" \"--out-dir\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/0/tests/actual_tests\" \"tests/actual_tests/executable_compile_err.rs\" \"--extern\" \"basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib\" \"--extern\" \"basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta\" \"-L\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug\" \"-L\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug\" \"--edition\" \"2021\"> stdout: <error: this file contains an unclosed delimiter\n --> tests/actual_tests/executable_compile_err.rs:4:2\n  |\n3 | fn main() {\n  |           - unclosed delimiter\n4 |\n  |  ^\n\nerror: aborting due to 1 previous error\n\n> stderr: <>" }
@@ -38,9 +40,10 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "failed", "name": "tests/actual_tests/rustc_ice.rs () - tests/actual_tests/rustc_ice.rs", "stdout": "command: <\"rustc\" \"--error-format=json\" \"--out-dir\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/0/tests/actual_tests\" \"tests/actual_tests/rustc_ice.rs\" \"-Ztreat-err-as-bug\" \"--extern\" \"basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib\" \"--extern\" \"basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta\" \"-L\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug\" \"-L\" \"$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug\" \"--edition\" \"2021\"> stdout: <error: internal compiler error[E0308]: mismatched types\n --> tests/actual_tests/rustc_ice.rs:8:9\n  |\n8 |     add(\"42\", 3);\n  |     --- ^^^^ expected `usize`, found `&str`\n  |     |\n  |     arguments to this function are incorrect\n  |\nnote: function defined here\n --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC\n  |\n1 | pub fn add(left: usize, right: usize) -> usize {\n  |        ^^^\n\nthread 'rustc' panicked at compiler/rustc_errors/src/lib.rs:\naborting due to `-Z treat-err-as-bug=1`\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\nerror: the compiler unexpectedly panicked. this is a bug.\n\nnote: we would appreciate a bug report: https://github.com/rust-lang/rust/issues/new?labels=C-bug%2C+I-ICE%2C+T-compiler&template=ice.md\n\nnote: please make sure that you have updated to the latest nightly\n\n
 { "type": "test", "event": "failed", "name": "tests/actual_tests/touching_above_below.rs () - tests/actual_tests/touching_above_below.rs", "stdout": "command: <parse comments> stdout: <> stderr: <>" }
 { "type": "test", "event": "failed", "name": "tests/actual_tests/touching_above_below_chain.rs () - tests/actual_tests/touching_above_below_chain.rs", "stdout": "command: <parse comments> stdout: <> stderr: <>" }
-{ "type": "suite", "event": "failed", "passed": 1, "failed": 16, "ignored": 0, "measured": 0, "filtered_out": 0 }
+{ "type": "suite", "event": "failed", "passed": 1, "failed": 17, "ignored": 0, "measured": 0, "filtered_out": 0 }
 Building dependencies ... ok
 tests/actual_tests/bad_pattern.rs ... FAILED
+tests/actual_tests/bad_pattern_multiple.rs ... FAILED
 tests/actual_tests/executable.rs ... ok
 tests/actual_tests/executable.rs (revision `run`) ... FAILED
 tests/actual_tests/executable_compile_err.rs ... FAILED
@@ -102,7 +105,7 @@ error: `miesmätsched types` not found in diagnostics on line 4
   |                 ^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests/bad_pattern.rs:4:9
   |
 4 |     add("42", 3);
@@ -125,6 +128,135 @@ note: function defined here
   |        ^^^
 
 error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests/bad_pattern_multiple.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/bad_pattern_multiple.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+
+error: actual output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern_multiple.stderr` to the actual output
+--- tests/actual_tests/bad_pattern_multiple.stderr
++++ <stderr output>
+ error[E0308]: mismatched types
+  --> tests/actual_tests/bad_pattern_multiple.rs:4:9
+... 11 lines skipped ...
+ 
+ error[E0308]: mismatched types
+-  --> tests/actual_tests/bad_pattern_multiple.rs:6:9
++ --> tests/actual_tests/bad_pattern_multiple.rs:6:9
+   |
+ 6 |     add("42", 3);
+... 3 lines skipped ...
+   |
+ note: function defined here
+-  --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
++ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+   |
+ 1 | pub fn add(left: usize, right: usize) -> usize {
+   |        ^^^
+ 
+-    error: aborting due to 2 previous errors
++error: aborting due to 2 previous errors
+ 
+ For more information about this error, try `rustc --explain E0308`.
+
+Full unnormalized output:
+error[E0308]: mismatched types
+ --> tests/actual_tests/bad_pattern_multiple.rs:4:9
+  |
+4 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+error[E0308]: mismatched types
+ --> tests/actual_tests/bad_pattern_multiple.rs:6:9
+  |
+6 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0308`.
+
+
+error: `miesmätsched types` not found in diagnostics on line 4
+ --> tests/actual_tests/bad_pattern_multiple.rs:5:17
+  |
+5 |     //~^ ERROR: miesmätsched types
+  |                 ^^^^^^^^^^^^^^^^^^ expected because of this pattern
+  |
+
+error: `miesmätsched types` not found in diagnostics on line 6
+ --> tests/actual_tests/bad_pattern_multiple.rs:7:17
+  |
+7 |     //~^ ERROR: miesmätsched types
+  |                 ^^^^^^^^^^^^^^^^^^ expected because of this pattern
+  |
+
+error: there was 1 unmatched diagnostic
+ --> tests/actual_tests/bad_pattern_multiple.rs:4:9
+  |
+4 |     add("42", 3);
+  |         ^^^^ Error[E0308]: mismatched types
+  |
+
+error: there was 1 unmatched diagnostic
+ --> tests/actual_tests/bad_pattern_multiple.rs:6:9
+  |
+6 |     add("42", 3);
+  |         ^^^^ Error[E0308]: mismatched types
+  |
+
+full stderr:
+error[E0308]: mismatched types
+ --> tests/actual_tests/bad_pattern_multiple.rs:4:9
+  |
+4 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+error[E0308]: mismatched types
+ --> tests/actual_tests/bad_pattern_multiple.rs:6:9
+  |
+6 |     add("42", 3);
+  |     --- ^^^^ expected `usize`, found `&str`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+  |
+1 | pub fn add(left: usize, right: usize) -> usize {
+  |        ^^^
+
+error: aborting due to 2 previous errors
 
 For more information about this error, try `rustc --explain E0308`.
 
@@ -536,7 +668,7 @@ error: `mismatched types` not found in diagnostics on line 8
   |                 ^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests/rustc_ice.rs:8:9
   |
 8 |     add("42", 3);
@@ -614,6 +746,7 @@ full stdout:
 
 FAILURES:
     tests/actual_tests/bad_pattern.rs
+    tests/actual_tests/bad_pattern_multiple.rs
     tests/actual_tests/executable.rs (revision run)
     tests/actual_tests/executable_compile_err.rs
     tests/actual_tests/exit_code_fail.rs
@@ -630,7 +763,7 @@ FAILURES:
     tests/actual_tests/touching_above_below.rs
     tests/actual_tests/touching_above_below_chain.rs
 
-test result: FAIL. 16 failed; 1 passed
+test result: FAIL. 17 failed; 1 passed
 
 Building dependencies ... ok
 tests/actual_tests_bless/abort.rs ... ok
@@ -738,7 +871,7 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/aux_proc_macro_no_main.rs
 command: "rustc" "--error-format=json" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/aux_proc_macro_no_main.rs" "--extern" "the_proc_macro=$DIR/tests/integrations/basic-fail/../../../target/$TMP/0/tests/actual_tests_bless/auxiliary/libthe_proc_macro.so" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/0/tests/actual_tests_bless/auxiliary" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:8
   |
 7 | thing!(cake);
@@ -858,10 +991,10 @@ full stdout:
 FAILED TEST: tests/actual_tests_bless/no_main_manual.rs
 command: "rustc" "--error-format=json" "--crate-type=lib" "--out-dir" "$TMP "tests/actual_tests_bless/no_main_manual.rs" "--crate-type=bin" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: there were 1 unmatched diagnostics that occurred outside the testfile and had no pattern
+error: there was 1 unmatched diagnostic that occurred outside the testfile and had no pattern
     Error: cannot mix `bin` crate type with others
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests_bless/no_main_manual.rs:3:16
   |
 3 | pub fn foo() {}
@@ -1013,7 +1146,7 @@ error: ``main` function not found in crate `revisions_bad`` not found in diagnos
   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
   --> tests/actual_tests_bless/revisions_bad.rs:10:2
    |
 10 | }
@@ -1202,7 +1335,7 @@ error: diagnostic code `should_be_dead_code` not found on line 3
   |          ^^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests_bless/wrong_diagnostic_code.rs:3:4
   |
 3 | fn foo() -> i32 {
@@ -1322,6 +1455,7 @@ FAILURES:
 test result: FAIL. 1 failed; 7 passed
 
 tests/actual_tests/bad_pattern.rs ... FAILED
+tests/actual_tests/bad_pattern_multiple.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED
 tests/actual_tests/executable_compile_err.rs ... FAILED
 tests/actual_tests/exit_code_fail.rs ... FAILED
@@ -1388,8 +1522,87 @@ error: `miesmätsched types` not found in diagnostics on line 4
   |                 ^^^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests/bad_pattern.rs:1:5
+  |
+1 | use basic_fail::add;
+  |     ^^^^^^^^^^ Error[E0432]: unresolved import `basic_fail`
+  |
+
+
+FAILED TEST: tests/actual_tests/bad_pattern_multiple.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/bad_pattern_multiple.rs" "--edition" "2021"
+
+error: actual output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern_multiple.stderr` to the actual output
+--- tests/actual_tests/bad_pattern_multiple.stderr
++++ <stderr output>
+-error[E0308]: mismatched types
++error[E0432]: unresolved import `basic_fail`
+- --> tests/actual_tests/bad_pattern_multiple.rs:4:9
++ --> tests/actual_tests/bad_pattern_multiple.rs:1:5
+   |
+-4 |     add("42", 3);
+-  |     --- ^^^^ expected `usize`, found `&str`
+-  |     |
+-  |     arguments to this function are incorrect
+-  |
+-note: function defined here
+- --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+-  |
+-1 | pub fn add(left: usize, right: usize) -> usize {
+-  |        ^^^
++1 | use basic_fail::add;
++  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
+ 
+-error[E0308]: mismatched types
+-  --> tests/actual_tests/bad_pattern_multiple.rs:6:9
+-  |
+-6 |     add("42", 3);
+-  |     --- ^^^^ expected `usize`, found `&str`
+-  |     |
+-  |     arguments to this function are incorrect
+-  |
+-note: function defined here
+-  --> $DIR/tests/integrations/basic-fail/src/lib.rs:LL:CC
+-  |
+-1 | pub fn add(left: usize, right: usize) -> usize {
+-  |        ^^^
++error: aborting due to 1 previous error
+ 
+-    error: aborting due to 2 previous errors
+-
+-For more information about this error, try `rustc --explain E0308`.
++For more information about this error, try `rustc --explain E0432`.
+
+Full unnormalized output:
+error[E0432]: unresolved import `basic_fail`
+ --> tests/actual_tests/bad_pattern_multiple.rs:1:5
+  |
+1 | use basic_fail::add;
+  |     ^^^^^^^^^^ use of undeclared crate or module `basic_fail`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0432`.
+
+
+error: `miesmätsched types` not found in diagnostics on line 4
+ --> tests/actual_tests/bad_pattern_multiple.rs:5:17
+  |
+5 |     //~^ ERROR: miesmätsched types
+  |                 ^^^^^^^^^^^^^^^^^^ expected because of this pattern
+  |
+
+error: `miesmätsched types` not found in diagnostics on line 6
+ --> tests/actual_tests/bad_pattern_multiple.rs:7:17
+  |
+7 |     //~^ ERROR: miesmätsched types
+  |                 ^^^^^^^^^^^^^^^^^^ expected because of this pattern
+  |
+
+error: there was 1 unmatched diagnostic
+ --> tests/actual_tests/bad_pattern_multiple.rs:1:5
   |
 1 | use basic_fail::add;
   |     ^^^^^^^^^^ Error[E0432]: unresolved import `basic_fail`
@@ -1515,7 +1728,7 @@ error: `mismatched types` not found in diagnostics on line 4
   |                 ^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests/foomp.rs:1:5
   |
 1 | use basic_fail::add;
@@ -1573,7 +1786,7 @@ error: `mismatched types` not found in diagnostics on line 4
   |                 ^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests/foomp2.rs:1:5
   |
 1 | use basic_fail::add;
@@ -1622,7 +1835,7 @@ error: `mismatched types` not found in diagnostics on line 8
   |               ^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests/ice_annotations.rs:5:5
   |
 5 | use basic_fail::add;
@@ -1755,7 +1968,7 @@ error: `mismatched types` not found in diagnostics on line 8
   |                 ^^^^^^^^^^^^^^^^ expected because of this pattern
   |
 
-error: there were 1 unmatched diagnostics
+error: there was 1 unmatched diagnostic
  --> tests/actual_tests/rustc_ice.rs:5:5
   |
 5 | use basic_fail::add;
@@ -1786,6 +1999,7 @@ error: `//~v` comment immediately following a `//~^` comment chain
 
 FAILURES:
     tests/actual_tests/bad_pattern.rs
+    tests/actual_tests/bad_pattern_multiple.rs
     tests/actual_tests/executable.rs
     tests/actual_tests/executable_compile_err.rs
     tests/actual_tests/exit_code_fail.rs
@@ -1802,9 +2016,10 @@ FAILURES:
     tests/actual_tests/touching_above_below.rs
     tests/actual_tests/touching_above_below_chain.rs
 
-test result: FAIL. 16 failed
+test result: FAIL. 17 failed
 
 tests/actual_tests/bad_pattern.rs ... FAILED
+tests/actual_tests/bad_pattern_multiple.rs ... FAILED
 tests/actual_tests/executable.rs ... FAILED
 tests/actual_tests/executable_compile_err.rs ... FAILED
 tests/actual_tests/exit_code_fail.rs ... FAILED
@@ -1823,6 +2038,15 @@ tests/actual_tests/touching_above_below_chain.rs ... FAILED
 
 FAILED TEST: tests/actual_tests/bad_pattern.rs
 command: "$CMD" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
+
+full stderr:
+No such file or directory
+full stdout:
+could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+
+
+FAILED TEST: tests/actual_tests/bad_pattern_multiple.rs
+command: "$CMD" "tests/actual_tests/bad_pattern_multiple.rs" "--edition" "2021"
 
 full stderr:
 No such file or directory
@@ -2029,6 +2253,7 @@ full stdout:
 
 FAILURES:
     tests/actual_tests/bad_pattern.rs
+    tests/actual_tests/bad_pattern_multiple.rs
     tests/actual_tests/executable.rs
     tests/actual_tests/executable_compile_err.rs
     tests/actual_tests/exit_code_fail.rs
@@ -2045,7 +2270,7 @@ FAILURES:
     tests/actual_tests/touching_above_below.rs
     tests/actual_tests/touching_above_below_chain.rs
 
-test result: FAIL. 16 failed
+test result: FAIL. 17 failed
 
 
 running 0 tests

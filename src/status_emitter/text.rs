@@ -19,6 +19,7 @@ use crossbeam_channel::{Sender, TryRecvError};
 #[cfg(feature = "indicatif")]
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use spanned::Span;
+use std::borrow::Cow;
 use std::fmt::{Debug, Display};
 use std::io::Write as _;
 use std::path::Path;
@@ -765,8 +766,13 @@ fn print_error(error: &Error, path: &Path) {
                     })
                     .collect::<Vec<_>>();
                 // This will print a suitable error header.
+
+                let error_msg: Cow<str> = match msgs.len() {
+                    1 => "there was 1 unmatched diagnostic".into(),
+                    n => format!("there were {n} unmatched diagnostics").into(),
+                };
                 create_error(
-                    format!("there were {} unmatched diagnostics", msgs.len()),
+                    error_msg,
                     &[&msgs
                         .iter()
                         .map(|(msg, lc)| (msg.as_ref(), lc.clone()))
@@ -774,10 +780,11 @@ fn print_error(error: &Error, path: &Path) {
                     path,
                 );
             } else {
-                print_error_header(format_args!(
-                    "there were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
-                    msgs.len(),
-                ));
+                let error_msg: Cow<str> = match msgs.len() {
+                    1 => "there was 1 unmatched diagnostic that occurred outside the testfile and had no pattern".into(),
+                    n => format!("there were {n} unmatched diagnostics that occurred outside the testfile and had no pattern").into(),
+                };
+                print_error_header(error_msg);
                 for Message {
                     level,
                     message,
