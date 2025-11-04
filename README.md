@@ -41,6 +41,27 @@ of the error. These comments can take two forms:
     * `CODE` can take multiple forms such as: `E####`, `lint_name`, `tool::lint_name`.
     * This will only match a diagnostic at the `ERROR` level.
 
+The annotation can be put on a different line from the error location using `v`/`^`:
+```rs
+causes_some_error()
+//~^ some_error
+
+//~v some_error
+causes_some_error()
+```
+By repeating those symbols `n` times, one can annotate an error located `n` lines away:
+```rs
+causes_some_error()
+
+//~^^ some_error
+```
+If there are multiple errors on the same line, annotations can be put on consecutive lines, and "chained" with `|`:
+```rs
+causes_some_error_and_other_error()
+//~^ some_error
+//~| other_error
+```
+
 In order to change how a single test is tested, you can add various `//@` comments to the test.
 Any other comments will be ignored, and all `//@` comments must be formatted precisely as
 their command specifies, or the test will fail without even being run.
