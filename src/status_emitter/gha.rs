@@ -184,7 +184,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
 }
 
 /// Emits Github Actions Workspace commands to show the failures directly in the github diff view.
-/// If the const generic `GROUP` boolean is `true`, also emit `::group` commands.
+/// If the [`Self::group`] boolean is `true`, also emit `::group` commands.
 pub struct Gha {
     /// Show a specific name for the final summary.
     pub name: String,
