@@ -35,7 +35,7 @@ of the error. These comments can take two forms:
     * `LEVEL` can be one of the following (descending order): `ERROR`, `HELP`, `WARN`, `NOTE` or `ICE`
     * If a level is specified explicitly, *all* diagnostics of that level or higher need an annotation. To avoid this see `//@require-annotations-for-level`
     * This checks the output *before* normalization, so you can check things that get normalized away, but need to
-        be careful not to accidentally have a pattern that differs between platforms.
+      be careful not to accidentally have a pattern that differs between platforms.
     * if `XXX` is of the form `/XXX/` it is treated as a regex instead of a substring and will succeed if the regex matches.
 * `//~ CODE` matches by diagnostic code.
     * `CODE` can take multiple forms such as: `E####`, `lint_name`, `tool::lint_name`.
