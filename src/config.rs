@@ -488,7 +488,7 @@ pub fn error_on_output_conflict(
     errors: &mut Errors,
     config: &TestConfig,
 ) {
-    let normalized = config.normalize(output, &path.extension().unwrap().to_string_lossy());
+    let normalized = config.normalize(output, path);
     let expected = std::fs::read(path).unwrap_or_default();
     if normalized != expected {
         errors.push(Error::OutputDiffers {
@@ -516,7 +516,7 @@ pub fn bless_output_files(path: &Path, output: &[u8], _errors: &mut Errors, conf
     if output.is_empty() {
         let _ = std::fs::remove_file(path);
     } else {
-        let actual = config.normalize(output, &path.extension().unwrap().to_string_lossy());
+        let actual = config.normalize(output, path);
         std::fs::write(path, actual).unwrap();
     }
 }
