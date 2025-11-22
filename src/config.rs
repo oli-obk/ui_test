@@ -196,8 +196,24 @@ impl Config {
         config
             .custom_comments
             .insert("no-rustfix", |parser, _args, span| {
+                dbg!(&span);
                 // args are ignored (can be used as comment)
                 parser.set_custom_once("no-rustfix", (), span);
+            });
+
+        config
+            .custom_comments
+            .insert("rustfix-mode", |parser, args, span| {
+                dbg!(&span);
+                eprintln!("{}", std::backtrace::Backtrace::force_capture());
+                match args.content.parse::<RustfixMode>() {
+                    Ok(mode) => {
+                        parser.set_custom_once("rustfix-mode", mode, span);
+                    }
+                    Err(error) => {
+                        parser.error(args.span(), error.to_string());
+                    }
+                }
             });
 
         config
