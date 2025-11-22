@@ -1,0 +1,113 @@
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/aux_derive.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/aux_proc_macro.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/error_above.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/foomp-rustfix.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/foomp.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/joined_above.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/joined_below.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/joined_mixed.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/mac_span.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/match_diagnostic_code.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/rustfix-multiple.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/windows_paths.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/subdir/aux_proc_macro.rs"
+Error: tests failed
+
+Location:
+    $DIR/src/lib.rs:LL:CC
+error: test failed, to rerun pass `--test json`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/ui/0/tests/integrations/basic/debug/deps/json-HASH` (exit status: 1)
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/aux_derive.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/aux_proc_macro.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/error_above.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/foomp-rustfix.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/foomp.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/joined_above.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/joined_below.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/joined_mixed.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/mac_span.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/match_diagnostic_code.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/rustfix-multiple.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/windows_paths.rs"
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] *self = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] global_rustfix = Everything
+[$DIR/src/custom_flags/rustfix.rs:LL:CC] path = "tests/actual_tests/subdir/aux_proc_macro.rs"
+Error: tests failed
+
+Location:
+    $DIR/src/lib.rs:LL:CC
+error: test failed, to rerun pass `--test ui_tests`
+
+Caused by:
+  process didn't exit successfully: `$DIR/target/ui/0/tests/integrations/basic/debug/deps/ui_tests-HASH` (exit status: 1)
+error: 2 targets failed:
+    `--test json`
+    `--test ui_tests`

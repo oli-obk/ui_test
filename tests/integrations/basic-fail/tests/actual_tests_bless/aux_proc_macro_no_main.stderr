@@ -1,8 +1,0 @@
-error: expected one of `!` or `::`, found `<eof>`
- --> tests/actual_tests_bless/aux_proc_macro_no_main.rs:7:8
-  |
-7 | thing!(cake);
-  |        ^^^^ expected one of `!` or `::`
-
-error: aborting due to 1 previous error
-

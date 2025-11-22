@@ -8,12 +8,14 @@ use crate::{
     per_test_config::{Comments, Revisioned, TestConfig},
     Error, Errored, TestOk,
 };
+use anyhow::bail;
 use rustfix::{CodeFix, Filter, Suggestion};
 use spanned::{Span, Spanned};
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
     process::Output,
+    str::FromStr,
     sync::Arc,
 };
 
@@ -47,6 +49,7 @@ impl Flag for RustfixMode {
         output: &Output,
         build_manager: &BuildManager,
     ) -> Result<(), Errored> {
+        dbg!(*self);
         let global_rustfix = match config.exit_status()? {
             Some(Spanned {
                 content: 101 | 0, ..
@@ -56,6 +59,7 @@ impl Flag for RustfixMode {
         let output = output.clone();
         let no_run_rustfix = config.find_one_custom("no-rustfix")?;
         let fixes = if no_run_rustfix.is_none() && global_rustfix.enabled() {
+            dbg!(global_rustfix);
             fix(&output.stderr, config.status.path(), global_rustfix).map_err(|err| Errored {
                 command: format!("rustfix {}", display(config.status.path())),
                 errors: vec![Error::Rustfix(err)],
@@ -99,11 +103,25 @@ impl Flag for RustfixMode {
     }
 }
 
+impl FromStr for RustfixMode {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "disabled" => Ok(RustfixMode::Disabled),
+            "everything" => Ok(RustfixMode::Everything),
+            "machine-applicable" => Ok(RustfixMode::MachineApplicable),
+            _ => bail!("unknown `RustfixMode`: {s}"),
+        }
+    }
+}
+
 fn fix(stderr: &[u8], path: &Path, mode: RustfixMode) -> anyhow::Result<Vec<String>> {
+    dbg!(path);
     let suggestions = std::str::from_utf8(stderr)
         .unwrap()
         .lines()
         .filter_map(|line| {
+            // dbg!(line);
             if !line.starts_with('{') {
                 return None;
             }
@@ -121,6 +139,8 @@ fn fix(stderr: &[u8], path: &Path, mode: RustfixMode) -> anyhow::Result<Vec<Stri
             )
         })
         .collect::<Vec<_>>();
+    // dbg!(mode);
+    // dbg!(&suggestions);
     if suggestions.is_empty() {
         return Ok(Vec::new());
     }

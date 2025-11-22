@@ -19,6 +19,9 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "started", "name": "tests/actual_tests/mac_span.rs () - tests/actual_tests/mac_span.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/no_rustfix.rs () - tests/actual_tests/no_rustfix.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-mode-disabled.rs () - tests/actual_tests/rustfix-mode-disabled.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-mode-everything.rs () - tests/actual_tests/rustfix-mode-everything.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-mode-machine-applicable.rs () - tests/actual_tests/rustfix-mode-machine-applicable.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/stdin.rs () - tests/actual_tests/stdin.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/unicode.rs () - tests/actual_tests/unicode.rs" }
@@ -53,6 +56,9 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/no_rustfix.rs () - tests/actual_tests/no_rustfix.rs" }
+{ "type": "test", "event": "failed", "name": "tests/actual_tests/rustfix-mode-disabled.rs () - tests/actual_tests/rustfix-mode-disabled.rs", "stdout": "command: <\"rustc\" \"--error-format=json\" \"--out-dir\" \"$DIR/tests/integrations/basic/../../../target/$TMP/0/tests/actual_tests\" \"tests/actual_tests/rustfix-mode-disabled.rs\" \"--extern\" \"quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-a0fa585a448852ad.rlib\" \"--extern\" \"quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-$HASH.rmeta\" \"--extern\" \"serde_derive=$DIR/tests/integrations/basic/../../../target/$TMP/0/debug/libserde_derive-add6cb5757212a0a.so\" \"--extern\" \"basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.a\" \"--extern\" \"basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.rlib\" \"-L\" \"$DIR/tests/integrations/basic/../../../target/$TMP/0/debug\" \"-L\" \"$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug\" \"-L\" \"$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug\" \"--edition\" \"2021\"> stdout: <warning: static variable `x` should have an upper case name\n --> tests/actual_tests/rustfix-mode-disabled.rs:4:12\n  |\n4 | pub static x: u32 = 0;\n  |            ^ help: convert the identifier to upper case (notice the capitalization): `X`\n  |\n  = note: `#[warn(non_upper_case_globals)]` on by default\n\nwarning: static variable `y` should have an upper case name\n --> tests/actual_tests/rustfix-mode-disabled.rs:7:16\n  |\n7 |     pub static y: u32 = 0;\n  |                ^ help: convert the identifier to upper case (notice the capitalization): `Y`\n\nwarning: 2 warnings emitted\n\n> stderr: <>" }
+{ "type": "test", "event": "failed", "name": "tests/actual_tests/rustfix-mode-everything.rs () - tests/actual_tests/rustfix-mode-everything.rs", "stdout": "command: <\"rustc\" \"--error-format=json\" \"--out-dir\" \"$DIR/tests/integrations/basic/../../../target/$TMP/0/tests/actual_tests\" \"tests/actual_tests/rustfix-mode-everything.rs\" \"--extern\" \"quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-a0fa585a448852ad.rlib\" \"--extern\" \"quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-$HASH.rmeta\" \"--extern\" \"serde_derive=$DIR/tests/integrations/basic/../../../target/$TMP/0/debug/libserde_derive-add6cb5757212a0a.so\" \"--extern\" \"basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.a\" \"--extern\" \"basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.rlib\" \"-L\" \"$DIR/tests/integrations/basic/../../../target/$TMP/0/debug\" \"-L\" \"$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug\" \"-L\" \"$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug\" \"--edition\" \"2021\"> stdout: <warning: static variable `x` should have an upper case name\n --> tests/actual_tests/rustfix-mode-everything.rs:4:12\n  |\n4 | pub static x: u32 = 0;\n  |            ^ help: convert the identifier to upper case (notice the capitalization): `X`\n  |\n  = note: `#[warn(non_upper_case_globals)]` on by default\n\nwarning: static variable `y` should have an upper case name\n --> tests/actual_tests/rustfix-mode-everything.rs:7:16\n  |\n7 |     pub static y: u32 = 0;\n  |                ^ help: convert the identifier to upper case (notice the capitalization): `Y`\n\nwarning: 2 warnings emitted\n\n> stderr: <>" }
+{ "type": "test", "event": "failed", "name": "tests/actual_tests/rustfix-mode-machine-applicable.rs () - tests/actual_tests/rustfix-mode-machine-applicable.rs", "stdout": "command: <\"rustc\" \"--error-format=json\" \"--out-dir\" \"$DIR/tests/integrations/basic/../../../target/$TMP/0/tests/actual_tests\" \"tests/actual_tests/rustfix-mode-machine-applicable.rs\" \"--extern\" \"quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-a0fa585a448852ad.rlib\" \"--extern\" \"quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-$HASH.rmeta\" \"--extern\" \"serde_derive=$DIR/tests/integrations/basic/../../../target/$TMP/0/debug/libserde_derive-add6cb5757212a0a.so\" \"--extern\" \"basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.a\" \"--extern\" \"basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.rlib\" \"-L\" \"$DIR/tests/integrations/basic/../../../target/$TMP/0/debug\" \"-L\" \"$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug\" \"-L\" \"$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug\" \"--edition\" \"2021\"> stdout: <warning: static variable `x` should have an upper case name\n --> tests/actual_tests/rustfix-mode-machine-applicable.rs:4:12\n  |\n4 | pub static x: u32 = 0;\n  |            ^ help: convert the identifier to upper case (notice the capitalization): `X`\n  |\n  = note: `#[warn(non_upper_case_globals)]` on by default\n\nwarning: static variable `y` should have an upper case name\n --> tests/actual_tests/rustfix-mode-machine-applicable.rs:7:16\n  |\n7 |     pub static y: u32 = 0;\n  |                ^ help: convert the identifier to upper case (notice the capitalization): `Y`\n\nwarning: 2 warnings emitted\n\n> stderr: <>" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.1.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.2.fixed" }
@@ -61,7 +67,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "ok", "name": "tests/actual_tests/unicode.rs () - tests/actual_tests/unicode.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/windows_paths.rs () - tests/actual_tests/windows_paths.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/subdir/aux_proc_macro.rs () - tests/actual_tests/subdir/aux_proc_macro.rs" }
-{ "type": "suite", "event": "ok", "passed": 33, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }
+{ "type": "suite", "event": "failed", "passed": 33, "failed": 3, "ignored": 0, "measured": 0, "filtered_out": 0 }
 
 running 3 tests
 ...
@@ -96,6 +102,9 @@ tests/actual_tests/mac_span.fixed ... ok
 tests/actual_tests/match_diagnostic_code.rs ... ok
 tests/actual_tests/match_diagnostic_code.fixed ... ok
 tests/actual_tests/no_rustfix.rs ... ok
+tests/actual_tests/rustfix-mode-disabled.rs ... FAILED
+tests/actual_tests/rustfix-mode-everything.rs ... FAILED
+tests/actual_tests/rustfix-mode-machine-applicable.rs ... FAILED
 tests/actual_tests/rustfix-multiple.rs ... ok
 tests/actual_tests/rustfix-multiple.1.fixed ... ok
 tests/actual_tests/rustfix-multiple.2.fixed ... ok
@@ -105,7 +114,101 @@ tests/actual_tests/unicode.rs ... ok
 tests/actual_tests/windows_paths.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 33 passed
+FAILED TEST: tests/actual_tests/rustfix-mode-disabled.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/rustfix-mode-disabled.rs" "--extern" "quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-a0fa585a448852ad.rlib" "--extern" "quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-$HASH.rmeta" "--extern" "serde_derive=$DIR/tests/integrations/basic/../../../target/$TMP/0/debug/libserde_derive-add6cb5757212a0a.so" "--extern" "basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.a" "--extern" "basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.rlib" "-L" "$DIR/tests/integrations/basic/../../../target/$TMP/0/debug" "-L" "$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+
+error: test got exit status: 0, but expected 1
+ = note: compilation succeeded, but was expected to fail
+
+error: expected error patterns, but found none
+
+full stderr:
+warning: static variable `x` should have an upper case name
+ --> tests/actual_tests/rustfix-mode-disabled.rs:4:12
+  |
+4 | pub static x: u32 = 0;
+  |            ^ help: convert the identifier to upper case (notice the capitalization): `X`
+  |
+  = note: `#[warn(non_upper_case_globals)]` on by default
+
+warning: static variable `y` should have an upper case name
+ --> tests/actual_tests/rustfix-mode-disabled.rs:7:16
+  |
+7 |     pub static y: u32 = 0;
+  |                ^ help: convert the identifier to upper case (notice the capitalization): `Y`
+
+warning: 2 warnings emitted
+
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests/rustfix-mode-everything.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/rustfix-mode-everything.rs" "--extern" "quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-a0fa585a448852ad.rlib" "--extern" "quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-$HASH.rmeta" "--extern" "serde_derive=$DIR/tests/integrations/basic/../../../target/$TMP/0/debug/libserde_derive-add6cb5757212a0a.so" "--extern" "basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.a" "--extern" "basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.rlib" "-L" "$DIR/tests/integrations/basic/../../../target/$TMP/0/debug" "-L" "$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+
+error: test got exit status: 0, but expected 1
+ = note: compilation succeeded, but was expected to fail
+
+error: expected error patterns, but found none
+
+full stderr:
+warning: static variable `x` should have an upper case name
+ --> tests/actual_tests/rustfix-mode-everything.rs:4:12
+  |
+4 | pub static x: u32 = 0;
+  |            ^ help: convert the identifier to upper case (notice the capitalization): `X`
+  |
+  = note: `#[warn(non_upper_case_globals)]` on by default
+
+warning: static variable `y` should have an upper case name
+ --> tests/actual_tests/rustfix-mode-everything.rs:7:16
+  |
+7 |     pub static y: u32 = 0;
+  |                ^ help: convert the identifier to upper case (notice the capitalization): `Y`
+
+warning: 2 warnings emitted
+
+
+full stdout:
+
+
+
+FAILED TEST: tests/actual_tests/rustfix-mode-machine-applicable.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/rustfix-mode-machine-applicable.rs" "--extern" "quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-a0fa585a448852ad.rlib" "--extern" "quote=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libquote-$HASH.rmeta" "--extern" "serde_derive=$DIR/tests/integrations/basic/../../../target/$TMP/0/debug/libserde_derive-add6cb5757212a0a.so" "--extern" "basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.a" "--extern" "basic=$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug/libbasic.rlib" "-L" "$DIR/tests/integrations/basic/../../../target/$TMP/0/debug" "-L" "$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+
+error: test got exit status: 0, but expected 1
+ = note: compilation succeeded, but was expected to fail
+
+error: expected error patterns, but found none
+
+full stderr:
+warning: static variable `x` should have an upper case name
+ --> tests/actual_tests/rustfix-mode-machine-applicable.rs:4:12
+  |
+4 | pub static x: u32 = 0;
+  |            ^ help: convert the identifier to upper case (notice the capitalization): `X`
+  |
+  = note: `#[warn(non_upper_case_globals)]` on by default
+
+warning: static variable `y` should have an upper case name
+ --> tests/actual_tests/rustfix-mode-machine-applicable.rs:7:16
+  |
+7 |     pub static y: u32 = 0;
+  |                ^ help: convert the identifier to upper case (notice the capitalization): `Y`
+
+warning: 2 warnings emitted
+
+
+full stdout:
+
+
+FAILURES:
+    tests/actual_tests/rustfix-mode-disabled.rs
+    tests/actual_tests/rustfix-mode-everything.rs
+    tests/actual_tests/rustfix-mode-machine-applicable.rs
+
+test result: FAIL. 3 failed; 33 passed
 
 
 running 0 tests
