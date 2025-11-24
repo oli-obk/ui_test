@@ -23,7 +23,7 @@ rustfix = "0.8.1"
 cargo-platform = { version = "0.1.2", optional = true }
 comma = "1.0.0"
 anyhow = "1.0.6"
-indicatif = { version = "0.17.6", optional = true }
+indicatif = { version = "0.18.3", optional = true }
 prettydiff = { version = "0.9", default-features = false }
 annotate-snippets = { version = "0.11.2" }
 levenshtein = "1.0.5"
