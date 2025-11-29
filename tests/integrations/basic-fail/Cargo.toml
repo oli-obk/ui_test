@@ -1,0 +1,36 @@
+[package]
+name = "basic_fail"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+ui_test = { path = "../../.." }
+tempfile = "3.3.0"
+
+[[test]]
+name = "ui_tests"
+harness = false
+
+[[test]]
+name = "json"
+harness = false
+
+[[test]]
+name = "ui_tests_invalid_program"
+harness = false
+
+[[test]]
+name = "ui_tests_invalid_program2"
+harness = false
+
+[[test]]
+name = "ui_tests_diff_only"
+harness = false
+
+[[test]]
+name = "ui_tests_bless"
+harness = false
+
+#@normalize-stdout-test: "(command: canonicalizing path `tests/actual_tests_bless/auxiliary/aasdflkjasdlfjasdlfkjasdf`\n\nfull stderr:\n).*" -> "${1}No such file or directory"

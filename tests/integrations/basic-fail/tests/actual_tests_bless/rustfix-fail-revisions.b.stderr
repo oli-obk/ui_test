@@ -1,0 +1,8 @@
+error: expected `,` following `match` arm
+ --> tests/actual_tests_bless/rustfix-fail-revisions.rs:6:27
+  |
+6 |         0 => String::new()
+  |                           ^ help: missing a comma here to end this `match` arm: `,`
+
+error: aborting due to 1 previous error
+

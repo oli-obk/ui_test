@@ -1,0 +1,11 @@
+error: cannot mix `bin` crate type with others
+
+error[E0601]: `main` function not found in crate `no_main_manual`
+ --> tests/actual_tests_bless/no_main_manual.rs:3:16
+  |
+3 | pub fn foo() {}
+  |                ^ consider adding a `main` function to `tests/actual_tests_bless/no_main_manual.rs`
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0601`.

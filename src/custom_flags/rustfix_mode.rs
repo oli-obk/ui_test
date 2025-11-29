@@ -49,7 +49,6 @@ impl Flag for RustfixMode {
         output: &Output,
         build_manager: &BuildManager,
     ) -> Result<(), Errored> {
-        dbg!(*self);
         let global_rustfix = match config.exit_status()? {
             Some(Spanned {
                 content: 101 | 0, ..
@@ -59,7 +58,6 @@ impl Flag for RustfixMode {
         let output = output.clone();
         let no_run_rustfix = config.find_one_custom("no-rustfix")?;
         let fixes = if no_run_rustfix.is_none() && global_rustfix.enabled() {
-            dbg!(global_rustfix);
             fix(&output.stderr, config.status.path(), global_rustfix).map_err(|err| Errored {
                 command: format!("rustfix {}", display(config.status.path())),
                 errors: vec![Error::Rustfix(err)],
@@ -116,12 +114,10 @@ impl FromStr for RustfixMode {
 }
 
 fn fix(stderr: &[u8], path: &Path, mode: RustfixMode) -> anyhow::Result<Vec<String>> {
-    dbg!(path);
     let suggestions = std::str::from_utf8(stderr)
         .unwrap()
         .lines()
         .filter_map(|line| {
-            // dbg!(line);
             if !line.starts_with('{') {
                 return None;
             }
@@ -139,8 +135,6 @@ fn fix(stderr: &[u8], path: &Path, mode: RustfixMode) -> anyhow::Result<Vec<Stri
             )
         })
         .collect::<Vec<_>>();
-    // dbg!(mode);
-    // dbg!(&suggestions);
     if suggestions.is_empty() {
         return Ok(Vec::new());
     }

@@ -1,0 +1,28 @@
+error: unreachable expression
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:6:5
+  |
+5 |     panic!();
+  |     -------- any code following this expression is unreachable
+6 |     0
+  |     ^ unreachable expression
+  |
+note: the lint level is defined here
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:1:20
+  |
+1 | #![deny(dead_code, unreachable_code)]
+  |                    ^^^^^^^^^^^^^^^^
+
+error: function `foo` is never used
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:3:4
+  |
+3 | fn foo() -> i32 {
+  |    ^^^
+  |
+note: the lint level is defined here
+ --> tests/actual_tests_bless/wrong_diagnostic_code.rs:1:9
+  |
+1 | #![deny(dead_code, unreachable_code)]
+  |         ^^^^^^^^^
+
+error: aborting due to 2 previous errors
+

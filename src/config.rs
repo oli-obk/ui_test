@@ -2,7 +2,7 @@
 use crate::{
     aux_builds::AuxBuilder, custom_flags::edition::Edition,
     custom_flags::revision_args::RustcRevisionArgs, custom_flags::run::Run,
-    custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
+    custom_flags::rustfix_mode::RustfixMode, custom_flags::Flag, filter::Match,
 };
 use crate::{
     diagnostics::{self, Diagnostics},
@@ -155,7 +155,7 @@ impl Config {
             .add_custom("edition", Edition("2021".into()));
         comment_defaults
             .base()
-            .add_custom("rustfix", RustfixMode::MachineApplicable);
+            .add_custom("rustfix-mode", RustfixMode::MachineApplicable);
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
             #[cfg(windows)]
@@ -196,16 +196,13 @@ impl Config {
         config
             .custom_comments
             .insert("no-rustfix", |parser, _args, span| {
-                dbg!(&span);
                 // args are ignored (can be used as comment)
-                parser.set_custom_once("no-rustfix", (), span);
+                parser.set_custom_once("rustfix-mode", RustfixMode::Disabled, span);
             });
 
         config
             .custom_comments
             .insert("rustfix-mode", |parser, args, span| {
-                dbg!(&span);
-                eprintln!("{}", std::backtrace::Backtrace::force_capture());
                 match args.content.parse::<RustfixMode>() {
                     Ok(mode) => {
                         parser.set_custom_once("rustfix-mode", mode, span);

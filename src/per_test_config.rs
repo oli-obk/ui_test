@@ -371,7 +371,6 @@ impl TestConfig {
     }
 
     pub(crate) fn run_test(&mut self, build_manager: &Arc<BuildManager>) -> TestResult {
-        dbg!();
         self.patch_out_dir();
 
         let mut cmd = self.build_command(build_manager)?;
@@ -385,9 +384,7 @@ impl TestConfig {
         let output = self.check_test_result(&cmd, output)?;
 
         for rev in self.comments() {
-            dbg!(); // rev);
             for custom in rev.custom.values() {
-                dbg!(&custom.content);
                 for flag in &custom.content {
                     flag.post_test_action(self, &output, build_manager)?;
                 }

@@ -1,0 +1,9 @@
+error[E0425]: cannot find value `asdf` in this scope
+ --> tests/actual_tests_bless/SUCCESS.rs:6:5
+  |
+6 |     asdf
+  |     ^^^^ not found in this scope
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0425`.
