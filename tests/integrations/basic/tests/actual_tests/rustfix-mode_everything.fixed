@@ -1,0 +1,10 @@
+//@rustfix-mode: everything
+#![allow(dead_code)]
+
+pub static X: u32 = 0;
+
+mod internal {
+    pub static Y: u32 = 0;
+}
+
+fn main() {}
