@@ -7,9 +7,10 @@ Building dependencies ... FAILED
 tests/ui/basic_test.rs ... FAILED
 
 FAILED TEST: tests/ui/basic_test.rs
-command: "$CMD" "build" "--color=never" "--quiet" "--jobs" "1" "--target-dir" "$DIR/tests/integrations/dep-fail/target/ui/0" "--manifest-path" "tested_crate/Cargo.toml"  "--message-format=json"
+command: "$CMD" "build" "--target-dir" "$DIR/tests/integrations/dep-fail/target/ui/0" "--manifest-path" "tested_crate/Cargo.toml"  "--message-format=json"
 
 full stderr:
+   Compiling tested_crate v0.1.0-dev ($DIR/tests/integrations/dep-fail/tested_crate)
 error: could not compile `tested_crate` (lib) due to 1 previous error
 
 full stdout:
