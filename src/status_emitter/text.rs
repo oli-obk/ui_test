@@ -657,7 +657,7 @@ fn print_error(error: &Error, path: &Path) {
                     format!("`{s}` not found in diagnostics {line}")
                 }
                 Pattern::Regex(r) => {
-                    format!("`/{r}/` does not match diagnostics {line}",)
+                    format!("`/{r}/` does not match diagnostics {line}")
                 }
             };
             // This will print a suitable error header.
@@ -671,9 +671,9 @@ fn print_error(error: &Error, path: &Path) {
             code,
             expected_line,
         } => {
-            let line = match expected_line {
-                Some(line) => format!("on line {line}"),
-                None => format!("outside the testfile"),
+            let line: Cow<_> = match expected_line {
+                Some(line) => format!("on line {line}").into(),
+                None => "outside the testfile".into(),
             };
             create_error(
                 format!("diagnostic code `{}` not found {line}", &**code),
