@@ -683,6 +683,7 @@ fn print_error(error: &Error, path: &Path) {
         }
         Error::NoPatternsFound => {
             print_error_header("expected error patterns, but found none");
+            println!("If this is expected, consider annotating the file with `//@check-pass`");
         }
         Error::PatternFoundInPassTest { mode, span } => {
             let annot = [("expected because of this annotation", span.clone())];

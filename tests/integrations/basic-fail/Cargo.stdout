@@ -333,6 +333,7 @@ error: test got exit status: 0, but expected 1
  = note: compilation succeeded, but was expected to fail
 
 error: expected error patterns, but found none
+If this is expected, consider annotating the file with `//@check-pass`
 
 full stderr:
 
@@ -930,6 +931,7 @@ error: there was 1 unmatched diagnostic
   |
 
 error: expected error patterns, but found none
+If this is expected, consider annotating the file with `//@check-pass`
 
 full stderr:
 error: expected one of `!` or `::`, found `<eof>`
@@ -1033,6 +1035,7 @@ error: test got exit status: 0, but expected 1
  = note: compilation succeeded, but was expected to fail
 
 error: expected error patterns, but found none
+If this is expected, consider annotating the file with `//@check-pass`
 
 full stderr:
 
@@ -1054,6 +1057,7 @@ error: there was 1 unmatched diagnostic
   |
 
 error: expected error patterns, but found none
+If this is expected, consider annotating the file with `//@check-pass`
 
 full stderr:
 error: cannot mix `bin` crate type with others
@@ -1079,6 +1083,7 @@ error: test got exit status: 0, but expected 1
  = note: compilation succeeded, but was expected to fail
 
 error: expected error patterns, but found none
+If this is expected, consider annotating the file with `//@check-pass`
 
 full stderr:
 
@@ -1321,6 +1326,7 @@ error: test got exit status: 0, but expected 1
  = note: compilation succeeded, but was expected to fail
 
 error: expected error patterns, but found none
+If this is expected, consider annotating the file with `//@check-pass`
 
 full stderr:
 warning: unused variable: `Ě电脑`
@@ -1728,6 +1734,7 @@ error: test got exit status: 0, but expected 1
  = note: compilation succeeded, but was expected to fail
 
 error: expected error patterns, but found none
+If this is expected, consider annotating the file with `//@check-pass`
 
 
 FAILED TEST: tests/actual_tests/filters.rs
