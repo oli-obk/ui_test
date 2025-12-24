@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Update the help string in CLI to include new flags
+
 ### Changed
 
 - when a test file has no error patterns, there's now a suggestion to add `//@check-pass`
