@@ -71,7 +71,7 @@ Building aux file tests/actual_tests/auxiliary/proc_macro_attr.rs ... ok
 tests/actual_tests/aux_attr_proc_macro.rs ... ok
 Building aux file tests/actual_tests/auxiliary/derive_proc_macro.rs ... ok
 tests/actual_tests/aux_derive.rs ... ok
-tests/actual_tests/aux_derive.fixed ... ok
+tests/actual_tests/aux_derive.fixed.rs ... ok
 Building aux file tests/actual_tests/auxiliary/the_proc_macro.rs ... ok
 tests/actual_tests/aux_proc_macro.rs ... ok
 tests/actual_tests/dep_derive.rs ... ok
@@ -83,22 +83,22 @@ tests/actual_tests/error_below_multi_rev.rs (revision `edition2018`) ... ok
 tests/actual_tests/executable.rs ... ok
 tests/actual_tests/executable.rs (revision `run`) ... ok
 tests/actual_tests/foomp-rustfix.rs ... ok
-tests/actual_tests/foomp-rustfix.fixed ... ok
+tests/actual_tests/foomp-rustfix.fixed.rs ... ok
 tests/actual_tests/foomp.rs ... ok
 tests/actual_tests/joined_above.rs ... ok
-tests/actual_tests/joined_above.fixed ... ok
+tests/actual_tests/joined_above.fixed.rs ... ok
 tests/actual_tests/joined_below.rs ... ok
-tests/actual_tests/joined_below.fixed ... ok
+tests/actual_tests/joined_below.fixed.rs ... ok
 tests/actual_tests/joined_mixed.rs ... ok
-tests/actual_tests/joined_mixed.fixed ... ok
+tests/actual_tests/joined_mixed.fixed.rs ... ok
 tests/actual_tests/mac_span.rs ... ok
-tests/actual_tests/mac_span.fixed ... ok
+tests/actual_tests/mac_span.fixed.rs ... ok
 tests/actual_tests/match_diagnostic_code.rs ... ok
-tests/actual_tests/match_diagnostic_code.fixed ... ok
+tests/actual_tests/match_diagnostic_code.fixed.rs ... ok
 tests/actual_tests/no_rustfix.rs ... ok
 tests/actual_tests/rustfix-multiple.rs ... ok
-tests/actual_tests/rustfix-multiple.1.fixed ... ok
-tests/actual_tests/rustfix-multiple.2.fixed ... ok
+tests/actual_tests/rustfix-multiple.1.fixed.rs ... ok
+tests/actual_tests/rustfix-multiple.2.fixed.rs ... ok
 tests/actual_tests/stdin.rs ... ok
 tests/actual_tests/stdin.rs (revision `run`) ... ok
 tests/actual_tests/unicode.rs ... ok
