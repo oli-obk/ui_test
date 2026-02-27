@@ -1,5 +1,5 @@
 use ui_test::{
-    custom_flags::rustfix::RustfixMode, dependencies::DependencyBuilder, spanned::Spanned, *,
+    custom_flags::rustfix_mode::RustfixMode, dependencies::DependencyBuilder, spanned::Spanned, *,
 };
 
 fn main() -> ui_test::color_eyre::Result<()> {
@@ -29,7 +29,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
         config
             .comment_defaults
             .base()
-            .set_custom("rustfix", rustfix);
+            .set_custom("rustfix-mode", rustfix);
 
         config
             .comment_defaults

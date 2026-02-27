@@ -14,7 +14,7 @@ pub mod edition;
 pub mod revision_args;
 #[cfg(feature = "rustc")]
 pub mod run;
-pub mod rustfix;
+pub mod rustfix_mode;
 
 /// Tester-specific flag that gets parsed from `//@` comments.
 pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {

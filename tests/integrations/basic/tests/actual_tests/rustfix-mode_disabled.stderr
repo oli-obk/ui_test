@@ -1,0 +1,16 @@
+warning: static variable `x` should have an upper case name
+ --> tests/actual_tests/rustfix-mode_disabled.rs:4:12
+  |
+4 | pub static x: u32 = 0;
+  |            ^ help: convert the identifier to upper case (notice the capitalization): `X`
+  |
+  = note: `#[warn(non_upper_case_globals)]` on by default
+
+warning: static variable `y` should have an upper case name
+ --> tests/actual_tests/rustfix-mode_disabled.rs:7:16
+  |
+7 |     pub static y: u32 = 0;
+  |                ^ help: convert the identifier to upper case (notice the capitalization): `Y`
+
+warning: 2 warnings emitted
+
