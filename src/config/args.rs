@@ -86,7 +86,20 @@ impl Args {
             } else if let Some(skip) = parse_value("--skip", &arg, &mut iter)? {
                 self.skip.push(skip.into_owned());
             } else if arg == "--help" {
-                bail!("available flags: --quiet, --check, --bless, --test-threads=n, --skip")
+                bail!(
+                    "\
+available flags:
+--quiet
+--check
+--bless
+--list
+--exact
+--ignored
+--help
+--skip=<TEST_NAME>
+--format=[json,pretty,terse]
+--test-threads=<NUM_THREADS>"
+                )
             } else if let Some(n) = parse_value("--test-threads", &arg, &mut iter)? {
                 self.threads = Some(n.parse()?);
             } else if arg.starts_with("--") {
@@ -102,6 +115,18 @@ impl Args {
     }
 }
 
+/// Attempts to parse either:
+/// - `arg` as `<name>=<value>`
+/// - `arg` and the following argument as `<name>` and `<value>`, respectively
+///
+/// and returns `value` on success.
+///
+/// Returns:
+/// - `Ok(Some(value))` if `arg` looks as described above
+/// - `Ok(None)` if `arg` doesn't start with `<name>`
+/// - `Err` if:
+///   - there is additional text between `<name>` and `=`
+///   - `arg` is `<name>`, but there is no second argument
 fn parse_value<'a>(
     name: &str,
     arg: &'a str,
@@ -111,15 +136,15 @@ fn parse_value<'a>(
         Some(s) => s,
         None => return Ok(None),
     };
-    if let Some(n) = with_eq.strip_prefix('=') {
-        Ok(Some(n.into()))
+    if let Some(value) = with_eq.strip_prefix('=') {
+        Ok(Some(value.into()))
     } else {
         ensure!(with_eq.is_empty(), "`{name}` can only be followed by `=`");
 
         if let Some(next) = iter.next() {
             Ok(Some(next.into()))
         } else {
-            bail!("`name` must be followed by a value")
+            bail!("`{name}` must be followed by a value")
         }
     }
 }

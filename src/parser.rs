@@ -146,7 +146,7 @@ pub struct Revisioned {
     pub exit_status: OptWithLine<i32>,
     /// `Some(true)` means annotations are required
     /// `Some(false)` means annotations are forbidden
-    /// `None` means this revision does not change the base annoatation requirement.
+    /// `None` means this revision does not change the base annotation requirement.
     pub require_annotations: OptWithLine<bool>,
     /// Prefix added to all diagnostic code matchers. Note this will make it impossible
     /// match codes which do not contain this prefix.

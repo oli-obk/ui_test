@@ -385,7 +385,14 @@ impl Default for DependencyBuilder {
     fn default() -> Self {
         Self {
             crate_manifest_path: PathBuf::from("Cargo.toml"),
-            program: CommandBuilder::cargo(),
+            program: CommandBuilder {
+                // We don't need any of the other flags that are useful by default
+                // for running cargo in ui_tests. The dependency builder output
+                // is never recorded into .stderr files, so colors, ordering
+                // and verbosity is not important.
+                args: vec!["build".into()],
+                ..CommandBuilder::cargo()
+            },
             build_std: None,
             bless_lockfile: false,
         }
