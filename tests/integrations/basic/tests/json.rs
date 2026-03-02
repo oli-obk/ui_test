@@ -1,4 +1,4 @@
-use ui_test::{custom_flags::rustfix::RustfixMode, dependencies::DependencyBuilder, *};
+use ui_test::{custom_flags::rustfix_mode::RustfixMode, dependencies::DependencyBuilder, *};
 
 fn main() -> ui_test::color_eyre::Result<()> {
     let path = "../../../target";
@@ -22,7 +22,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config
         .comment_defaults
         .base()
-        .set_custom("rustfix", RustfixMode::Everything);
+        .set_custom("rustfix-mode", RustfixMode::Everything);
 
     if let Ok(target) = std::env::var("UITEST_TEST_TARGET") {
         config.target = Some(target);

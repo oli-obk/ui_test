@@ -393,6 +393,7 @@ impl TestConfig {
         Ok(TestOk::Ok)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn find_one_custom(&self, arg: &str) -> Result<OptWithLine<&dyn Flag>, Errored> {
         self.find_one(arg, |r| {
             r.custom

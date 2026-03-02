@@ -61,7 +61,9 @@ fn main() -> Result<()> {
     config.filter("RUSTC_ICE=\"0\" ", "");
     // The order of the `/deps` directory flag is flaky
     config.stdout_filter("/deps", "");
+    config.stdout_filter("[0-9a-f]+\\.rlib", "$$HASH.rlib");
     config.stdout_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
+    config.stdout_filter("[0-9a-f]+\\.so", "$$HASH.so");
     // Windows backslashes are sometimes escaped.
     // Insert the replacement filter at the start to make sure the filter for single backslashes
     // runs afterwards.
