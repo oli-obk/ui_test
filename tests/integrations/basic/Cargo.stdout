@@ -19,6 +19,9 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "started", "name": "tests/actual_tests/mac_span.rs () - tests/actual_tests/mac_span.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/no_rustfix.rs () - tests/actual_tests/no_rustfix.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-mode_disabled.rs () - tests/actual_tests/rustfix-mode_disabled.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-mode_everything.rs () - tests/actual_tests/rustfix-mode_everything.rs" }
+{ "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-mode_machine-applicable.rs () - tests/actual_tests/rustfix-mode_machine-applicable.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/stdin.rs () - tests/actual_tests/stdin.rs" }
 { "type": "test", "event": "started", "name": "tests/actual_tests/unicode.rs () - tests/actual_tests/unicode.rs" }
@@ -53,6 +56,11 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/match_diagnostic_code.rs () - tests/actual_tests/match_diagnostic_code.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/no_rustfix.rs () - tests/actual_tests/no_rustfix.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-mode_disabled.rs () - tests/actual_tests/rustfix-mode_disabled.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-mode_everything.rs () - tests/actual_tests/rustfix-mode_everything.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-mode_everything.rs () - tests/actual_tests/rustfix-mode_everything.fixed" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-mode_machine-applicable.rs () - tests/actual_tests/rustfix-mode_machine-applicable.rs" }
+{ "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-mode_machine-applicable.rs () - tests/actual_tests/rustfix-mode_machine-applicable.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.1.fixed" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/rustfix-multiple.rs () - tests/actual_tests/rustfix-multiple.2.fixed" }
@@ -61,7 +69,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "ok", "name": "tests/actual_tests/unicode.rs () - tests/actual_tests/unicode.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/windows_paths.rs () - tests/actual_tests/windows_paths.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/subdir/aux_proc_macro.rs () - tests/actual_tests/subdir/aux_proc_macro.rs" }
-{ "type": "suite", "event": "ok", "passed": 33, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }
+{ "type": "suite", "event": "ok", "passed": 38, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }
 
 running 3 tests
 ...
@@ -96,6 +104,11 @@ tests/actual_tests/mac_span.fixed ... ok
 tests/actual_tests/match_diagnostic_code.rs ... ok
 tests/actual_tests/match_diagnostic_code.fixed ... ok
 tests/actual_tests/no_rustfix.rs ... ok
+tests/actual_tests/rustfix-mode_disabled.rs ... ok
+tests/actual_tests/rustfix-mode_everything.rs ... ok
+tests/actual_tests/rustfix-mode_everything.fixed ... ok
+tests/actual_tests/rustfix-mode_machine-applicable.rs ... ok
+tests/actual_tests/rustfix-mode_machine-applicable.fixed ... ok
 tests/actual_tests/rustfix-multiple.rs ... ok
 tests/actual_tests/rustfix-multiple.1.fixed ... ok
 tests/actual_tests/rustfix-multiple.2.fixed ... ok
@@ -105,7 +118,7 @@ tests/actual_tests/unicode.rs ... ok
 tests/actual_tests/windows_paths.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 33 passed
+test result: ok. 38 passed
 
 
 running 0 tests

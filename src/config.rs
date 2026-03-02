@@ -1,8 +1,14 @@
 #[cfg(feature = "rustc")]
 use crate::{
-    aux_builds::AuxBuilder, custom_flags::edition::Edition,
-    custom_flags::revision_args::RustcRevisionArgs, custom_flags::run::Run,
-    custom_flags::rustfix::RustfixMode, custom_flags::Flag, filter::Match,
+    aux_builds::AuxBuilder,
+    custom_flags::edition::Edition,
+    custom_flags::revision_args::RustcRevisionArgs,
+    custom_flags::run::Run,
+    custom_flags::rustfix_mode::RustfixMode,
+    custom_flags::Flag,
+    filter::Match,
+    parser::{CommentParser, Revisioned},
+    spanned::Span,
 };
 use crate::{
     diagnostics::{self, Diagnostics},
@@ -155,7 +161,7 @@ impl Config {
             .add_custom("edition", Edition("2021".into()));
         comment_defaults
             .base()
-            .add_custom("rustfix", RustfixMode::MachineApplicable);
+            .add_custom("rustfix-mode", RustfixMode::MachineApplicable);
         let filters = vec![
             (Match::PathBackslash, b"/".to_vec()),
             #[cfg(windows)]
@@ -197,8 +203,13 @@ impl Config {
             .custom_comments
             .insert("no-rustfix", |parser, _args, span| {
                 // args are ignored (can be used as comment)
-                parser.set_custom_once("no-rustfix", (), span);
+                parser.set_custom_once("rustfix-mode", RustfixMode::Disabled, span);
             });
+
+        config.custom_comments.insert("rustfix", parse_rustfix_mode);
+        config
+            .custom_comments
+            .insert("rustfix-mode", parse_rustfix_mode);
 
         config
             .custom_comments
@@ -476,6 +487,22 @@ impl Config {
         self.aborted()?;
 
         Ok(output)
+    }
+}
+
+#[cfg(feature = "rustc")]
+fn parse_rustfix_mode(
+    parser: &mut CommentParser<&mut Revisioned>,
+    args: Spanned<&str>,
+    span: Span,
+) {
+    match args.content.parse::<RustfixMode>() {
+        Ok(mode) => {
+            parser.set_custom_once("rustfix-mode", mode, span);
+        }
+        Err(error) => {
+            parser.error(args.span(), error.to_string());
+        }
     }
 }
 

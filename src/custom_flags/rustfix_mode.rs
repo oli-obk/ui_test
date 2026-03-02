@@ -8,12 +8,14 @@ use crate::{
     per_test_config::{Comments, Revisioned, TestConfig},
     Error, Errored, TestOk,
 };
+use anyhow::bail;
 use rustfix::{CodeFix, Filter, Suggestion};
 use spanned::{Span, Spanned};
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
     process::Output,
+    str::FromStr,
     sync::Arc,
 };
 
@@ -54,8 +56,7 @@ impl Flag for RustfixMode {
             _ => *self,
         };
         let output = output.clone();
-        let no_run_rustfix = config.find_one_custom("no-rustfix")?;
-        let fixes = if no_run_rustfix.is_none() && global_rustfix.enabled() {
+        let fixes = if global_rustfix.enabled() {
             fix(&output.stderr, config.status.path(), global_rustfix).map_err(|err| Errored {
                 command: format!("rustfix {}", display(config.status.path())),
                 errors: vec![Error::Rustfix(err)],
@@ -96,6 +97,18 @@ impl Flag for RustfixMode {
         }
 
         compile_fixed(config, build_manager, fixed_paths)
+    }
+}
+
+impl FromStr for RustfixMode {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "disabled" => Ok(RustfixMode::Disabled),
+            "everything" => Ok(RustfixMode::Everything),
+            "machine-applicable" => Ok(RustfixMode::MachineApplicable),
+            _ => bail!("unknown `RustfixMode`: {s}"),
+        }
     }
 }
 
