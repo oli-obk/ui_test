@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - when a test file has no error patterns, there's now a suggestion to add `//@check-pass`
 
+## [0.31.0] - 2026-03-09
+
+### Added
+
+- Add ability to apply just `MachineApplicable` fixes and leave other (e.g., `Unspecified`) fixes unapplied
+
+### Fixed
+
+### Changed
+
 ## [0.30.4] - 2025-11-24
 
 ### Added
