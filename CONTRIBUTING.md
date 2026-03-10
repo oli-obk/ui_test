@@ -1,3 +1,5 @@
+Do not contribute PRs, issues or comments with AI support. I will close them and I do not want to discuss it. 
+
 ## Running the test suite
 
 The test suite is confusing because it itself runs ui-test, and then also uses ui-test to
