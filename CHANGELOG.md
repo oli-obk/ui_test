@@ -76,6 +76,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+* Changed default fixed suffix from `fixed` to `fixed.rs` for IDE rendering.
+
 ### Removed
 
 ## [0.29.0] - 2025-02-25
