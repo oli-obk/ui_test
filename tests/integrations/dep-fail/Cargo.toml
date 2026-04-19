@@ -1,3 +1,5 @@
+#@normalize-stdout-test: " *Blocking waiting for file lock on package cache\n" -> ""
+
 [package]
 name = "compile_test"
 version = "0.1.0"

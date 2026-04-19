@@ -5,7 +5,7 @@ fn main() -> Result<()> {
     let path = Path::new(file!()).parent().unwrap();
     let root_dir = path.join("integrations");
     let mut config = Config {
-        bless_command: Some("cargo test -- -- --bless".to_string()),
+        bless_command: Some("cargo test".to_string()), // we bless by default
         ..Config::cargo(root_dir.clone())
     };
 
@@ -32,6 +32,10 @@ fn main() -> Result<()> {
         .program
         .envs
         .push(("BLESS".into(), (!args.check).then(|| String::new().into())));
+    if args.check {
+        // Also check the lockfile.
+        config.program.args.push("--locked".into());
+    }
 
     config
         .program
@@ -51,11 +55,12 @@ fn main() -> Result<()> {
         "The system cannot find the file specified.",
         "No such file or directory",
     );
+    config.filter(r#"RUSTC_BOOTSTRAP=\\"1\\" "#, "");
+    config.filter(r#"RUSTC_ICE=\\"0\\" "#, "");
     config.filter("RUSTC_BOOTSTRAP=\"1\" ", "");
     config.filter("RUSTC_ICE=\"0\" ", "");
     // The order of the `/deps` directory flag is flaky
     config.stdout_filter("/deps", "");
-    config.path_filter(std::path::Path::new(path), "$DIR");
     config.stdout_filter("[0-9a-f]+\\.rmeta", "$$HASH.rmeta");
     // Windows backslashes are sometimes escaped.
     // Insert the replacement filter at the start to make sure the filter for single backslashes
@@ -65,6 +70,15 @@ fn main() -> Result<()> {
         .base()
         .normalize_stdout
         .insert(0, (Match::Exact(b"\\\\".to_vec()), b"\\".to_vec()));
+    // Do windows path escaping twice because json also escapes paths
+    config
+        .comment_defaults
+        .base()
+        .normalize_stdout
+        .insert(0, (Match::Exact(b"\\\\\\\\".to_vec()), b"\\".to_vec()));
+    config.path_filter(std::path::Path::new(path), "$DIR");
+    // Unescape escaped quotes at the end of windows paths in json
+    config.filter("/\"", "\\\"");
     config.stdout_filter(r#"(panic.*)\.rs:[0-9]+:[0-9]+"#, "$1.rs");
     // We don't want to normalize lines starting with `+`, those are diffs of the inner ui_test
     // and normalizing these here doesn't make the "actual output differed from expected" go
@@ -97,7 +111,7 @@ fn main() -> Result<()> {
     config.stdout_filter(r#"exit status: 0xc0000409"#, "signal: 6 (SIGABRT)");
     config.filter("\"--target=[^\"]+\"", "");
 
-    let text = ui_test::status_emitter::Text::from(args.format);
+    let emitter: Box<dyn ui_test::status_emitter::StatusEmitter> = args.format.into();
 
     let mut pass_config = config.clone();
     pass_config.comment_defaults.base().exit_status = Some(Spanned::dummy(0)).into();
@@ -139,10 +153,11 @@ fn main() -> Result<()> {
         },
         |_, _| {},
         (
-            text,
+            emitter,
             #[cfg(feature = "gha")]
-            ui_test::status_emitter::Gha::<true> {
+            ui_test::status_emitter::Gha {
                 name: "integration tests".into(),
+                group: true,
             },
         ),
     )

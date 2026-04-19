@@ -146,7 +146,7 @@ pub struct Revisioned {
     pub exit_status: OptWithLine<i32>,
     /// `Some(true)` means annotations are required
     /// `Some(false)` means annotations are forbidden
-    /// `None` means this revision does not change the base annoatation requirement.
+    /// `None` means this revision does not change the base annotation requirement.
     pub require_annotations: OptWithLine<bool>,
     /// Prefix added to all diagnostic code matchers. Note this will make it impossible
     /// match codes which do not contain this prefix.
@@ -382,11 +382,10 @@ impl CommentParser<Comments> {
                     }
 
                     for (span, line, idx) in delayed_fallthrough.drain(..) {
-                        if let Some(rev) = self
-                            .comments
-                            .revisioned
-                            .values_mut()
-                            .find(|rev| rev.error_matches[idx].line == line)
+                        if let Some(rev) =
+                            self.comments.revisioned.values_mut().find(|rev| {
+                                rev.error_matches.get(idx).is_some_and(|m| m.line == line)
+                            })
                         {
                             rev.error_matches[idx].line = match_line;
                         } else {
@@ -910,7 +909,10 @@ impl<CommentsType> CommentParser<CommentsType> {
                     );
                 };
                 let (revision, pattern) = s.split_at(end);
-                let revisions = revision.split(',').map(|s| s.trim().to_string()).collect();
+                let revisions = revision
+                    .split(',')
+                    .map(|s| s.content.trim().to_string())
+                    .collect();
                 (
                     Spanned::new(revisions, revision.span()),
                     // 1.. because `split_at` includes the separator
@@ -1062,10 +1064,7 @@ impl CommentParser<&mut Revisioned> {
             return res;
         } else {
             self.error_matches.push(ErrorMatch {
-                kind: ErrorMatchKind::Code(Spanned::new(
-                    level_or_code.to_string(),
-                    level_or_code.span(),
-                )),
+                kind: ErrorMatchKind::Code(level_or_code.to_string()),
                 line: match_line,
             });
         };

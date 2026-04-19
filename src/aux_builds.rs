@@ -84,11 +84,12 @@ pub struct AuxBuilder {
 impl Build for AuxBuilder {
     fn build(&self, build_manager: &BuildManager) -> Result<Vec<OsString>, Errored> {
         let mut config = build_manager.config().clone();
-        let file_contents =
-            Spanned::read_from_file(&self.aux_file.content).map_err(|err| Errored {
+        let file_contents = Spanned::read_from_file(&self.aux_file.content)
+            .transpose()
+            .map_err(|err| Errored {
                 command: format!("reading aux file `{}`", display(&self.aux_file)),
                 errors: vec![],
-                stderr: err.to_string().into_bytes(),
+                stderr: err.content.to_string().into_bytes(),
                 stdout: vec![],
             })?;
         let comments = Comments::parse(file_contents.as_ref(), &config)

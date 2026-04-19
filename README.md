@@ -28,17 +28,39 @@ not run your `fn main()` that actually executes `ui_test`
 ## Supported comment annotations
 
 If your test tests for failure, you need to add a `//~` annotation where the error is happening
-to ensure that the test will always keep failing at the annotated line. These comments can take two forms:
+to ensure that the test will always keep failing at the annotated line. This will match any substring
+of the error. These comments can take two forms:
 
 * `//~ LEVEL: XXX` matches by error level and message text
     * `LEVEL` can be one of the following (descending order): `ERROR`, `HELP`, `WARN`, `NOTE` or `ICE`
     * If a level is specified explicitly, *all* diagnostics of that level or higher need an annotation. To avoid this see `//@require-annotations-for-level`
     * This checks the output *before* normalization, so you can check things that get normalized away, but need to
-        be careful not to accidentally have a pattern that differs between platforms.
+      be careful not to accidentally have a pattern that differs between platforms.
     * if `XXX` is of the form `/XXX/` it is treated as a regex instead of a substring and will succeed if the regex matches.
 * `//~ CODE` matches by diagnostic code.
     * `CODE` can take multiple forms such as: `E####`, `lint_name`, `tool::lint_name`.
     * This will only match a diagnostic at the `ERROR` level.
+
+The annotation can be put on a different line from the error location using `v`/`^`:
+```rs
+causes_some_error()
+//~^ some_error
+
+//~v some_error
+causes_some_error()
+```
+By repeating those symbols `n` times, one can annotate an error located `n` lines away:
+```rs
+causes_some_error()
+
+//~^^ some_error
+```
+If there are multiple errors on the same line, annotations can be put on consecutive lines, and "chained" with `|`:
+```rs
+causes_some_error_and_other_error()
+//~^ some_error
+//~| other_error
+```
 
 In order to change how a single test is tested, you can add various `//@` comments to the test.
 Any other comments will be ignored, and all `//@` comments must be formatted precisely as
@@ -77,7 +99,7 @@ their command specifies, or the test will fail without even being run.
 * `//@rustc-env: XXX=YYY` sets the env var `XXX` to `YYY` for the rustc driver execution.
     * for Miri these env vars are used during compilation via rustc and during the emulation of the program
     * you can specify this multiple times, accumulating all the env vars
-* `//@normalize-stderr-test: "REGEX" -> "REPLACEMENT"` replaces all matches of `REGEX` in the stderr with `REPLACEMENT`. The replacement may specify `$1` and similar backreferences to paste captures.
+* `//@normalize-stdout-test: "REGEX" -> "REPLACEMENT"` / `//@normalize-stderr-test: "REGEX" -> "REPLACEMENT"` replaces all matches of `REGEX` in the stdout/stderr with `REPLACEMENT`. The replacement may specify `$1` and similar backreferences to paste captures. Note that this doesn't apply to error strings specified by `//~` comments.
     * you can specify multiple such commands, there is no need to create a single regex that handles multiple replacements that you want to perform.
 * `//@require-annotations-for-level: LEVEL` can be used to change the level of diagnostics that require a corresponding annotation.
     * this is only useful if there are any annotations like `HELP`, `WARN` or `NOTE`, as these would automatically require annotations for all other diagnostics of the same or higher level.

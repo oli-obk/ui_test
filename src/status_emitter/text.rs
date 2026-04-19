@@ -11,7 +11,6 @@ use crate::test_result::TestOk;
 use crate::test_result::TestResult;
 use crate::Error;
 use crate::Errors;
-use crate::Format;
 use annotate_snippets::Renderer;
 use annotate_snippets::Snippet;
 use colored::Colorize;
@@ -20,6 +19,7 @@ use crossbeam_channel::{Sender, TryRecvError};
 #[cfg(feature = "indicatif")]
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use spanned::Span;
+use std::borrow::Cow;
 use std::fmt::{Debug, Display};
 use std::io::Write as _;
 use std::path::Path;
@@ -341,15 +341,6 @@ impl Text {
     }
 }
 
-impl From<Format> for Text {
-    fn from(format: Format) -> Self {
-        match format {
-            Format::Terse => Text::quiet(),
-            Format::Pretty => Text::verbose(),
-        }
-    }
-}
-
 struct TextTest {
     text: Text,
     #[cfg(feature = "indicatif")]
@@ -666,7 +657,7 @@ fn print_error(error: &Error, path: &Path) {
                     format!("`{s}` not found in diagnostics {line}")
                 }
                 Pattern::Regex(r) => {
-                    format!("`/{r}/` does not match diagnostics {line}",)
+                    format!("`/{r}/` does not match diagnostics {line}")
                 }
             };
             // This will print a suitable error header.
@@ -680,9 +671,9 @@ fn print_error(error: &Error, path: &Path) {
             code,
             expected_line,
         } => {
-            let line = match expected_line {
-                Some(line) => format!("on line {line}"),
-                None => format!("outside the testfile"),
+            let line: Cow<_> = match expected_line {
+                Some(line) => format!("on line {line}").into(),
+                None => "outside the testfile".into(),
             };
             create_error(
                 format!("diagnostic code `{}` not found {line}", &**code),
@@ -692,6 +683,7 @@ fn print_error(error: &Error, path: &Path) {
         }
         Error::NoPatternsFound => {
             print_error_header("expected error patterns, but found none");
+            println!("If this is expected, consider annotating the file with `//@check-pass`");
         }
         Error::PatternFoundInPassTest { mode, span } => {
             let annot = [("expected because of this annotation", span.clone())];
@@ -775,8 +767,13 @@ fn print_error(error: &Error, path: &Path) {
                     })
                     .collect::<Vec<_>>();
                 // This will print a suitable error header.
+
+                let error_msg: Cow<str> = match msgs.len() {
+                    1 => "there was 1 unmatched diagnostic".into(),
+                    n => format!("there were {n} unmatched diagnostics").into(),
+                };
                 create_error(
-                    format!("there were {} unmatched diagnostics", msgs.len()),
+                    error_msg,
                     &[&msgs
                         .iter()
                         .map(|(msg, lc)| (msg.as_ref(), lc.clone()))
@@ -784,10 +781,11 @@ fn print_error(error: &Error, path: &Path) {
                     path,
                 );
             } else {
-                print_error_header(format_args!(
-                    "there were {} unmatched diagnostics that occurred outside the testfile and had no pattern",
-                    msgs.len(),
-                ));
+                let error_msg: Cow<str> = match msgs.len() {
+                    1 => "there was 1 unmatched diagnostic that occurred outside the testfile and had no pattern".into(),
+                    n => format!("there were {n} unmatched diagnostics that occurred outside the testfile and had no pattern").into(),
+                };
+                print_error_header(error_msg);
                 for Message {
                     level,
                     message,

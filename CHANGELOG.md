@@ -11,6 +11,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Update the help string in CLI to include new flags
+
+### Changed
+
+- when a test file has no error patterns, there's now a suggestion to add `//@check-pass`
+
+## [0.30.4] - 2025-11-24
+
+### Added
+
+### Fixed
+
+### Changed
+
+- Bump `indicatif` dependency to 0.18.3
+
+## [0.30.3] - 2025-11-16
+
+### Added
+
+### Fixed
+
+- the text output now uses the singular form when there was 1 unmatched diagnostic
+
+### Changed
+
+- Bump `prettydiff` dependency to 0.9
+
+## [0.30.2] - 2025-07-01
+
+### Added
+
+### Fixed
+
+### Changed
+
+- DependencyBuilder: if `config.target` is set (which is always the case if you use `run_tests_generic`),
+  ui_test now supports the same crate showing up as a direct dependency and a dependency of a proc-macro.
+
+### Removed
+
+## [0.30.1] - 2025-05-28
+
+### Added
+
+### Fixed
+
+* the JSON output now properly escapes backslashes on Windows
+
+### Changed
+
+### Removed
+
+## [0.30.0] - 2025-05-20
+
+### Added
+
+* support for JSON output via argument `--format=json`
+
+### Fixed
+
 * missing lines in diff output 
 
 ### Changed
