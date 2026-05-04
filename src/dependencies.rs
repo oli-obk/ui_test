@@ -185,9 +185,16 @@ fn build_dependencies_inner(
                         filename.pop();
                         // We also validate that the path looks as expected before we actually skip.
                         if filename.file_name().unwrap_or_default() != "deps" {
-                            // Either cargo changed or this is a weird corner case, let's just
-                            // keep it.
-                            break 'skip_crate false;
+                            // Check if the new Cargo build-dir v2 layout is enabled
+                            if filename.file_name().unwrap_or_default() == "out" {
+                                filename.pop(); // `out`
+                                filename.pop(); // `<hash>`
+                                filename.pop(); // `<pkgname>`
+                            } else {
+                                // Either cargo changed or this is a weird corner case, let's just
+                                // keep it.
+                                break 'skip_crate false;
+                            }
                         }
                         filename.pop();
                         // This is the profile name, `debug` or `release` or so.
