@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Changed
+
+## [0.30.5] - 2026-05-04
+
+### Added
+
+- Added support for Cargo's new `build-dir` layout
+
+### Fixed
+
 - Update the help string in CLI to include new flags
 
 ### Changed
