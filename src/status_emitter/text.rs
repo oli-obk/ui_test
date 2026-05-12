@@ -98,13 +98,13 @@ impl Text {
         let (sender, receiver) = crossbeam_channel::unbounded();
         #[cfg(feature = "indicatif")]
         let handle = std::thread::spawn(move || {
-            let bars = MultiProgress::new();
-            let progress = match progress {
-                OutputVerbosity::Progress => bars.add(ProgressBar::new(0)),
-                OutputVerbosity::DiffOnly | OutputVerbosity::Full => {
-                    ProgressBar::with_draw_target(Some(0), ProgressDrawTarget::hidden())
-                }
+            let bars = MultiProgress::with_draw_target(ProgressDrawTarget::stdout());
+            let target = match progress {
+                OutputVerbosity::Progress => ProgressDrawTarget::stdout(),
+
+                OutputVerbosity::DiffOnly | OutputVerbosity::Full => ProgressDrawTarget::hidden(),
             };
+            let progress = bars.add(ProgressBar::with_draw_target(Some(0), target));
 
             struct Thread {
                 parent: usize,
@@ -214,6 +214,7 @@ impl Text {
                         msg.insert_str(0, "  ");
                     }
                     let spinner = ProgressBar::new_spinner().with_prefix(msg);
+                    spinner.set_draw_target(ProgressDrawTarget::stdout());
                     let spinner = if parent == 0 {
                         self.bars.add(spinner)
                     } else {
