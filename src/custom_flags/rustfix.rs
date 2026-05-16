@@ -70,20 +70,20 @@ impl Flag for RustfixMode {
         let fixed_paths = match fixes.as_slice() {
             [] => Vec::new(),
             [single] => {
-                vec![config.check_output(single.as_bytes(), &mut errors, "fixed")]
+                vec![config.check_output(single.as_bytes(), &mut errors, "fixed.rs")]
             }
             _ => fixes
                 .iter()
                 .enumerate()
                 .map(|(i, fix)| {
-                    config.check_output(fix.as_bytes(), &mut errors, &format!("{}.fixed", i + 1))
+                    config.check_output(fix.as_bytes(), &mut errors, &format!("{}.fixed.rs", i + 1))
                 })
                 .collect(),
         };
 
         if fixes.len() != 1 {
             // Remove an unused .fixed file
-            config.check_output(&[], &mut errors, "fixed");
+            config.check_output(&[], &mut errors, "fixed.rs");
         }
 
         if !errors.is_empty() {
