@@ -139,12 +139,20 @@ impl TestConfig {
 
         self.apply_custom(&mut cmd, build_manager)?;
 
-        if let Some(target) = &self.config.target {
-            // Adding a `--target` arg to calls to Cargo will cause target folders
-            // to create a target-specific sub-folder. We can avoid that by just
-            // not passing a `--target` arg if its the same as the host.
-            if !self.config.host_matches_target() {
-                cmd.arg("--target").arg(target);
+        let args_contains_target = self.comments().any(|r| {
+            r.compile_flags
+                .iter()
+                .any(|flag| flag.starts_with("--target"))
+        });
+
+        if !args_contains_target {
+            if let Some(target) = &self.config.target {
+                // Adding a `--target` arg to calls to Cargo will cause target folders
+                // to create a target-specific sub-folder. We can avoid that by just
+                // not passing a `--target` arg if its the same as the host.
+                if !self.config.host_matches_target() {
+                    cmd.arg("--target").arg(target);
+                }
             }
         }
 
