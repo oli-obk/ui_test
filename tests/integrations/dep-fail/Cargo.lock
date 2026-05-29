@@ -581,7 +581,7 @@ dependencies = [
 
 [[package]]
 name = "ui_test"
-version = "0.30.5"
+version = "0.30.6"
 dependencies = [
  "annotate-snippets",
  "anyhow",
