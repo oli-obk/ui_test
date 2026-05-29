@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Fields of `Errored` are now public, so user-defined flags can report stdout/stderr
+
 ### Fixed
 
 ### Changed

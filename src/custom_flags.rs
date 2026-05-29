@@ -31,7 +31,8 @@ pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
         Ok(())
     }
 
-    /// Whether this flag causes a test to be filtered out
+    /// Whether this flag causes a test to be filtered out.
+    /// Returning `true` means the test gets ignored.
     fn test_condition(&self, _config: &Config, _comments: &Comments, _revision: &str) -> bool {
         false
     }
