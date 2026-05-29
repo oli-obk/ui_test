@@ -19,13 +19,13 @@ pub type TestResult = Result<TestOk, Errored>;
 /// Information about a test failure.
 pub struct Errored {
     /// Command that failed
-    pub(crate) command: String,
+    pub command: String,
     /// The errors that were encountered.
-    pub(crate) errors: Vec<Error>,
+    pub errors: Vec<Error>,
     /// The full stderr of the test run.
-    pub(crate) stderr: Vec<u8>,
+    pub stderr: Vec<u8>,
     /// The full stdout of the test run.
-    pub(crate) stdout: Vec<u8>,
+    pub stdout: Vec<u8>,
 }
 
 impl std::fmt::Debug for Errored {
