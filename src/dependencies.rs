@@ -8,7 +8,7 @@ use crate::{
     CommandBuilder, Config,
 };
 use bstr::ByteSlice;
-use cargo_metadata::{camino::Utf8PathBuf, BuildScript, DependencyKind};
+use cargo_metadata::{camino::Utf8PathBuf, BuildScript, CrateType, DependencyKind};
 use cargo_platform::Cfg;
 use std::{
     collections::{HashMap, HashSet},
@@ -148,12 +148,12 @@ fn build_dependencies_inner(
         };
         match message {
             cargo_metadata::Message::CompilerArtifact(artifact) => {
-                if artifact
-                    .target
-                    .crate_types
-                    .iter()
-                    .all(|ctype| !matches!(ctype.as_str(), "proc-macro" | "lib" | "rlib"))
-                {
+                if artifact.target.crate_types.iter().all(|ctype| {
+                    !matches!(
+                        ctype,
+                        CrateType::ProcMacro | CrateType::Lib | CrateType::RLib
+                    )
+                }) {
                     continue;
                 }
                 if let Some(target) = &config.target {
@@ -175,7 +175,7 @@ fn build_dependencies_inner(
                             .target
                             .crate_types
                             .iter()
-                            .any(|ctype| ctype == "proc-macro")
+                            .any(|ctype| matches!(ctype, CrateType::ProcMacro))
                         {
                             // Proc macros are only ever built for the host, don't skip that.
                             break 'skip_crate false;
@@ -302,13 +302,13 @@ fn build_dependencies_inner(
                         .is_some_and(|path| p.manifest_path.parent().unwrap() == path)
                         || dep.req.matches(&p.version)
                     {
-                        return (p, dep.rename.clone().unwrap_or_else(|| p.name.clone()));
+                        return (p, dep.rename.clone().unwrap_or_else(|| p.name.to_string()));
                     }
                 }
                 panic!("dep not found: {dep:#?}")
             })
             // Also expose the root crate
-            .chain(std::iter::once((root, root.name.clone())))
+            .chain(std::iter::once((root, root.name.to_string())))
             .filter_map(|(package, name)| {
                 // Get the id for the package matching the version requirement of the dep
                 let id = &package.id;
@@ -322,7 +322,7 @@ fn build_dependencies_inner(
                         stdout: "`ui_test` does not support crates that appear as both build-dependencies and core dependencies".as_bytes().into(),
                     })),
                     None => {
-                        if name == root.name {
+                        if name == *root.name {
                             // If there are no artifacts, this is the root crate and it is being built as a binary/test
                             // instead of a library. We simply add no artifacts, meaning you can't depend on functions
                             // and types declared in the root crate.
