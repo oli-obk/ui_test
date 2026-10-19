@@ -697,6 +697,7 @@ fn print_error(error: &Error, path: &Path) {
             create_error("error pattern found in pass test", &lines, path);
         }
         Error::OutputDiffers {
+            kind,
             path: output_path,
             actual,
             output,
@@ -706,14 +707,14 @@ fn print_error(error: &Error, path: &Path) {
             let bless = || {
                 if let Some(bless_command) = bless_command {
                     println!(
-                        "Execute `{}` to update `{}` to the actual output",
+                        "Execute `{}` to update `{}` to the actual {kind} output",
                         bless_command,
                         display(output_path)
                     );
                 }
             };
             if expected.is_empty() {
-                print_error_header("no output was expected");
+                print_error_header(format_args!("no {kind} output was expected"));
                 bless();
                 println!(
                     "{}",
@@ -725,7 +726,7 @@ fn print_error(error: &Error, path: &Path) {
                 );
                 println!("{}", String::from_utf8_lossy(output));
             } else if output.is_empty() {
-                print_error_header("no output was emitted");
+                print_error_header(format_args!("no {kind} output was emitted"));
                 if let Some(bless_command) = bless_command {
                     println!(
                         "Execute `{}` to remove `{}`",
@@ -734,7 +735,7 @@ fn print_error(error: &Error, path: &Path) {
                     );
                 }
             } else {
-                print_error_header("actual output differed from expected");
+                print_error_header(format_args!("actual {kind} output differed from expected"));
                 bless();
                 println!("{}", format!("--- {}", display(output_path)).red());
                 println!(
@@ -748,7 +749,7 @@ fn print_error(error: &Error, path: &Path) {
                 crate::diff::print_diff(expected, actual);
 
                 println!(
-                    "Full unnormalized output:\n{}",
+                    "Full unnormalized {kind} output:\n{}",
                     String::from_utf8_lossy(output)
                 );
             }

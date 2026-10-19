@@ -53,6 +53,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
             );
         }
         Error::OutputDiffers {
+            kind: _,
             path: output_path,
             actual,
             output: _,

@@ -64,8 +64,8 @@ tests/actual_tests/touching_above_below_chain.rs ... FAILED
 FAILED TEST: tests/actual_tests/bad_pattern.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern.stderr` to the actual stderr output
 --- tests/actual_tests/bad_pattern.stderr
 +++ <stderr output>
  error[E0308]: mismatched types
@@ -78,7 +78,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ba
  
  For more information about this error, try `rustc --explain E0308`.
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error[E0308]: mismatched types
  --> tests/actual_tests/bad_pattern.rs:4:9
   |
@@ -138,8 +138,8 @@ full stdout:
 FAILED TEST: tests/actual_tests/bad_pattern_multiple.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/bad_pattern_multiple.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern_multiple.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern_multiple.stderr` to the actual stderr output
 --- tests/actual_tests/bad_pattern_multiple.stderr
 +++ <stderr output>
  error[E0308]: mismatched types
@@ -165,7 +165,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ba
  
  For more information about this error, try `rustc --explain E0308`.
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error[E0308]: mismatched types
  --> tests/actual_tests/bad_pattern_multiple.rs:4:9
   |
@@ -267,14 +267,14 @@ full stdout:
 FAILED TEST: tests/actual_tests/executable.rs (revision `run`)
 command: "$CMD"
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.run.stdout` to the actual output
+error: actual stdout output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.run.stdout` to the actual stdout output
 --- tests/actual_tests/executable.run.stdout
 +++ <stdout output>
 -69
 +42
 
-Full unnormalized output:
+Full unnormalized stdout output:
 42
 
 
@@ -295,8 +295,8 @@ error: test got exit status: 1, but expected 0
   |    ^^^ compilation failed, but was expected to succeed
   |
 
-error: no output was expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual output
+error: no stderr output was expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual stderr output
 +++ <stderr output>
 error: this file contains an unclosed delimiter
  --> tests/actual_tests/executable_compile_err.rs:4:2
@@ -360,8 +360,8 @@ full stdout:
 FAILED TEST: tests/actual_tests/foomp.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp.stderr` to the actual stderr output
 --- tests/actual_tests/foomp.stderr
 +++ <stderr output>
  error[E0308]: mismatched types
@@ -385,7 +385,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
  
  For more information about this error, try `rustc --explain E0308`.
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error[E0308]: mismatched types
  --> tests/actual_tests/foomp.rs:4:9
   |
@@ -431,8 +431,8 @@ full stdout:
 FAILED TEST: tests/actual_tests/foomp2.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/foomp2.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.stderr` to the actual stderr output
 --- tests/actual_tests/foomp2.stderr
 +++ <stderr output>
  error[E0308]: mismatched types
@@ -445,7 +445,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
  
  For more information about this error, try `rustc --explain E0308`.
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error[E0308]: mismatched types
  --> tests/actual_tests/foomp2.rs:4:9
   |
@@ -494,8 +494,8 @@ command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/ice
 error: test got exit status: 101, but expected 1
  = note: the compiler panicked
 
-error: no output was expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ice_annotations.stderr` to the actual output
+error: no stderr output was expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ice_annotations.stderr` to the actual stderr output
 +++ <stderr output>
 error: internal compiler error[E0308]: mismatched types
  --> tests/actual_tests/ice_annotations.rs:8:9
@@ -664,8 +664,8 @@ command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/rus
 error: test got exit status: 101, but expected 1
  = note: the compiler panicked
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/rustc_ice.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/rustc_ice.stderr` to the actual stderr output
 --- tests/actual_tests/rustc_ice.stderr
 +++ <stderr output>
  error: internal compiler error[E0308]: mismatched types
@@ -676,7 +676,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ru
 +
  thread 'rustc' panicked
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error: internal compiler error[E0308]: mismatched types
  --> tests/actual_tests/rustc_ice.rs:8:9
   |
@@ -1534,8 +1534,8 @@ tests/actual_tests/touching_above_below_chain.rs ... FAILED
 FAILED TEST: tests/actual_tests/bad_pattern.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern.stderr` to the actual stderr output
 --- tests/actual_tests/bad_pattern.stderr
 +++ <stderr output>
 -error[E0308]: mismatched types
@@ -1563,7 +1563,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ba
 -For more information about this error, try `rustc --explain E0308`.
 +For more information about this error, try `rustc --explain E0432`.
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error[E0432]: unresolved import `basic_fail`
  --> tests/actual_tests/bad_pattern.rs:1:5
   |
@@ -1595,8 +1595,8 @@ error: there was 1 unmatched diagnostic
 FAILED TEST: tests/actual_tests/bad_pattern_multiple.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/bad_pattern_multiple.rs" "--edition" "2021"
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern_multiple.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/bad_pattern_multiple.stderr` to the actual stderr output
 --- tests/actual_tests/bad_pattern_multiple.stderr
 +++ <stderr output>
 -error[E0308]: mismatched types
@@ -1638,7 +1638,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ba
 -For more information about this error, try `rustc --explain E0308`.
 +For more information about this error, try `rustc --explain E0432`.
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error[E0432]: unresolved import `basic_fail`
  --> tests/actual_tests/bad_pattern_multiple.rs:1:5
   |
@@ -1684,8 +1684,8 @@ error: test got exit status: 1, but expected 0
   |    ^^^ compilation failed, but was expected to succeed
   |
 
-error: no output was expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.stderr` to the actual output
+error: no stderr output was expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable.stderr` to the actual stderr output
 +++ <stderr output>
 error[E0432]: unresolved import `basic_fail`
  --> tests/actual_tests/executable.rs:1:5
@@ -1711,8 +1711,8 @@ error: test got exit status: 1, but expected 0
   |    ^^^ compilation failed, but was expected to succeed
   |
 
-error: no output was expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual output
+error: no stderr output was expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/executable_compile_err.stderr` to the actual stderr output
 +++ <stderr output>
 error: this file contains an unclosed delimiter
  --> tests/actual_tests/executable_compile_err.rs:4:2
@@ -1751,8 +1751,8 @@ error: `x86_64` is not a valid condition, expected `on-host`, /[0-9]+bit/, /host
 FAILED TEST: tests/actual_tests/foomp.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/foomp.rs" "--edition" "2021"
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp.stderr` to the actual stderr output
 --- tests/actual_tests/foomp.stderr
 +++ <stderr output>
 -error[E0308]: mismatched types
@@ -1778,7 +1778,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 -For more information about this error, try `rustc --explain E0308`.
 +For more information about this error, try `rustc --explain E0432`.
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error[E0432]: unresolved import `basic_fail`
  --> tests/actual_tests/foomp.rs:1:5
   |
@@ -1810,8 +1810,8 @@ error: there was 1 unmatched diagnostic
 FAILED TEST: tests/actual_tests/foomp2.rs
 command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/foomp2.rs" "--edition" "2021"
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/foomp2.stderr` to the actual stderr output
 --- tests/actual_tests/foomp2.stderr
 +++ <stderr output>
 -error[E0308]: mismatched types
@@ -1839,7 +1839,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/fo
 -For more information about this error, try `rustc --explain E0308`.
 +For more information about this error, try `rustc --explain E0432`.
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error[E0432]: unresolved import `basic_fail`
  --> tests/actual_tests/foomp2.rs:1:5
   |
@@ -1874,8 +1874,8 @@ command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/ice
 error: test got exit status: 101, but expected 1
  = note: the compiler panicked
 
-error: no output was expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ice_annotations.stderr` to the actual output
+error: no stderr output was expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ice_annotations.stderr` to the actual stderr output
 +++ <stderr output>
 error: internal compiler error[E0432]: unresolved import `basic_fail`
  --> tests/actual_tests/ice_annotations.rs:5:5
@@ -1988,8 +1988,8 @@ command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests/rus
 error: test got exit status: 101, but expected 1
  = note: the compiler panicked
 
-error: actual output differed from expected
-Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/rustc_ice.stderr` to the actual output
+error: actual stderr output differed from expected
+Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/rustc_ice.stderr` to the actual stderr output
 --- tests/actual_tests/rustc_ice.stderr
 +++ <stderr output>
 -error: internal compiler error[E0308]: mismatched types
@@ -2014,7 +2014,7 @@ Execute `DO NOT BLESS. These are meant to fail` to update `tests/actual_tests/ru
 +
  thread 'rustc' panicked
 
-Full unnormalized output:
+Full unnormalized stderr output:
 error: internal compiler error[E0432]: unresolved import `basic_fail`
  --> tests/actual_tests/rustc_ice.rs:5:5
   |
