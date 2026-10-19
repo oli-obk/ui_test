@@ -85,7 +85,7 @@ impl AbortCheck {
 }
 
 /// Function that performs the actual output conflict handling.
-pub type OutputConflictHandling = fn(&Path, &[u8], &mut Errors, &TestConfig);
+pub type OutputConflictHandling = fn(&Path, &[u8], &mut Errors, &TestConfig, /* kind */ &str);
 
 impl Config {
     /// Create a blank configuration that doesn't do anything interesting
@@ -487,11 +487,13 @@ pub fn error_on_output_conflict(
     output: &[u8],
     errors: &mut Errors,
     config: &TestConfig,
+    kind: &str,
 ) {
     let normalized = config.normalize(output, &path.extension().unwrap().to_string_lossy());
     let expected = std::fs::read(path).unwrap_or_default();
     if normalized != expected {
         errors.push(Error::OutputDiffers {
+            kind: kind.to_string(),
             path: path.to_path_buf(),
             actual: normalized,
             output: output.to_vec(),
@@ -507,12 +509,19 @@ pub fn ignore_output_conflict(
     _output: &[u8],
     _errors: &mut Errors,
     _config: &TestConfig,
+    _kind: &str,
 ) {
 }
 
 /// Instead of erroring if the stderr/stdout differs from the expected
 /// automatically replace it with the found output (after applying filters).
-pub fn bless_output_files(path: &Path, output: &[u8], _errors: &mut Errors, config: &TestConfig) {
+pub fn bless_output_files(
+    path: &Path,
+    output: &[u8],
+    _errors: &mut Errors,
+    config: &TestConfig,
+    _kind: &str,
+) {
     if output.is_empty() {
         let _ = std::fs::remove_file(path);
     } else {

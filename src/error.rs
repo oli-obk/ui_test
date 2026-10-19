@@ -42,6 +42,8 @@ pub enum Error {
     },
     /// Stderr/Stdout differed from the `.stderr`/`.stdout` file present.
     OutputDiffers {
+        /// The kind of output this is
+        kind: String,
         /// The file containing the expected output that differs from the actual output.
         path: PathBuf,
         /// The normalized output from the command.
