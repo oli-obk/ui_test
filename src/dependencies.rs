@@ -345,8 +345,8 @@ fn build_dependencies_inner(
             build_std_crates.insert("panic_abort");
 
             for (name, artifacts) in artifacts
-                .into_iter()
-                .filter_map(|(_, artifacts)| artifacts.ok())
+                .into_values()
+                .filter_map(|artifacts| artifacts.ok())
             {
                 if build_std_crates.remove(name.as_str()) {
                     dependencies.push((format!("noprelude:{name}"), artifacts));

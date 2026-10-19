@@ -16,6 +16,8 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.program.args = vec!["run".into(), "--quiet".into()];
     config.program.input_file_flag = Some("--".into());
 
+    config.stderr_filter(r#"\(\d+\) panicked at"#, "(TID) panicked at");
+
     run_tests_generic(
         vec![config],
         default_file_filter,

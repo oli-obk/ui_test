@@ -7,7 +7,7 @@ error[E0308]: mismatched types
   |     arguments to this function are incorrect
   |
 note: function defined here
- --> $DIR/tests/integrations/basic-fail/tests/actual_tests_bless/auxiliary/foomp.rs:1:8
+ --> tests/actual_tests_bless/auxiliary/foomp.rs:1:8
   |
 1 | pub fn add(_: u8, _: u8) {}
   |        ^^^

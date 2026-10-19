@@ -2,7 +2,12 @@ error[E0432]: unresolved import `m`
   --> tests/actual_tests/error_below_multi_rev.rs:18:7
    |
 18 | use ::m::foo;
-   |       ^ help: a similar path exists: `self::m`
+   |       ^
+   |
+help: a similar path exists
+   |
+18 | use ::self::m::foo;
+   |       ++++++
 
 error: unused import: `::std::vec`
  --> tests/actual_tests/error_below_multi_rev.rs:9:5

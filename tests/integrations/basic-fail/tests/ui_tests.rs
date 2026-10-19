@@ -24,6 +24,7 @@ fn main() -> ui_test::color_eyre::Result<()> {
     config.stdout_filter("in ([0-9]m )?[0-9\\.]+s", "");
     config.stderr_filter(r"[^ ]*/\.?cargo/registry/.*/", "$$CARGO_REGISTRY");
     config.path_stderr_filter(&std::path::Path::new(path), "$DIR");
+    config.stderr_filter(r#"\(\d+\) panicked at"#, "(TID) panicked at");
 
     run_tests_generic(
         vec![config],

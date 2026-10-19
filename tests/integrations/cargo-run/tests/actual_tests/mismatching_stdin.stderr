@@ -1,5 +1,5 @@
 
-thread 'main' panicked at src/main.rs:7:9:
+thread 'main' (TID) panicked at src/main.rs:7:9:
 assertion `left == right` failed
   left: "cake"
  right: "asdfasdf"

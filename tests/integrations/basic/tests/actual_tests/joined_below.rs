@@ -1,3 +1,5 @@
+// there are overlapping suggestions here that rustfix struggles with
+//@no-rustfix
 #![deny(unused_mut, unused_variables)]
 
 fn main() {
