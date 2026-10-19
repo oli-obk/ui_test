@@ -110,6 +110,8 @@ fn main() -> Result<()> {
     // abort messages are different on windows
     config.stdout_filter(r#"exit status: 0xc0000409"#, "signal: 6 (SIGABRT)");
     config.filter("\"--target=[^\"]+\"", "");
+    // panics contain thread IDs
+    config.filter(r#"\(\d+\) panicked at"#, "(TID) panicked at");
 
     let emitter: Box<dyn ui_test::status_emitter::StatusEmitter> = args.format.into();
 

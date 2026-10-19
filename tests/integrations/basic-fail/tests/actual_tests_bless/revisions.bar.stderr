@@ -7,9 +7,9 @@ error[E0308]: mismatched types
    |     arguments to this function are incorrect
    |
 note: function defined here
-  --> $DIR/tests/integrations/basic-fail/src/lib.rs:1:8
+  --> src/lib.rs:1:8
    |
-1  | pub fn add(left: usize, right: usize) -> usize {
+ 1 | pub fn add(left: usize, right: usize) -> usize {
    |        ^^^
 
 error: aborting due to 1 previous error
