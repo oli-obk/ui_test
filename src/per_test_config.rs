@@ -18,7 +18,7 @@ use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
 use std::sync::Arc;
 
 /// All information needed to run a single test
@@ -132,6 +132,7 @@ impl TestConfig {
     /// Produce the command that will be executed to run the test.
     pub fn build_command(&self, build_manager: &BuildManager) -> Result<Command, Errored> {
         let mut cmd = self.config.program.build(&self.config.out_dir);
+        cmd.stdin(Stdio::piped());
         cmd.arg(self.status.path());
         for r in self.comments() {
             cmd.args(&r.compile_flags);

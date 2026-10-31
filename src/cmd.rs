@@ -2,7 +2,7 @@ use crate::display;
 use std::{
     ffi::OsString,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 
 #[derive(Debug, Clone)]
@@ -101,6 +101,7 @@ impl CommandBuilder {
     /// Create a command with the given settings.
     pub fn build(&self, out_dir: &Path) -> Command {
         let mut cmd = Command::new(&self.program);
+        cmd.stdin(Stdio::piped());
         cmd.args(self.args.iter());
         if let Some(flag) = &self.out_dir_flag {
             cmd.arg(flag).arg(out_dir);

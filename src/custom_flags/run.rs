@@ -2,8 +2,8 @@
 
 use super::Flag;
 use crate::{
-    build_manager::BuildManager, display, per_test_config::TestConfig,
-    status_emitter::RevisionStyle, CommandBuilder, Error, Errored, OutputConflictHandling, TestOk,
+    build_manager::BuildManager, per_test_config::TestConfig, status_emitter::RevisionStyle,
+    CommandBuilder, Error, Errored, OutputConflictHandling, TestOk,
 };
 use bstr::ByteSlice;
 use spanned::Spanned;
@@ -67,14 +67,7 @@ impl Flag for Run {
             if stdin.exists() {
                 exe.stdin(std::fs::File::open(stdin).unwrap());
             }
-            let output = exe.output().unwrap_or_else(|err| {
-                panic!(
-                    "exe file: {}: {err}",
-                    display(&config.config.program.program)
-                )
-            });
-
-            config.aborted()?;
+            let output = config.config.run_command(&mut exe)?;
 
             let mut errors = vec![];
 

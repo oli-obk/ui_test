@@ -2184,7 +2184,7 @@ command: "$CMD" "tests/actual_tests/bad_pattern.rs" "--edition" "2021"
 full stderr:
 No such file or directory
 full stdout:
-could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+could not spawn "invalid_foobarlaksdfalsdfj" as a process
 
 
 FAILED TEST: tests/actual_tests/bad_pattern_multiple.rs
@@ -2193,7 +2193,7 @@ command: "$CMD" "tests/actual_tests/bad_pattern_multiple.rs" "--edition" "2021"
 full stderr:
 No such file or directory
 full stdout:
-could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+could not spawn "invalid_foobarlaksdfalsdfj" as a process
 
 
 FAILED TEST: tests/actual_tests/executable.rs
@@ -2202,7 +2202,7 @@ command: "$CMD" "tests/actual_tests/executable.rs" "--edition" "2021"
 full stderr:
 No such file or directory
 full stdout:
-could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+could not spawn "invalid_foobarlaksdfalsdfj" as a process
 
 
 FAILED TEST: tests/actual_tests/executable_compile_err.rs
@@ -2211,7 +2211,7 @@ command: "$CMD" "tests/actual_tests/executable_compile_err.rs" "--edition" "2021
 full stderr:
 No such file or directory
 full stdout:
-could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+could not spawn "invalid_foobarlaksdfalsdfj" as a process
 
 
 FAILED TEST: tests/actual_tests/exit_code_fail.rs
@@ -2220,7 +2220,7 @@ command: "$CMD" "tests/actual_tests/exit_code_fail.rs" "--edition" "2021"
 full stderr:
 No such file or directory
 full stdout:
-could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+could not spawn "invalid_foobarlaksdfalsdfj" as a process
 
 
 FAILED TEST: tests/actual_tests/filters.rs
@@ -2245,7 +2245,7 @@ command: "$CMD" "tests/actual_tests/foomp.rs" "--edition" "2021"
 full stderr:
 No such file or directory
 full stdout:
-could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+could not spawn "invalid_foobarlaksdfalsdfj" as a process
 
 
 FAILED TEST: tests/actual_tests/foomp2.rs
@@ -2254,7 +2254,7 @@ command: "$CMD" "tests/actual_tests/foomp2.rs" "--edition" "2021"
 full stderr:
 No such file or directory
 full stdout:
-could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+could not spawn "invalid_foobarlaksdfalsdfj" as a process
 
 
 FAILED TEST: tests/actual_tests/ice_annotations.rs
@@ -2263,7 +2263,7 @@ command: "$CMD" "tests/actual_tests/ice_annotations.rs" "-Ztreat-err-as-bug" "--
 full stderr:
 No such file or directory
 full stdout:
-could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+could not spawn "invalid_foobarlaksdfalsdfj" as a process
 
 
 FAILED TEST: tests/actual_tests/inline_chain.rs
@@ -2359,7 +2359,7 @@ command: "$CMD" "tests/actual_tests/rustc_ice.rs" "-Ztreat-err-as-bug" "--editio
 full stderr:
 No such file or directory
 full stdout:
-could not spawn `"invalid_foobarlaksdfalsdfj"` as a process
+could not spawn "invalid_foobarlaksdfalsdfj" as a process
 
 
 FAILED TEST: tests/actual_tests/touching_above_below.rs
@@ -2413,6 +2413,34 @@ FAILURES:
     tests/actual_tests/touching_above_below_chain.rs
 
 test result: FAIL. 17 failed
+
+Building dependencies ... ok
+tests/actual_tests_timeout/build_timeout.rs ... FAILED
+tests/actual_tests_timeout/run_timeout.rs ... ok
+tests/actual_tests_timeout/run_timeout.rs (revision `run`) ... FAILED
+
+FAILED TEST: tests/actual_tests_timeout/build_timeout.rs
+command: "rustc" "--error-format=json" "--out-dir" "$TMP "tests/actual_tests_timeout/build_timeout.rs" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail.rlib" "--extern" "basic_fail=$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug/libbasic_fail-$HASH.rmeta" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "-L" "$DIR/tests/integrations/basic-fail/../../../target/$TMP/$TRIPLE/debug" "--edition" "2021"
+
+full stderr:
+timeout
+full stdout:
+command did not finish within the timeout of 1s
+
+
+FAILED TEST: tests/actual_tests_timeout/run_timeout.rs (revision `run`)
+command: "$CMD"
+
+full stderr:
+timeout
+full stdout:
+command did not finish within the timeout of 1s
+
+FAILURES:
+    tests/actual_tests_timeout/build_timeout.rs
+    tests/actual_tests_timeout/run_timeout.rs (revision run)
+
+test result: FAIL. 2 failed; 1 passed
 
 
 running 0 tests

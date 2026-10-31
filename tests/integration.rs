@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::time::Duration;
 use ui_test::{spanned::Spanned, *};
 
 fn main() -> Result<()> {
@@ -6,11 +7,11 @@ fn main() -> Result<()> {
     let root_dir = path.join("integrations");
     let mut config = Config {
         bless_command: Some("cargo test".to_string()), // we bless by default
+        timeout: Duration::from_secs(300), // the tests are quite big, give them a lot of time
         ..Config::cargo(root_dir.clone())
     };
 
     config.comment_defaults.base().require_annotations = Some(Spanned::dummy(false)).into();
-
     let args = Args::test()?;
     config.with_args(&args);
 
