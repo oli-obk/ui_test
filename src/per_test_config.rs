@@ -321,7 +321,7 @@ impl TestConfig {
         }
 
         let required_annotation_level = self
-            .find_one("`require_annotations_for_level` annotations", |r| {
+            .find_one("`require-annotations-for-level` annotations", |r| {
                 r.require_annotations_for_level.clone()
             })?;
 
