@@ -107,6 +107,7 @@ fn main() -> Result<()> {
     );
     // abort messages are different on macos
     config.stdout_filter(r#" \(core dumped\)"#, "");
+    config.stdout_filter(r#"( panicked at /rustc-dev/)[0-9a-f]+/"#, "$1");
     // abort messages are different on windows
     config.stdout_filter(r#"exit status: 0xc0000409"#, "signal: 6 (SIGABRT)");
     config.filter("\"--target=[^\"]+\"", "");
