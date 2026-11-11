@@ -118,11 +118,11 @@ fn build_dependencies_inner(
                         .as_bytes()
                         .iter()
                         .copied()
-                        .chain([b'\n'])
+                        .chain(*b"\n")
                         .chain(msg.message.rendered.unwrap_or_default().into_bytes())
                         .collect(),
                     Ok(_) => vec![],
-                    Err(_) => line.iter().copied().chain([b'\n']).collect(),
+                    Err(_) => line.iter().copied().chain(*b"\n").collect(),
                 },
             )
             .collect();

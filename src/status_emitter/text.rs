@@ -677,7 +677,7 @@ fn print_error(error: &Error, path: &Path) {
                 None => "outside the testfile".into(),
             };
             create_error(
-                format!("diagnostic code `{}` not found {line}", &**code),
+                format!("diagnostic code `{}` not found {line}", **code),
                 &[&[("expected because of this pattern", code.span())]],
                 path,
             );
