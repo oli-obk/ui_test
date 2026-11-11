@@ -17,8 +17,10 @@ use std::{
     collections::BTreeMap,
     num::NonZeroUsize,
     path::{Path, PathBuf},
-    process::{Command, Output},
-    sync::{atomic::AtomicBool, Arc},
+    process::{Command, Output, Stdio},
+    sync::{atomic::AtomicBool, mpsc, Arc},
+    thread,
+    time::Duration,
 };
 
 mod args;
@@ -64,6 +66,8 @@ pub struct Config {
     pub diagnostic_extractor: fn(&Path, &[u8]) -> Diagnostics,
     /// Handle to the global abort check.
     pub abort_check: AbortCheck,
+    /// The timeout for commands that we spawn.
+    pub timeout: Duration,
 }
 
 /// An atomic bool that can be set to `true` to abort all tests.
@@ -111,6 +115,7 @@ impl Config {
             custom_comments: Default::default(),
             diagnostic_extractor: diagnostics::default_diagnostics_extractor,
             abort_check: Default::default(),
+            timeout: Duration::from_secs(60),
         }
     }
 
@@ -192,6 +197,7 @@ impl Config {
             custom_comments: Default::default(),
             diagnostic_extractor: diagnostics::rustc::rustc_diagnostics_extractor,
             abort_check: Default::default(),
+            timeout: Duration::from_secs(60),
         };
         config
             .custom_comments
@@ -466,16 +472,42 @@ impl Config {
     pub(crate) fn run_command(&self, cmd: &mut Command) -> Result<Output, Errored> {
         self.aborted()?;
 
-        let output = cmd.output().map_err(|err| Errored {
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+        let child = cmd.spawn().map_err(|err| Errored {
             errors: vec![],
             stderr: err.to_string().into_bytes(),
-            stdout: format!("could not spawn `{:?}` as a process", cmd.get_program()).into_bytes(),
+            stdout: format!("could not spawn {:?} as a process", cmd.get_program()).into_bytes(),
             command: format!("{cmd:?}"),
         })?;
 
+        // We wait for the child in a thread, so that we can apply a timeout via a channel.
+        let (send, recv) = mpsc::sync_channel(1);
+        thread::spawn(move || {
+            let output = child.wait_with_output();
+            send.send(output).ok(); // this can fail if the receiver is already gone.
+        });
+        let Ok(output) = recv.recv_timeout(self.timeout) else {
+            return Err(Errored {
+                errors: vec![],
+                stderr: format!("timeout").into_bytes(),
+                stdout: format!(
+                    "command did not finish within the timeout of {}s",
+                    self.timeout.as_secs()
+                )
+                .into_bytes(),
+                command: format!("{cmd:?}"),
+            });
+        };
+
         self.aborted()?;
 
-        Ok(output)
+        output.map_err(|err| Errored {
+            errors: vec![],
+            stderr: err.to_string().into_bytes(),
+            stdout: format!("could not get output from command").into_bytes(),
+            command: format!("{cmd:?}"),
+        })
     }
 }
 
