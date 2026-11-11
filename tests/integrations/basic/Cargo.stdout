@@ -57,7 +57,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 { "type": "test", "event": "ok", "name": "tests/actual_tests/unicode.rs () - tests/actual_tests/unicode.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/windows_paths.rs () - tests/actual_tests/windows_paths.rs" }
 { "type": "test", "event": "ok", "name": "tests/actual_tests/subdir/aux_proc_macro.rs () - tests/actual_tests/subdir/aux_proc_macro.rs" }
-{ "type": "suite", "event": "ok", "passed": 29, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }
+{ "type": "suite", "event": "ok", "passed": 30, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0 }
 
 running 3 tests
 ...
@@ -97,7 +97,7 @@ tests/actual_tests/unicode.rs ... ok
 tests/actual_tests/windows_paths.rs ... ok
 tests/actual_tests/subdir/aux_proc_macro.rs ... ok
 
-test result: ok. 29 passed
+test result: ok. 30 passed
 
 
 running 0 tests

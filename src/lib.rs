@@ -383,7 +383,14 @@ fn parse_and_test_file(
         match comments.revisions.as_deref() {
             Some(revisions) => {
                 let Some(revision) = revisions.get(i) else {
-                    status.done(&Ok(TestOk::Ok), build_manager.aborted());
+                    runs.insert(
+                        0,
+                        TestRun {
+                            result: Ok(TestOk::Ok),
+                            status,
+                            abort_check: config.abort_check.clone(),
+                        },
+                    );
                     break;
                 };
                 let status = status.for_revision(revision, RevisionStyle::Show);
