@@ -17,7 +17,7 @@ pub mod run;
 pub mod rustfix;
 
 /// Tester-specific flag that gets parsed from `//@` comments.
-pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug {
+pub trait Flag: Send + Sync + UnwindSafe + RefUnwindSafe + std::fmt::Debug + std::any::Any {
     /// Clone the boxed value and create a new box.
     fn clone_inner(&self) -> Box<dyn Flag>;
 
