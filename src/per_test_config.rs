@@ -187,7 +187,7 @@ impl TestConfig {
 
     pub(crate) fn check_output(&self, output: &[u8], errors: &mut Errors, kind: &str) -> PathBuf {
         let path = self.output_path(kind);
-        (self.config.output_conflict_handling)(&path, output, errors, self);
+        (self.config.output_conflict_handling)(&path, output, errors, self, kind);
         path
     }
 
